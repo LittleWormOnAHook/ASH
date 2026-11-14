@@ -58,6 +58,7 @@ namespace ASH.Gameplay
         void Awake()
         {
             if (!inventory) inventory = GetComponent<ASHInventory>();
+            if (inventory) inventory.IsHeld = x => x != null && (x == Main || x == Off || x == Hip);
             if (!input) input = GetComponent<ASHInput>();
             if (!animator) animator = GetComponentInChildren<Animator>();
             _placer = GetComponent<ASHPlacer>();
@@ -210,6 +211,8 @@ namespace ASH.Gameplay
             if (Off && Off.IsLightSource) return SetLight(Off, !HandLightOn);
             if (Hip && Hip.IsLightSource) return SetLight(Hip, !HipLightOn);
             if (inventory == null) return false;
+            var cross = inventory.CrossSlot(ASHInventory.CrossQuad.Light);
+            if (!cross.IsEmpty && cross.item.IsEquippable) return Equip(cross.item);
             foreach (var s in inventory.Slots) if (!s.IsEmpty && s.item.IsLightSource && s.item.IsEquippable) return Equip(s.item);
             Say("No light to turn on"); return false;
         }

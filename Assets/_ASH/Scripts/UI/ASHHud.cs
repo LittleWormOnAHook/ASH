@@ -55,12 +55,15 @@ namespace ASH.UI
         sealed class Bar { public RectTransform fill; public Image fillImg; public Text label; public Color color; }
         sealed class SlotUI { public int index; public RectTransform rt; public Button button; public Image bg, icon, strip; public Text abbr, count, key; public float pulse; }
         readonly List<SlotUI> _hotbar = new List<SlotUI>();
+        readonly List<SlotUI> _cross = new List<SlotUI>();
+        RectTransform _crossRoot; Text _crossCenter;
+        static readonly Color Gold = new Color(0.86f, 0.68f, 0.34f, 0.9f);
         RectTransform _hotbarRoot;
         Image _dragGhost; int _dragFrom = -1;
         Text _tipTitle, _tipBody;
         static readonly Color SlotEmpty = new Color(0.10f, 0.095f, 0.085f, 0.55f);
         static readonly Color SlotFull = new Color(0.17f, 0.155f, 0.14f, 0.88f);
-        const string PackHint = "<color=#d9cbb4>LMB</color> use   <color=#d9cbb4>RMB</color> split   <color=#d9cbb4>B</color> break down   <color=#d9cbb4>Drag</color> move   <color=#d9cbb4>J</color> journal   <color=#d9cbb4>Tab</color> close";
+        const string PackHint = "<color=#d9cbb4>LMB</color> use   <color=#d9cbb4>RMB</color> split   <color=#d9cbb4>B</color> break down   <color=#d9cbb4>Drag</color> move (pack, hotbar, cross bar)   <color=#d9cbb4>J</color> journal   <color=#d9cbb4>Tab</color> close";
 
         void Awake()
         {
@@ -146,7 +149,7 @@ namespace ASH.UI
             _placeHint = Label("PlaceHint", _root, new Vector2(0.5f, 0), new Vector2(0, 185), new Vector2(900, 60), 24, TextAnchor.MiddleCenter, Ink);
             AddShadow(_placeHint);
 
-            BuildHotbar(); BuildInventory();
+            BuildHotbar(); BuildCross(); BuildInventory();
             _journal = ASHJournalUI.Create(_root, inventory, crafting, UseItem);
             if (gps) _map = ASHMapUI.Create(_root, gps);
             BuildPause(); BuildDeath();
@@ -183,7 +186,7 @@ namespace ASH.UI
             On(EventTriggerType.BeginDrag, d => BeginSlotDrag(idx, d));
             On(EventTriggerType.Drag, d => { if (_dragGhost) _dragGhost.rectTransform.position = d.position; });
             On(EventTriggerType.EndDrag, _ => EndSlotDrag());
-            On(EventTriggerType.Drop, _ => { if (_dragFrom >= 0 && inventory) inventory.Move(_dragFrom, idx); });
+            On(EventTriggerType.Drop, _ => DropOn(idx));
             return s;
         }
 
@@ -199,6 +202,90 @@ namespace ASH.UI
             for (int i = 0; i < n; i++) _hotbar.Add(MakeSlot(_hotbarRoot, i, size, true));
         }
 
+        /// <summary>Drops the dragged stack onto a slot (pack, hotbar or cross bar); cross quadrants enforce their category.</summary>
+        public bool DropOn(int idx)
+        {
+            if (_dragFrom < 0 || inventory == null) return false;
+            int from = _dragFrom;
+            bool ok = inventory.Move(from, idx);
+            if (!ok && inventory.LastMoveRefused >= 0 && inventory.IsCross(inventory.LastMoveRefused))
+            {
+                var q = (ASHInventory.CrossQuad)(inventory.LastMoveRefused - inventory.CrossStart);
+                Toast($"The {ASHInventory.CrossLabel(q).ToLowerInvariant()} slot only holds {CrossHint(q)}.");
+            }
+            return ok;
+        }
+        static string CrossHint(ASHInventory.CrossQuad q) => q == ASHInventory.CrossQuad.Weapon ? "weapons and the hatchet" : q == ASHInventory.CrossQuad.Ammo ? "ammo" : q == ASHInventory.CrossQuad.Light ? "lanterns, torches and flashlights" : "food, water and meds";
+
+        /// <summary>Test hook: drag slot a onto slot b through the same path as the mouse.</summary>
+        public bool SimDrag(int a, int b) { if (inventory == null || a < 0 || a >= inventory.Slots.Count || inventory.Slots[a].IsEmpty) return false; _dragFrom = a; bool ok = DropOn(b); _dragFrom = -1; return ok; }
+
+        // Genesis Hot Cross, adapted to uGUI: four quadrants split by a thin gold cross with a ring in the middle.
+        // TL weapon (Z / d-pad up), TR ammo (X / right), BL food (V / down), BR light (G / left). Centre: rounds for the held weapon.
+        void BuildCross()
+        {
+            if (inventory == null) return;
+            const float q = 84f, gap = 14f; float span = q * 2 + gap;
+            _crossRoot = Rect("HotCross", _root, new Vector2(1, 0), new Vector2(1, 0), new Vector2(-40, 30), new Vector2(span + 16, span + 16));
+            _crossRoot.pivot = new Vector2(1, 0);
+            var back = _crossRoot.gameObject.AddComponent<Image>(); back.color = new Color(0, 0, 0, 0.28f); back.raycastTarget = false;
+            Img("HBar", _crossRoot, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(span, 2), Gold).raycastTarget = false;
+            Img("VBar", _crossRoot, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(2, span), Gold).raycastTarget = false;
+            var pos = new[] { new Vector2(-1, 1), new Vector2(1, 1), new Vector2(1, -1), new Vector2(-1, -1) }; // weapon TL, ammo TR, light BR, food BL
+            for (int i = 0; i < ASHInventory.CrossCount; i++)
+            {
+                var s = MakeSlot(_crossRoot, inventory.CrossStart + i, q, false);
+                s.rt.anchoredPosition = pos[i] * ((q + gap) * 0.5f);
+                s.key.text = ASHInput.CrossKeys[i]; s.key.color = Gold;
+                _cross.Add(s);
+            }
+            var ring = Img("Ring", _crossRoot, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(36, 36), new Color(0.05f, 0.045f, 0.04f, 0.95f));
+            ring.raycastTarget = false; var ro = ring.gameObject.AddComponent<Outline>(); ro.effectColor = Gold; ro.effectDistance = new Vector2(2, -2);
+            _crossCenter = Label("Rounds", ring.rectTransform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(36, 36), 17, TextAnchor.MiddleCenter, Ink);
+            _crossCenter.fontStyle = FontStyle.Bold; AddShadow(_crossCenter);
+        }
+
+        void RefreshCross()
+        {
+            if (inventory == null) return;
+            foreach (var ui in _cross)
+            {
+                FillSlot(ui);
+                var s = inventory.Slots[ui.index]; var quad = (ASHInventory.CrossQuad)(ui.index - inventory.CrossStart);
+                if (s.IsEmpty) { ui.abbr.text = $"<size=13>{ASHInventory.CrossLabel(quad).ToUpperInvariant()}</size>"; ui.abbr.color = new Color(Gold.r, Gold.g, Gold.b, 0.55f); }
+                bool held = !s.IsEmpty && _equip && (s.item == _equip.Main || s.item == _equip.Off || s.item == _equip.Hip);
+                ui.bg.color = held ? new Color(0.32f, 0.24f, 0.12f, 0.92f) : ui.bg.color;
+            }
+            if (_crossCenter)
+            {
+                var w = _equip ? _equip.Main : null;
+                _crossCenter.text = w && w.ammoItem ? inventory.Count(w.ammoItem).ToString() : "";
+            }
+        }
+
+        /// <summary>Cross bar key/d-pad: weapon holds/holsters, ammo shows the count (reload stub), light readies or toggles, food eats.</summary>
+        public bool UseCross(int quad)
+        {
+            if (inventory == null || quad < 0 || quad >= ASHInventory.CrossCount) return false;
+            int idx = inventory.CrossStart + quad; var s = inventory.Slots[idx];
+            if (quad < _cross.Count) _cross[quad].pulse = 1f;
+            var q = (ASHInventory.CrossQuad)quad;
+            if (s.IsEmpty) { Toast($"Cross bar: drag {CrossHint(q)} onto the {ASHInventory.CrossLabel(q).ToLowerInvariant()} slot [{ASHInput.CrossKeys[quad]}]."); return false; }
+            switch (q)
+            {
+                case ASHInventory.CrossQuad.Ammo:
+                    var w = _equip ? _equip.Main : null;
+                    Toast(w && w.ammoItem == s.item ? $"{w.displayName}: {inventory.Count(s.item)} {s.item.displayName} ready." : $"{s.item.displayName}: {inventory.Count(s.item)} carried.");
+                    return true;
+                case ASHInventory.CrossQuad.Light:
+                    if (_equip && (s.item == _equip.Off || s.item == _equip.Hip)) return _equip.ToggleLight();
+                    return UseSlot(idx);
+                default: return UseSlot(idx);
+            }
+        }
+        public string CrossText(int quad) { if (inventory == null || quad < 0 || quad >= ASHInventory.CrossCount) return null; var s = inventory.Slots[inventory.CrossStart + quad]; return s.IsEmpty ? "" : s.item.displayName + "|" + s.amount; }
+        public int CrossSlotCount => _cross.Count;
+
         void BuildInventory()
         {
             int n = inventory ? inventory.SlotCount : 12; const int cols = 6; const float cell = 96f, gap = 10f;
@@ -208,7 +295,7 @@ namespace ASH.UI
             var rt = (RectTransform)_invPanel.transform;
             var accent = Img("Accent", rt, new Vector2(0, 1), new Vector2(1, 1), Vector2.zero, new Vector2(0, 3), new Color(Accent.r, Accent.g, Accent.b, 0.8f)).rectTransform; accent.pivot = new Vector2(0.5f, 1); accent.anchoredPosition = Vector2.zero; accent.sizeDelta = new Vector2(0, 3);
             Label("Title", rt, new Vector2(0.5f, 1), new Vector2(0, -34), new Vector2(gridW, 40), 30, TextAnchor.MiddleCenter, Accent).text = "Pack";
-            Label("Sub", rt, new Vector2(0.5f, 1), new Vector2(0, -64), new Vector2(gridW, 24), 16, TextAnchor.MiddleCenter, Dim).text = $"{n} slots  ·  top row is the hotbar";
+            Label("Sub", rt, new Vector2(0.5f, 1), new Vector2(0, -64), new Vector2(gridW, 24), 16, TextAnchor.MiddleCenter, Dim).text = $"{n} slots  ·  top row is the hotbar  ·  cross bar bottom-right";
             var grid = Rect("Grid", rt, new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -90), new Vector2(gridW, gridH));
             grid.pivot = new Vector2(0.5f, 1);
             var g = grid.gameObject.AddComponent<GridLayoutGroup>(); g.cellSize = new Vector2(cell, cell); g.spacing = new Vector2(gap, gap);
@@ -239,7 +326,7 @@ namespace ASH.UI
 #endif
             });
             Label("Controls", rt, new Vector2(0.5f, 0), new Vector2(0, 90), new Vector2(1500, 80), 19, TextAnchor.MiddleCenter, Dim).text =
-                "WASD move   Mouse look   Shift sprint   Space jump   Ctrl/C crouch   CapsLock walk   E interact (hold to gather)   L light   LMB use held item   Tab pack   J journal   Q crafting   M GPS map   Esc pause";
+                "WASD move   Mouse look   Shift sprint   Space jump   Ctrl/C crouch   CapsLock walk   E interact (hold to gather)   L light   LMB use held item   RMB aim light   Z/X/G/V cross bar (weapon/ammo/light/food; d-pad on gamepad)   Tab pack   J journal   Q crafting   M GPS map   Esc pause";
             _pausePanel.SetActive(false);
         }
 
@@ -275,6 +362,7 @@ namespace ASH.UI
                         crafting.TryBreakDown(inventory.Slots[_hoverSlot].item);
                     int hk = input.HotbarPressed;
                     if (hk >= 0 && hk < _hotbar.Count) { _hotbar[hk].pulse = 1f; UseSlot(hk); }
+                    int cq = input.CrossPressed; if (cq >= 0) UseCross(cq);
                 }
             }
 
@@ -321,7 +409,9 @@ namespace ASH.UI
 
             // hotbar
             if (_hotbarRoot) _hotbarRoot.gameObject.SetActive(!dead && !ASHUIState.IsOpen(ASHPanels.Pause) && !(_map && _map.IsOpen) && !_journal.IsOpen);
-            AnimateSlots(_hotbar); AnimateSlots(_slots);
+            if (_crossRoot) _crossRoot.gameObject.SetActive(_hotbarRoot && _hotbarRoot.gameObject.activeSelf);
+            AnimateSlots(_hotbar); AnimateSlots(_slots); AnimateSlots(_cross);
+            if (_equip && (_equip.Main != _lastMain || _equip.Off != _lastOff || _equip.Hip != _lastHip)) { _lastMain = _equip.Main; _lastOff = _equip.Off; _lastHip = _equip.Hip; RefreshCross(); }
             if (_dragFrom >= 0 && !_invPanel.activeSelf) EndSlotDrag();
 
             // crafting progress
@@ -383,7 +473,9 @@ namespace ASH.UI
             if (inventory == null) return;
             foreach (var ui in _slots) FillSlot(ui);
             foreach (var ui in _hotbar) FillSlot(ui);
+            RefreshCross();
         }
+        ASHItemDefinition _lastMain, _lastOff, _lastHip;
 
         void FillSlot(SlotUI ui)
         {
@@ -405,6 +497,7 @@ namespace ASH.UI
             if (inventory == null) return;
             foreach (var ui in _hotbar) if (ui.index < inventory.Slots.Count && inventory.Slots[ui.index].item == item) ui.pulse = 1f;
             foreach (var ui in _slots) if (ui.index < inventory.Slots.Count && inventory.Slots[ui.index].item == item) ui.pulse = 1f;
+            foreach (var ui in _cross) if (ui.index < inventory.Slots.Count && inventory.Slots[ui.index].item == item) ui.pulse = 1f;
         }
 
         void AnimateSlots(List<SlotUI> list)

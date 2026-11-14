@@ -49,8 +49,46 @@ namespace ASH.Player
             _journal = map.FindAction("Journal", false); _map = map.FindAction("Map", false); _breakDown = map.FindAction("BreakDown", false); _lightToggle = map.FindAction("Light", false);
         }
 
-        private void OnEnable() { if (actions != null) actions.Enable(); }
-        private void OnDisable() { if (actions != null) actions.Disable(); }
+        private void OnEnable() { if (actions != null) actions.Enable(); EnsureCrossMap(); _cross.Enable(); }
+        private void OnDisable() { if (actions != null) actions.Disable(); if (_cross != null) _cross.Disable(); }
+
+        // ---------------------------------------------------------------- cross bar (Genesis Hot Cross style)
+        // Runtime-only map so the saved ASH_InputActions asset is never modified. Keys Z/X/G/V, gamepad d-pad
+        // up/right/left/down (as in Genesis); Craft and Map move from the d-pad to the shoulders at runtime.
+        InputActionMap _cross; InputAction _crossWeapon, _crossAmmo, _crossLight, _crossFood, _aimAlt;
+        public int SimCross = -1;
+        void EnsureCrossMap()
+        {
+            if (_cross != null) return;
+            _cross = new InputActionMap("ASH_Cross");
+            _crossWeapon = _cross.AddAction("CrossWeapon", InputActionType.Button, "<Keyboard>/z"); _crossWeapon.AddBinding("<Gamepad>/dpad/up");
+            _crossAmmo = _cross.AddAction("CrossAmmo", InputActionType.Button, "<Keyboard>/x"); _crossAmmo.AddBinding("<Gamepad>/dpad/right");
+            _crossLight = _cross.AddAction("CrossLight", InputActionType.Button, "<Keyboard>/g"); _crossLight.AddBinding("<Gamepad>/dpad/left");
+            _crossFood = _cross.AddAction("CrossFood", InputActionType.Button, "<Keyboard>/v"); _crossFood.AddBinding("<Gamepad>/dpad/down");
+            _aimAlt = _cross.AddAction("AimAlt", InputActionType.Button, "<Gamepad>/leftTrigger");
+            MoveOffDpad(_craft, "<Gamepad>/dpad/up", "<Gamepad>/leftShoulder");
+            MoveOffDpad(_map, "<Gamepad>/dpad/right", "<Gamepad>/rightShoulder");
+        }
+        static void MoveOffDpad(InputAction a, string from, string to)
+        {
+            if (a == null) return;
+            for (int i = 0; i < a.bindings.Count; i++) if (a.bindings[i].path == from) a.ApplyBindingOverride(i, to);
+        }
+        /// <summary>Cross quadrant pressed this frame (0 weapon, 1 ammo, 2 light, 3 food) or -1.</summary>
+        public int CrossPressed
+        {
+            get
+            {
+                if (SimCross >= 0) { int s = SimCross; SimCross = -1; return s; }
+                if (_cross == null || GameplayBlocked) return -1;
+                if (_crossWeapon.WasPressedThisFrame()) return 0;
+                if (_crossAmmo.WasPressedThisFrame()) return 1;
+                if (_crossLight.WasPressedThisFrame()) return 2;
+                if (_crossFood.WasPressedThisFrame()) return 3;
+                return -1;
+            }
+        }
+        public static readonly string[] CrossKeys = { "Z", "X", "G", "V" };
 
         public Vector2 Move => SimMove ?? (GameplayBlocked ? Vector2.zero : Vector2.ClampMagnitude(_move.ReadValue<Vector2>(), 1f));
 
@@ -83,7 +121,7 @@ namespace ASH.Player
         public bool SecondaryPressed => Consume(ref SimSecondary) || _secondary.WasPressedThisFrame();
         public bool? SimSecondaryHeld;
         /// <summary>Held Secondary (RMB): aim a torch/flashlight.</summary>
-        public bool SecondaryHeld => SimSecondaryHeld ?? (!GameplayBlocked && _secondary.IsPressed());
+        public bool SecondaryHeld => SimSecondaryHeld ?? (!GameplayBlocked && (_secondary.IsPressed() || (_aimAlt != null && _aimAlt.IsPressed())));
         /// <summary>Index of a hotbar key (1..9 -> 0..8) pressed this frame, or -1.</summary>
         public int HotbarPressed
         {
@@ -136,10 +174,10 @@ namespace ASH.Player
             map.AddAction("WalkToggle", InputActionType.Button, "<Keyboard>/capsLock");
             map.AddAction("Interact", InputActionType.Button, "<Keyboard>/e").AddBinding("<Gamepad>/buttonWest");
             var inv = map.AddAction("Inventory", InputActionType.Button, "<Keyboard>/tab"); inv.AddBinding("<Keyboard>/i"); inv.AddBinding("<Gamepad>/buttonNorth");
-            map.AddAction("Craft", InputActionType.Button, "<Keyboard>/q").AddBinding("<Gamepad>/dpad/up");
+            map.AddAction("Craft", InputActionType.Button, "<Keyboard>/q").AddBinding("<Gamepad>/leftShoulder");
             map.AddAction("Pause", InputActionType.Button, "<Keyboard>/escape").AddBinding("<Gamepad>/start");
             map.AddAction("Journal", InputActionType.Button, "<Keyboard>/j").AddBinding("<Gamepad>/select");
-            map.AddAction("Map", InputActionType.Button, "<Keyboard>/m").AddBinding("<Gamepad>/dpad/right");
+            map.AddAction("Map", InputActionType.Button, "<Keyboard>/m").AddBinding("<Gamepad>/rightShoulder");
             map.AddAction("BreakDown", InputActionType.Button, "<Keyboard>/b");
             map.AddAction("Light", InputActionType.Button, "<Keyboard>/l");
             map.AddAction("Primary", InputActionType.Button, "<Mouse>/leftButton").AddBinding("<Gamepad>/rightTrigger");

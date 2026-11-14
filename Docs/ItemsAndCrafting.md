@@ -50,7 +50,7 @@ _2026-11-14 (ET). All data are ScriptableObjects built by `ASH/Build/6. Item Cat
 ## Tools (no combat use)
 | Item | Tool role | Effect |
 |---|---|---|
-| Hatchet | Axe | Carried in the pack = works as a tool (Pass B cross bar may tighten this). Use it from the hotbar to hold it in the right hand. Fells dead trees, chops logs and stumps; required for crates/furniture. Deadwood 2× yield at half the hold. Opens cans |
+| Hatchet | Axe | **Works only from the hotbar, the cross bar weapon slot, or while held** (not from the lower pack rows; `ASHInventory.axeNeedsQuickSlot`). Use it to hold it in the right hand. Fells dead trees, chops logs and stumps; required for crates/furniture. Deadwood 2× yield at half the hold. Opens cans |
 | Hunting Knife | Knife | Required to harvest a rabbit and for Cut Cloth Strips. Better shirt/trout yields. Opens cans |
 | Improvised Knife | Knife | Craft: 2 Scrap Metal + 1 Cloth + 1 Stone |
 | Can Opener | CanOpener | Opens cans cleanly |
@@ -72,6 +72,21 @@ _2026-11-14 (ET). All data are ScriptableObjects built by `ASH/Build/6. Item Cat
 - **L** toggles the light: the hand light first, else the hip lantern, else readies the first light in the pack. Off = no fuel burn.
 - **Hold RMB** with a torch or flashlight: aim. The body turns to face the camera (Invector strafe, settings restored on release); the left arm points the beam / raises the torch toward the aim (`ASHLightAim` on the player Animator).
 - Tunables: `ASHEquipment` (hip offset/scale, swing stiffness/damping/response/max angle) and `ASHLightAim` (aim rotation speed, IK weights, raised-torch offset, aim reach/raise, elbow hint, torch tilt, blend speed) on `ASH_Player`. Per-item grip: `holdPosition` / `holdEuler` / `gripStyle` on each item asset.
+
+## Hotbar and cross bar (`ASHHud`, `ASHInventory`)
+- **Hotbar** (bottom centre, keys 1–6): the pack's top row; holds anything (pickups, tools, weapons).
+- **Cross bar** (bottom right, adapted from the Genesis Hot Cross): four quadrant slots split by a gold cross, centre ring = rounds for the held weapon. Stored as 4 extra inventory slots after the pack, so stacks, counts and crafting see them.
+
+| Quadrant | Holds | Key / gamepad | Press |
+|---|---|---|---|
+| Top-left: Weapon | Rifle, pistol, bow, hatchet | Z / d-pad up | Hold or holster |
+| Top-right: Ammo | Rounds, arrows | X / d-pad right | Shows the count (reload stub) |
+| Bottom-right: Light | Lantern, torch, flashlight | G / d-pad left | Equip; if already worn, toggle on/off |
+| Bottom-left: Food | Food, water, meds | V / d-pad down | Eat / drink / apply |
+
+- **Drag and drop** in every direction between the pack grid, the hotbar and the cross bar (open the pack with Tab). Cross quadrants refuse the wrong kind of item (a toast says what fits); a swap is refused if the other item wouldn't fit where it lands.
+- Pickups never land in the cross bar on their own, but matching stacks top up there (ammo).
+- Gamepad: Craft moved from d-pad up to **LB** and Map from d-pad right to **RB** (runtime override; the saved input asset is untouched). Aim is also on **LT**.
 
 ## Survival Pack (`ASH/World/Survival Pack/…`, `Assets/_ASH/Editor/World/ASHSurvivalPackTools.cs`)
 - **1. Build** (also runs at the end of the Item Catalog build): pickup prefabs get a nested HQ Survival Pack "Visual" (vendor files unedited; ASHAccumulation stripped, plain material copies, colliders off, one trigger box, no accumulation). Pickup prefabs are updated in place, so scene instances keep position, item and amount. Also builds the held prefabs in `Assets/_ASH/Prefabs/Held`, wires the items, adds `ASHEquipment` + `ASHLightAim` to the player and rebakes icons.

@@ -88,7 +88,10 @@ namespace ASH.DebugTools
             yield return Hold(() => false, 1.0f);
             Check("no chop without axe", tree.HitsLeft > 1 && !tree.Done, $"hits left {tree.HitsLeft}");
 
-            _inv.AddItem(hatchet, 1); yield return new WaitForSeconds(0.2f);
+            _inv.AddItem(hatchet, 1);
+            // the axe only works from the hotbar / cross bar / hand: put it on hotbar slot 1
+            for (int i = 0; i < _inv.Slots.Count; i++) if (_inv.Slots[i].item == hatchet) { if (i != 0) _inv.Move(i, 0); break; }
+            yield return new WaitForSeconds(0.2f);
             Aim(trunk); yield return new WaitForSeconds(0.2f);
             Check("axe prompt", _ix.Prompt != null && _ix.Prompt.StartsWith("Fell"), $"prompt='{_ix.Prompt}' {Diag(tree)}");
             float t0 = Time.time;

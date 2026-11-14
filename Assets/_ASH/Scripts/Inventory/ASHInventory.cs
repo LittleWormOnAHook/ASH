@@ -35,15 +35,55 @@ namespace ASH.Inventory
 
         private void EnsureSlots()
         {
-            if (slots.Count == slotCount) return;
+            if (slots.Count == TotalSlots) return;
             ResizeSlots();
         }
 
         private void ResizeSlots()
         {
-            while (slots.Count < slotCount) slots.Add(new Slot());
-            if (slots.Count > slotCount) slots.RemoveRange(slotCount, slots.Count - slotCount);
+            while (slots.Count < TotalSlots) slots.Add(new Slot());
+            if (slots.Count > TotalSlots) slots.RemoveRange(TotalSlots, slots.Count - TotalSlots);
         }
+
+        // ---------------------------------------------------------------- cross bar (Genesis Hot Cross, adapted)
+        /// <summary>Cross bar quadrants, stored as 4 extra slots after the pack: [CrossStart + quadrant].</summary>
+        public enum CrossQuad { Weapon = 0, Ammo = 1, Light = 2, Food = 3 }
+        public const int CrossCount = 4;
+        public int CrossStart => slotCount;
+        public int TotalSlots => slotCount + CrossCount;
+        public int CrossIndex(CrossQuad q) => slotCount + (int)q;
+        public bool IsCross(int i) => i >= slotCount && i < TotalSlots;
+        public bool IsHotbar(int i) => i >= 0 && i < Mathf.Min(hotbarSize, slotCount);
+        public ASHInventory.Slot CrossSlot(CrossQuad q) { EnsureSlots(); return slots[CrossIndex(q)]; }
+
+        /// <summary>Slot category rules: pack and hotbar take anything; each cross quadrant takes one kind.</summary>
+        public bool Accepts(int i, ASHItemDefinition item)
+        {
+            if (item == null) return true;
+            if (!IsCross(i)) return true;
+            return CrossAccepts((CrossQuad)(i - slotCount), item);
+        }
+
+        public static bool CrossAccepts(CrossQuad q, ASHItemDefinition item)
+        {
+            if (item == null) return true;
+            switch (q)
+            {
+                case CrossQuad.Weapon: return item.IsWeapon || item.toolType == ASHToolType.Axe;
+                case CrossQuad.Ammo: return item.category == ASHItemCategory.Ammo;
+                case CrossQuad.Light: return item.IsLightSource;
+                case CrossQuad.Food: return item.IsConsumable;
+            }
+            return false;
+        }
+
+        public static string CrossLabel(CrossQuad q) => q == CrossQuad.Weapon ? "Weapon" : q == CrossQuad.Ammo ? "Ammo" : q == CrossQuad.Light ? "Light" : "Food";
+
+        /// <summary>The axe only counts as a usable tool from the hotbar, the cross bar, or while held.</summary>
+        public bool axeNeedsQuickSlot = true;
+        /// <summary>Set by ASHEquipment: true while an item is held.</summary>
+        public Func<ASHItemDefinition, bool> IsHeld;
+        bool QuickOrHeld(int i) => IsHotbar(i) || IsCross(i) || (IsHeld != null && IsHeld(slots[i].item));
 
         public int AddItem(ASHItemDefinition item, int amount = 1)
         {
@@ -56,7 +96,7 @@ namespace ASH.Inventory
                 int add = Mathf.Min(remaining, item.maxStack - slots[i].amount);
                 slots[i].amount += add; remaining -= add;
             }
-            for (int i = 0; i < slots.Count && remaining > 0; i++)
+            for (int i = 0; i < slotCount && remaining > 0; i++)
             {
                 if (!slots[i].IsEmpty) continue;
                 int add = Mathf.Min(remaining, item.maxStack);
@@ -71,9 +111,11 @@ namespace ASH.Inventory
         {
             if (item == null || amount <= 0) return false;
             int free = 0;
-            foreach (var s in slots)
+            EnsureSlots();
+            for (int i = 0; i < slots.Count; i++)
             {
-                if (s.IsEmpty) free += item.maxStack;
+                var s = slots[i];
+                if (s.IsEmpty) { if (i < slotCount) free += item.maxStack; }
                 else if (s.item == item) free += item.maxStack - s.amount;
                 if (free >= amount) return true;
             }
@@ -113,6 +155,10 @@ namespace ASH.Inventory
             EnsureSlots();
             if (a == b || a < 0 || b < 0 || a >= slots.Count || b >= slots.Count || slots[a].IsEmpty) return false;
             var sa = slots[a]; var sb = slots[b];
+            if (!Accepts(b, sa.item)) { LastMoveRefused = b; return false; }
+            bool merge = !sb.IsEmpty && sb.item == sa.item && sb.amount < sb.item.maxStack;
+            if (!merge && !sb.IsEmpty && !Accepts(a, sb.item)) { LastMoveRefused = a; return false; }
+            LastMoveRefused = -1;
             if (!sb.IsEmpty && sb.item == sa.item && sb.amount < sb.item.maxStack)
             {
                 int add = Mathf.Min(sa.amount, sb.item.maxStack - sb.amount);
@@ -123,12 +169,15 @@ namespace ASH.Inventory
             return true;
         }
 
-        /// <summary>Splits half of a stack into the first empty slot.</summary>
+        /// <summary>Slot whose category rule refused the last Move, or -1.</summary>
+        public int LastMoveRefused { get; private set; } = -1;
+
+        /// <summary>Splits half of a stack into the first empty pack slot.</summary>
         public bool Split(int i)
         {
             EnsureSlots();
             if (i < 0 || i >= slots.Count || slots[i].IsEmpty || slots[i].amount < 2) return false;
-            int empty = slots.FindIndex(s => s.IsEmpty); if (empty < 0) return false;
+            int empty = -1; for (int k = 0; k < slotCount; k++) if (slots[k].IsEmpty) { empty = k; break; } if (empty < 0) return false;
             int half = slots[i].amount / 2;
             slots[empty].item = slots[i].item; slots[empty].amount = half; slots[i].amount -= half;
             Changed?.Invoke();
@@ -139,7 +188,14 @@ namespace ASH.Inventory
         public bool HasTool(ASHToolType tool)
         {
             if (tool == ASHToolType.None) return true;
-            foreach (var s in Slots) if (!s.IsEmpty && s.item.toolType == tool) return true;
+            var all = Slots;
+            for (int i = 0; i < all.Count; i++)
+            {
+                var s = all[i];
+                if (s.IsEmpty || s.item.toolType != tool) continue;
+                if (tool == ASHToolType.Axe && axeNeedsQuickSlot && !QuickOrHeld(i)) continue;
+                return true;
+            }
             return false;
         }
 
@@ -158,7 +214,7 @@ namespace ASH.Inventory
         private void AddItemSilently(ASHItemDefinition item, int amount)
         {
             EnsureSlots();
-            for (int i = 0; i < slots.Count && amount > 0; i++)
+            for (int i = 0; i < slotCount && amount > 0; i++)
                 if (slots[i].IsEmpty) { int add = Mathf.Min(amount, item.maxStack); slots[i].item = item; slots[i].amount = add; amount -= add; }
             Changed?.Invoke();
         }
