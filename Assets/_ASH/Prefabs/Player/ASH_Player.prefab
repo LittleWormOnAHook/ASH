@@ -2281,6 +2281,9 @@ GameObject:
   - component: {fileID: 1873793345580919012}
   - component: {fileID: 1143463931130920594}
   - component: {fileID: 2365888353130025831}
+  - component: {fileID: 2531899541619058743}
+  - component: {fileID: 4938709065564971861}
+  - component: {fileID: 3850891075124291470}
   m_Layer: 13
   m_Name: ASH_Player
   m_TagString: Player
@@ -2789,7 +2792,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7505149521301787542}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 19ce6a4d1f67f494f8e871355031f21c, type: 3}
   m_Name: 
@@ -3269,6 +3272,74 @@ MonoBehaviour:
   trenchRadius: 0.3
   trenchStrength: 0.6
   trenchStartDepth: 0.18
+--- !u!114 &2531899541619058743
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7505149521301787542}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bcd01103dc5b50c4ba30c1d705995ef4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ASH.Player.ASHFootsteps
+  map: {fileID: 11400000, guid: aa398dd57d18ec84e9b20d25e54c8660, type: 2}
+  puffs: {fileID: 4938709065564971861}
+  plantHeight: 0.07
+  liftHeight: 0.11
+  minSpeed: 0.35
+  minInterval: 0.24
+  runSpeed: 5.5
+  groundLayers:
+    serializedVersion: 2
+    m_Bits: 4294959099
+  masterVolume: 0.9
+  voices: 4
+  maxDistance: 25
+  walkVolume: 0.6
+  debugLog: 0
+--- !u!114 &4938709065564971861
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7505149521301787542}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 57fe503e63cfe8340bba521a01e1de15, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ASH.FX.ASHFootstepPuffs
+  quality: 2
+  material: {fileID: 2100000, guid: 6da2cc22468439841b16c9776be35567, type: 2}
+  snowColor: {r: 0.93, g: 0.94, b: 0.96, a: 1}
+  ashLighten: 0.4
+  opacity: 0.55
+  minDepth: 0.015
+  countRange: {x: 3, y: 12}
+  sizeRange: {x: 0.18, y: 0.55}
+  lifetime: {x: 2.2, y: 3.4}
+  kick: {x: 0.25, y: 1.1}
+  settle: 0.05
+  drag: 0.35
+  maxParticles: 600
+--- !u!114 &3850891075124291470
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7505149521301787542}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6769ed947f6973e43a495bdd76a69cd9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ASH.PostFX.ASHPostProcessing
+  profile: {fileID: 11400000, guid: e4d3ff4ba2202ab4aa3bf8b759a64d4a, type: 2}
+  mobileProfile: {fileID: 11400000, guid: 7dc7a73aaa8df324ab43fd96d0ec659e, type: 2}
+  priority: 10
+  stackEnabled: 1
 --- !u!1 &7766869945464538650
 GameObject:
   m_ObjectHideFlags: 0

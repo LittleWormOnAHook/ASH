@@ -159,6 +159,9 @@ namespace ASH.World.Accumulation
             return Mathf.Clamp01(ashAmount + snowAmount * (1f - extraMelt)) * (1f - pathDepthReduction * dm.a) * coverage * d;
         }
 
+        /// <summary>Main-path factor at a position (drift mask A: 1 on a road/trail, 0 off it).</summary>
+        public float GetPathFactor(Vector3 worldPos) => driftMask ? SampleDrift(worldPos).a : 0f;
+
         /// <summary>Relative ash / snow layer thickness at a position (0..1 each) before deformation.</summary>
         public void GetLayers(Vector3 worldPos, out float ash, out float snow)
         {
