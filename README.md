@@ -30,3 +30,7 @@ Docs/
 Import the master RAW file into a Unity Terrain at **4097 × 4097**, **16-bit**, **Windows/little-endian**, no vertical flip. Set Width and Length to **4000 m** and Height to **1400 m**. Full bounds, coordinate orientation, tiling positions, attribution, and import instructions are in `Docs/ASH_heightmap_import.md`.
 
 Reference area bounds (WGS84): west **-104.9227°**, east **-104.8775°**, south **37.3900°**, north **37.4260°**. These coordinates are art-direction reference only.
+
+## Implementation handoff
+
+The complete BOB project brief, including the terrain preview, Unity configuration, implementation priorities, and first playable milestone, is in [`Docs/BOB_HANDOFF.md`](Docs/BOB_HANDOFF.md).
