@@ -8,6 +8,19 @@ namespace ASH.EditorTools.Build
     /// <summary>Small helpers shared by the ASH editor builders.</summary>
     public static class ASHBuildUtil
     {
+        /// <summary>
+        /// Saves only ASH-owned data/material assets (never a global SaveAssets, which would also write terrain
+        /// data and other in-progress editor state such as Anthony's tree edits).
+        /// </summary>
+        public static void SaveOwn()
+        {
+            foreach (var guid in AssetDatabase.FindAssets("t:ScriptableObject t:Material", new[] { "Assets/_ASH/Data", "Assets/_ASH/Materials" }))
+            {
+                var o = AssetDatabase.LoadMainAssetAtPath(AssetDatabase.GUIDToAssetPath(guid));
+                if (o != null && !(o is TerrainData) && EditorUtility.IsDirty(o)) AssetDatabase.SaveAssetIfDirty(o);
+            }
+        }
+
         public static void Folder(string path)
         {
             path = path.Replace('\\', '/');

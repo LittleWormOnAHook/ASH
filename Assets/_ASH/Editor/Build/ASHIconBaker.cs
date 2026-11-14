@@ -53,7 +53,7 @@ namespace ASH.EditorTools.Build
                 if (!Bake(prefab, icon, 256, 35f)) { Debug.LogWarning("[ASH] Icon bake failed for " + file); continue; }
                 item.icon = AssetDatabase.LoadAssetAtPath<Sprite>(icon); EditorUtility.SetDirty(item); n++;
             }
-            AssetDatabase.SaveAssets();
+            ASHBuildUtil.SaveOwn();
             Debug.Log($"[ASH] Baked {n} item icons into {IconDir}");
         }
 

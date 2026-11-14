@@ -81,7 +81,7 @@ namespace ASH.EditorTools.Build
                 EditorUtility.SetDirty(d); region.surveys.Add(d);
             }
             region.surveys.Sort((a, b) => a.order.CompareTo(b.order));
-            EditorUtility.SetDirty(region); AssetDatabase.SaveAssets();
+            EditorUtility.SetDirty(region); ASHBuildUtil.SaveOwn();
             Debug.Log($"[ASH] Region data: {region.pois.Count} POIs, {region.surveys.Count} surveys");
             return region;
         }
@@ -125,6 +125,7 @@ namespace ASH.EditorTools.Build
             _t = Terrain.activeTerrain; if (!_t) throw new Exception("No terrain.");
             var region = BuildData(); var L = Load();
             Mats();
+            int treeProtos = _t.terrainData.treePrototypes.Length, treeCount = _t.terrainData.treeInstanceCount;
             var old = GameObject.Find("ASH_Region"); if (old) Object.DestroyImmediate(old);
             Physics.SyncTransforms();
             _root = new GameObject("ASH_Region").transform;
@@ -162,7 +163,9 @@ namespace ASH.EditorTools.Build
             }
             EditorUtility.SetDirty(region);
             PlacePickups(L, pickRoot);
-            int painted = PaintRoutes(L);
+            int painted = 0; // terrain splat is a separate step: ASH/World/Paint Region Roads + Trails
+            if (_t.terrainData.treePrototypes.Length != treeProtos || _t.terrainData.treeInstanceCount != treeCount)
+                throw new Exception($"[ASH] Terrain trees changed during region build ({treeProtos}/{treeCount} -> {_t.terrainData.treePrototypes.Length}/{_t.terrainData.treeInstanceCount}); aborting before save.");
 
             // systems
             var systems = GameObject.Find("ASH_Systems")?.transform ?? new GameObject("ASH_Systems").transform;
@@ -178,7 +181,7 @@ namespace ASH.EditorTools.Build
                 ASHBuildUtil.Set(obj, "gps", gps);
                 if (first) { ASHBuildUtil.Set(obj, "firstSurvey", first.Definition); ASHBuildUtil.Set(obj, "firstSurveyPoint", first.transform); }
             }
-            AssetDatabase.SaveAssets();
+            ASHBuildUtil.SaveOwn();
             EditorSceneManager.MarkSceneDirty(scene); EditorSceneManager.SaveScene(scene);
             Debug.Log($"[ASH] Region built: {string.Join("; ", report)}. Pickups {pickRoot.childCount}. Route texels painted {painted}. First survey {(first ? first.name : "none")}.");
         }
@@ -498,43 +501,53 @@ namespace ASH.EditorTools.Build
         [MenuItem("ASH/World/Paint Region Roads + Trails")]
         public static void PaintRoutesMenu() { _t = Terrain.activeTerrain; if (_t) PaintRoutes(Load()); }
 
-        /// <summary>Blends the soil layer along roads (3.5 m) and trails (1.1 m). Splat only, never heights.</summary>
+        /// <summary>
+        /// Blends the soil layer along roads (3.5 m) and trails (1.1 m). Splat only: one GetAlphamaps/SetAlphamaps per
+        /// route over its bounding box. Never touches heights, trees, tree prototypes or detail layers, and takes
+        /// no whole-terrain undo snapshot. Saves only the terrain data asset itself (splat change).
+        /// </summary>
         public static int PaintRoutes(Layout L)
         {
             var data = _t.terrainData; int soil = -1;
-            for (int i = 0; i < data.terrainLayers.Length; i++) if (data.terrainLayers[i] && data.terrainLayers[i].name == "ASH_TL_Soil") soil = i;
+            var tl = data.terrainLayers;
+            for (int i = 0; i < tl.Length; i++) if (tl[i] && tl[i].name == "ASH_TL_Soil") soil = i;
             if (soil < 0) { Debug.LogWarning("[ASH] ASH_TL_Soil layer not on terrain; roads not painted."); return 0; }
-            Undo.RegisterCompleteObjectUndo(data, "ASH paint routes");
             int res = data.alphamapResolution; float cell = data.size.x / res; int painted = 0;
             var routes = new List<(List<Vector2> pts, float half)>();
             foreach (var r in L.roads) routes.Add((Smooth(r.pts, 8), 3.5f));
             foreach (var r in L.trails) routes.Add((Smooth(r.pts, 8), 1.1f));
             foreach (var (pts, half) in routes)
             {
+                if (pts.Count < 2) continue;
                 float edge = half + 1.5f;
+                Vector2 mn = pts[0], mx = pts[0]; foreach (var q in pts) { mn = Vector2.Min(mn, q); mx = Vector2.Max(mx, q); }
+                int x0 = Mathf.Clamp(Mathf.FloorToInt((mn.x - edge) / cell), 0, res - 1), x1 = Mathf.Clamp(Mathf.CeilToInt((mx.x + edge) / cell), 0, res - 1);
+                int z0 = Mathf.Clamp(Mathf.FloorToInt((mn.y - edge) / cell), 0, res - 1), z1 = Mathf.Clamp(Mathf.CeilToInt((mx.y + edge) / cell), 0, res - 1);
+                int w = x1 - x0 + 1, h = z1 - z0 + 1; if (w <= 0 || h <= 0) continue;
+                var al = data.GetAlphamaps(x0, z0, w, h); int layers = al.GetLength(2); bool any = false;
                 for (int s = 1; s < pts.Count; s++)
                 {
                     Vector2 a = pts[s - 1], b = pts[s];
-                    int x0 = Mathf.Clamp(Mathf.FloorToInt((Mathf.Min(a.x, b.x) - edge) / cell), 0, res - 1), x1 = Mathf.Clamp(Mathf.CeilToInt((Mathf.Max(a.x, b.x) + edge) / cell), 0, res - 1);
-                    int z0 = Mathf.Clamp(Mathf.FloorToInt((Mathf.Min(a.y, b.y) - edge) / cell), 0, res - 1), z1 = Mathf.Clamp(Mathf.CeilToInt((Mathf.Max(a.y, b.y) + edge) / cell), 0, res - 1);
-                    int w = x1 - x0 + 1, h = z1 - z0 + 1; if (w <= 0 || h <= 0) continue;
-                    var al = data.GetAlphamaps(x0, z0, w, h); int layers = al.GetLength(2); bool any = false;
-                    for (int zz = 0; zz < h; zz++)
-                        for (int xx = 0; xx < w; xx++)
+                    int sx0 = Mathf.Max(x0, Mathf.FloorToInt((Mathf.Min(a.x, b.x) - edge) / cell)), sx1 = Mathf.Min(x1, Mathf.CeilToInt((Mathf.Max(a.x, b.x) + edge) / cell));
+                    int sz0 = Mathf.Max(z0, Mathf.FloorToInt((Mathf.Min(a.y, b.y) - edge) / cell)), sz1 = Mathf.Min(z1, Mathf.CeilToInt((Mathf.Max(a.y, b.y) + edge) / cell));
+                    Vector2 ab = b - a; float ab2 = Mathf.Max(ab.sqrMagnitude, 1e-4f);
+                    for (int zi = sz0; zi <= sz1; zi++)
+                        for (int xi = sx0; xi <= sx1; xi++)
                         {
-                            var q = new Vector2((x0 + xx + 0.5f) * cell, (z0 + zz + 0.5f) * cell);
-                            Vector2 ab = b - a; float t = Mathf.Clamp01(Vector2.Dot(q - a, ab) / Mathf.Max(ab.sqrMagnitude, 1e-4f));
+                            var q = new Vector2((xi + 0.5f) * cell, (zi + 0.5f) * cell);
+                            float t = Mathf.Clamp01(Vector2.Dot(q - a, ab) / ab2);
                             float d = Vector2.Distance(q, a + ab * t);
                             float n = Mathf.PerlinNoise(q.x * 0.15f, q.y * 0.15f) * 0.8f;
                             float wgt = Mathf.Clamp01((edge - d + n) / (edge - half)) * 0.9f;
+                            int zz = zi - z0, xx = xi - x0;
                             if (wgt <= 0.01f || al[zz, xx, soil] >= wgt) continue;
                             for (int l = 0; l < layers; l++) al[zz, xx, l] *= (1f - wgt);
                             al[zz, xx, soil] += wgt; any = true; painted++;
                         }
-                    if (any) data.SetAlphamaps(x0, z0, al);
                 }
+                if (any) data.SetAlphamaps(x0, z0, al);
             }
-            EditorUtility.SetDirty(data);
+            if (painted > 0) { EditorUtility.SetDirty(data); AssetDatabase.SaveAssetIfDirty(data); }
             return painted;
         }
     }

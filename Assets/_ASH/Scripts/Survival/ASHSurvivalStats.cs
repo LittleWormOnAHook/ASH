@@ -19,6 +19,8 @@ namespace ASH.Survival
         public float Health { get; private set; }
         public float Stamina { get; private set; }
         public float Hunger { get; private set; }
+        /// <summary>Test/debug hook: sets hunger directly (clamped).</summary>
+        public void SetHunger(float v) => Hunger = Mathf.Clamp(v, 0f, MaxHunger);
         public float Thirst { get; private set; }
         public float MaxHealth => tuning.maxHealth;
         public float MaxStamina => tuning.maxStamina;

@@ -91,7 +91,7 @@ namespace ASH.EditorTools.Build
 
             // pass 1: create assets so cross references resolve; pass 2: configure
             foreach (var d in defs) ASHBuildUtil.Asset<ASHItemDefinition>($"{d.dir}/ASH_Item_{d.file}.asset");
-            AssetDatabase.SaveAssets();
+            ASHBuildUtil.SaveOwn();
             foreach (var d in defs)
             {
                 var it = AssetDatabase.LoadAssetAtPath<ASHItemDefinition>($"{d.dir}/ASH_Item_{d.file}.asset");
@@ -107,7 +107,7 @@ namespace ASH.EditorTools.Build
             BuildSalvageNodes();
             HookExistingPrefabs();
             WirePlayer(recipes);
-            AssetDatabase.SaveAssets();
+            ASHBuildUtil.SaveOwn();
             Debug.Log($"[ASH] Item catalog: {defs.Count} items, {recipes.Count} recipes, pickups in {PickupDir}");
         }
 

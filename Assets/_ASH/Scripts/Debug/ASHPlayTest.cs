@@ -4,6 +4,7 @@ using System.Text;
 using ASH.Core;
 using ASH.Gameplay;
 using ASH.Interaction;
+using ASH.Map;
 using ASH.Inventory;
 using ASH.Player;
 using ASH.Survival;
@@ -63,8 +64,39 @@ namespace ASH.DebugTools
             _in.SimCrouch = true; yield return new WaitForSeconds(0.5f);
             Check("crouch", crouched && !_cc.isCrouching, $"crouched={crouched} after toggle={_cc.isCrouching}");
 
-            // gather each resource type through the interactor
-            var nodes = FindObjectsByType<ASHResourceNode>();
+            // ---- survey: map obscured -> log the Redstone lookout -> map revealed
+            var hud0 = FindAnyObjectByType<ASH.UI.ASHHud>(); var gps = ASHGpsMap.Instance;
+            System.IO.Directory.CreateDirectory("AshBridge/shots/v3");
+            if (gps && hud0 && _obj && _obj.FirstSurveyPoint)
+            {
+                Check("objective starts at survey", _obj.Current == ASHObjectiveTracker.Stage.Survey, "stage=" + _obj.Current);
+                float cov0 = gps.Fog.Coverage01();
+                hud0.OpenMap(true); yield return new WaitForSeconds(0.4f);
+                Check("map opens (GPS)", hud0.MapUI && hud0.MapUI.IsOpen, $"open={(hud0.MapUI && hud0.MapUI.IsOpen)} coverage={cov0 * 100f:F2}%");
+                ScreenCapture.CaptureScreenshot("AshBridge/shots/v3/09_map_obscured.png"); yield return null; yield return null;
+                hud0.OpenMap(false); yield return null;
+                var sp = _obj.FirstSurveyPoint.GetComponent<ASHSurveyPoint>();
+                var spPos = _obj.FirstSurveyPoint.position;
+                Teleport(spPos - _obj.FirstSurveyPoint.forward * 1.3f, false); yield return new WaitForSeconds(0.6f);
+                Vector3 eye = tr.position + Vector3.up * 1.6f; var spc = sp.GetComponent<Collider>();
+                _ix.SimRay = new Ray(eye, ((spc ? spc.bounds.center : spPos + Vector3.up) - eye).normalized);
+                yield return new WaitForSeconds(0.2f); string sprompt = _ix.Prompt;
+                _in.SimInteractHeld = true; float sw = 0f;
+                while (!gps.IsLogged(sp.Definition) && sw < 6f) { sw += Time.deltaTime; yield return null; }
+                _in.SimInteractHeld = false; _ix.SimRay = null;
+                float cov1 = gps.Fog.Coverage01();
+                Check("survey logged (interactor)", gps.IsLogged(sp.Definition), $"prompt='{sprompt}' in {sw:F1}s, onTower y={tr.position.y - spPos.y:F1}");
+                Check("survey reveals map", cov1 > cov0 + 0.01f && gps.IsPoiKnown("ranger_station") && gps.IsPoiKnown("the_overlook"), $"coverage {cov0 * 100f:F1}%->{cov1 * 100f:F1}%, ranger={gps.IsPoiKnown("ranger_station")} overlook={gps.IsPoiKnown("the_overlook")}");
+                Check("objective after survey", _obj.Current == ASHObjectiveTracker.Stage.Gather, "stage=" + _obj.Current);
+                var log = ASHJournalLog.Instance; Check("journal note added", log && log.Entries.Count > 0, $"entries={(log ? log.Entries.Count : 0)}");
+                hud0.OpenMap(true); yield return new WaitForSeconds(0.7f);
+                ScreenCapture.CaptureScreenshot("AshBridge/shots/v3/10_map_after_survey.png"); yield return null; yield return null;
+                hud0.OpenMap(false); yield return null;
+            }
+            else Check("survey setup", false, $"gps={(bool)gps} hud={(bool)hud0} obj={(bool)_obj} firstSurvey={(_obj && _obj.FirstSurveyPoint)}");
+
+            // gather each resource type through the interactor (tool-gated salvage is tested separately)
+            var nodes = FindObjectsByType<ASHResourceNode>().Where(n => n.RequiredTool == ASHToolType.None && !n.Depleted).ToArray();
             foreach (var group in nodes.Where(n => n.Item != null).GroupBy(n => n.Item))
             {
                 var item = group.Key;
@@ -123,6 +155,39 @@ namespace ASH.DebugTools
             var fire = recipe ? recipe.outputItem : null;
             Check("craft campfire", started && fire && _inv.Count(fire) > 0, $"started={started} have={(fire ? _inv.Count(fire) : 0)} stage={(_obj ? _obj.Current.ToString() : "-")}");
 
+            // ---- cans: smashed without an opener vs opened with a knife
+            var beans = Def("cannedbeans"); var tin = Def("emptytin"); var knife = Def("huntingknife"); var shirt = Def("oldshirt"); var cloth = Def("cloth");
+            if (beans && tin && knife)
+            {
+                foreach (var s in _inv.Slots.ToArray()) if (!s.IsEmpty && (s.item.toolType == ASHToolType.Knife || s.item.toolType == ASHToolType.Axe || s.item.toolType == ASHToolType.CanOpener)) _inv.Remove(s.item, s.amount);
+                _inv.AddItem(beans, 2); _st.SetHunger(10f); int t0 = _inv.Count(tin); float h0 = _st.Hunger;
+                bool ok1 = _inv.TryConsume(beans, _st); bool smashed = _inv.LastConsumeSmashed; float gain1 = _st.Hunger - h0; int t1 = _inv.Count(tin);
+                _inv.AddItem(knife, 1); _st.SetHunger(10f);
+                bool ok2 = _inv.TryConsume(beans, _st); bool smashed2 = _inv.LastConsumeSmashed; float gain2 = _st.Hunger - 10f; int t2 = _inv.Count(tin);
+                Check("can smashed vs opened", ok1 && smashed && t1 == t0 && ok2 && !smashed2 && t2 == t1 + 1 && gain2 > gain1, $"smash: +{gain1:F1} hunger tins {t0}->{t1}; knife: +{gain2:F1} tins {t1}->{t2}");
+            }
+            else Check("can smashed vs opened", false, $"items beans={(bool)beans} tin={(bool)tin} knife={(bool)knife}");
+            // ---- break down a shirt with the knife -> cloth, then craft a bandage
+            if (shirt && cloth)
+            {
+                int c0 = _inv.Count(cloth); _inv.AddItem(shirt, 1);
+                bool bd = _cr.TryBreakDown(shirt); float bw = 0; while (_inv.Count(shirt) > 0 && bw < 8f) { bw += Time.deltaTime; yield return null; }
+                yield return null;
+                Check("break down shirt (knife)", bd && _inv.Count(cloth) >= c0 + 2, $"started={bd} cloth {c0}->{_inv.Count(cloth)} in {bw:F1}s");
+                var bandageR = _cr.Recipes.FirstOrDefault(r => r && r.recipeId == "bandage");
+                if (bandageR)
+                {
+                    var hudJ = FindAnyObjectByType<ASH.UI.ASHHud>();
+                    if (hudJ) { hudJ.OpenJournal(ASH.UI.ASHJournalUI.Tab.Crafting); hudJ.Journal.SelectRecipe(bandageR); yield return new WaitForSeconds(0.4f);
+                        ScreenCapture.CaptureScreenshot("AshBridge/shots/v3/08_journal_crafting.png"); yield return null; yield return null; }
+                    int b0 = _inv.Count(bandageR.outputItem); bool st = _cr.TryCraft(bandageR); float w2 = 0; while (_cr.IsCrafting && w2 < 8f) { w2 += Time.deltaTime; yield return null; }
+                    Check("craft bandage", st && _inv.Count(bandageR.outputItem) == b0 + 1, $"started={st} bandages {b0}->{_inv.Count(bandageR.outputItem)}");
+                    if (hudJ) hudJ.CloseAllPanels();
+                }
+                else Check("craft bandage", false, "no bandage recipe on player");
+            }
+            else Check("break down shirt (knife)", false, "items missing");
+
             // travel to overlook
             if (_obj && _obj.Overlook) { Teleport(_obj.Overlook.position + Vector3.right * 3f); yield return new WaitForSeconds(0.8f); }
             if (_obj) Check("reach overlook", _obj.Current == ASHObjectiveTracker.Stage.MakeCamp, "stage=" + _obj.Current);
@@ -149,6 +214,33 @@ namespace ASH.DebugTools
                 var placed = FindObjectsByType<ASHCampfire>().Where(c => c.name != "ASH_PlacementGhost").ToArray();
                 Check("place campfire", began && placed.Length > 0, $"began={began} reason='{reason}' aim={aimAt} placed={placed.Length} remaining={_inv.Count(fire)}");
             }
+            // ---- cook raw meat at the placed, lit campfire
+            var cookR = _cr.Recipes.FirstOrDefault(r => r && r.recipeId == "cookmeat");
+            var fireNow = FindObjectsByType<ASHCampfire>().FirstOrDefault(c => c.name != "ASH_PlacementGhost");
+            if (cookR && fireNow)
+            {
+                fireNow.SetLit(true); Teleport(fireNow.transform.position + Vector3.right * 1.6f); yield return new WaitForSeconds(0.4f);
+                _inv.AddItem(cookR.ingredients[0].item, 1); int k0 = _inv.Count(cookR.outputItem);
+                string why = _cr.MissingReason(cookR); bool st = _cr.TryCraft(cookR); float w3 = 0; while (_cr.IsCrafting && w3 < 10f) { w3 += Time.deltaTime; yield return null; }
+                Check("cook meat at campfire", st && _inv.Count(cookR.outputItem) == k0 + 1, $"started={st} reason='{why}' cooked {k0}->{_inv.Count(cookR.outputItem)}");
+            }
+            else Check("cook meat at campfire", false, $"recipe={(bool)cookR} fire={(bool)fireNow}");
+            // ---- hatchet salvage: crate needs the axe
+            var crate = FindObjectsByType<ASHResourceNode>().Where(n => n.RequiredTool == ASHToolType.Axe && !n.Depleted).OrderBy(n => (n.transform.position - tr.position).sqrMagnitude).FirstOrDefault();
+            var hatchet = Def("hatchet");
+            if (crate && hatchet)
+            {
+                _inv.AddItem(hatchet, 1); var it = crate.Item; int w0 = _inv.Count(it);
+                Teleport(crate.transform.position + Away(crate.transform.position) * 1.6f); yield return new WaitForSeconds(0.5f);
+                Vector3 eye = tr.position + Vector3.up * 1.6f; var col = crate.GetComponentInChildren<Collider>();
+                _ix.SimRay = new Ray(eye, ((col ? col.bounds.center : crate.transform.position) - eye).normalized); yield return new WaitForSeconds(0.2f);
+                string pr = _ix.Prompt; _in.SimInteractHeld = true; float w4 = 0;
+                while (_inv.Count(it) <= w0 && w4 < 6f) { w4 += Time.deltaTime; yield return null; }
+                _in.SimInteractHeld = false; _ix.SimRay = null;
+                Check("hatchet salvage", _inv.Count(it) > w0, $"prompt='{pr}' {it.displayName} {w0}->{_inv.Count(it)}");
+            }
+            else Check("hatchet salvage", false, $"crate={(bool)crate} hatchet={(bool)hatchet}");
+
             if (_obj) Check("objective complete", _obj.Current == ASHObjectiveTracker.Stage.Complete, "stage=" + _obj.Current);
 
             // needs decay sanity
@@ -159,9 +251,11 @@ namespace ASH.DebugTools
 
         Vector3 Away(Vector3 p) { var d = _cc.transform.position - p; d.y = 0; return d.sqrMagnitude < 0.01f ? Vector3.back : d.normalized; }
 
-        void Teleport(Vector3 p)
+        static ASHItemDefinition Def(string id) => Resources.FindObjectsOfTypeAll<ASHItemDefinition>().FirstOrDefault(d => d.itemId == id);
+
+        void Teleport(Vector3 p, bool snap = true)
         {
-            if (Physics.Raycast(p + Vector3.up * 40f, Vector3.down, out var h, 100f, 1, QueryTriggerInteraction.Ignore)) p = h.point;
+            if (snap && Physics.Raycast(p + Vector3.up * 40f, Vector3.down, out var h, 100f, 1, QueryTriggerInteraction.Ignore)) p = h.point;
             var rb = _cc.GetComponent<Rigidbody>(); if (rb) { rb.linearVelocity = Vector3.zero; rb.position = p + Vector3.up * 0.05f; }
             _cc.transform.position = p + Vector3.up * 0.05f;
         }
