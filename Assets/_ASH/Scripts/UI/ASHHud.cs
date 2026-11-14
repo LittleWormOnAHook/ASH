@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using ASH.Core;
 using ASH.Gameplay;
 using ASH.Interaction;
+using ASH.Map;
 using ASH.Inventory;
 using ASH.Player;
 using ASH.Survival;
@@ -28,6 +29,7 @@ namespace ASH.UI
         [SerializeField] private ASHPlacer placer;
         [SerializeField] private ASHObjectiveTracker objective;
         [SerializeField] private ASHDayNightClock clock;
+        [SerializeField] private ASHGpsMap gps;
         [Range(0.5f, 2f)] public float uiScale = 1f;
         [Range(1f, 15f)] public float toastSeconds = 5f;
 
@@ -40,13 +42,13 @@ namespace ASH.UI
         Canvas _canvas;
         RectTransform _root;
         Bar _health, _stamina, _hunger, _thirst;
-        Text _prompt, _objTitle, _objLines, _clock, _placeHint, _deathText, _invDesc, _craftInfo;
+        Text _prompt, _objTitle, _objLines, _clock, _placeHint, _deathText, _invDesc;
         RectTransform _holdBar, _holdFill, _reticle;
         RectTransform _toastRoot;
-        GameObject _invPanel, _craftPanel, _pausePanel, _deathPanel;
+        GameObject _invPanel, _pausePanel, _deathPanel;
+        ASHJournalUI _journal; ASHMapUI _map; int _hoverSlot = -1;
         readonly List<SlotUI> _slots = new List<SlotUI>();
         readonly List<(Text text, float until)> _toasts = new List<(Text, float)>();
-        readonly List<(Button btn, Text label, ASHRecipe recipe)> _recipeRows = new List<(Button, Text, ASHRecipe)>();
         float _deathTimer;
 
         sealed class Bar { public RectTransform fill; public Image fillImg; public Text label; public Color color; }
@@ -57,10 +59,11 @@ namespace ASH.UI
         Text _tipTitle, _tipBody;
         static readonly Color SlotEmpty = new Color(0.10f, 0.095f, 0.085f, 0.55f);
         static readonly Color SlotFull = new Color(0.17f, 0.155f, 0.14f, 0.88f);
-        const string PackHint = "<color=#d9cbb4>LMB</color> use   <color=#d9cbb4>RMB</color> split stack   <color=#d9cbb4>Drag</color> move   <color=#d9cbb4>1-6</color> hotbar   <color=#d9cbb4>Tab</color> close";
+        const string PackHint = "<color=#d9cbb4>LMB</color> use   <color=#d9cbb4>RMB</color> split   <color=#d9cbb4>B</color> break down   <color=#d9cbb4>Drag</color> move   <color=#d9cbb4>J</color> journal   <color=#d9cbb4>Tab</color> close";
 
         void Awake()
         {
+            if (gps == null) gps = FindAnyObjectByType<ASHGpsMap>();
             _font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             Build();
         }
@@ -68,7 +71,8 @@ namespace ASH.UI
         void OnEnable()
         {
             if (inventory) { inventory.Changed += RefreshInventory; inventory.ItemAdded += OnItemAdded; }
-            if (crafting) { crafting.Crafted += OnCrafted; crafting.CraftFailed += OnCraftFailed; }
+            if (crafting) { crafting.Crafted += OnCrafted; crafting.CraftFailed += OnCraftFailed; crafting.BrokeDown += OnBrokeDown; crafting.BreakdownFailed += OnBreakFailed; }
+            if (gps) gps.SurveyLogged += OnSurvey;
             if (objective) { objective.Message += Toast; }
             if (stats) { stats.Died += OnDied; stats.Consumed += OnConsumed; }
         }
@@ -76,15 +80,20 @@ namespace ASH.UI
         void OnDisable()
         {
             if (inventory) { inventory.Changed -= RefreshInventory; inventory.ItemAdded -= OnItemAdded; }
-            if (crafting) { crafting.Crafted -= OnCrafted; crafting.CraftFailed -= OnCraftFailed; }
+            if (crafting) { crafting.Crafted -= OnCrafted; crafting.CraftFailed -= OnCraftFailed; crafting.BrokeDown -= OnBrokeDown; crafting.BreakdownFailed -= OnBreakFailed; }
+            if (gps) gps.SurveyLogged -= OnSurvey;
             if (objective) { objective.Message -= Toast; }
             if (stats) { stats.Died -= OnDied; stats.Consumed -= OnConsumed; }
         }
 
         void OnItemAdded(ASHItemDefinition i, int n) { Toast($"+{n} {i.displayName}"); PulseItem(i); }
-        void OnCrafted(ASHRecipe r) { Toast("Crafted " + r.displayName); RefreshCraft(); }
+        void OnCrafted(ASHRecipe r) { Toast("Crafted " + r.displayName + (r.outputAmount > 1 ? $" x{r.outputAmount}" : "")); }
+        void OnBrokeDown(ASHItemDefinition i, string res) => Toast($"Broke down {i.displayName}: {res}");
+        void OnBreakFailed(ASHItemDefinition i, string why) => Toast($"{(i ? i.displayName : "Item")}: {why}");
+        void OnSurvey(ASHSurveyPointDef d) { Toast($"Survey logged: {d.displayName}. GPS map updated [M]"); if (!string.IsNullOrEmpty(d.nextHint)) Toast("Next: " + d.nextHint); }
         void OnCraftFailed(ASHRecipe r, string why) => Toast(why);
-        void OnConsumed(ASHItemDefinition i) => Toast("Ate " + i.displayName);
+        void OnConsumed(ASHItemDefinition i) => Toast((inventory && inventory.LastConsumeSmashed ? "Smashed it open and lost some: " : (string.IsNullOrEmpty(i.useVerb) || i.useVerb == "Use" ? "Used " : PastTense(i.useVerb) + " ")) + i.displayName);
+        static string PastTense(string v) { switch (v) { case "Eat": return "Ate"; case "Drink": return "Drank"; case "Apply": return "Applied"; default: return v + "ed"; } }
         void OnDied() { _deathTimer = 5f; }
 
         // ---------------------------------------------------------------- build
@@ -133,7 +142,10 @@ namespace ASH.UI
             _placeHint = Label("PlaceHint", _root, new Vector2(0.5f, 0), new Vector2(0, 185), new Vector2(900, 60), 24, TextAnchor.MiddleCenter, Ink);
             AddShadow(_placeHint);
 
-            BuildHotbar(); BuildInventory(); BuildCraft(); BuildPause(); BuildDeath();
+            BuildHotbar(); BuildInventory();
+            _journal = ASHJournalUI.Create(_root, inventory, crafting, UseItem);
+            if (gps) _map = ASHMapUI.Create(_root, gps);
+            BuildPause(); BuildDeath();
             RefreshInventory();
         }
 
@@ -161,8 +173,8 @@ namespace ASH.UI
             s.button.onClick.AddListener(() => UseSlot(idx));
             var trig = bg.gameObject.AddComponent<EventTrigger>();
             void On(EventTriggerType type, System.Action<PointerEventData> a) { var e = new EventTrigger.Entry { eventID = type }; e.callback.AddListener(d => a((PointerEventData)d)); trig.triggers.Add(e); }
-            On(EventTriggerType.PointerEnter, _ => ShowTip(idx));
-            On(EventTriggerType.PointerExit, _ => HideTip());
+            On(EventTriggerType.PointerEnter, _ => { _hoverSlot = idx; ShowTip(idx); });
+            On(EventTriggerType.PointerExit, _ => { if (_hoverSlot == idx) _hoverSlot = -1; HideTip(); });
             On(EventTriggerType.PointerClick, d => { if (d.button == PointerEventData.InputButton.Right && inventory) inventory.Split(idx); });
             On(EventTriggerType.BeginDrag, d => BeginSlotDrag(idx, d));
             On(EventTriggerType.Drag, d => { if (_dragGhost) _dragGhost.rectTransform.position = d.position; });
@@ -207,26 +219,6 @@ namespace ASH.UI
             _invPanel.SetActive(false);
         }
 
-        void BuildCraft()
-        {
-            _craftPanel = Img("Craft", _root, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(640, 420), Panel).gameObject;
-            var rt = (RectTransform)_craftPanel.transform;
-            Label("Title", rt, new Vector2(0.5f, 1), new Vector2(0, -34), new Vector2(600, 40), 30, TextAnchor.MiddleCenter, Accent).text = "Crafting";
-            int i = 0;
-            if (crafting != null)
-                foreach (var r in crafting.Recipes)
-                {
-                    var recipe = r;
-                    var row = Img("Recipe" + i, rt, new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -110 - i * 90), new Vector2(580, 80), new Color(1, 1, 1, 0.07f));
-                    var btn = row.gameObject.AddComponent<Button>(); btn.targetGraphic = row; row.raycastTarget = true;
-                    btn.onClick.AddListener(() => { if (crafting.TryCraft(recipe)) { } });
-                    var label = Label("Text", row.rectTransform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(560, 72), 20, TextAnchor.MiddleLeft, Ink);
-                    _recipeRows.Add((btn, label, recipe)); i++;
-                }
-            _craftInfo = Label("Info", rt, new Vector2(0.5f, 0), new Vector2(0, 40), new Vector2(600, 40), 19, TextAnchor.MiddleCenter, Dim);
-            _craftPanel.SetActive(false);
-        }
-
         void BuildPause()
         {
             _pausePanel = Img("Pause", _root, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero, new Color(0, 0, 0, 0.6f)).gameObject;
@@ -243,7 +235,7 @@ namespace ASH.UI
 #endif
             });
             Label("Controls", rt, new Vector2(0.5f, 0), new Vector2(0, 90), new Vector2(1500, 80), 19, TextAnchor.MiddleCenter, Dim).text =
-                "WASD move   Mouse look   Shift sprint   Space jump   Ctrl/C crouch   CapsLock walk   E interact (hold to gather)   Tab pack   Q craft   Esc pause";
+                "WASD move   Mouse look   Shift sprint   Space jump   Ctrl/C crouch   CapsLock walk   E interact (hold to gather)   Tab pack   J journal   Q crafting   M GPS map   Esc pause";
             _pausePanel.SetActive(false);
         }
 
@@ -266,13 +258,17 @@ namespace ASH.UI
                 bool placing = placer && placer.IsPlacing;
                 if (input.PausePressed && !(placer && placer.LastCancelFrame == Time.frameCount) && !placing)
                 {
-                    if (ASHUIState.IsOpen(ASHPanels.Inventory) || ASHUIState.IsOpen(ASHPanels.Craft)) { SetInv(false); SetCraft(false); }
+                    if (AnyPanelOpen) { SetInv(false); SetCraft(false); SetMap(false); }
                     else SetPause(!ASHUIState.IsOpen(ASHPanels.Pause));
                 }
                 if (!ASHUIState.IsOpen(ASHPanels.Pause))
                 {
-                    if (input.InventoryPressed) { if (placing) placer.Cancel(); SetCraft(false); SetInv(!ASHUIState.IsOpen(ASHPanels.Inventory)); }
-                    if (input.CraftPressed) { if (placing) placer.Cancel(); SetInv(false); SetCraft(!ASHUIState.IsOpen(ASHPanels.Craft)); }
+                    if (input.InventoryPressed) { if (placing) placer.Cancel(); SetCraft(false); SetMap(false); SetInv(!ASHUIState.IsOpen(ASHPanels.Inventory)); }
+                    if (input.CraftPressed) { if (placing) placer.Cancel(); SetInv(false); SetMap(false); bool open = !(_journal.IsOpen && _journal.Current == ASHJournalUI.Tab.Crafting); SetJournal(open, ASHJournalUI.Tab.Crafting); }
+                    if (input.JournalPressed) { if (placing) placer.Cancel(); SetInv(false); SetMap(false); SetJournal(!_journal.IsOpen, _journal.Current); }
+                    if (input.MapPressed) { if (placing) placer.Cancel(); SetInv(false); SetCraft(false); SetMap(!(_map && _map.IsOpen)); }
+                    if (input.BreakDownPressed && _invPanel.activeSelf && _hoverSlot >= 0 && inventory && _hoverSlot < inventory.Slots.Count && !inventory.Slots[_hoverSlot].IsEmpty && crafting)
+                        crafting.TryBreakDown(inventory.Slots[_hoverSlot].item);
                     int hk = input.HotbarPressed;
                     if (hk >= 0 && hk < _hotbar.Count) { _hotbar[hk].pulse = 1f; UseSlot(hk); }
                 }
@@ -320,12 +316,11 @@ namespace ASH.UI
             else _placeHint.enabled = false;
 
             // hotbar
-            if (_hotbarRoot) _hotbarRoot.gameObject.SetActive(!dead && !ASHUIState.IsOpen(ASHPanels.Pause));
+            if (_hotbarRoot) _hotbarRoot.gameObject.SetActive(!dead && !ASHUIState.IsOpen(ASHPanels.Pause) && !(_map && _map.IsOpen) && !_journal.IsOpen);
             AnimateSlots(_hotbar); AnimateSlots(_slots);
             if (_dragFrom >= 0 && !_invPanel.activeSelf) EndSlotDrag();
 
             // crafting progress
-            if (_craftPanel.activeSelf) RefreshCraft();
 
             // toasts
             for (int i = _toasts.Count - 1; i >= 0; i--)
@@ -338,7 +333,7 @@ namespace ASH.UI
 
             // death
             _deathPanel.SetActive(dead || ASHUIState.IsOpen(ASHPanels.Death));
-            if (_deathPanel.activeSelf) { _deathTimer = Mathf.Max(0f, _deathTimer - Time.deltaTime); _deathText.text = $"You didn't make it.\n<size=26>Back at the wash in {Mathf.CeilToInt(_deathTimer)}...</size>"; }
+            if (_deathPanel.activeSelf) { _deathTimer = Mathf.Max(0f, _deathTimer - Time.deltaTime); _deathText.text = $"You didn't make it.\n<size=26>Back at camp in {Mathf.CeilToInt(_deathTimer)}...</size>"; }
         }
 
         public void Toast(string msg)
@@ -351,7 +346,25 @@ namespace ASH.UI
         }
 
         void SetInv(bool open) { _invPanel.SetActive(open); ASHUIState.SetOpen(ASHPanels.Inventory, open); if (open) { RefreshInventory(); HideTip(); } else EndSlotDrag(); }
-        void SetCraft(bool open) { _craftPanel.SetActive(open); ASHUIState.SetOpen(ASHPanels.Craft, open); if (open) RefreshCraft(); }
+        void SetCraft(bool open) { if (open) SetJournal(true, ASHJournalUI.Tab.Crafting); else SetJournal(false, ASHJournalUI.Tab.Crafting); }
+        void SetJournal(bool open, ASHJournalUI.Tab tab)
+        {
+            if (open) _journal.Open(tab); else _journal.Close();
+            ASHUIState.SetOpen(ASHPanels.Journal, open);
+        }
+        void SetMap(bool open)
+        {
+            if (_map == null) { if (open) Toast("No GPS map data in this scene."); return; }
+            if (open && inventory && !inventory.HasTool(ASHToolType.GPS)) { Toast("You need the GPS to see the map."); return; }
+            if (open) _map.Open(); else _map.Close();
+            ASHUIState.SetOpen(ASHPanels.Map, open);
+        }
+        bool AnyPanelOpen => ASHUIState.IsOpen(ASHPanels.Inventory) || ASHUIState.IsOpen(ASHPanels.Journal) || ASHUIState.IsOpen(ASHPanels.Map);
+        public ASHJournalUI Journal => _journal;
+        public ASHMapUI MapUI => _map;
+        public void OpenJournal(ASHJournalUI.Tab tab) => SetJournal(true, tab);
+        public void CloseAllPanels() { SetInv(false); SetJournal(false, _journal.Current); SetMap(false); }
+        public void OpenMap(bool open) => SetMap(open);
         void SetPause(bool open)
         {
             _pausePanel.SetActive(open); ASHUIState.SetOpen(ASHPanels.Pause, open);
@@ -359,7 +372,7 @@ namespace ASH.UI
             if (stats) stats.Paused = open;
         }
         public bool InventoryOpen => _invPanel && _invPanel.activeSelf;
-        public bool CraftOpen => _craftPanel && _craftPanel.activeSelf;
+        public bool CraftOpen => _journal && _journal.IsOpen && _journal.Current == ASHJournalUI.Tab.Crafting;
 
         void RefreshInventory()
         {
@@ -419,6 +432,9 @@ namespace ASH.UI
                 sb.Append("</color>  <color=#a59e93>LMB to eat</color>");
             }
             else if (it.IsPlaceable) sb.Append("\n<color=#a59e93>LMB to place</color>");
+            else if (it.toolType == ASHToolType.GPS) sb.Append("\n<color=#a59e93>LMB or [M] to open the map</color>");
+            else if (it.toolType != ASHToolType.None) sb.Append("\n<color=#a59e93>Tool  ·  used automatically</color>");
+            else if (it.CanBreakDown) sb.Append("\n<color=#c9a46a>[B] break down</color>");
             else sb.Append("\n<color=#a59e93>Crafting material  ·  [Q] craft</color>");
             _tipBody.text = sb.ToString();
         }
@@ -453,13 +469,24 @@ namespace ASH.UI
             if (inventory == null || i < 0 || i >= inventory.Slots.Count) return false;
             var s = inventory.Slots[i]; if (s.IsEmpty) return false;
             var item = s.item;
+            if (item.toolType == ASHToolType.GPS) { SetInv(false); SetJournal(false, _journal.Current); SetMap(true); return true; }
             if (item.IsConsumable && stats) return inventory.TryConsume(item, stats);
             if (item.IsPlaceable && placer)
             {
                 if (placer.IsPlacing) placer.Cancel();
                 SetInv(false); SetCraft(false); placer.Begin(item); return true;
             }
-            Toast($"{item.displayName}: crafting material. Press [{(input ? input.BindingLabel("Craft") : "Q")}] to craft.");
+            if (item.CanBreakDown) { Toast($"{item.displayName}: break it down with [B] in the pack or from the journal."); return false; }
+            if (item.toolType != ASHToolType.None) { Toast($"{item.displayName}: used automatically when you harvest, cut or open things."); return false; }
+            Toast($"{item.displayName}: crafting material. Press [{(input ? input.BindingLabel("Craft") : "Q")}] for the journal.");
+            return false;
+        }
+
+        /// <summary>Uses the first stack of an item (journal Use button).</summary>
+        public bool UseItem(ASHItemDefinition item)
+        {
+            if (inventory == null || item == null) return false;
+            for (int i = 0; i < inventory.Slots.Count; i++) if (inventory.Slots[i].item == item && !inventory.Slots[i].IsEmpty) return UseSlot(i);
             return false;
         }
 
@@ -474,24 +501,6 @@ namespace ASH.UI
         }
         public int HotbarSlotCount => _hotbar.Count;
         public int PackSlotCount => _slots.Count;
-
-        void RefreshCraft()
-        {
-            foreach (var (btn, label, r) in _recipeRows)
-            {
-                var sb = new System.Text.StringBuilder();
-                sb.Append("<b>").Append(r.displayName).Append("</b>   ");
-                foreach (var ing in r.ingredients)
-                {
-                    int have = inventory ? inventory.Count(ing.item) : 0;
-                    bool ok = have >= ing.amount;
-                    sb.Append(ok ? "<color=#9fd39b>" : "<color=#ff8a70>").Append(ing.item ? ing.item.displayName : "?").Append(' ').Append(have).Append('/').Append(ing.amount).Append("</color>   ");
-                }
-                label.text = sb.ToString();
-                btn.interactable = crafting.CanCraft(r);
-            }
-            _craftInfo.text = crafting && crafting.IsCrafting ? $"Crafting {crafting.CurrentRecipe.displayName}... {crafting.CraftProgress01 * 100f:0}%" : "Click a recipe to craft.  [Q] close";
-        }
 
         void SetBar(Bar b, float v, float max, bool warn)
         {

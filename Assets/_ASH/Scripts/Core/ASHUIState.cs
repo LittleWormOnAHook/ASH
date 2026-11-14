@@ -43,5 +43,7 @@ namespace ASH.Core
         public const string Pause = "pause";
         public const string Death = "death";
         public const string Craft = "craft";
+        public const string Journal = "journal";
+        public const string Map = "map";
     }
 }

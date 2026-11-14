@@ -2,13 +2,14 @@ using System;
 using System.Collections.Generic;
 using ASH.Core;
 using ASH.Inventory;
+using ASH.Map;
 using UnityEngine;
 
 namespace ASH.Gameplay
 {
     /// <summary>
-    /// The slice's short objective chain: gather -> craft campfire -> reach the ridge overlook -> make camp at the
-    /// old campsite. Counts are "ever collected" so eating berries never regresses a step.
+    /// The slice's short objective chain: log the Redstone Camp lookout (tutorial survey) -> gather -> craft campfire
+    /// -> reach The Overlook -> make camp at the old campsite. Counts are "ever collected" so eating never regresses.
     /// </summary>
     public sealed class ASHObjectiveTracker : MonoBehaviour
     {
@@ -24,9 +25,15 @@ namespace ASH.Gameplay
         [Range(5f, 100f)] [SerializeField] private float overlookRadius = 25f;
         [SerializeField] private Transform campsite;
         [Range(5f, 100f)] [SerializeField] private float campsiteRadius = 30f;
+        [Header("Tutorial survey (optional; skipped when unassigned)")]
+        [SerializeField] private ASHGpsMap gps;
+        [SerializeField] private ASHSurveyPointDef firstSurvey;
+        [SerializeField] private Transform firstSurveyPoint;
 
-        public enum Stage { Gather, Craft, Travel, MakeCamp, Complete }
+        public enum Stage { Survey, Gather, Craft, Travel, MakeCamp, Complete }
         public Stage Current { get; private set; } = Stage.Gather;
+        public ASHSurveyPointDef FirstSurvey => firstSurvey;
+        public Transform FirstSurveyPoint => firstSurveyPoint;
         public IReadOnlyList<GatherGoal> GatherGoals => gatherGoals;
         public event Action Changed;
         public event Action<string> Message;
@@ -40,15 +47,32 @@ namespace ASH.Gameplay
             if (inventory) inventory.ItemAdded += OnItemAdded;
             if (crafting) crafting.Crafted += OnCrafted;
             if (placer) placer.PlacedObject += OnPlaced;
+            if (gps) gps.SurveyLogged += OnSurvey;
         }
         private void OnDisable()
         {
             if (inventory) inventory.ItemAdded -= OnItemAdded;
             if (crafting) crafting.Crafted -= OnCrafted;
             if (placer) placer.PlacedObject -= OnPlaced;
+            if (gps) gps.SurveyLogged -= OnSurvey;
         }
 
-        private void Start() { Message?.Invoke("Find deadwood, stones and something to eat before dark."); Changed?.Invoke(); }
+        private void Awake() { if (firstSurvey != null && gps != null) Current = Stage.Survey; }
+
+        private void OnSurvey(ASHSurveyPointDef d)
+        {
+            if (Current == Stage.Survey && d == firstSurvey)
+            {
+                Advance(Stage.Gather, "Viewpoint logged. Now find deadwood, stones and something to eat before dark.");
+                Evaluate();
+            }
+        }
+
+        private void Start()
+        {
+            Message?.Invoke(Current == Stage.Survey ? "The GPS is damaged. Climb the Redstone Camp lookout and log the viewpoint." : "Find deadwood, stones and something to eat before dark.");
+            Changed?.Invoke();
+        }
 
         private void OnItemAdded(ASHItemDefinition item, int amount)
         {
@@ -79,9 +103,10 @@ namespace ASH.Gameplay
         private void Evaluate()
         {
             var before = Current;
+            if (Current == Stage.Survey) { if (before == Current) Changed?.Invoke(); return; }
             bool gathered = true; foreach (var g in gatherGoals) if (g.collected < g.required) gathered = false;
             if (Current == Stage.Gather && gathered) Advance(Stage.Craft, "Gathered enough. Craft a campfire.");
-            if (Current == Stage.Craft && (_crafted || (inventory && campfireRecipe && inventory.Count(campfireRecipe.outputItem) > 0))) Advance(Stage.Travel, $"Campfire ready. Head for the ridge overlook to the {Compass(overlook)}.");
+            if (Current == Stage.Craft && (_crafted || (inventory && campfireRecipe && inventory.Count(campfireRecipe.outputItem) > 0))) Advance(Stage.Travel, $"Campfire ready. Head for The Overlook to the {Compass(overlook)}.");
             if (Current == Stage.Travel && _reached) Advance(Stage.MakeCamp, "The old campsite. Place your campfire here.");
             if (before == Current) Changed?.Invoke();
         }
@@ -95,9 +120,10 @@ namespace ASH.Gameplay
         {
             switch (Current)
             {
+                case Stage.Survey: return "Get your bearings";
                 case Stage.Gather: return "Prepare for nightfall";
                 case Stage.Craft: return "Craft a campfire";
-                case Stage.Travel: return "Reach the ridge overlook";
+                case Stage.Travel: return "Reach The Overlook";
                 case Stage.MakeCamp: return "Make camp";
                 default: return "Camp made";
             }
@@ -105,13 +131,19 @@ namespace ASH.Gameplay
 
         public IEnumerable<(string text, bool done)> Lines()
         {
-            if (Current == Stage.Gather)
+            if (Current == Stage.Survey)
+            {
+                float d = player && firstSurveyPoint ? Flat(player.position, firstSurveyPoint.position) : 0f;
+                yield return ($"Climb the Redstone Camp lookout, {Compass(firstSurveyPoint)}  ({d:0} m)", false);
+                yield return ("Log the viewpoint with the GPS (hold E at the topo panel)", false);
+            }
+            else if (Current == Stage.Gather)
                 foreach (var g in gatherGoals) yield return ($"{(g.item ? g.item.displayName : "?")}  {Mathf.Min(g.collected, g.required)}/{g.required}", g.collected >= g.required);
-            else if (Current == Stage.Craft) yield return ("Open crafting [Q] and build a campfire", false);
+            else if (Current == Stage.Craft) yield return ("Open the journal crafting tab [Q] and build a campfire", false);
             else if (Current == Stage.Travel)
             {
                 float d = player && overlook ? Flat(player.position, overlook.position) : 0f;
-                yield return ($"Climb to the ridge overlook, {Compass(overlook)}  ({d:0} m)", false);
+                yield return ($"Climb to The Overlook, {Compass(overlook)}  ({d:0} m)", false);
                 yield return ("Look for the smoke rising from the old campsite", false);
             }
             else if (Current == Stage.MakeCamp) yield return ("Place the campfire at the old campsite", false);
@@ -120,7 +152,7 @@ namespace ASH.Gameplay
 
         public float DistanceToGoal()
         {
-            var t = Current == Stage.MakeCamp ? campsite : overlook;
+            var t = Current == Stage.Survey ? firstSurveyPoint : Current == Stage.MakeCamp ? campsite : overlook;
             return player && t ? Flat(player.position, t.position) : -1f;
         }
 

@@ -20,6 +20,7 @@ namespace ASH.Player
         [Range(0.1f, 10f)] [SerializeField] private float gamepadLookSpeed = 2.2f;
         [SerializeField] private bool invertY;
 
+        private InputAction _journal, _map, _breakDown;
         private InputAction _move, _look, _jump, _sprint, _crouch, _walk, _interact, _inventory, _craft, _pause, _primary, _secondary, _zoom;
 
         // Automated test overrides (ASH editor play tests). Null = use real input.
@@ -45,6 +46,7 @@ namespace ASH.Player
             _primary = map.FindAction("Primary", true);
             _secondary = map.FindAction("Secondary", true);
             _zoom = map.FindAction("Zoom", true);
+            _journal = map.FindAction("Journal", false); _map = map.FindAction("Map", false); _breakDown = map.FindAction("BreakDown", false);
         }
 
         private void OnEnable() { if (actions != null) actions.Enable(); }
@@ -90,6 +92,15 @@ namespace ASH.Player
                 return -1;
             }
         }
+        public bool SimJournal, SimMap, SimBreakDown;
+        public bool JournalPressed => Consume(ref SimJournal) || KeyHit(_journal, UnityEngine.InputSystem.Key.J);
+        public bool MapPressed => Consume(ref SimMap) || KeyHit(_map, UnityEngine.InputSystem.Key.M);
+        public bool BreakDownPressed => Consume(ref SimBreakDown) || KeyHit(_breakDown, UnityEngine.InputSystem.Key.B);
+        static bool KeyHit(InputAction a, UnityEngine.InputSystem.Key fallback)
+        {
+            if (a != null) return a.WasPressedThisFrame();
+            var kb = Keyboard.current; return kb != null && kb[fallback].wasPressedThisFrame;
+        }
         public float RawZoom => _zoom.ReadValue<Vector2>().y;
 
         /// <summary>Short display name of the first binding of an action, e.g. "E".</summary>
@@ -122,6 +133,9 @@ namespace ASH.Player
             var inv = map.AddAction("Inventory", InputActionType.Button, "<Keyboard>/tab"); inv.AddBinding("<Keyboard>/i"); inv.AddBinding("<Gamepad>/buttonNorth");
             map.AddAction("Craft", InputActionType.Button, "<Keyboard>/q").AddBinding("<Gamepad>/dpad/up");
             map.AddAction("Pause", InputActionType.Button, "<Keyboard>/escape").AddBinding("<Gamepad>/start");
+            map.AddAction("Journal", InputActionType.Button, "<Keyboard>/j").AddBinding("<Gamepad>/select");
+            map.AddAction("Map", InputActionType.Button, "<Keyboard>/m").AddBinding("<Gamepad>/dpad/right");
+            map.AddAction("BreakDown", InputActionType.Button, "<Keyboard>/b");
             map.AddAction("Primary", InputActionType.Button, "<Mouse>/leftButton").AddBinding("<Gamepad>/rightTrigger");
             map.AddAction("Secondary", InputActionType.Button, "<Mouse>/rightButton").AddBinding("<Gamepad>/buttonEast");
             var zoom = map.AddAction("Zoom", InputActionType.Value, expectedControlLayout: "Vector2"); zoom.AddBinding("<Mouse>/scroll");
