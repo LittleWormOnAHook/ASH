@@ -42,6 +42,7 @@ MonoBehaviour:
   holdPosition: {x: 0, y: 0, z: 0}
   holdEuler: {x: 0, y: 0, z: 0}
   gripStyle: 0
+  heldScale: 1
   ammoItem: {fileID: 11400000, guid: a95128cdc7c3461438a6d741742178a3, type: 2}
   fuelItem: {fileID: 0}
   fuelSecondsPerUnit: 480

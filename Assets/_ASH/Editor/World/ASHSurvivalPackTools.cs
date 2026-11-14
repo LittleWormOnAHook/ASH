@@ -322,7 +322,7 @@ namespace ASH.EditorTools.World
             foreach (var e in Held)
             {
                 var it = Item(e.file); if (!it) continue;
-                it.equipSlot = e.slot; it.gripStyle = e.grip; it.heldPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(HeldPath(e.file));
+                it.equipSlot = e.slot; it.gripStyle = e.grip; it.heldScale = e.file == "Hatchet" ? 0.8f : 1f; // hatchet matches the scene axe prefab scale (0.8) it.heldPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(HeldPath(e.file));
                 it.ammoItem = e.ammo != null ? Item(e.ammo) : null;
                 EditorUtility.SetDirty(it);
             }

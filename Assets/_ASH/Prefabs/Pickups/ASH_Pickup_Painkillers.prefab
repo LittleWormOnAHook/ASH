@@ -10,7 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2421758743635644399}
   - component: {fileID: 591037973522389305}
-  - component: {fileID: 7152747201257297346}
+  - component: {fileID: 281501665334835521}
   m_Layer: 6
   m_Name: ASH_Pickup_Painkillers
   m_TagString: Untagged
@@ -31,7 +31,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 7443842215431777376}
+  - {fileID: 4557722887114769097}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &591037973522389305
@@ -48,7 +48,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ASH.Interaction.ASHItemPickup
   item: {fileID: 11400000, guid: e10acb963d71fee4e8afdb47e60c6685, type: 2}
   amount: 1
---- !u!65 &7152747201257297346
+--- !u!65 &281501665334835521
 BoxCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -69,7 +69,7 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.3, y: 0.3, z: 0.3}
   m_Center: {x: 0, y: 0.15, z: 0}
---- !u!1 &4979219747053572942
+--- !u!1 &7284326707906563377
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -77,7 +77,7 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 7443842215431777376}
+  - component: {fileID: 4557722887114769097}
   m_Layer: 6
   m_Name: Visual
   m_TagString: Untagged
@@ -85,29 +85,29 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &7443842215431777376
+--- !u!4 &4557722887114769097
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4979219747053572942}
+  m_GameObject: {fileID: 7284326707906563377}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: -0.00000021234155, y: -0, z: -0.0046796985}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 8504185040909897559}
+  - {fileID: 2005065880286721458}
   m_Father: {fileID: 2421758743635644399}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1001 &1803222615267868056
+--- !u!1001 &8417745150543071101
 PrefabInstance:
   m_ObjectHideFlags: 0
   serializedVersion: 2
   m_Modification:
     serializedVersion: 3
-    m_TransformParent: {fileID: 7443842215431777376}
+    m_TransformParent: {fileID: 4557722887114769097}
     m_Modifications:
     - target: {fileID: 3346827404886078435, guid: c4beff218eedf084e95ef82c7810f796, type: 3}
       propertyPath: m_Enabled
@@ -167,8 +167,8 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: c4beff218eedf084e95ef82c7810f796, type: 3}
---- !u!4 &8504185040909897559 stripped
+--- !u!4 &2005065880286721458 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 7999160770893837007, guid: c4beff218eedf084e95ef82c7810f796, type: 3}
-  m_PrefabInstance: {fileID: 1803222615267868056}
+  m_PrefabInstance: {fileID: 8417745150543071101}
   m_PrefabAsset: {fileID: 0}

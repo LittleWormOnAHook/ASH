@@ -10,7 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 9061589080710234848}
   - component: {fileID: 4832653369794007010}
-  - component: {fileID: 5721210871531973314}
+  - component: {fileID: 2655067017616037501}
   m_Layer: 6
   m_Name: ASH_Pickup_ScrapMetal
   m_TagString: Untagged
@@ -31,7 +31,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 7845499322310423924}
+  - {fileID: 4031156069972122731}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &4832653369794007010
@@ -48,7 +48,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ASH.Interaction.ASHItemPickup
   item: {fileID: 11400000, guid: 151ffd9b1b592cc4bba57253a3bc9651, type: 2}
   amount: 1
---- !u!65 &5721210871531973314
+--- !u!65 &2655067017616037501
 BoxCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -69,7 +69,7 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.4854949, y: 0.3, z: 0.51987153}
   m_Center: {x: 0, y: 0.15, z: 0}
---- !u!1 &7110211596612479309
+--- !u!1 &4549528123598926605
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -77,7 +77,7 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 7845499322310423924}
+  - component: {fileID: 4031156069972122731}
   m_Layer: 6
   m_Name: Visual
   m_TagString: Untagged
@@ -85,29 +85,29 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &7845499322310423924
+--- !u!4 &4031156069972122731
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7110211596612479309}
+  m_GameObject: {fileID: 4549528123598926605}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: -0.004262209, y: 0.008159526, z: 0.007248968}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 1038047467901727270}
+  - {fileID: 1055487676931666289}
   m_Father: {fileID: 9061589080710234848}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1001 &4274210258162564808
+--- !u!1001 &4292829066614734239
 PrefabInstance:
   m_ObjectHideFlags: 0
   serializedVersion: 2
   m_Modification:
     serializedVersion: 3
-    m_TransformParent: {fileID: 7845499322310423924}
+    m_TransformParent: {fileID: 4031156069972122731}
     m_Modifications:
     - target: {fileID: 2961872242423417407, guid: 0944f40a4a5997a42bc81a79716dd0c6, type: 3}
       propertyPath: m_Name
@@ -167,8 +167,8 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 0944f40a4a5997a42bc81a79716dd0c6, type: 3}
---- !u!4 &1038047467901727270 stripped
+--- !u!4 &1055487676931666289 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 3834508566414920942, guid: 0944f40a4a5997a42bc81a79716dd0c6, type: 3}
-  m_PrefabInstance: {fileID: 4274210258162564808}
+  m_PrefabInstance: {fileID: 4292829066614734239}
   m_PrefabAsset: {fileID: 0}

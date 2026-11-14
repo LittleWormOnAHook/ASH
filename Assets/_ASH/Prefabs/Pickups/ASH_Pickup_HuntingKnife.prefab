@@ -10,7 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 8867702040575797943}
   - component: {fileID: 3051467625330272525}
-  - component: {fileID: 6311088315891170933}
+  - component: {fileID: 1474907823651823780}
   m_Layer: 6
   m_Name: ASH_Pickup_HuntingKnife
   m_TagString: Untagged
@@ -31,7 +31,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 7154251119986095991}
+  - {fileID: 4156379859175950820}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &3051467625330272525
@@ -48,7 +48,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ASH.Interaction.ASHItemPickup
   item: {fileID: 11400000, guid: c069c2449c805dd4992dceb3f2d08344, type: 2}
   amount: 1
---- !u!65 &6311088315891170933
+--- !u!65 &1474907823651823780
 BoxCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -69,7 +69,7 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.3, y: 0.3, z: 0.41030765}
   m_Center: {x: 0, y: 0.15, z: 0}
---- !u!1 &2772884241053843867
+--- !u!1 &6137263938482756298
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -77,7 +77,7 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 7154251119986095991}
+  - component: {fileID: 4156379859175950820}
   m_Layer: 6
   m_Name: Visual
   m_TagString: Untagged
@@ -85,29 +85,29 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &7154251119986095991
+--- !u!4 &4156379859175950820
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2772884241053843867}
+  m_GameObject: {fileID: 6137263938482756298}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0.0061928704, y: 0.024210317, z: -0.06739705}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 6395594346329918823}
+  - {fileID: 2489231863904987396}
   m_Father: {fileID: 8867702040575797943}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1001 &3140414017038963775
+--- !u!1001 &5899379017451958364
 PrefabInstance:
   m_ObjectHideFlags: 0
   serializedVersion: 2
   m_Modification:
     serializedVersion: 3
-    m_TransformParent: {fileID: 7154251119986095991}
+    m_TransformParent: {fileID: 4156379859175950820}
     m_Modifications:
     - target: {fileID: 1535925501907823576, guid: 3df1f16ee3fca804182c8e1b145828a0, type: 3}
       propertyPath: m_Enabled
@@ -175,8 +175,8 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 3df1f16ee3fca804182c8e1b145828a0, type: 3}
---- !u!4 &6395594346329918823 stripped
+--- !u!4 &2489231863904987396 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 8310630896700889432, guid: 3df1f16ee3fca804182c8e1b145828a0, type: 3}
-  m_PrefabInstance: {fileID: 3140414017038963775}
+  m_PrefabInstance: {fileID: 5899379017451958364}
   m_PrefabAsset: {fileID: 0}

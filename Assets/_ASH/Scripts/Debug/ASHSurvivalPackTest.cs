@@ -156,6 +156,10 @@ namespace ASH.DebugTools
             _eq.Equip(rifle); yield return null;
             _in.SimPrimary = true; yield return null; yield return null;
             Check("rifle held + fires a round", _eq.Main == rifle && _eq.MainVisual && _inv.Count(rounds) == r0 - 1 && _eq.ShotsFired == s0 + 1, $"main={(_eq.Main ? _eq.Main.displayName : "-")} visual={(bool)_eq.MainVisual} rounds {r0}->{_inv.Count(rounds)} parent {(_eq.MainVisual ? _eq.MainVisual.transform.parent.name : "-")}");
+            var hatchet = Item("Hatchet");
+            if (hatchet) { if (_inv.Count(hatchet) == 0) _inv.AddItem(hatchet, 1); _eq.Equip(hatchet); yield return null;
+                float hs = _eq.MainVisual ? _eq.MainVisual.transform.lossyScale.x : 0f;
+                Check("hatchet held at 0.8 scale", _eq.Main == hatchet && Mathf.Abs(hs - 0.8f) < 0.02f, $"main={(_eq.Main ? _eq.Main.displayName : "-")} scale {hs:F2} (item heldScale {hatchet.heldScale:F2})"); }
             _eq.Unequip(ASHEquipSlot.MainHand); _eq.Unequip(ASHEquipSlot.OffHand); _eq.Unequip(ASHEquipSlot.Hip);
             Finish();
         }

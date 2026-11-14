@@ -1,6 +1,6 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!1 &7251649687424225326
+--- !u!1 &4039366609436604841
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -8,7 +8,7 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 2302063770402776751}
+  - component: {fileID: 4473365863999345199}
   m_Layer: 6
   m_Name: Visual
   m_TagString: Untagged
@@ -16,20 +16,20 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &2302063770402776751
+--- !u!4 &4473365863999345199
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7251649687424225326}
+  m_GameObject: {fileID: 4039366609436604841}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0.15586182, y: 0.035882954, z: -0.019799113}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 2546203014040387069}
+  - {fileID: 4545607462863916826}
   m_Father: {fileID: 841843996592099757}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &8773085598325184598
@@ -42,7 +42,7 @@ GameObject:
   m_Component:
   - component: {fileID: 841843996592099757}
   - component: {fileID: 568575964444353083}
-  - component: {fileID: 1830721716346513492}
+  - component: {fileID: 3428931462278644137}
   m_Layer: 6
   m_Name: ASH_Pickup_WoodenBow
   m_TagString: Untagged
@@ -63,7 +63,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 2302063770402776751}
+  - {fileID: 4473365863999345199}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &568575964444353083
@@ -80,7 +80,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ASH.Interaction.ASHItemPickup
   item: {fileID: 11400000, guid: ca85a0ffeece51942b4f305b7da5688d, type: 2}
   amount: 1
---- !u!65 &1830721716346513492
+--- !u!65 &3428931462278644137
 BoxCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -101,13 +101,13 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.443398, y: 0.3, z: 1.5604777}
   m_Center: {x: 0, y: 0.15, z: 0}
---- !u!1001 &2541678410221910655
+--- !u!1001 &4541045479981959320
 PrefabInstance:
   m_ObjectHideFlags: 0
   serializedVersion: 2
   m_Modification:
     serializedVersion: 3
-    m_TransformParent: {fileID: 2302063770402776751}
+    m_TransformParent: {fileID: 4473365863999345199}
     m_Modifications:
     - target: {fileID: 1131659161887522, guid: bd34c9699654ac44ea1bb6d756264e11, type: 3}
       propertyPath: m_Name
@@ -174,8 +174,8 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: bd34c9699654ac44ea1bb6d756264e11, type: 3}
---- !u!4 &2546203014040387069 stripped
+--- !u!4 &4545607462863916826 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 4562056672544642, guid: bd34c9699654ac44ea1bb6d756264e11, type: 3}
-  m_PrefabInstance: {fileID: 2541678410221910655}
+  m_PrefabInstance: {fileID: 4541045479981959320}
   m_PrefabAsset: {fileID: 0}

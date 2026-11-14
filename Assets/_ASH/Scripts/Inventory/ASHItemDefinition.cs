@@ -73,6 +73,8 @@ namespace ASH.Inventory
         public Vector3 holdPosition;
         public Vector3 holdEuler;
         public ASHGripStyle gripStyle = ASHGripStyle.Handle;
+        [Tooltip("World scale of the held visual (1 = model size). Scales about the grip point, so the hand stays on the grip.")]
+        [Range(0.1f, 3f)] public float heldScale = 1f;
         [Tooltip("Weapons: ammo consumed by a shot (rifle rounds, pistol rounds, arrows).")]
         public ASHItemDefinition ammoItem;
 

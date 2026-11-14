@@ -120,7 +120,7 @@ namespace ASH.Gameplay
                 go.transform.SetParent(bone, false);
                 go.transform.localPosition = item.holdPosition; go.transform.localRotation = Quaternion.Euler(item.holdEuler);
             }
-            UnitScale(go.transform, 1f);
+            UnitScale(go.transform, item.heldScale > 0f ? item.heldScale : 1f);
             foreach (var c in go.GetComponentsInChildren<Collider>(true)) Destroy(c);
             return go;
         }
