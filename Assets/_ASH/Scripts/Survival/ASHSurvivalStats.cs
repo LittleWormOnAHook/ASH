@@ -89,12 +89,12 @@ namespace ASH.Survival
             if (Health <= 0f) { IsDead = true; Changed?.Invoke(); Died?.Invoke(); }
         }
 
-        public void Consume(ASHItemDefinition item)
+        public void Consume(ASHItemDefinition item, float factor = 1f)
         {
             if (item == null || IsDead) return;
-            Hunger = Mathf.Min(MaxHunger, Hunger + item.restoreHunger);
-            Thirst = Mathf.Min(MaxThirst, Thirst + item.restoreThirst);
-            Health = Mathf.Min(MaxHealth, Health + item.restoreHealth);
+            Hunger = Mathf.Min(MaxHunger, Hunger + item.restoreHunger * factor);
+            Thirst = Mathf.Min(MaxThirst, Thirst + item.restoreThirst * factor);
+            Health = Mathf.Min(MaxHealth, Health + item.restoreHealth * factor);
             Changed?.Invoke();
             Consumed?.Invoke(item);
         }

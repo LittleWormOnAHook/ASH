@@ -38,6 +38,21 @@ namespace ASH.EditorTools.Build
                 EditorUtility.SetDirty(item);
                 n++;
             }
+            // catalog items: icon from their pickup prefab
+            var done = new System.Collections.Generic.HashSet<string>();
+            foreach (var m in Map) done.Add(m.item);
+            foreach (var guid in AssetDatabase.FindAssets("t:ASHItemDefinition", new[] { ASHContentBuilder.ItemDir }))
+            {
+                string path = AssetDatabase.GUIDToAssetPath(guid);
+                string file = System.IO.Path.GetFileNameWithoutExtension(path);
+                if (done.Contains(file)) continue;
+                var item = AssetDatabase.LoadAssetAtPath<ASHItemDefinition>(path);
+                var prefab = ASHItemCatalog.LoadPickup(file.Replace("ASH_Item_", ""));
+                if (!item || !prefab) continue;
+                string icon = $"{IconDir}/{file.Replace("ASH_Item_", "ASH_Icon_")}.png";
+                if (!Bake(prefab, icon, 256, 35f)) { Debug.LogWarning("[ASH] Icon bake failed for " + file); continue; }
+                item.icon = AssetDatabase.LoadAssetAtPath<Sprite>(icon); EditorUtility.SetDirty(item); n++;
+            }
             AssetDatabase.SaveAssets();
             Debug.Log($"[ASH] Baked {n} item icons into {IconDir}");
         }

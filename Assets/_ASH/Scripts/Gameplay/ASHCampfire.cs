@@ -1,10 +1,11 @@
 using ASH.Interaction;
+using ASH.Inventory;
 using UnityEngine;
 
 namespace ASH.Gameplay
 {
     /// <summary>Placed campfire: flickering light, fire/smoke particles, toggle lit by interaction.</summary>
-    public sealed class ASHCampfire : MonoBehaviour, IASHUsable
+    public sealed class ASHCampfire : MonoBehaviour, IASHUsable, IASHCraftStation
     {
         [SerializeField] private Light fireLight;
         [SerializeField] private ParticleSystem[] effects;
@@ -19,6 +20,12 @@ namespace ASH.Gameplay
         public static event System.Action<ASHCampfire> Placed;
 
         private float _seed;
+
+        public ASHCraftStation StationType => ASHCraftStation.Campfire;
+        public bool StationActive => lit && isActiveAndEnabled;
+        public Vector3 StationPosition => transform.position;
+        private void OnEnable() { if (!ASHCrafting.Stations.Contains(this)) ASHCrafting.Stations.Add(this); }
+        private void OnDisable() { ASHCrafting.Stations.Remove(this); }
 
         private void Start() { _seed = Random.value * 100f; SetLit(lit); Placed?.Invoke(this); }
 

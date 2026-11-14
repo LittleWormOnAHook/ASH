@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f33e8ceadb27f414fbe6b19827d3ba9f, type: 3}
+  m_Name: ASH_Recipe_CookMeat
+  m_EditorClassIdentifier: Assembly-CSharp::ASH.Inventory.ASHRecipe
+  recipeId: cookmeat
+  displayName: Cook Meat
+  description: Cook raw meat over a lit campfire.
+  category: 2
+  ingredients:
+  - item: {fileID: 11400000, guid: 49aeecd77bdc047408ab2bf59e2992fc, type: 2}
+    amount: 1
+  outputItem: {fileID: 11400000, guid: 2ac5740ae5a64704487dd4f9422e25b4, type: 2}
+  outputAmount: 1
+  craftSeconds: 6
+  requiredTool: 0
+  station: 1

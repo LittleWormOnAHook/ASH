@@ -1,0 +1,254 @@
+using System.Collections.Generic;
+using System.IO;
+using ASH.Interaction;
+using ASH.Inventory;
+using UnityEditor;
+using UnityEngine;
+
+namespace ASH.EditorTools.Build
+{
+    /// <summary>
+    /// Table-driven item + recipe catalog for the slice (placeholders; see Docs/ItemsAndCrafting.md). Creates or
+    /// updates ScriptableObjects in place (GUIDs kept), primitive pickup prefabs, salvage world nodes (crate, chair,
+    /// fiber grass), tool hooks on existing nodes, the stock-tank fill, the player's recipe list and starting GPS.
+    /// Optional truck parts live only in Data/Items/Optional_TruckParts and are referenced by nothing else.
+    /// </summary>
+    public static class ASHItemCatalog
+    {
+        public const string ItemDir = ASHContentBuilder.ItemDir;
+        public const string TruckDir = ItemDir + "/Optional_TruckParts";
+        public const string RecipeDir = ASHContentBuilder.RecipeDir;
+        public const string PickupDir = ASHContentBuilder.Root + "/Prefabs/Pickups";
+        const string Mat = ASHContentBuilder.MatDir + "/Pickups";
+
+        enum Shape { Box, Cyl, Ball, Capsule, Flat }
+        sealed class Def
+        {
+            public string file, id, name, desc, verb = "Use"; public ASHItemCategory cat; public int stack = 10; public Color tint;
+            public Shape shape = Shape.Box; public Vector3 size = new Vector3(0.3f, 0.2f, 0.3f); public bool pickup = true; public string dir = ItemDir;
+            public System.Action<ASHItemDefinition> extra;
+        }
+
+        static Def D(string file, string name, ASHItemCategory cat, string desc, Color tint, Shape shape, Vector3 size, int stack = 10, string verb = "Use", System.Action<ASHItemDefinition> extra = null, bool pickup = true, string dir = ItemDir)
+            => new Def { file = file, id = file.ToLowerInvariant(), name = name, cat = cat, desc = desc, tint = tint, shape = shape, size = size, stack = stack, verb = verb, extra = extra, pickup = pickup, dir = dir };
+
+        static ASHItemDefinition I(string file) => AssetDatabase.LoadAssetAtPath<ASHItemDefinition>($"{ItemDir}/ASH_Item_{file}.asset");
+        static ASHRecipeIngredient G(string file, int n) => new ASHRecipeIngredient { item = I(file) ?? ASHContentBuilder.LoadItem(file), amount = n };
+
+        [MenuItem("ASH/Build/6. Item Catalog (items, recipes, pickups, salvage)")]
+        public static void Build()
+        {
+            var C = new Color(0.62f, 0.56f, 0.46f);
+            var defs = new List<Def>
+            {
+                // resources
+                D("Cloth", "Cloth", ASHItemCategory.Resource, "Clean strips of fabric. Bandages, repairs, tinder.", new Color(0.75f, 0.68f, 0.55f), Shape.Box, new Vector3(0.3f, 0.06f, 0.24f)),
+                D("PlantFiber", "Plant Fiber", ASHItemCategory.Resource, "Dry grass and inner bark, twisted into strands.", new Color(0.66f, 0.62f, 0.38f), Shape.Box, new Vector3(0.35f, 0.08f, 0.15f), 20),
+                D("ScrapMetal", "Scrap Metal", ASHItemCategory.Resource, "Flattened tin and bent wire.", new Color(0.55f, 0.56f, 0.58f), Shape.Box, new Vector3(0.25f, 0.04f, 0.2f), 20),
+                D("EmptyTin", "Empty Tin Can", ASHItemCategory.Resource, "Holds water from a tank or creek. Can be flattened into scrap.", new Color(0.7f, 0.7f, 0.72f), Shape.Cyl, new Vector3(0.09f, 0.06f, 0.09f), 10, "Use",
+                    it => Breakdown(it, ASHToolType.None, false, 1.5f, 1f, ("ScrapMetal", 1))),
+                D("ReclaimedWood", "Reclaimed Wood", ASHItemCategory.Resource, "Planks from crates and furniture. Burns longer than deadwood.", new Color(0.55f, 0.42f, 0.3f), Shape.Box, new Vector3(0.5f, 0.05f, 0.12f), 20),
+                // food & water
+                D("RawMeat", "Raw Meat", ASHItemCategory.Consumable, "Edible raw in a pinch, but it will cost you. Cook it at a fire.", new Color(0.7f, 0.25f, 0.25f), Shape.Box, new Vector3(0.2f, 0.07f, 0.14f), 5, "Eat", it => Restore(it, 8, 0, -4)),
+                D("CookedMeat", "Cooked Meat", ASHItemCategory.Consumable, "Charred outside, hot inside.", new Color(0.48f, 0.28f, 0.16f), Shape.Box, new Vector3(0.2f, 0.07f, 0.14f), 5, "Eat", it => Restore(it, 35, 0, 4)),
+                D("RawFish", "Raw Fish", ASHItemCategory.Consumable, "A gutted creek trout. Cook it first.", new Color(0.62f, 0.6f, 0.5f), Shape.Capsule, new Vector3(0.07f, 0.16f, 0.07f), 5, "Eat", it => Restore(it, 6, 1, -3)),
+                D("CookedFish", "Cooked Fish", ASHItemCategory.Consumable, "Flaky and smoky.", new Color(0.7f, 0.55f, 0.35f), Shape.Capsule, new Vector3(0.07f, 0.16f, 0.07f), 5, "Eat", it => Restore(it, 28, 2, 3)),
+                D("DriedChokecherries", "Dried Chokecherries", ASHItemCategory.Consumable, "Fire-dried berries. Light and they keep.", new Color(0.35f, 0.08f, 0.12f), Shape.Ball, new Vector3(0.14f, 0.1f, 0.14f), 20, "Eat", it => Restore(it, 14, 0, 1)),
+                D("CannedBeans", "Canned Beans", ASHItemCategory.Consumable, "Dented, label gone. Open it with a can opener or a blade, or smash it and lose some.", new Color(0.62f, 0.5f, 0.32f), Shape.Cyl, new Vector3(0.09f, 0.06f, 0.09f), 5, "Eat", it => { Restore(it, 30, 2, 0); Can(it); }),
+                D("CannedPeaches", "Canned Peaches", ASHItemCategory.Consumable, "Sweet syrup and soft fruit. Needs opening.", new Color(0.86f, 0.6f, 0.3f), Shape.Cyl, new Vector3(0.09f, 0.06f, 0.09f), 5, "Eat", it => { Restore(it, 18, 12, 0); Can(it); }),
+                D("TinOfWater", "Tin of Creek Water", ASHItemCategory.Consumable, "Silty and unsafe. Boil it at a fire.", new Color(0.45f, 0.52f, 0.5f), Shape.Cyl, new Vector3(0.09f, 0.06f, 0.09f), 5, "Drink", it => { Restore(it, 0, 15, -2); it.leftoverItem = I("EmptyTin"); }, pickup: false),
+                D("BoiledWater", "Tin of Boiled Water", ASHItemCategory.Consumable, "Safe to drink.", new Color(0.6f, 0.7f, 0.75f), Shape.Cyl, new Vector3(0.09f, 0.06f, 0.09f), 5, "Drink", it => { Restore(it, 0, 28, 0); it.leftoverItem = I("EmptyTin"); }, pickup: false),
+                // medical
+                D("Bandage", "Bandage", ASHItemCategory.Medical, "Clean cloth bandage. Stops bleeding, restores some health.", new Color(0.9f, 0.88f, 0.82f), Shape.Cyl, new Vector3(0.08f, 0.04f, 0.08f), 10, "Apply", it => Restore(it, 0, 0, 15)),
+                D("FiberBandage", "Fiber Bandage", ASHItemCategory.Medical, "Coarse plant-fiber wrap. Better than nothing.", new Color(0.7f, 0.66f, 0.45f), Shape.Cyl, new Vector3(0.08f, 0.04f, 0.08f), 10, "Apply", it => Restore(it, 0, 0, 8)),
+                D("AntisepticBandage", "Antiseptic Bandage", ASHItemCategory.Medical, "Bandage soaked in alcohol. Restores more health.", new Color(0.85f, 0.9f, 0.85f), Shape.Cyl, new Vector3(0.08f, 0.04f, 0.08f), 10, "Apply", it => Restore(it, 0, 0, 30)),
+                D("RubbingAlcohol", "Rubbing Alcohol", ASHItemCategory.Resource, "Antiseptic and an accelerant. Don't drink it.", new Color(0.55f, 0.7f, 0.85f), Shape.Cyl, new Vector3(0.07f, 0.1f, 0.07f), 5),
+                D("Whiskey", "Whiskey", ASHItemCategory.Consumable, "Half a bottle. Antiseptic in a pinch, or a moment of warmth.", new Color(0.65f, 0.4f, 0.15f), Shape.Cyl, new Vector3(0.08f, 0.13f, 0.08f), 3, "Drink", it => { Restore(it, 0, 3, 0); it.restoreStamina = 15; }),
+                D("Painkillers", "Painkillers", ASHItemCategory.Medical, "A few pills rattling in a bottle.", new Color(0.9f, 0.85f, 0.7f), Shape.Cyl, new Vector3(0.05f, 0.05f, 0.05f), 10, "Take", it => Restore(it, 0, 0, 10)),
+                // tools (no combat use)
+                D("Hatchet", "Hatchet", ASHItemCategory.Tool, "Splits deadwood faster and for more fuel; breaks down crates and furniture. Opens cans.", new Color(0.55f, 0.5f, 0.45f), Shape.Box, new Vector3(0.08f, 0.04f, 0.38f), 1, "Use", it => it.toolType = ASHToolType.Axe),
+                D("HuntingKnife", "Hunting Knife", ASHItemCategory.Tool, "Cuts cloth into strips, harvests meat, opens cans.", new Color(0.6f, 0.6f, 0.62f), Shape.Box, new Vector3(0.04f, 0.03f, 0.3f), 1, "Use", it => it.toolType = ASHToolType.Knife),
+                D("CanOpener", "Can Opener", ASHItemCategory.Tool, "Opens cans cleanly and keeps the tin.", new Color(0.65f, 0.65f, 0.6f), Shape.Box, new Vector3(0.05f, 0.02f, 0.14f), 1, "Use", it => it.toolType = ASHToolType.CanOpener),
+                D("ImprovisedKnife", "Improvised Knife", ASHItemCategory.Tool, "Scrap blade wrapped in cloth. Works as a knife.", new Color(0.5f, 0.5f, 0.48f), Shape.Box, new Vector3(0.04f, 0.03f, 0.24f), 1, "Use", it => it.toolType = ASHToolType.Knife, pickup: false),
+                D("DamagedGPS", "Damaged GPS", ASHItemCategory.Tool, "Trailmate 40. Cracked screen, corrupt map data, a rough fix at best. Log viewpoints from high ground to rebuild the map. [M]", new Color(0.4f, 0.55f, 0.45f), Shape.Box, new Vector3(0.07f, 0.03f, 0.13f), 1, "Open map", it => it.toolType = ASHToolType.GPS, pickup: false),
+                // salvage
+                D("OldShirt", "Old Flannel Shirt", ASHItemCategory.Salvage, "Too torn to wear. Cut it into cloth (a knife gets more).", new Color(0.55f, 0.25f, 0.2f), Shape.Box, new Vector3(0.35f, 0.05f, 0.3f), 5, "Use",
+                    it => Breakdown(it, ASHToolType.Knife, false, 3f, 0.5f, ("Cloth", 2))),
+                D("Rags", "Rags", ASHItemCategory.Salvage, "Greasy rags. Rinse and tear for a strip of cloth.", new Color(0.45f, 0.42f, 0.35f), Shape.Box, new Vector3(0.22f, 0.05f, 0.2f), 10, "Use",
+                    it => Breakdown(it, ASHToolType.None, false, 1.5f, 1f, ("Cloth", 1))),
+                D("DeadRabbit", "Dead Rabbit", ASHItemCategory.Salvage, "Fresh. Needs a knife to harvest.", new Color(0.5f, 0.42f, 0.35f), Shape.Capsule, new Vector3(0.12f, 0.18f, 0.12f), 2, "Use",
+                    it => Breakdown(it, ASHToolType.Knife, true, 5f, 0.5f, ("RawMeat", 2))),
+                D("WholeTrout", "Whole Trout", ASHItemCategory.Salvage, "Stranded in a drying pool. Gut it (a knife wastes less).", new Color(0.55f, 0.55f, 0.45f), Shape.Capsule, new Vector3(0.07f, 0.18f, 0.07f), 3, "Use",
+                    it => Breakdown(it, ASHToolType.Knife, false, 3f, 0.5f, ("RawFish", 1))),
+                // optional, isolated: truck parts (vehicle undecided; nothing references these)
+                D("GasCan", "Gas Can (optional)", ASHItemCategory.Key, "Half full. Optional truck content: undecided.", new Color(0.75f, 0.2f, 0.15f), Shape.Box, new Vector3(0.3f, 0.35f, 0.18f), 1, pickup: false, dir: TruckDir),
+                D("SparkPlugs", "Spark Plugs (optional)", ASHItemCategory.Key, "Optional truck content: undecided.", C, Shape.Box, new Vector3(0.1f, 0.05f, 0.1f), 4, pickup: false, dir: TruckDir),
+                D("CarBattery", "Car Battery (optional)", ASHItemCategory.Key, "Optional truck content: undecided.", new Color(0.2f, 0.2f, 0.22f), Shape.Box, new Vector3(0.3f, 0.2f, 0.18f), 1, pickup: false, dir: TruckDir),
+                D("RadiatorHose", "Radiator Hose (optional)", ASHItemCategory.Key, "Optional truck content: undecided.", new Color(0.15f, 0.15f, 0.15f), Shape.Cyl, new Vector3(0.05f, 0.25f, 0.05f), 2, pickup: false, dir: TruckDir),
+                D("SpareTire", "Spare Tire (optional)", ASHItemCategory.Key, "Optional truck content: undecided.", new Color(0.12f, 0.12f, 0.12f), Shape.Cyl, new Vector3(0.6f, 0.1f, 0.6f), 1, pickup: false, dir: TruckDir),
+                D("FanBelt", "Fan Belt (optional)", ASHItemCategory.Key, "Optional truck content: undecided.", new Color(0.18f, 0.16f, 0.14f), Shape.Cyl, new Vector3(0.2f, 0.01f, 0.2f), 2, pickup: false, dir: TruckDir),
+            };
+
+            // pass 1: create assets so cross references resolve; pass 2: configure
+            foreach (var d in defs) ASHBuildUtil.Asset<ASHItemDefinition>($"{d.dir}/ASH_Item_{d.file}.asset");
+            AssetDatabase.SaveAssets();
+            foreach (var d in defs)
+            {
+                var it = AssetDatabase.LoadAssetAtPath<ASHItemDefinition>($"{d.dir}/ASH_Item_{d.file}.asset");
+                it.itemId = d.id; it.displayName = d.name; it.description = d.desc; it.category = d.cat; it.maxStack = d.stack; it.uiTint = d.tint; it.useVerb = d.verb;
+                it.toolType = ASHToolType.None; it.requiresOpener = false; it.leftoverItem = null; it.breakdownYield = new List<ASHRecipeIngredient>();
+                d.extra?.Invoke(it);
+                EditorUtility.SetDirty(it);
+                PickupPrefab(d, it); // every item gets a prefab (icon source); 'pickup' only marks world placement
+            }
+            var cherries = ASHContentBuilder.LoadItem("ASH_Item_Chokecherries"); if (cherries) { cherries.useVerb = "Eat"; EditorUtility.SetDirty(cherries); }
+
+            var recipes = BuildRecipes();
+            BuildSalvageNodes();
+            HookExistingPrefabs();
+            WirePlayer(recipes);
+            AssetDatabase.SaveAssets();
+            Debug.Log($"[ASH] Item catalog: {defs.Count} items, {recipes.Count} recipes, pickups in {PickupDir}");
+        }
+
+        static void Restore(ASHItemDefinition it, float hunger, float thirst, float health) { it.restoreHunger = hunger; it.restoreThirst = thirst; it.restoreHealth = health; it.restoreStamina = 0; }
+        static void Can(ASHItemDefinition it) { it.requiresOpener = true; it.smashedYield = 0.65f; it.leftoverItem = I("EmptyTin"); }
+        static void Breakdown(ASHItemDefinition it, ASHToolType tool, bool required, float secs, float noToolYield, params (string file, int n)[] yield)
+        {
+            it.breakdownTool = tool; it.breakdownToolRequired = required; it.breakdownSeconds = secs; it.breakdownNoToolYield = noToolYield;
+            it.breakdownYield = new List<ASHRecipeIngredient>(); foreach (var y in yield) it.breakdownYield.Add(G(y.file, y.n));
+        }
+
+        // ------------------------------------------------------------------ recipes
+        static List<ASHRecipe> BuildRecipes()
+        {
+            var list = new List<ASHRecipe>();
+            var campfire = ASHContentBuilder.LoadRecipe();
+            if (campfire) { campfire.category = ASHRecipeCategory.Fire; campfire.description = "A ring of stones and deadwood. Place it to make camp, cook and dry food."; EditorUtility.SetDirty(campfire); list.Add(campfire); }
+            var fireItem = ASHContentBuilder.LoadItem("ASH_Item_Campfire");
+            list.Add(R("CampfirePlanks", "Campfire (planks)", ASHRecipeCategory.Fire, "Reclaimed planks burn longer than deadwood.", fireItem, 1, 2f, ASHToolType.None, ASHCraftStation.Anywhere, G("ReclaimedWood", 3), G("ASH_Item_Stone", 3)));
+            list.Add(R("CampfireAlcohol", "Campfire (alcohol start)", ASHRecipeCategory.Fire, "A splash of alcohol gets damp wood going: less deadwood needed.", fireItem, 1, 1.5f, ASHToolType.None, ASHCraftStation.Anywhere, G("ASH_Item_Deadwood", 2), G("ASH_Item_Stone", 3), G("RubbingAlcohol", 1)));
+            list.Add(R("Bandage", "Bandage", ASHRecipeCategory.Medical, "Tear clean cloth into a bandage.", I("Bandage"), 1, 2f, ASHToolType.None, ASHCraftStation.Anywhere, G("Cloth", 1)));
+            list.Add(R("FiberBandage", "Fiber Bandage", ASHRecipeCategory.Medical, "Twist plant fiber into a rough wrap.", I("FiberBandage"), 1, 3f, ASHToolType.None, ASHCraftStation.Anywhere, G("PlantFiber", 3)));
+            list.Add(R("AntisepticBandage", "Antiseptic Bandage", ASHRecipeCategory.Medical, "Soak a bandage in rubbing alcohol.", I("AntisepticBandage"), 1, 2f, ASHToolType.None, ASHCraftStation.Anywhere, G("Bandage", 1), G("RubbingAlcohol", 1)));
+            list.Add(R("AntisepticBandageWhiskey", "Antiseptic Bandage (whiskey)", ASHRecipeCategory.Medical, "Whiskey works too. A waste of whiskey.", I("AntisepticBandage"), 1, 2f, ASHToolType.None, ASHCraftStation.Anywhere, G("Bandage", 1), G("Whiskey", 1)));
+            list.Add(R("CookMeat", "Cook Meat", ASHRecipeCategory.Food, "Cook raw meat over a lit campfire.", I("CookedMeat"), 1, 6f, ASHToolType.None, ASHCraftStation.Campfire, G("RawMeat", 1)));
+            list.Add(R("CookFish", "Cook Fish", ASHRecipeCategory.Food, "Cook a gutted fish over a lit campfire.", I("CookedFish"), 1, 5f, ASHToolType.None, ASHCraftStation.Campfire, G("RawFish", 1)));
+            list.Add(R("DryChokecherries", "Dry Chokecherries", ASHRecipeCategory.Food, "Dry berries by the fire so they keep.", I("DriedChokecherries"), 2, 5f, ASHToolType.None, ASHCraftStation.Campfire, G("ASH_Item_Chokecherries", 3)));
+            list.Add(R("BoilWater", "Boil Water", ASHRecipeCategory.Food, "Boil a tin of creek water at the fire.", I("BoiledWater"), 1, 4f, ASHToolType.None, ASHCraftStation.Campfire, G("TinOfWater", 1)));
+            list.Add(R("ImprovisedKnife", "Improvised Knife", ASHRecipeCategory.Tools, "Grind scrap to an edge against a stone and wrap the grip.", I("ImprovisedKnife"), 1, 6f, ASHToolType.None, ASHCraftStation.Anywhere, G("ScrapMetal", 2), G("Cloth", 1), G("ASH_Item_Stone", 1)));
+            list.Add(R("ClothFromShirt", "Cut Cloth Strips", ASHRecipeCategory.Materials, "Cut an old shirt into clean strips.", I("Cloth"), 3, 3f, ASHToolType.Knife, ASHCraftStation.Anywhere, G("OldShirt", 1)));
+            list.Add(R("FlattenTins", "Flatten Tins", ASHRecipeCategory.Materials, "Hammer empty tins flat for scrap.", I("ScrapMetal"), 1, 2f, ASHToolType.None, ASHCraftStation.Anywhere, G("EmptyTin", 2)));
+            return list;
+        }
+
+        static ASHRecipe R(string file, string name, ASHRecipeCategory cat, string desc, ASHItemDefinition output, int amount, float secs, ASHToolType tool, ASHCraftStation station, params ASHRecipeIngredient[] ing)
+        {
+            var r = ASHBuildUtil.Asset<ASHRecipe>($"{RecipeDir}/ASH_Recipe_{file}.asset");
+            r.recipeId = file.ToLowerInvariant(); r.displayName = name; r.category = cat; r.description = desc; r.outputItem = output; r.outputAmount = amount;
+            r.craftSeconds = secs; r.requiredTool = tool; r.station = station; r.ingredients = new List<ASHRecipeIngredient>(ing);
+            foreach (var i in ing) if (i.item == null) Debug.LogWarning($"[ASH] Recipe {file}: missing ingredient item");
+            EditorUtility.SetDirty(r); return r;
+        }
+
+        // ------------------------------------------------------------------ prefabs
+        static void PickupPrefab(Def d, ASHItemDefinition it)
+        {
+            var root = new GameObject("ASH_Pickup_" + d.file);
+            var mat = ASHBuildUtil.Lit($"{Mat}/ASH_M_Pickup_{d.file}.mat", d.tint, 0.25f);
+            var type = d.shape == Shape.Cyl ? PrimitiveType.Cylinder : d.shape == Shape.Ball ? PrimitiveType.Sphere : d.shape == Shape.Capsule ? PrimitiveType.Capsule : PrimitiveType.Cube;
+            var s = d.size;
+            Vector3 euler = d.shape == Shape.Capsule ? new Vector3(0, 0, 90) : Vector3.zero;
+            float half = d.shape == Shape.Cyl ? s.y : d.shape == Shape.Capsule ? s.x * 0.5f : s.y * 0.5f;
+            ASHBuildUtil.Prim(type, "Visual", root.transform, new Vector3(0, half, 0), euler, s, mat);
+            if (d.file == "Hatchet") ASHBuildUtil.Prim(PrimitiveType.Cube, "Head", root.transform, new Vector3(0, 0.04f, 0.17f), Vector3.zero, new Vector3(0.16f, 0.05f, 0.07f), ASHBuildUtil.Lit($"{Mat}/ASH_M_Pickup_Steel.mat", new Color(0.4f, 0.41f, 0.42f), 0.5f, null, 0.7f));
+            var col = root.AddComponent<BoxCollider>();
+            float m = 0.12f; col.size = new Vector3(Mathf.Max(s.x, 0.25f) + m, Mathf.Max(s.y * 2f, 0.25f), Mathf.Max(s.z, 0.25f) + m); col.center = new Vector3(0, col.size.y * 0.5f, 0);
+            col.isTrigger = true;
+            root.AddComponent<ASHItemPickup>().Configure(it, 1);
+            int layer = LayerMask.NameToLayer("Resource"); if (layer >= 0) ASHBuildUtil.SetLayerRecursive(root, layer);
+            ASHBuildUtil.SavePrefab(root, $"{PickupDir}/ASH_Pickup_{d.file}.prefab");
+        }
+
+        public static GameObject LoadPickup(string file) => AssetDatabase.LoadAssetAtPath<GameObject>($"{PickupDir}/ASH_Pickup_{file}.prefab");
+
+        static void BuildSalvageNodes()
+        {
+            var wood = ASHBuildUtil.Lit(ASHContentBuilder.MatDir + "/ASH_M_CrateWood.mat", new Color(0.5f, 0.4f, 0.28f), 0.15f);
+            var dark = ASHBuildUtil.Lit(ASHContentBuilder.MatDir + "/ASH_M_ChairWood.mat", new Color(0.32f, 0.22f, 0.15f), 0.2f);
+            var grass = ASHBuildUtil.Lit(ASHContentBuilder.MatDir + "/ASH_M_FiberGrass.mat", new Color(0.62f, 0.58f, 0.34f), 0.1f);
+
+            var crate = new GameObject("ASH_SalvageCrate"); var v = new GameObject("Visual").transform; v.SetParent(crate.transform, false);
+            ASHBuildUtil.Prim(PrimitiveType.Cube, "Box", v, new Vector3(0, 0.3f, 0), new Vector3(0, 12, 0), new Vector3(0.9f, 0.6f, 0.6f), wood);
+            for (int i = 0; i < 3; i++) ASHBuildUtil.Prim(PrimitiveType.Cube, "Slat" + i, v, new Vector3(0, 0.12f + i * 0.2f, 0.31f), new Vector3(0, 12, 0), new Vector3(0.92f, 0.05f, 0.02f), dark);
+            var c1 = crate.AddComponent<BoxCollider>(); c1.center = new Vector3(0, 0.3f, 0); c1.size = new Vector3(1f, 0.6f, 0.75f);
+            Node(crate, v, I("ReclaimedWood"), "Break down", 2, 3, 1, 2.5f, ASHToolType.Axe, ASHToolType.None, I("ScrapMetal"), 0.5f);
+            ASHBuildUtil.SavePrefab(crate, ASHContentBuilder.WorldPrefabs + "/ASH_SalvageCrate.prefab");
+
+            var chair = new GameObject("ASH_BrokenChair"); v = new GameObject("Visual").transform; v.SetParent(chair.transform, false);
+            ASHBuildUtil.Prim(PrimitiveType.Cube, "Seat", v, new Vector3(0, 0.25f, 0), new Vector3(8, 25, 70), new Vector3(0.45f, 0.05f, 0.45f), dark);
+            ASHBuildUtil.Prim(PrimitiveType.Cube, "Back", v, new Vector3(-0.15f, 0.12f, 0.1f), new Vector3(0, 25, 5), new Vector3(0.45f, 0.05f, 0.5f), dark);
+            for (int i = 0; i < 3; i++) ASHBuildUtil.Prim(PrimitiveType.Cylinder, "Leg" + i, v, new Vector3(0.25f - i * 0.2f, 0.05f, -0.25f + i * 0.18f), new Vector3(90, i * 50, 0), new Vector3(0.04f, 0.22f, 0.04f), dark);
+            var c2 = chair.AddComponent<BoxCollider>(); c2.center = new Vector3(0, 0.25f, 0); c2.size = new Vector3(0.9f, 0.5f, 0.9f);
+            Node(chair, v, I("ReclaimedWood"), "Break down", 1, 2, 1, 2f, ASHToolType.Axe, ASHToolType.None, null, 0f);
+            ASHBuildUtil.SavePrefab(chair, ASHContentBuilder.WorldPrefabs + "/ASH_BrokenChair.prefab");
+
+            var fg = new GameObject("ASH_FiberGrass"); v = new GameObject("Visual").transform; v.SetParent(fg.transform, false);
+            var rnd = new System.Random(3);
+            for (int i = 0; i < 9; i++)
+            {
+                float a = (float)rnd.NextDouble() * 6.28f, r = (float)rnd.NextDouble() * 0.3f;
+                ASHBuildUtil.Prim(PrimitiveType.Cube, "Blade" + i, v, new Vector3(Mathf.Cos(a) * r, 0.3f, Mathf.Sin(a) * r), new Vector3((float)rnd.NextDouble() * 30 - 15, (float)rnd.NextDouble() * 180, (float)rnd.NextDouble() * 30 - 15), new Vector3(0.03f, 0.6f + (float)rnd.NextDouble() * 0.3f, 0.08f), grass);
+            }
+            var c3 = fg.AddComponent<CapsuleCollider>(); c3.center = new Vector3(0, 0.4f, 0); c3.radius = 0.4f; c3.height = 0.8f;
+            Node(fg, v, I("PlantFiber"), "Pull fiber", 1, 2, 2, 1.2f, ASHToolType.None, ASHToolType.Knife, null, 0f);
+            ASHBuildUtil.SavePrefab(fg, ASHContentBuilder.WorldPrefabs + "/ASH_FiberGrass.prefab");
+        }
+
+        static void Node(GameObject root, Transform visual, ASHItemDefinition item, string verb, int min, int max, int gathers, float hold, ASHToolType req, ASHToolType bonus, ASHItemDefinition extra, float chance)
+        {
+            int layer = LayerMask.NameToLayer("Resource"); if (layer >= 0) ASHBuildUtil.SetLayerRecursive(root, layer);
+            var n = root.AddComponent<ASHResourceNode>();
+            n.Configure(item, verb, min, max, gathers, hold);
+            n.ConfigureTools(req, bonus, 2f, 0.5f, extra, chance);
+            ASHBuildUtil.Set(n, "visualRoot", visual.gameObject);
+        }
+
+        static void HookExistingPrefabs()
+        {
+            EditPrefab(ASHContentBuilder.WorldPrefabs + "/ASH_Deadwood.prefab", go =>
+            { var n = go.GetComponent<ASHResourceNode>(); if (n) { n.ConfigureTools(ASHToolType.None, ASHToolType.Axe, 2f, 0.5f, null, 0f); EditorUtility.SetDirty(n); } });
+            EditPrefab(ASHContentBuilder.WorldPrefabs + "/ASH_StockTank.prefab", go =>
+            { var w = go.GetComponentInChildren<ASHWaterSource>(); if (w) { w.ConfigureFill(I("EmptyTin"), I("TinOfWater")); EditorUtility.SetDirty(w); } });
+            // scene instances with overrides
+            foreach (var w in Object.FindObjectsByType<ASHWaterSource>(FindObjectsInactive.Include)) { w.ConfigureFill(I("EmptyTin"), I("TinOfWater")); EditorUtility.SetDirty(w); }
+        }
+
+        static void EditPrefab(string path, System.Action<GameObject> edit)
+        {
+            if (!File.Exists(path)) { Debug.LogWarning("[ASH] missing prefab " + path); return; }
+            var root = PrefabUtility.LoadPrefabContents(path);
+            try { edit(root); PrefabUtility.SaveAsPrefabAsset(root, path); } finally { PrefabUtility.UnloadPrefabContents(root); }
+        }
+
+        static void WirePlayer(List<ASHRecipe> recipes)
+        {
+            var arr = recipes.ToArray();
+            EditPrefab(ASHPlayerBuilder.PrefabPath, go => Wire(go, arr));
+            var p = GameObject.Find("ASH_Player"); if (p) { Wire(p, arr); UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(p.scene); }
+        }
+
+        static void Wire(GameObject go, ASHRecipe[] recipes)
+        {
+            var craft = go.GetComponent<ASHCrafting>(); if (craft) ASHBuildUtil.SetList(craft, "recipes", recipes);
+            var inv = go.GetComponent<ASHInventory>();
+            if (inv)
+            {
+                var so = new SerializedObject(inv); var p = so.FindProperty("startingItems");
+                p.arraySize = 1; var e = p.GetArrayElementAtIndex(0);
+                e.FindPropertyRelative("item").objectReferenceValue = I("DamagedGPS"); e.FindPropertyRelative("amount").intValue = 1;
+                so.ApplyModifiedPropertiesWithoutUndo();
+            }
+        }
+    }
+}

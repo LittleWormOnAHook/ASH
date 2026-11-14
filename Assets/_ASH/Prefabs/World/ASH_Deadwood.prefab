@@ -379,6 +379,12 @@ MonoBehaviour:
   gathers: 3
   holdSeconds: 1
   respawnSeconds: 0
+  requiredTool: 0
+  bonusTool: 1
+  bonusYieldMultiplier: 2
+  bonusHoldMultiplier: 0.5
+  extraItem: {fileID: 0}
+  extraChance: 0
   visualRoot: {fileID: 4885656694778163848}
   gatherClip: {fileID: 0}
 --- !u!1 &8527175828864608109

@@ -103,16 +103,6 @@ namespace ASH.Inventory
             return true;
         }
 
-        /// <summary>Consumes one unit of a consumable through the supplied consumer (survival stats).</summary>
-        public bool TryConsume(ASHItemDefinition item, IASHConsumer consumer)
-        {
-            if (item == null || !item.IsConsumable || consumer == null || Count(item) <= 0) return false;
-            consumer.Consume(item);
-            Remove(item, 1);
-            ItemConsumed?.Invoke(item);
-            return true;
-        }
-
         public int SlotCount => slotCount;
         /// <summary>Slots [0, HotbarSize) double as the always-visible hotbar (keys 1..N).</summary>
         [Range(0, 10)] public int hotbarSize = 6;
@@ -145,9 +135,54 @@ namespace ASH.Inventory
             return true;
         }
 
+        /// <summary>True when any carried item fills this tool role.</summary>
+        public bool HasTool(ASHToolType tool)
+        {
+            if (tool == ASHToolType.None) return true;
+            foreach (var s in Slots) if (!s.IsEmpty && s.item.toolType == tool) return true;
+            return false;
+        }
+
+        /// <summary>Tools that open cans cleanly (can opener, knife, hatchet), as in survival-game convention.</summary>
+        public bool HasOpener => HasTool(ASHToolType.CanOpener) || HasTool(ASHToolType.Knife) || HasTool(ASHToolType.Axe);
+
+        /// <summary>Starting kit, added once on Start (e.g. the damaged GPS).</summary>
+        [SerializeField] private List<ASHRecipeIngredient> startingItems = new List<ASHRecipeIngredient>();
+        private bool _startingGiven;
+        private void Start()
+        {
+            if (_startingGiven) return; _startingGiven = true;
+            foreach (var s in startingItems) if (s.item != null && Count(s.item) == 0) AddItemSilently(s.item, s.amount);
+        }
+
+        private void AddItemSilently(ASHItemDefinition item, int amount)
+        {
+            EnsureSlots();
+            for (int i = 0; i < slots.Count && amount > 0; i++)
+                if (slots[i].IsEmpty) { int add = Mathf.Min(amount, item.maxStack); slots[i].item = item; slots[i].amount = add; amount -= add; }
+            Changed?.Invoke();
+        }
+
+        /// <summary>Last consume result for UI messages: true when a can was smashed open (spilled).</summary>
+        public bool LastConsumeSmashed { get; private set; }
+
+        /// <summary>Consumes one unit through the consumer (survival stats). Cans without an opener are smashed open:
+        /// reduced restores and no empty tin returned.</summary>
+        public bool TryConsume(ASHItemDefinition item, IASHConsumer consumer)
+        {
+            if (item == null || !item.IsConsumable || consumer == null || Count(item) <= 0) return false;
+            bool smashed = item.requiresOpener && !HasOpener;
+            LastConsumeSmashed = smashed;
+            consumer.Consume(item, smashed ? item.smashedYield : 1f);
+            Remove(item, 1);
+            if (item.leftoverItem != null && !smashed) AddItem(item.leftoverItem, 1);
+            ItemConsumed?.Invoke(item);
+            return true;
+        }
+
         public void ClearAll() { foreach (var s in slots) s.Clear(); Changed?.Invoke(); }
     }
 
     /// <summary>Anything that can apply a consumable's restores (implemented by survival stats).</summary>
-    public interface IASHConsumer { void Consume(ASHItemDefinition item); }
+    public interface IASHConsumer { void Consume(ASHItemDefinition item, float factor = 1f); }
 }

@@ -253,6 +253,8 @@ MonoBehaviour:
   label: stock tank
   thirstPerDrink: 25
   holdSeconds: 1.4
+  emptyContainer: {fileID: 11400000, guid: d6ff4dbd01e3cd14fac83d6f01c0c757, type: 2}
+  filledContainer: {fileID: 11400000, guid: e778956e342d1dd4cb0ceb4770b0f23e, type: 2}
 --- !u!1 &8320262485369467938
 GameObject:
   m_ObjectHideFlags: 0

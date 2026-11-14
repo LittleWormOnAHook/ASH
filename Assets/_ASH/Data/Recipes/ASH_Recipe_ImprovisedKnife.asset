@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f33e8ceadb27f414fbe6b19827d3ba9f, type: 3}
+  m_Name: ASH_Recipe_ImprovisedKnife
+  m_EditorClassIdentifier: Assembly-CSharp::ASH.Inventory.ASHRecipe
+  recipeId: improvisedknife
+  displayName: Improvised Knife
+  description: Grind scrap to an edge against a stone and wrap the grip.
+  category: 3
+  ingredients:
+  - item: {fileID: 11400000, guid: 151ffd9b1b592cc4bba57253a3bc9651, type: 2}
+    amount: 2
+  - item: {fileID: 11400000, guid: 0d309887d3d74564faeda75273494ee9, type: 2}
+    amount: 1
+  - item: {fileID: 11400000, guid: 5e87bd44affcb6a418c58b5522e145b2, type: 2}
+    amount: 1
+  outputItem: {fileID: 11400000, guid: e495499d5b6c138438225bca4c0fd3a1, type: 2}
+  outputAmount: 1
+  craftSeconds: 6
+  requiredTool: 0
+  station: 0

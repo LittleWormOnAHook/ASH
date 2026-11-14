@@ -1,3 +1,4 @@
+using ASH.Inventory;
 using UnityEngine;
 
 namespace ASH.Interaction
@@ -9,17 +10,30 @@ namespace ASH.Interaction
         [Range(1f, 100f)] [SerializeField] private float thirstPerDrink = 25f;
         [Range(0.2f, 5f)] [SerializeField] private float holdSeconds = 1.4f;
 
+        [Header("Fill containers (when not thirsty)")]
+        [SerializeField] private ASHItemDefinition emptyContainer;
+        [SerializeField] private ASHItemDefinition filledContainer;
+
         public Transform UseTransform => transform;
+        public void ConfigureFill(ASHItemDefinition empty, ASHItemDefinition filled) { emptyContainer = empty; filledContainer = filled; }
         public float GetUsePriority(in ASHUseContext c) => c.Stats == null ? -1f : 40f;
         public float GetHoldDuration(in ASHUseContext c) => holdSeconds;
-        public string GetPrompt(in ASHUseContext c) =>
-            c.Stats != null && c.Stats.Thirst >= c.Stats.MaxThirst - 0.5f ? $"Not thirsty ({label})" : $"Drink from {label}";
+
+        bool Thirsty(in ASHUseContext c) => c.Stats != null && c.Stats.Thirst < c.Stats.MaxThirst - 0.5f;
+        bool CanFill(in ASHUseContext c) => emptyContainer && filledContainer && c.Inventory != null && c.Inventory.Count(emptyContainer) > 0;
+
+        public string GetPrompt(in ASHUseContext c)
+        {
+            if (Thirsty(c)) return $"Drink from {label}";
+            if (CanFill(c)) return $"Fill {emptyContainer.displayName} ({label})";
+            return $"Not thirsty ({label})";
+        }
 
         public bool TryUse(in ASHUseContext c)
         {
-            if (c.Stats == null || c.Stats.Thirst >= c.Stats.MaxThirst - 0.5f) return false;
-            c.Stats.Drink(thirstPerDrink);
-            return true;
+            if (Thirsty(c)) { c.Stats.Drink(thirstPerDrink); return true; }
+            if (CanFill(c) && c.Inventory.Remove(emptyContainer, 1)) { c.Inventory.AddItem(filledContainer, 1); return true; }
+            return false;
         }
     }
 }

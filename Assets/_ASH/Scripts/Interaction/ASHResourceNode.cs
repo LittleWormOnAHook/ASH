@@ -19,6 +19,16 @@ namespace ASH.Interaction
         [Range(0f, 10f)] [SerializeField] private float holdSeconds = 1.1f;
         [Tooltip("0 = never respawns.")]
         [Range(0f, 1800f)] [SerializeField] private float respawnSeconds = 0f;
+        [Header("Tools")]
+        [Tooltip("Tool that must be carried to harvest at all (e.g. hatchet for crates). None = bare hands.")]
+        [SerializeField] private ASHToolType requiredTool = ASHToolType.None;
+        [Tooltip("Tool that speeds up and increases the yield (e.g. hatchet on deadwood).")]
+        [SerializeField] private ASHToolType bonusTool = ASHToolType.None;
+        [Range(1f, 4f)] [SerializeField] private float bonusYieldMultiplier = 2f;
+        [Range(0.1f, 1f)] [SerializeField] private float bonusHoldMultiplier = 0.5f;
+        [Tooltip("Optional extra item per gather (e.g. scrap metal from a crate's nails).")]
+        [SerializeField] private ASHItemDefinition extraItem;
+        [Range(0f, 1f)] [SerializeField] private float extraChance = 0.35f;
         [SerializeField] private GameObject visualRoot;
         [SerializeField] private AudioClip gatherClip;
 
@@ -35,6 +45,13 @@ namespace ASH.Interaction
             item = def; verb = verbText; yieldMin = minYield; yieldMax = maxYield; gathers = gatherCount; holdSeconds = hold;
         }
 
+        public void ConfigureTools(ASHToolType required, ASHToolType bonus, float yieldMul = 2f, float holdMul = 0.5f, ASHItemDefinition extra = null, float chance = 0.35f)
+        {
+            requiredTool = required; bonusTool = bonus; bonusYieldMultiplier = yieldMul; bonusHoldMultiplier = holdMul; extraItem = extra; extraChance = chance;
+        }
+
+        bool HasBonus(in ASHUseContext c) => bonusTool != ASHToolType.None && c.Inventory != null && c.Inventory.HasTool(bonusTool);
+
         private void Awake()
         {
             _remaining = gathers;
@@ -44,19 +61,24 @@ namespace ASH.Interaction
         }
 
         public float GetUsePriority(in ASHUseContext c) => Depleted || item == null ? -1f : 50f;
-        public float GetHoldDuration(in ASHUseContext c) => holdSeconds;
+        public ASHToolType RequiredTool => requiredTool;
+        public float GetHoldDuration(in ASHUseContext c) => holdSeconds * (HasBonus(c) ? bonusHoldMultiplier : 1f);
 
         public string GetPrompt(in ASHUseContext c)
         {
             if (item == null) return null;
+            if (requiredTool != ASHToolType.None && (c.Inventory == null || !c.Inventory.HasTool(requiredTool))) return $"Needs {ASHCrafting.ToolName(requiredTool)} to {verb.ToLowerInvariant()}";
             if (c.Inventory != null && !c.Inventory.HasSpaceFor(item, 1)) return $"Pack full ({item.displayName})";
-            return $"{verb} {item.displayName}";
+            return HasBonus(c) ? $"{verb} {item.displayName} (hatchet)" : $"{verb} {item.displayName}";
         }
 
         public bool TryUse(in ASHUseContext c)
         {
             if (Depleted || item == null || c.Inventory == null) return false;
+            if (requiredTool != ASHToolType.None && !c.Inventory.HasTool(requiredTool)) return false;
             int amount = Random.Range(yieldMin, yieldMax + 1);
+            if (HasBonus(c)) amount = Mathf.CeilToInt(amount * bonusYieldMultiplier);
+            if (extraItem != null && Random.value < extraChance) c.Inventory.AddItem(extraItem, 1);
             int added = c.Inventory.AddItem(item, amount);
             if (added <= 0) return false;
             _remaining--;

@@ -3071,6 +3071,10 @@ MonoBehaviour:
   SimSecondary: 0
   SimInventory: 0
   SimCraft: 0
+  SimHotbar: -1
+  SimJournal: 0
+  SimMap: 0
+  SimBreakDown: 0
 --- !u!114 &3206216333396108928
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3085,6 +3089,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ASH.Inventory.ASHInventory
   slotCount: 12
   slots: []
+  hotbarSize: 6
+  startingItems:
+  - item: {fileID: 11400000, guid: 966a7d0b7e4b9704da8372d320f301c6, type: 2}
+    amount: 1
 --- !u!114 &3259645904203360744
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3150,6 +3158,20 @@ MonoBehaviour:
   inventory: {fileID: 3206216333396108928}
   recipes:
   - {fileID: 11400000, guid: 9402e347331a3444d945573bda75760a, type: 2}
+  - {fileID: 11400000, guid: 59892aca11dbecc40870130268909216, type: 2}
+  - {fileID: 11400000, guid: 43779c926c799f04e861b209927262e8, type: 2}
+  - {fileID: 11400000, guid: 3cab41a01b23b544fbe4be21c95bf29d, type: 2}
+  - {fileID: 11400000, guid: 19f77334340873049bd9795a131d2821, type: 2}
+  - {fileID: 11400000, guid: 7c1e16c18add25f4092179d43349cca0, type: 2}
+  - {fileID: 11400000, guid: 552bda10f7f0d034bba3c27c6d662d0d, type: 2}
+  - {fileID: 11400000, guid: aa1e14adba268cc428e739422be955f0, type: 2}
+  - {fileID: 11400000, guid: 8ac6e47939a78fd479990e5eaaf40f2f, type: 2}
+  - {fileID: 11400000, guid: 87470f7db772d7547b0b576fc41c20eb, type: 2}
+  - {fileID: 11400000, guid: b99683d183699524da7f4667d45cc33e, type: 2}
+  - {fileID: 11400000, guid: 657c29caec2f23243ad3a17055639254, type: 2}
+  - {fileID: 11400000, guid: e3544ec2c47e15b4780a9ddaa973dee9, type: 2}
+  - {fileID: 11400000, guid: c5fa66851d1b30f4b89f68e9054fc51b, type: 2}
+  stationRange: 4
 --- !u!114 &8144788992435636934
 MonoBehaviour:
   m_ObjectHideFlags: 0

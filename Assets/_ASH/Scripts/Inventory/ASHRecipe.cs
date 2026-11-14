@@ -11,9 +11,13 @@ namespace ASH.Inventory
         [Min(1)] public int amount = 1;
     }
 
+    public enum ASHRecipeCategory { Fire, Medical, Food, Tools, Materials }
+    public enum ASHCraftStation { Anywhere, Campfire }
+
     /// <summary>
     /// Crafting recipe. Same shape as Genesis Project.Crafting.RecipeDefinition (id, name, description,
-    /// ingredients, output, amount); station type, level gates and blueprint discovery removed.
+    /// ingredients, output, amount) and its CraftingStationType idea, reduced to Anywhere / lit Campfire,
+    /// plus an optional required tool. Level gates and blueprint discovery removed.
     /// </summary>
     [CreateAssetMenu(menuName = "ASH/Inventory/Recipe", fileName = "ASH_Recipe_New")]
     public sealed class ASHRecipe : ScriptableObject
@@ -21,10 +25,13 @@ namespace ASH.Inventory
         public string recipeId = "recipe";
         public string displayName = "New Recipe";
         [TextArea(2, 3)] public string description;
+        public ASHRecipeCategory category = ASHRecipeCategory.Materials;
         public List<ASHRecipeIngredient> ingredients = new List<ASHRecipeIngredient>();
         public ASHItemDefinition outputItem;
         [Min(1)] public int outputAmount = 1;
         [Tooltip("Seconds the craft takes (0 = instant).")]
-        [Range(0f, 10f)] public float craftSeconds = 1.2f;
+        [Range(0f, 20f)] public float craftSeconds = 1.2f;
+        public ASHToolType requiredTool = ASHToolType.None;
+        public ASHCraftStation station = ASHCraftStation.Anywhere;
     }
 }

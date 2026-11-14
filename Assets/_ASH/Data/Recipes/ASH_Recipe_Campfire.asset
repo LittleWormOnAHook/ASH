@@ -14,7 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ASH.Inventory.ASHRecipe
   recipeId: campfire
   displayName: Campfire
-  description: 4 deadwood, 3 stones.
+  description: A ring of stones and deadwood. Place it to make camp, cook and dry
+    food.
+  category: 0
   ingredients:
   - item: {fileID: 11400000, guid: c3f9bdd2a328f9742a740367d3a41d6d, type: 2}
     amount: 4
@@ -23,3 +25,5 @@ MonoBehaviour:
   outputItem: {fileID: 11400000, guid: ef6b0a4674b3b0b4f9ad8ddd75fa6bf9, type: 2}
   outputAmount: 1
   craftSeconds: 1.5
+  requiredTool: 0
+  station: 0

@@ -1,0 +1,40 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6e51ffdd6995b1141ae6bc6f9c404f94, type: 3}
+  m_Name: ASH_Item_Rags
+  m_EditorClassIdentifier: Assembly-CSharp::ASH.Inventory.ASHItemDefinition
+  itemId: rags
+  displayName: Rags
+  description: Greasy rags. Rinse and tear for a strip of cloth.
+  icon: {fileID: 0}
+  uiTint: {r: 0.45, g: 0.42, b: 0.35, a: 1}
+  category: 4
+  maxStack: 10
+  useVerb: Use
+  restoreHunger: 0
+  restoreThirst: 0
+  restoreHealth: 0
+  restoreStamina: 0
+  requiresOpener: 0
+  smashedYield: 0.65
+  leftoverItem: {fileID: 0}
+  toolType: 0
+  breakdownYield:
+  - item: {fileID: 11400000, guid: 0d309887d3d74564faeda75273494ee9, type: 2}
+    amount: 1
+  breakdownTool: 0
+  breakdownToolRequired: 0
+  breakdownSeconds: 1.5
+  breakdownNoToolYield: 1
+  placeablePrefab: {fileID: 0}
+  placementFootprint: {x: 1.4, y: 0.6, z: 1.4}
+  maxPlacementSlope: 22
