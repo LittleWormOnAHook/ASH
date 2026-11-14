@@ -52,6 +52,7 @@ def surv(s):
         paths=[dict(name=p['name'],width=p['width'],pts=[XZ(q) for q in p['points']]) for p in s['paths']],
         unlocks=s['unlocks'],journal=s['journal'],next=s['next'],revealAll=bool(s.get('revealAll',False)))
 region=dict(regionName='Ash Region',worldMinX=0,worldMinZ=0,worldSize=4000,startRevealRadius=140,walkRevealRadius=30,gpsUncertainty=70,gpsDrift=25,
+            creeks=[dict(acc=round(float(c[-1][2])),pts=[XZ((p[0],p[1])) for p in (c[::3]+[c[-1]])]) for c in T['creeks']],
             pois=pois,roads=[route(r) for r in roads],trails=[route(r) for r in trails],surveys=[surv(s) for s in surveys],
             biomes=[dict(name='WESTERN RIDGES',sub='stone / timber / exposure',x0=0,x1=850),dict(name='GULLIES',sub='water / cover / foraging',x0=850,x1=2050),dict(name='PRAIRIE',sub='travel / visibility / wind',x0=2050,x1=4000)],
             provenance="Procedural fallback terrain (not real DEM data). POIs fitted to the terrain from Anthony's map draft layout.")

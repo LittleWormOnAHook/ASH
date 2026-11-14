@@ -72,3 +72,7 @@ desktop.ini
 /Assets/_TerrainAutoUpgrade.meta
 /Assets/_ASH/Art/MaterialBackups/
 /Assets/_ASH/Art/MaterialBackups.meta
+
+# ASH TerrainData backups (Scatter Vegetation)
+/Assets/_ASH/Art/Terrain/Backups/
+/Assets/_ASH/Art/Terrain/Backups.meta
