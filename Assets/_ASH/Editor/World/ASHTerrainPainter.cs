@@ -5,24 +5,29 @@ using UnityEngine;
 namespace ASH.EditorTools.World
 {
     /// <summary>
-    /// Placeholder ground treatment for the master terrain: generates tileable noise textures (until the
-    /// environment reuse pass swaps in production textures) and paints splat weights from slope, relative
-    /// height, east-west biome position (prairie east -> foothills west) and the dry creek polyline.
+    /// Slice ground treatment for the master terrain: builds ASH TerrainLayers from Gaia sample textures and paints
+    /// splat weights from slope, relative height, east-west biome position (prairie east -> foothills west), the dry
+    /// creek polyline and ash fallout. Never touches heights. Anthony's ASH/Terrain Auto Painter can reuse the layers.
     /// </summary>
     public static class ASHTerrainPainter
     {
-        private const string TexFolder = ASHTerrainImporter.TerrainFolder + "/Textures";
         private const string LayerFolder = ASHTerrainImporter.TerrainFolder + "/Layers";
+        private const string NM = "Assets/Procedural Worlds/Packages - Install/Asset Samples/NatureManufacture/";
 
-        // Layer order matters for the splat painter below.
-        private static readonly (string name, Color a, Color b, float tile, float smooth)[] LayerDefs =
+        // Layer order matters for the splat painter below. Textures: Gaia "Asset Samples" (NatureManufacture),
+        // tinted per layer with the TerrainLayer diffuse remap (no vendor files modified).
+        // tintMode: 0 = vendor texture as-is, 1 = tinted copy, 2 = desaturated + tinted copy (written to
+        // Assets/_ASH/Art/Terrain/Textures; URP's terrain shader ignores the TerrainLayer diffuse remap tint).
+        private static readonly (string name, string tex, Vector3 tint, float tile, float smoothMax, Vector2 offset, int tintMode)[] LayerDefs =
         {
-            ("ASH_TL_PrairieGrass", new Color(0.46f, 0.47f, 0.30f), new Color(0.58f, 0.55f, 0.36f), 6f, 0.05f),
-            ("ASH_TL_DryGrass",     new Color(0.62f, 0.55f, 0.38f), new Color(0.74f, 0.66f, 0.47f), 5f, 0.05f),
-            ("ASH_TL_Soil",         new Color(0.45f, 0.36f, 0.27f), new Color(0.55f, 0.45f, 0.34f), 4f, 0.08f),
-            ("ASH_TL_Rock",         new Color(0.47f, 0.43f, 0.40f), new Color(0.63f, 0.59f, 0.55f), 8f, 0.15f),
-            ("ASH_TL_CreekGravel",  new Color(0.52f, 0.48f, 0.43f), new Color(0.70f, 0.66f, 0.60f), 2.5f, 0.2f),
+            ("ASH_TL_PrairieGrass", "T_ground_grass_01", new Vector3(0.95f, 0.9f, 0.7f), 7f, 0.25f, Vector2.zero, 1),
+            ("ASH_TL_DryGrass",     "T_ground_grass_01", new Vector3(1.25f, 1.0f, 0.55f), 5.5f, 0.2f, new Vector2(1.7f, 3.1f), 1),
+            ("ASH_TL_Soil",         "T_Ground_Sand_02",  new Vector3(0.62f, 0.5f, 0.4f), 4.5f, 0.3f, Vector2.zero, 1),
+            ("ASH_TL_Rock",         "T_ground_rock_01",  new Vector3(1f, 1f, 1f), 11f, 0.45f, Vector2.zero, 0),
+            ("ASH_TL_CreekGravel",  "T_ground_rock_02",  new Vector3(1f, 1f, 1f), 3f, 0.5f, Vector2.zero, 0),
+            ("ASH_TL_Ash",          "T_Ground_Snow_1",   new Vector3(0.25f, 0.245f, 0.24f), 4f, 0.08f, Vector2.zero, 2),
         };
+        private const string TexFolder = ASHTerrainImporter.TerrainFolder + "/Textures";
 
         /// <summary>Dry creek centerline (world XZ, metres) traced from flow accumulation near the spawn.</summary>
         public static readonly Vector2[] CreekPolyline =
@@ -32,21 +37,29 @@ namespace ASH.EditorTools.World
             new Vector2(1922f, 1633f), new Vector2(1898f, 1633f), new Vector2(1878f, 1628f),
         };
 
-        [MenuItem("ASH/World/2. Paint Terrain (placeholder layers)")]
-        public static void PaintMenu()
+        [MenuItem("ASH/World/Paint Active Terrain (Gaia sample layers + ash)")]
+        public static void PaintActive()
         {
-            var data = AssetDatabase.LoadAssetAtPath<TerrainData>(ASHTerrainImporter.DataPath);
-            if (data == null) data = ASHTerrainImporter.ImportOrUpdate();
-            Paint(data);
+            var t = Terrain.activeTerrain;
+            if (t == null) throw new System.Exception("No active terrain in the open scene.");
+            Undo.RegisterCompleteObjectUndo(t.terrainData, "ASH paint terrain");
+            Paint(t.terrainData);
+        }
+
+        /// <summary>Creates/updates the ASH TerrainLayer assets only (for use in the Terrain Auto Painter window).</summary>
+        [MenuItem("ASH/World/Create ASH Terrain Layers")]
+        public static TerrainLayer[] EnsureLayers()
+        {
+            ASHTerrainImporter.EnsureFolder(LayerFolder);
+            var layers = new TerrainLayer[LayerDefs.Length];
+            for (int l = 0; l < LayerDefs.Length; l++) layers[l] = EnsureLayer(LayerDefs[l]);
+            AssetDatabase.SaveAssets();
+            return layers;
         }
 
         public static void Paint(TerrainData data)
         {
-            ASHTerrainImporter.EnsureFolder(TexFolder);
-            ASHTerrainImporter.EnsureFolder(LayerFolder);
-            var layers = new TerrainLayer[LayerDefs.Length];
-            for (int l = 0; l < LayerDefs.Length; l++)
-                layers[l] = EnsureLayer(LayerDefs[l].name, LayerDefs[l].a, LayerDefs[l].b, LayerDefs[l].tile, LayerDefs[l].smooth, l);
+            var layers = EnsureLayers();
             data.terrainLayers = layers;
 
             int res = data.alphamapResolution;
@@ -56,6 +69,7 @@ namespace ASH.EditorTools.World
             float hScale = data.size.y;
             var maps = new float[res, res, layers.Length];
             float worldPerTexel = data.size.x / res;
+            Vector2 camp = ASHWorldPoints.CurrentCampsite();
 
             for (int y = 0; y < res; y++)
             {
@@ -70,21 +84,21 @@ namespace ASH.EditorTools.World
                     float dzdy = (h[hy + 2, hx] - h[hy - 2, hx]) * hScale / (4f * cell);
                     float slope = Mathf.Atan(Mathf.Sqrt(dzdx * dzdx + dzdy * dzdy)) * Mathf.Rad2Deg;
 
-                    // local relief: centre vs. ~40 m ring -> ridges (+) and gullies (-)
                     int r = 40;
                     int x0 = Mathf.Clamp(hx - r, 0, hRes - 1), x1 = Mathf.Clamp(hx + r, 0, hRes - 1);
                     int y0 = Mathf.Clamp(hy - r, 0, hRes - 1), y1 = Mathf.Clamp(hy + r, 0, hRes - 1);
                     float ring = (h[hy, x0] + h[hy, x1] + h[y0, hx] + h[y1, hx]) * 0.25f;
                     float relief = (h[hy, hx] - ring) * hScale;
 
-                    float west = Mathf.InverseLerp(2600f, 600f, wx); // 0 prairie east, 1 foothills west
+                    float west = Mathf.InverseLerp(2600f, 600f, wx);
                     float n1 = Mathf.PerlinNoise(wx * 0.012f + 31.7f, wz * 0.012f + 7.3f);
                     float n2 = Mathf.PerlinNoise(wx * 0.06f + 3.1f, wz * 0.06f + 91.2f);
+                    float n3 = Mathf.PerlinNoise(wx * 0.0035f + 57.1f, wz * 0.0035f + 12.9f);
 
                     float rock = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(24f - 6f * west, 38f - 6f * west, slope));
                     rock = Mathf.Max(rock, Mathf.Clamp01((relief - 6f) / 8f) * west * 0.6f * n2);
-                    float soil = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(14f, 26f, slope)) * (1f - rock);
-                    soil = Mathf.Max(soil, Mathf.Clamp01((-relief - 3f) / 6f) * 0.5f);
+                    float soil = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(20f, 34f, slope)) * (1f - rock) * 0.8f;
+                    soil = Mathf.Max(soil, Mathf.Clamp01((-relief - 5f) / 8f) * 0.35f);
                     float dry = Mathf.Clamp01(n1 * 1.4f - 0.35f + west * 0.25f) * (1f - rock) * (1f - soil);
                     float grass = Mathf.Max(0.05f, 1f - rock - soil - dry);
 
@@ -92,22 +106,109 @@ namespace ASH.EditorTools.World
                     float gravel = 1f - Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(2.5f + n2 * 1.5f, 5.5f + n2 * 2f, creekDist));
                     float bank = 1f - Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(4f, 11f, creekDist));
 
+                    // Ash: drifted fallout in hollows and lee slopes, heavier to the west (toward the fire), plus the
+                    // burn scar around the old campsite. Kept patchy so the prairie still reads as prairie.
+                    float hollow = Mathf.Clamp01((-relief + 1f) / 6f);
+                    float ash = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.58f, 0.78f, n3 + west * 0.12f)) * (0.45f + 0.55f * hollow) * (1f - rock * 0.7f);
+                    ash *= 0.6f + 0.4f * n2;
+                    float campD = Vector2.Distance(new Vector2(wx, wz), camp);
+                    ash = Mathf.Max(ash, (1f - Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(4f, 13f + n2 * 4f, campD))) * 0.85f);
+
                     float rest = 1f - gravel;
                     soil = soil * rest + bank * 0.35f * rest;
                     grass *= rest; dry *= rest; rock *= rest;
+                    float ashW = ash * rest;
+                    float keep = 1f - ashW;
+                    grass *= keep; dry *= keep; soil *= keep; rock *= keep;
 
-                    float sum = grass + dry + soil + rock + gravel;
+                    float sum = grass + dry + soil + rock + gravel + ashW;
                     maps[y, x, 0] = grass / sum;
                     maps[y, x, 1] = dry / sum;
                     maps[y, x, 2] = soil / sum;
                     maps[y, x, 3] = rock / sum;
                     maps[y, x, 4] = gravel / sum;
+                    maps[y, x, 5] = ashW / sum;
                 }
             }
             data.SetAlphamaps(0, 0, maps);
             EditorUtility.SetDirty(data);
             AssetDatabase.SaveAssets();
-            Debug.Log("[ASH] Terrain painted with placeholder layers (prairie/dry grass/soil/rock/creek gravel).");
+            Debug.Log("[ASH] Terrain painted: prairie/dry grass/soil/rock/creek gravel/ash (Gaia sample textures).");
+        }
+
+        private static TerrainLayer EnsureLayer((string name, string tex, Vector3 tint, float tile, float smoothMax, Vector2 offset, int tintMode) d)
+        {
+            string layerPath = $"{LayerFolder}/{d.name}.terrainlayer";
+            var layer = AssetDatabase.LoadAssetAtPath<TerrainLayer>(layerPath);
+            if (layer == null) { layer = new TerrainLayer(); AssetDatabase.CreateAsset(layer, layerPath); }
+            var src = Load(d.tex + "_A_SM", d.tex + "_A_Sm");
+            layer.diffuseTexture = d.tintMode == 0 || src == null ? src : TintedCopy(src, d.tint, d.tintMode == 2, $"{TexFolder}/{d.name}_D.png");
+            layer.normalMapTexture = Load(d.tex + "_N");
+            layer.maskMapTexture = d.tintMode == 2 ? null : Load(d.tex + "_M");
+            if (layer.diffuseTexture == null) Debug.LogWarning("[ASH] missing texture " + d.tex);
+            layer.tileSize = new Vector2(d.tile, d.tile);
+            layer.tileOffset = d.offset;
+            layer.diffuseRemapMin = Vector4.zero;
+            layer.diffuseRemapMax = Vector4.one;
+            layer.maskMapRemapMin = Vector4.zero;
+            layer.maskMapRemapMax = new Vector4(1f, 1f, 1f, d.smoothMax);
+            layer.normalScale = 1f;
+            layer.smoothness = d.smoothMax * 0.5f;
+            layer.metallic = 0f;
+            EditorUtility.SetDirty(layer);
+            if (layer.normalMapTexture != null)
+            {
+                var imp = AssetImporter.GetAtPath(AssetDatabase.GetAssetPath(layer.normalMapTexture)) as TextureImporter;
+                if (imp != null && imp.textureType != TextureImporterType.NormalMap)
+                    Debug.LogWarning("[ASH] " + imp.assetPath + " is not imported as a Normal Map (vendor import setting; left unchanged).");
+            }
+            return layer;
+        }
+
+        /// <summary>
+        /// Tinted copy of a vendor texture, read back through the GPU (no need for the vendor texture to be
+        /// readable, and its import settings stay untouched). Alpha (smoothness) is kept and scaled.
+        /// </summary>
+        private static Texture2D TintedCopy(Texture2D src, Vector3 tint, bool desaturate, string path, int size = 1024)
+        {
+            ASHTerrainImporter.EnsureFolder(TexFolder);
+            var rt = RenderTexture.GetTemporary(size, size, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.sRGB);
+            Graphics.Blit(src, rt);
+            var prev = RenderTexture.active; RenderTexture.active = rt;
+            var tex = new Texture2D(size, size, TextureFormat.RGBA32, false, false);
+            tex.ReadPixels(new Rect(0, 0, size, size), 0, 0); tex.Apply();
+            RenderTexture.active = prev; RenderTexture.ReleaseTemporary(rt);
+            var px = tex.GetPixels();
+            for (int i = 0; i < px.Length; i++)
+            {
+                var c = px[i];
+                if (desaturate)
+                {
+                    float l = c.r * 0.3f + c.g * 0.59f + c.b * 0.11f;
+                    l = Mathf.Clamp01((l - 0.5f) * 2.2f + 0.5f); // bring out the drift texture
+                    c = new Color(l, l, l, c.a);
+                }
+                px[i] = new Color(Mathf.Clamp01(c.r * tint.x), Mathf.Clamp01(c.g * tint.y), Mathf.Clamp01(c.b * tint.z), c.a * (desaturate ? 0.2f : 1f));
+            }
+            tex.SetPixels(px); tex.Apply();
+            File.WriteAllBytes(path, tex.EncodeToPNG());
+            Object.DestroyImmediate(tex);
+            AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceUpdate);
+            var imp = (TextureImporter)AssetImporter.GetAtPath(path);
+            imp.sRGBTexture = true; imp.mipmapEnabled = true; imp.wrapMode = TextureWrapMode.Repeat; imp.anisoLevel = 4; imp.maxTextureSize = 1024;
+            imp.SaveAndReimport();
+            return AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+        }
+
+        private static Texture2D Load(params string[] names)
+        {
+            foreach (var n in names)
+                foreach (var ext in new[] { ".tga", ".png", ".jpg" })
+                {
+                    var t = AssetDatabase.LoadAssetAtPath<Texture2D>(NM + n + ext);
+                    if (t != null) return t;
+                }
+            return null;
         }
 
         public static float DistanceToPolyline(Vector2 p, Vector2[] line)
@@ -121,76 +222,6 @@ namespace ASH.EditorTools.World
                 best = Mathf.Min(best, Vector2.Distance(p, a + ab * t));
             }
             return best;
-        }
-
-        private static TerrainLayer EnsureLayer(string name, Color a, Color b, float tile, float smoothness, int seed)
-        {
-            string layerPath = $"{LayerFolder}/{name}.terrainlayer";
-            var layer = AssetDatabase.LoadAssetAtPath<TerrainLayer>(layerPath);
-            if (layer == null)
-            {
-                layer = new TerrainLayer();
-                AssetDatabase.CreateAsset(layer, layerPath);
-            }
-            layer.diffuseTexture = EnsureNoiseTexture($"{TexFolder}/{name}_D.png", a, b, seed);
-            layer.tileSize = new Vector2(tile, tile);
-            layer.smoothness = smoothness;
-            layer.metallic = 0f;
-            EditorUtility.SetDirty(layer);
-            return layer;
-        }
-
-        private static Texture2D EnsureNoiseTexture(string path, Color a, Color b, int seed)
-        {
-            var existing = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
-            if (existing != null) return existing;
-            const int size = 512;
-            var tex = new Texture2D(size, size, TextureFormat.RGB24, false);
-            var px = new Color[size * size];
-            for (int y = 0; y < size; y++)
-            for (int x = 0; x < size; x++)
-            {
-                float u = (float)x / size, v = (float)y / size;
-                float n = TileFbm(u, v, seed) ;
-                float grain = Hash(x * 73 + y * 151 + seed * 997) * 0.18f;
-                Color c = Color.Lerp(a, b, Mathf.Clamp01(n + grain - 0.09f));
-                px[y * size + x] = c;
-            }
-            tex.SetPixels(px);
-            tex.Apply();
-            File.WriteAllBytes(Path.GetFullPath(path), tex.EncodeToPNG());
-            Object.DestroyImmediate(tex);
-            AssetDatabase.ImportAsset(path);
-            return AssetDatabase.LoadAssetAtPath<Texture2D>(path);
-        }
-
-        // Tileable fBm built from wrapped value noise.
-        private static float TileFbm(float u, float v, int seed)
-        {
-            float sum = 0f, amp = 0.5f, norm = 0f;
-            int period = 4;
-            for (int o = 0; o < 5; o++)
-            {
-                sum += amp * WrappedValueNoise(u * period, v * period, period, seed + o * 17);
-                norm += amp; amp *= 0.5f; period *= 2;
-            }
-            return sum / norm;
-        }
-
-        private static float WrappedValueNoise(float x, float y, int period, int seed)
-        {
-            int x0 = Mathf.FloorToInt(x), y0 = Mathf.FloorToInt(y);
-            float fx = x - x0, fy = y - y0;
-            fx = fx * fx * (3f - 2f * fx); fy = fy * fy * (3f - 2f * fy);
-            float Lattice(int ix, int iy) => Hash(((ix % period + period) % period) * 374761 + ((iy % period + period) % period) * 668265 + seed * 1013);
-            float a = Lattice(x0, y0), b = Lattice(x0 + 1, y0), c = Lattice(x0, y0 + 1), d = Lattice(x0 + 1, y0 + 1);
-            return Mathf.Lerp(Mathf.Lerp(a, b, fx), Mathf.Lerp(c, d, fx), fy);
-        }
-
-        private static float Hash(int n)
-        {
-            n = (n << 13) ^ n;
-            return ((n * (n * n * 15731 + 789221) + 1376312589) & 0x7fffffff) / 2147483648f;
         }
     }
 }

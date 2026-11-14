@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d1155fe1773439944952ba9d467c9870, type: 3}
+  m_Name: ASH_SurvivalTuning
+  m_EditorClassIdentifier: Assembly-CSharp::ASH.Survival.ASHSurvivalTuning
+  maxHealth: 100
+  maxStamina: 100
+  maxHunger: 100
+  maxThirst: 100
+  startHunger: 0.72
+  startThirst: 0.64
+  hungerPerMinute: 1.1
+  thirstPerMinute: 1.6
+  sprintNeedsMultiplier: 1.75
+  needsRateMultiplier: 1
+  sprintDrainPerSecond: 12
+  staminaRecoveryPerSecond: 16
+  jumpStaminaCost: 12
+  lowNeedsRecoveryMultiplier: 0.5
+  lowNeedThreshold: 0.2
+  emptyNeedHealthDrainPerSecond: 0.6
+  healthRegenPerSecond: 0.35
+  regenNeedThreshold: 0.5
+  regenDelayAfterDamage: 8

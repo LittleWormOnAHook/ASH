@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6e51ffdd6995b1141ae6bc6f9c404f94, type: 3}
+  m_Name: ASH_Item_Campfire
+  m_EditorClassIdentifier: Assembly-CSharp::ASH.Inventory.ASHItemDefinition
+  itemId: campfire
+  displayName: Campfire
+  description: A ring of stones and deadwood. Place it to make camp.
+  icon: {fileID: 21300000, guid: cc8b43ae651b0594fb9e3144b252166e, type: 3}
+  uiTint: {r: 0.95, g: 0.55, b: 0.25, a: 1}
+  category: 2
+  maxStack: 1
+  restoreHunger: 0
+  restoreThirst: 0
+  restoreHealth: 0
+  restoreStamina: 0
+  placeablePrefab: {fileID: 5310082379997538735, guid: fcef5a9efd09cad4aa9720d92466ed88, type: 3}
+  placementFootprint: {x: 1.3, y: 0.5, z: 1.3}
+  maxPlacementSlope: 24

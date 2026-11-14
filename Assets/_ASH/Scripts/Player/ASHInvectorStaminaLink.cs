@@ -1,0 +1,44 @@
+using ASH.Survival;
+using Invector.vCharacterController;
+using UnityEngine;
+
+namespace ASH.Player
+{
+    /// <summary>
+    /// Keeps Invector's motor stamina (which gates sprint and jump) configured from ASH tuning and mirrors it
+    /// into <see cref="ASHSurvivalStats"/> for the HUD. Same role as Genesis PioneerInvectorInputBridge.SyncStamina,
+    /// reduced to one direction (motor -> stats) so there is a single source of truth.
+    /// </summary>
+    [DefaultExecutionOrder(100)]
+    public sealed class ASHInvectorStaminaLink : MonoBehaviour
+    {
+        [SerializeField] private vThirdPersonController controller;
+        [SerializeField] private ASHSurvivalStats stats;
+
+        private void Start() => ApplyTuning();
+
+        public void ApplyTuning()
+        {
+            if (controller == null || stats == null) return;
+            var t = stats.Tuning;
+            controller.maxStamina = t.maxStamina;
+            controller.sprintStamina = t.sprintDrainPerSecond; // Invector drains this per second (accumulative)
+            controller.jumpStamina = t.jumpStaminaCost;
+            controller.currentStamina = Mathf.Min(controller.currentStamina <= 0f ? t.maxStamina : controller.currentStamina, t.maxStamina);
+        }
+
+        private void FixedUpdate()
+        {
+            if (controller == null || stats == null) return;
+            // Invector adds staminaRecovery once per FixedUpdate.
+            controller.staminaRecovery = stats.Tuning.staminaRecoveryPerSecond * stats.StaminaRecoveryMultiplier * Time.fixedDeltaTime;
+        }
+
+        private void LateUpdate()
+        {
+            if (controller == null || stats == null) return;
+            stats.SetStaminaFromMotor(controller.currentStamina, controller.maxStamina);
+            stats.IsSprinting = controller.isSprinting && controller.input.sqrMagnitude > 0.01f;
+        }
+    }
+}

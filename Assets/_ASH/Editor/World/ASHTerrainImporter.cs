@@ -22,7 +22,7 @@ namespace ASH.EditorTools.World
         public const float WorldYOffset = 2000f;
         public const int AlphamapResolution = 2048;
 
-        [MenuItem("ASH/World/1. Import Master Terrain Data")]
+        [MenuItem("ASH/World/Advanced/Re-import Heights From RAW (overwrites terrain heights)")]
         public static void ImportMenu() => ImportOrUpdate();
 
         public static TerrainData ImportOrUpdate()

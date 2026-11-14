@@ -1,0 +1,133 @@
+using ASH.Core;
+using UnityEngine;
+using UnityEngine.InputSystem;
+
+namespace ASH.Player
+{
+    /// <summary>
+    /// Thin Input System layer for ASH. Owns the ASH_InputActions asset (bindings reused from the Genesis
+    /// InputSystem_Actions "Player" map) and exposes the few actions ASH needs. Every gameplay reader goes
+    /// through here, so UI gating and automated test overrides live in one place.
+    /// </summary>
+    [DefaultExecutionOrder(-500)]
+    [DisallowMultipleComponent]
+    public sealed class ASHInput : MonoBehaviour
+    {
+        [SerializeField] private InputActionAsset actions;
+        [Tooltip("Mouse delta (pixels) to Invector camera units. 0.1 matches the legacy 'Mouse X' axis.")]
+        [Range(0.01f, 1f)] [SerializeField] private float mouseLookScale = 0.1f;
+        [Tooltip("Gamepad right stick look speed (camera units per 60 fps frame).")]
+        [Range(0.1f, 10f)] [SerializeField] private float gamepadLookSpeed = 2.2f;
+        [SerializeField] private bool invertY;
+
+        private InputAction _move, _look, _jump, _sprint, _crouch, _walk, _interact, _inventory, _craft, _pause, _primary, _secondary, _zoom;
+
+        // Automated test overrides (ASH editor play tests). Null = use real input.
+        public Vector2? SimMove; public bool? SimSprint; public bool SimJump; public bool SimCrouch; public bool? SimInteractHeld; public bool SimInteractPressed; public bool SimPrimary; public bool SimSecondary; public bool SimInventory; public bool SimCraft; public int SimHotbar = -1;
+
+        public InputActionAsset Actions => actions;
+        public bool GameplayBlocked => ASHUIState.BlocksGameplay;
+
+        private void Awake()
+        {
+            if (actions == null) actions = CreateDefaultActions();
+            var map = actions.FindActionMap("Player", true);
+            _move = map.FindAction("Move", true);
+            _look = map.FindAction("Look", true);
+            _jump = map.FindAction("Jump", true);
+            _sprint = map.FindAction("Sprint", true);
+            _crouch = map.FindAction("Crouch", true);
+            _walk = map.FindAction("WalkToggle", true);
+            _interact = map.FindAction("Interact", true);
+            _inventory = map.FindAction("Inventory", true);
+            _craft = map.FindAction("Craft", true);
+            _pause = map.FindAction("Pause", true);
+            _primary = map.FindAction("Primary", true);
+            _secondary = map.FindAction("Secondary", true);
+            _zoom = map.FindAction("Zoom", true);
+        }
+
+        private void OnEnable() { if (actions != null) actions.Enable(); }
+        private void OnDisable() { if (actions != null) actions.Disable(); }
+
+        public Vector2 Move => SimMove ?? (GameplayBlocked ? Vector2.zero : Vector2.ClampMagnitude(_move.ReadValue<Vector2>(), 1f));
+
+        /// <summary>Camera rotation delta for this frame in Invector camera units.</summary>
+        public Vector2 Look
+        {
+            get
+            {
+                if (GameplayBlocked) return Vector2.zero;
+                Vector2 v = _look.ReadValue<Vector2>();
+                bool pointer = _look.activeControl != null && _look.activeControl.device is Pointer;
+                v = pointer ? v * mouseLookScale : v * gamepadLookSpeed * (Time.unscaledDeltaTime * 60f);
+                if (invertY) v.y = -v.y;
+                return v;
+            }
+        }
+
+        public bool SuppressZoom { get; set; }
+        public float Zoom => GameplayBlocked || SuppressZoom ? 0f : _zoom.ReadValue<Vector2>().y / 1200f;
+        public bool SprintHeld => SimSprint ?? (!GameplayBlocked && _sprint.IsPressed());
+        public bool JumpPressed => Consume(ref SimJump) || (!GameplayBlocked && _jump.WasPressedThisFrame());
+        public bool CrouchPressed => Consume(ref SimCrouch) || (!GameplayBlocked && _crouch.WasPressedThisFrame());
+        public bool WalkTogglePressed => !GameplayBlocked && _walk.WasPressedThisFrame();
+        public bool InteractPressed => Consume(ref SimInteractPressed) || (!GameplayBlocked && _interact.WasPressedThisFrame());
+        public bool InteractHeld => SimInteractHeld ?? (!GameplayBlocked && _interact.IsPressed());
+        public bool InventoryPressed => Consume(ref SimInventory) || _inventory.WasPressedThisFrame();
+        public bool CraftPressed => Consume(ref SimCraft) || _craft.WasPressedThisFrame();
+        public bool PausePressed => _pause.WasPressedThisFrame();
+        public bool PrimaryPressed => Consume(ref SimPrimary) || _primary.WasPressedThisFrame();
+        public bool SecondaryPressed => Consume(ref SimSecondary) || _secondary.WasPressedThisFrame();
+        /// <summary>Index of a hotbar key (1..9 -> 0..8) pressed this frame, or -1.</summary>
+        public int HotbarPressed
+        {
+            get
+            {
+                if (SimHotbar >= 0) { int s = SimHotbar; SimHotbar = -1; return s; }
+                var kb = Keyboard.current; if (kb == null || ASHUIState.IsOpen(ASHPanels.Pause)) return -1;
+                for (int i = 0; i < 9; i++) if (kb[Key.Digit1 + i].wasPressedThisFrame || kb[Key.Numpad1 + i].wasPressedThisFrame) return i;
+                return -1;
+            }
+        }
+        public float RawZoom => _zoom.ReadValue<Vector2>().y;
+
+        /// <summary>Short display name of the first binding of an action, e.g. "E".</summary>
+        public string BindingLabel(string actionName)
+        {
+            var a = actions != null ? actions.FindAction(actionName) : null;
+            return a == null ? "?" : a.GetBindingDisplayString(0, InputBinding.DisplayStringOptions.DontIncludeInteractions);
+        }
+
+        /// <summary>
+        /// ASH default bindings (keyboard/mouse + gamepad), reused from the Genesis InputSystem_Actions "Player" map
+        /// where actions overlap. The editor saves this as Assets/_ASH/Settings/Input/ASH_InputActions.inputactions.
+        /// </summary>
+        public static InputActionAsset CreateDefaultActions()
+        {
+            var asset = ScriptableObject.CreateInstance<InputActionAsset>();
+            asset.name = "ASH_InputActions";
+            var map = asset.AddActionMap("Player");
+            var move = map.AddAction("Move", InputActionType.Value, expectedControlLayout: "Vector2");
+            move.AddCompositeBinding("2DVector").With("Up", "<Keyboard>/w").With("Down", "<Keyboard>/s").With("Left", "<Keyboard>/a").With("Right", "<Keyboard>/d");
+            move.AddCompositeBinding("2DVector").With("Up", "<Keyboard>/upArrow").With("Down", "<Keyboard>/downArrow").With("Left", "<Keyboard>/leftArrow").With("Right", "<Keyboard>/rightArrow");
+            move.AddBinding("<Gamepad>/leftStick");
+            var look = map.AddAction("Look", InputActionType.Value, expectedControlLayout: "Vector2");
+            look.AddBinding("<Pointer>/delta"); look.AddBinding("<Gamepad>/rightStick");
+            map.AddAction("Jump", InputActionType.Button, "<Keyboard>/space").AddBinding("<Gamepad>/buttonSouth");
+            map.AddAction("Sprint", InputActionType.Button, "<Keyboard>/leftShift").AddBinding("<Gamepad>/leftStickPress");
+            var crouch = map.AddAction("Crouch", InputActionType.Button, "<Keyboard>/leftCtrl"); crouch.AddBinding("<Keyboard>/c"); crouch.AddBinding("<Gamepad>/rightStickPress");
+            map.AddAction("WalkToggle", InputActionType.Button, "<Keyboard>/capsLock");
+            map.AddAction("Interact", InputActionType.Button, "<Keyboard>/e").AddBinding("<Gamepad>/buttonWest");
+            var inv = map.AddAction("Inventory", InputActionType.Button, "<Keyboard>/tab"); inv.AddBinding("<Keyboard>/i"); inv.AddBinding("<Gamepad>/buttonNorth");
+            map.AddAction("Craft", InputActionType.Button, "<Keyboard>/q").AddBinding("<Gamepad>/dpad/up");
+            map.AddAction("Pause", InputActionType.Button, "<Keyboard>/escape").AddBinding("<Gamepad>/start");
+            map.AddAction("Primary", InputActionType.Button, "<Mouse>/leftButton").AddBinding("<Gamepad>/rightTrigger");
+            map.AddAction("Secondary", InputActionType.Button, "<Mouse>/rightButton").AddBinding("<Gamepad>/buttonEast");
+            var zoom = map.AddAction("Zoom", InputActionType.Value, expectedControlLayout: "Vector2"); zoom.AddBinding("<Mouse>/scroll");
+            return asset;
+        }
+
+        private static bool Consume(ref bool flag) { bool v = flag; flag = false; return v; }
+    }
+}
