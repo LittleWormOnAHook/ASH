@@ -272,6 +272,12 @@ void LitPassFragment(
     // ---- ASH accumulation (ash over snow), driven by ASHAccumulationController globals
     {
         half3 ashGeomN = normalize(input.normalWS.xyz);
+        if (_ClearCoatMask > 0.001) // ASH foliage mode (plants, _ClearCoatMask = strength, _ClearCoatSmoothness = height m): blades take buildup towards their tips regardless of facing
+        {
+            float ashTop = saturate((inputData.positionWS.y - UNITY_MATRIX_M._m13) / max(_ClearCoatSmoothness, 0.05));
+            half3 ashN = half3(ashGeomN.x, abs(ashGeomN.y), ashGeomN.z);
+            ashGeomN = normalize(lerp(ashN, half3(0, 1, 0), saturate(_ClearCoatMask) * ashTop));
+        }
         half ashWindward = saturate(-dot(ashGeomN.xz, _ASH_Weather.zw));
         ASH_ApplyAccumulation(inputData.positionWS, ashGeomN, ASH_DriftAt(inputData.positionWS), ashWindward,
             surfaceData.albedo, inputData.normalWS, surfaceData.smoothness, surfaceData.metallic, surfaceData.occlusion);

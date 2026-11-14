@@ -152,6 +152,9 @@ Tunables: ray lengths, max pelvis drop/raise, foot offset, smoothing, max foot a
 All rock / cliff / boulder materials in both vendor packs use `ASH/Accumulation Lit` (the same object shader, URP Lit property set), so ash over snow settles on upward-facing surfaces by slope, driven by the global controller. No per-object component is needed. Maps preserved: albedo, normal, AO, detail albedo/normal (ANGRY MESH; the vendor's own moss/snow/sand top layer is replaced by ASH accumulation; Sand variants keep their red base); albedo + normal (Quantum Theory, matte smoothness from the legacy shininess). Quantum Theory FBX files are remapped to their `Meshes/Materials/*.mat` (they used read-only embedded materials before). Non-rock assets (grass, ferns, roots, particles, skyboxes, terrain templates) stay plain URP. ANGRY MESH terrain-detail meshes (`Detail_Rocks`, `Detail_Low_Rocks`) stay `Unlit/Texture` for the terrain detail system.
 Tool: `ASH/Vendor/ANGRY MESH/Rocks -> ASH Accumulation`, `ASH/Vendor/Quantum Theory/*`. Logs: `Docs/Vendor_AngryMesh_Materials.md`, `Docs/Vendor_QuantumTheory_Materials.md`.
 
+## Foliage mode (plants)
+ASH/Accumulation Lit reuses two unused Lit properties so the SRP batcher still works: `_ClearCoatMask` = foliage strength (0 = off), `_ClearCoatSmoothness` = plant height in metres. When on, the forward and GBuffer passes bend the accumulation normal toward up with height above the object pivot, so snow sits on the tops of two-sided cards instead of their faces. Used by the ANGRY MESH plant materials (alpha clip, `_Cull` 0). Pickups otherwise get no accumulation; these plant pickups are the approved exception.
+
 ## Still missing
 1. **Speed and footsteps** read `GetDepthMetres` + terrain slope (phase 3).
 2. **Snow on top of ash** (fresh snowfall after ash) is simplified: ash always draws on top.

@@ -348,7 +348,7 @@ namespace ASH.EditorTools.World
         }
 
         // ------------------------------------------------------------------ context: biome, creeks, clearances
-        sealed class Ctx
+        internal sealed class Ctx
         {
             public Terrain t; public TerrainData d; public ASHVegetationSettings s; public Vector3 origin, size;
             public int N; public float[] road, trail, creek, soil; public bool[] blockT, blockG; public Random rnd;

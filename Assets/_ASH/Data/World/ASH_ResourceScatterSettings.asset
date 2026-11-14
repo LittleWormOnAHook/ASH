@@ -1,0 +1,119 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 41a13936b852c4945935e673748c17c5, type: 3}
+  m_Name: ASH_ResourceScatterSettings
+  m_EditorClassIdentifier: Assembly-CSharp::ASH.World.ASHResourceScatterSettings
+  entries:
+  - prefab: {fileID: 4424290404945828686, guid: d84c5a1582743284aaf2926104916135, type: 3}
+    group: 0
+    count: 80
+    ridge: 0.8
+    gully: 1
+    prairie: 0.15
+    creek: 0.5
+    minScale: 0.85
+    maxScale: 1.2
+    maxSlope: 32
+    alignToGround: 1
+    defaultCount: 80
+  - prefab: {fileID: 2096882229854955777, guid: 67fd44bce8199244884287561fb6a6b3, type: 3}
+    group: 0
+    count: 80
+    ridge: 0.8
+    gully: 1
+    prairie: 0.15
+    creek: 0.5
+    minScale: 0.85
+    maxScale: 1.2
+    maxSlope: 32
+    alignToGround: 1
+    defaultCount: 80
+  - prefab: {fileID: 3621567068889540353, guid: 7f4c1ab99aea01e4188328e37321a6b5, type: 3}
+    group: 0
+    count: 80
+    ridge: 0.8
+    gully: 1
+    prairie: 0.15
+    creek: 0.5
+    minScale: 0.85
+    maxScale: 1.2
+    maxSlope: 32
+    alignToGround: 1
+    defaultCount: 80
+  - prefab: {fileID: 5866013472944805187, guid: 55f391d3139174349a8839d3edb3af5e, type: 3}
+    group: 0
+    count: 40
+    ridge: 1
+    gully: 0.8
+    prairie: 0.1
+    creek: 0.3
+    minScale: 0.85
+    maxScale: 1.25
+    maxSlope: 28
+    alignToGround: 0
+    defaultCount: 40
+  - prefab: {fileID: 7064389998191198137, guid: 348cb06d817c198498a6ce0dbf1ef0f9, type: 3}
+    group: 0
+    count: 20
+    ridge: 0.9
+    gully: 1
+    prairie: 0.1
+    creek: 0.4
+    minScale: 0.9
+    maxScale: 1.15
+    maxSlope: 20
+    alignToGround: 1
+    defaultCount: 20
+  - prefab: {fileID: 694150489006793716, guid: 07fd428f6c2857f4292eabcce7962d4e, type: 3}
+    group: 1
+    count: 120
+    ridge: 0.4
+    gully: 1
+    prairie: 0.6
+    creek: 1
+    minScale: 0.8
+    maxScale: 1.25
+    maxSlope: 35
+    alignToGround: 1
+    defaultCount: 120
+  - prefab: {fileID: 7993852167242916371, guid: 9d2bb4dc6e0e6fd4494fbccdd05ec695, type: 3}
+    group: 1
+    count: 120
+    ridge: 0.4
+    gully: 1
+    prairie: 0.6
+    creek: 1
+    minScale: 0.8
+    maxScale: 1.25
+    maxSlope: 35
+    alignToGround: 1
+    defaultCount: 120
+  - prefab: {fileID: 6860305767952791023, guid: 433f1b9a7e060374684f2751ff61a8e0, type: 3}
+    group: 1
+    count: 120
+    ridge: 0.4
+    gully: 1
+    prairie: 0.6
+    creek: 1
+    minScale: 0.8
+    maxScale: 1.25
+    maxSlope: 35
+    alignToGround: 1
+    defaultCount: 120
+  seed: 0
+  minTreeDistance: 1.4
+  nearTreeRadius: 9
+  openGroundWeight: 0.25
+  roadEdgeClear: 2.5
+  trailClear: 2
+  minSpacing: 2.5
+  attemptsPerItem: 40

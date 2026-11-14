@@ -16,21 +16,27 @@ namespace ASH.EditorTools.Build
 
         static readonly (string item, string prefab, float yaw)[] Map =
         {
-            ("ASH_Item_Deadwood", "ASH_Deadwood", 20f),
+            ("ASH_Item_Deadwood", ASHContentBuilder.Root + "/Prefabs/Pickups/ASH_Deadwood_Branches02.prefab", 20f),
+            ("ASH_Item_Firewood", ASHContentBuilder.Root + "/Prefabs/Harvest/ASH_Harvest_Log.prefab", 30f),
+            ("ASH_Item_Kindling", ASHContentBuilder.Root + "/Prefabs/Pickups/ASH_Deadwood_Branches03.prefab", 55f),
             ("ASH_Item_Stone", "ASH_StonePile", -30f),
             ("ASH_Item_Chokecherries", "ASH_ChokecherryBush", 15f),
             ("ASH_Item_Campfire", "ASH_Campfire", 0f),
         };
 
         [MenuItem("ASH/Build/5. Bake Item Icons")]
-        public static void BakeAll()
+        public static void BakeAll() => BakeAll(null);
+
+        /// <summary>only = item files to bake (null = all).</summary>
+        public static void BakeAll(System.Collections.Generic.ICollection<string> only)
         {
             ASHBuildUtil.Folder(IconDir);
             int n = 0;
             foreach (var (itemFile, prefabName, yaw) in Map)
             {
+                if (only != null && !only.Contains(itemFile)) continue;
                 var item = ASHContentBuilder.LoadItem(itemFile);
-                var prefab = ASHContentBuilder.LoadPrefab(prefabName);
+                var prefab = prefabName.Contains("/") ? AssetDatabase.LoadAssetAtPath<GameObject>(prefabName) : ASHContentBuilder.LoadPrefab(prefabName);
                 if (!item || !prefab) { Debug.LogWarning($"[ASH] Icon bake skipped {itemFile}: item={(bool)item} prefab={(bool)prefab}"); continue; }
                 string path = $"{IconDir}/{itemFile.Replace("ASH_Item_", "ASH_Icon_")}.png";
                 if (!Bake(prefab, path, 256, yaw)) { Debug.LogWarning("[ASH] Icon bake failed for " + itemFile); continue; }
@@ -45,7 +51,7 @@ namespace ASH.EditorTools.Build
             {
                 string path = AssetDatabase.GUIDToAssetPath(guid);
                 string file = System.IO.Path.GetFileNameWithoutExtension(path);
-                if (done.Contains(file)) continue;
+                if (done.Contains(file) || (only != null && !only.Contains(file))) continue;
                 var item = AssetDatabase.LoadAssetAtPath<ASHItemDefinition>(path);
                 var prefab = ASHItemCatalog.LoadPickup(file.Replace("ASH_Item_", ""));
                 if (!item || !prefab) continue;

@@ -7,10 +7,12 @@ _2026-11-14 (ET). All data are ScriptableObjects built by `ASH/Build/6. Item Cat
 ## Resources
 | Item | Source | Used for |
 |---|---|---|
-| Deadwood | Deadwood nodes (hatchet: 2× yield, half the time) | Campfire |
+| Deadwood | Branch piles (HQ Branches01–03 wrappers; hatchet: 2× yield, half the time) | Campfire |
+| Firewood | Felled dead trees → logs, downed trees, stumps (**hatchet required**); stack 20 | Campfire (firewood), Split Kindling |
+| Kindling | Chips while chopping, logs/stumps/downed trees, Split Kindling; stack 30 | Campfire (firewood) |
 | Stone | Stone piles | Campfire, Improvised Knife |
 | Cloth | Break down Old Shirt (2, or 1 without a knife) or Rags (1); Cut Cloth Strips (3, knife); caches | Bandage, Improvised Knife |
-| Plant Fiber | Fiber grass (knife bonus) | Fiber Bandage |
+| Plant Fiber | Wild plants: ANGRY MESH fern and grass clumps (knife bonus) | Fiber Bandage |
 | Scrap Metal | Break down Empty Tin; Flatten Tins; crate bonus (50%) | Improvised Knife |
 | Empty Tin Can | Left over after opening a can cleanly; drinking a tin of water | Fill at the stock tank (→ Tin of Creek Water); scrap |
 | Reclaimed Wood | Crates (2–3) and broken chairs (1–2); **hatchet required** | Campfire (planks) |
@@ -42,7 +44,7 @@ _2026-11-14 (ET). All data are ScriptableObjects built by `ASH/Build/6. Item Cat
 ## Tools (no combat use)
 | Item | Tool role | Effect |
 |---|---|---|
-| Hatchet | Axe | Required for crates/furniture. Deadwood 2× yield at half the hold. Opens cans |
+| Hatchet | Axe | Carried in the pack = equipped. Fells dead trees, chops logs and stumps; required for crates/furniture. Deadwood 2× yield at half the hold. Opens cans |
 | Hunting Knife | Knife | Required to harvest a rabbit and for Cut Cloth Strips. Better shirt/trout yields. Opens cans |
 | Improvised Knife | Knife | Craft: 2 Scrap Metal + 1 Cloth + 1 Stone |
 | Can Opener | CanOpener | Opens cans cleanly |
@@ -57,12 +59,14 @@ _2026-11-14 (ET). All data are ScriptableObjects built by `ASH/Build/6. Item Cat
 | Whole Trout | 1 Raw Fish | Knife optional |
 | Empty Tin Can | 1 Scrap Metal | — |
 | *World:* Salvage Crate / Broken Chair | Reclaimed Wood (+ scrap chance) | **Hatchet required** |
+| *World:* Dead tree / downed tree / log / stump | Logs, then Firewood + Kindling (see Axe harvesting) | **Hatchet required** |
 
-## Recipes (14)
+## Recipes (16)
 | Recipe | Category | Inputs → Output | Station / tool | Time |
 |---|---|---|---|---|
 | Campfire | Fire | 4 Deadwood, 3 Stone → Campfire | Anywhere | 1.5 s |
 | Campfire (planks) | Fire | 3 Reclaimed Wood, 3 Stone → Campfire | Anywhere | 2 s |
+| Campfire (firewood) | Fire | 2 Firewood, 2 Kindling, 3 Stone → Campfire | Anywhere | 2 s |
 | Campfire (alcohol start) | Fire | 2 Deadwood, 3 Stone, 1 Rubbing Alcohol → Campfire | Anywhere | 1.5 s |
 | Bandage | Medical | 1 Cloth → 1 | Anywhere | 2 s |
 | Fiber Bandage | Medical | 3 Plant Fiber → 1 | Anywhere | 3 s |
@@ -75,9 +79,25 @@ _2026-11-14 (ET). All data are ScriptableObjects built by `ASH/Build/6. Item Cat
 | Improvised Knife | Tools | 2 Scrap, 1 Cloth, 1 Stone → 1 | Anywhere | 6 s |
 | Cut Cloth Strips | Materials | Old Shirt → 3 Cloth | Knife | 3 s |
 | Flatten Tins | Materials | 2 Empty Tin → 1 Scrap Metal | Anywhere | 2 s |
+| Split Kindling | Materials | 1 Firewood → 3 Kindling | Hatchet | 2 s |
+
+## Axe harvesting (`ASHChoppable`, `Assets/_ASH/Scripts/Interaction`)
+Hold Interact; each hold is one chop (placeholder chop audio from Genesis, `Assets/_ASH/Audio/Harvest`). Without a hatchet the prompt says "Needs Hatchet". The final chop is refused when the pack is full. Respawn: `respawnSeconds` on each prefab (default 0 = never).
+| Prefab (`Assets/_ASH/Prefabs/Harvest`) | Source mesh | Chops | Result |
+|---|---|---|---|
+| ASH_Harvest_DeadFir_A / _B | NatureManufacture Fir_08 Dead (forest / cheap) | 8 (0.75 s each) | Topples away from you (2.6 s), then up to 4 logs along the fall line + a stump |
+| ASH_Harvest_DeadTreeDowned | HQ Branches/DeadTree | 5 | 2 Kindling, splits into 2 logs |
+| ASH_Harvest_Log | HQ Log_Static | 3 | 3 Firewood + 1 Kindling |
+| ASH_Harvest_Stump | HQ Branches/TreeStump | 4 | 2 Firewood + 2 Kindling |
+
+## World resources (`ASH/World/Resources/…`, `Assets/_ASH/Editor/World/ASHHarvestTools.cs`)
+- **1. Build content** makes the wrappers: root on the Resource layer → Visual → nested vendor prefab (vendor ASHAccumulation stripped, plain material copies in `Assets/_ASH/Materials/Plain`). Pickups get one trigger box; plant shadows are off.
+- **2. Replace scene** swapped the scene once (scene saved): 22 ASH_Deadwood → branch piles (same node data), 5 fiber grass → plants, 28 placeholder dead trees → dead firs (every 4th a downed tree), the HQ DeadTree/TreeStump near (520, 303, 1577) → harvestable in place + 2 dead firs.
+- **Scatter All / Wood / Plants** (additive) and **Clear Wood / Plants / All**: everything goes under `ASH_ResourceScatter/Wood|Plants`, with Undo. Biome-weighted (ridge/gully/prairie/creek), drawn toward trees, off roads and trails, kept off terrain trees, spaced from other usables. Counts, weights, seed and spacing are in `Assets/_ASH/Data/World/ASH_ResourceScatterSettings.asset`; presets Low (×0.4) / Default / Extreme (×3). Current scatter: 240 branch piles, 40 stumps, 20 downed trees, 360 plants.
+- The plant materials (ANGRY MESH Fern, Grass_02, Grass_03) were converted in place to ASH/Accumulation Lit foliage mode (alpha clip 0.5, two-sided, snow on top). Originals backed up in `C:\Users\Teabagger\ash_xfer\backup_am_plant_mats`. The vendor grass wind sway is lost.
 
 ## Placement (pickups, 46 placed by `ASH/Build/7. Region + Survey Points`)
-- **Redstone Camp (10–45 m from the cabin):** Hatchet, Old Shirt, Rags ×3, Canned Beans, Empty Tin, Dead Rabbit, Rubbing Alcohol, 3 fiber grass, a crate and a chair.
+- **Redstone Camp (10–45 m from the cabin):** Hatchet, Old Shirt, Rags ×3, Canned Beans, Empty Tin, Dead Rabbit, Rubbing Alcohol, 3 plant clumps, a crate and a chair.
 - **Survey rewards on top of each climb:** (1) Redstone lookout: Hunting Knife; (2) Ranger roof: Bandage + Rubbing Alcohol; (3) Ash Hollow tower: Canned Peaches ×2 + Whiskey; (4) Radio hut roof: Can Opener + Painkillers.
 - **Along the Mule Trail, county road and descent route:** rags, cans, a shirt, a crate, fiber. Creek crossing: 2 trout. Burned homestead: shirt, chair, beans. Each supply cache: peaches, 2 cloth, alcohol or whiskey.
 

@@ -132,7 +132,7 @@ namespace ASH.World.Accumulation
             }
             foreach (var a in ASHAccumulation.All) if (a) foreach (var r in a.GetComponentsInChildren<Renderer>()) Add(r, 0.05f);
             foreach (var mb in FindObjectsByType<MonoBehaviour>(FindObjectsInactive.Exclude))
-                if (mb is IASHUsable || mb is ASHItemPickup) foreach (var r in mb.GetComponentsInChildren<Renderer>()) Add(r, 0.12f);
+                if ((mb is IASHUsable || mb is ASHItemPickup) && !(mb is ASHChoppable ch && !ch.BlocksSurface)) foreach (var r in mb.GetComponentsInChildren<Renderer>()) Add(r, 0.12f);
             _cands.Sort((x, y) => x.d.CompareTo(y.d));
             int n = Mathf.Min(maxBlockers, _cands.Count);
             for (int i = 0; i < 16; i++) { _blk[i] = i < n ? _cands[i].b : Vector4.zero; _rot[i] = i < n ? _cands[i].r : new Vector4(1, 0, 0, 0); }

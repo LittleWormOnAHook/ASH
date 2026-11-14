@@ -48,6 +48,7 @@ namespace ASH.EditorTools.Build
                 D("EmptyTin", "Empty Tin Can", ASHItemCategory.Resource, "Holds water from a tank or creek. Can be flattened into scrap.", new Color(0.7f, 0.7f, 0.72f), Shape.Cyl, new Vector3(0.09f, 0.06f, 0.09f), 10, "Use",
                     it => Breakdown(it, ASHToolType.None, false, 1.5f, 1f, ("ScrapMetal", 1))),
                 D("ReclaimedWood", "Reclaimed Wood", ASHItemCategory.Resource, "Planks from crates and furniture. Burns longer than deadwood.", new Color(0.55f, 0.42f, 0.3f), Shape.Box, new Vector3(0.5f, 0.05f, 0.12f), 20),
+                // wood from axe harvesting (dead trees, logs, stumps): see WoodDefs()
                 // food & water
                 D("RawMeat", "Raw Meat", ASHItemCategory.Consumable, "Edible raw in a pinch, but it will cost you. Cook it at a fire.", new Color(0.7f, 0.25f, 0.25f), Shape.Box, new Vector3(0.2f, 0.07f, 0.14f), 5, "Eat", it => Restore(it, 8, 0, -4)),
                 D("CookedMeat", "Cooked Meat", ASHItemCategory.Consumable, "Charred outside, hot inside.", new Color(0.48f, 0.28f, 0.16f), Shape.Box, new Vector3(0.2f, 0.07f, 0.14f), 5, "Eat", it => Restore(it, 35, 0, 4)),
@@ -66,7 +67,7 @@ namespace ASH.EditorTools.Build
                 D("Whiskey", "Whiskey", ASHItemCategory.Consumable, "Half a bottle. Antiseptic in a pinch, or a moment of warmth.", new Color(0.65f, 0.4f, 0.15f), Shape.Cyl, new Vector3(0.08f, 0.13f, 0.08f), 3, "Drink", it => { Restore(it, 0, 3, 0); it.restoreStamina = 15; }),
                 D("Painkillers", "Painkillers", ASHItemCategory.Medical, "A few pills rattling in a bottle.", new Color(0.9f, 0.85f, 0.7f), Shape.Cyl, new Vector3(0.05f, 0.05f, 0.05f), 10, "Take", it => Restore(it, 0, 0, 10)),
                 // tools (no combat use)
-                D("Hatchet", "Hatchet", ASHItemCategory.Tool, "Splits deadwood faster and for more fuel; breaks down crates and furniture. Opens cans.", new Color(0.55f, 0.5f, 0.45f), Shape.Box, new Vector3(0.08f, 0.04f, 0.38f), 1, "Use", it => it.toolType = ASHToolType.Axe),
+                D("Hatchet", "Hatchet", ASHItemCategory.Tool, HatchetDesc, new Color(0.55f, 0.5f, 0.45f), Shape.Box, new Vector3(0.08f, 0.04f, 0.38f), 1, "Use", it => it.toolType = ASHToolType.Axe),
                 D("HuntingKnife", "Hunting Knife", ASHItemCategory.Tool, "Cuts cloth into strips, harvests meat, opens cans.", new Color(0.6f, 0.6f, 0.62f), Shape.Box, new Vector3(0.04f, 0.03f, 0.3f), 1, "Use", it => it.toolType = ASHToolType.Knife),
                 D("CanOpener", "Can Opener", ASHItemCategory.Tool, "Opens cans cleanly and keeps the tin.", new Color(0.65f, 0.65f, 0.6f), Shape.Box, new Vector3(0.05f, 0.02f, 0.14f), 1, "Use", it => it.toolType = ASHToolType.CanOpener),
                 D("ImprovisedKnife", "Improvised Knife", ASHItemCategory.Tool, "Scrap blade wrapped in cloth. Works as a knife.", new Color(0.5f, 0.5f, 0.48f), Shape.Box, new Vector3(0.04f, 0.03f, 0.24f), 1, "Use", it => it.toolType = ASHToolType.Knife, pickup: false),
@@ -88,19 +89,12 @@ namespace ASH.EditorTools.Build
                 D("SpareTire", "Spare Tire (optional)", ASHItemCategory.Key, "Optional truck content: undecided.", new Color(0.12f, 0.12f, 0.12f), Shape.Cyl, new Vector3(0.6f, 0.1f, 0.6f), 1, pickup: false, dir: TruckDir),
                 D("FanBelt", "Fan Belt (optional)", ASHItemCategory.Key, "Optional truck content: undecided.", new Color(0.18f, 0.16f, 0.14f), Shape.Cyl, new Vector3(0.2f, 0.01f, 0.2f), 2, pickup: false, dir: TruckDir),
             };
+            defs.AddRange(WoodDefs());
 
             // pass 1: create assets so cross references resolve; pass 2: configure
             foreach (var d in defs) ASHBuildUtil.Asset<ASHItemDefinition>($"{d.dir}/ASH_Item_{d.file}.asset");
             ASHBuildUtil.SaveOwn();
-            foreach (var d in defs)
-            {
-                var it = AssetDatabase.LoadAssetAtPath<ASHItemDefinition>($"{d.dir}/ASH_Item_{d.file}.asset");
-                it.itemId = d.id; it.displayName = d.name; it.description = d.desc; it.category = d.cat; it.maxStack = d.stack; it.uiTint = d.tint; it.useVerb = d.verb;
-                it.toolType = ASHToolType.None; it.requiresOpener = false; it.leftoverItem = null; it.breakdownYield = new List<ASHRecipeIngredient>();
-                d.extra?.Invoke(it);
-                EditorUtility.SetDirty(it);
-                PickupPrefab(d, it); // every item gets a prefab (icon source); 'pickup' only marks world placement
-            }
+            foreach (var d in defs) ConfigureDef(d);
             var cherries = ASHContentBuilder.LoadItem("ASH_Item_Chokecherries"); if (cherries) { cherries.useVerb = "Eat"; EditorUtility.SetDirty(cherries); }
 
             var recipes = BuildRecipes();
@@ -110,6 +104,61 @@ namespace ASH.EditorTools.Build
             ASHBuildUtil.SaveOwn();
             Debug.Log($"[ASH] Item catalog: {defs.Count} items, {recipes.Count} recipes, pickups in {PickupDir}");
         }
+
+        static void ConfigureDef(Def d)
+        {
+            var it = AssetDatabase.LoadAssetAtPath<ASHItemDefinition>($"{d.dir}/ASH_Item_{d.file}.asset");
+            it.itemId = d.id; it.displayName = d.name; it.description = d.desc; it.category = d.cat; it.maxStack = d.stack; it.uiTint = d.tint; it.useVerb = d.verb;
+            it.toolType = ASHToolType.None; it.requiresOpener = false; it.leftoverItem = null; it.breakdownYield = new List<ASHRecipeIngredient>();
+            d.extra?.Invoke(it);
+            EditorUtility.SetDirty(it);
+            PickupPrefab(d, it); // every item gets a prefab (icon source); 'pickup' only marks world placement
+        }
+
+        // ------------------------------------------------------------------ wood (axe harvesting)
+        static List<Def> WoodDefs() => new List<Def>
+        {
+            D("Firewood", "Firewood", ASHItemCategory.Resource, "Split dead timber from felled trees, logs and stumps. Burns long and hot.", new Color(0.5f, 0.38f, 0.26f), Shape.Box, new Vector3(0.42f, 0.11f, 0.13f), 20, pickup: false),
+            D("Kindling", "Kindling", ASHItemCategory.Resource, "Dry splinters and shavings. Gets a fire going.", new Color(0.72f, 0.6f, 0.42f), Shape.Box, new Vector3(0.28f, 0.04f, 0.1f), 30, pickup: false),
+        };
+
+        static List<ASHRecipe> WoodRecipes()
+        {
+            var fireItem = ASHContentBuilder.LoadItem("ASH_Item_Campfire");
+            return new List<ASHRecipe>
+            {
+                R("CampfireFirewood", "Campfire (firewood)", ASHRecipeCategory.Fire, "Split firewood and kindling: the best fire you can build.", fireItem, 1, 2f, ASHToolType.None, ASHCraftStation.Anywhere, G("Firewood", 2), G("Kindling", 2), G("ASH_Item_Stone", 3)),
+                R("SplitKindling", "Split Kindling", ASHRecipeCategory.Materials, "Split a piece of firewood into kindling with the hatchet.", I("Kindling"), 3, 2f, ASHToolType.Axe, ASHCraftStation.Anywhere, G("Firewood", 1)),
+            };
+        }
+
+        /// <summary>Creates/updates only the wood items + recipes and appends the recipes to the player (prefab + scene) without
+        /// touching other items or recipes. Build() covers them too.</summary>
+        public static List<ASHRecipe> BuildWoodContent()
+        {
+            var defs = WoodDefs();
+            foreach (var d in defs) ASHBuildUtil.Asset<ASHItemDefinition>($"{d.dir}/ASH_Item_{d.file}.asset");
+            ASHBuildUtil.SaveOwn();
+            foreach (var d in defs) ConfigureDef(d);
+            var hatchet = I("Hatchet"); if (hatchet) { hatchet.description = HatchetDesc; EditorUtility.SetDirty(hatchet); }
+            var recipes = WoodRecipes();
+            void Append(GameObject go)
+            {
+                var craft = go ? go.GetComponent<ASHCrafting>() : null; if (!craft) return;
+                var so = new SerializedObject(craft); var p = so.FindProperty("recipes");
+                foreach (var r in recipes)
+                {
+                    bool has = false; for (int i = 0; i < p.arraySize; i++) if (p.GetArrayElementAtIndex(i).objectReferenceValue == r) has = true;
+                    if (!has) { p.arraySize++; p.GetArrayElementAtIndex(p.arraySize - 1).objectReferenceValue = r; }
+                }
+                so.ApplyModifiedPropertiesWithoutUndo();
+            }
+            EditPrefab(ASHPlayerBuilder.PrefabPath, Append);
+            var pl = GameObject.Find("ASH_Player"); if (pl) { Append(pl); UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(pl.scene); }
+            ASHBuildUtil.SaveOwn();
+            return recipes;
+        }
+        const string HatchetDesc = "Fells dead trees and chops logs and stumps into firewood and kindling. Splits deadwood faster; breaks down crates and furniture. Opens cans.";
 
         static void Restore(ASHItemDefinition it, float hunger, float thirst, float health) { it.restoreHunger = hunger; it.restoreThirst = thirst; it.restoreHealth = health; it.restoreStamina = 0; }
         static void Can(ASHItemDefinition it) { it.requiresOpener = true; it.smashedYield = 0.65f; it.leftoverItem = I("EmptyTin"); }
@@ -139,6 +188,7 @@ namespace ASH.EditorTools.Build
             list.Add(R("ImprovisedKnife", "Improvised Knife", ASHRecipeCategory.Tools, "Grind scrap to an edge against a stone and wrap the grip.", I("ImprovisedKnife"), 1, 6f, ASHToolType.None, ASHCraftStation.Anywhere, G("ScrapMetal", 2), G("Cloth", 1), G("ASH_Item_Stone", 1)));
             list.Add(R("ClothFromShirt", "Cut Cloth Strips", ASHRecipeCategory.Materials, "Cut an old shirt into clean strips.", I("Cloth"), 3, 3f, ASHToolType.Knife, ASHCraftStation.Anywhere, G("OldShirt", 1)));
             list.Add(R("FlattenTins", "Flatten Tins", ASHRecipeCategory.Materials, "Hammer empty tins flat for scrap.", I("ScrapMetal"), 1, 2f, ASHToolType.None, ASHCraftStation.Anywhere, G("EmptyTin", 2)));
+            list.AddRange(WoodRecipes());
             return list;
         }
 
