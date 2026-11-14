@@ -8,7 +8,7 @@ _Last updated 2026-11-14 (ET) by the ASH implementation agent. Unity 6000.4.11f1
 3. Press Play. The player starts at **Grandpa Cabin**.
 4. Controller test scene: `Assets/_ASH/Scenes/Tests/ASH_ControllerTest.unity` (flat ground, 20° ramp, steps, crouch bar, resource nodes, water tank).
 
-Automated check: in Play Mode, run `ASH.DebugTools.ASHPlayTest.Run` (through the Editor bridge `exec`). It logs `[ASH] TEST PASS/FAIL ...` and a `TEST SUMMARY`. Last result: **19 pass / 0 fail** in ASH_Prototype (2026-11-14, 1:55 AM ET).
+Automated check: in Play Mode, run `ASH.DebugTools.ASHPlayTest.Run` (through the Editor bridge `exec`). It logs `[ASH] TEST PASS/FAIL ...` and a `TEST SUMMARY`. Last result: **31 pass / 0 fail** in ASH_Prototype (2026-11-14, 3:18 AM ET). It covers the survey/map, cans, break-down, bandage, cooking and hatchet salvage, and captures `AshBridge/shots/v3/08_journal_crafting.png`, `09_map_obscured.png` and `10_map_after_survey.png`.
 
 ### Controls (keyboard/mouse; gamepad in brackets)
 | Action | Binding |
@@ -17,7 +17,10 @@ Automated check: in Play Mode, run `ASH.DebugTools.ASHPlayTest.Run` (through the
 | Sprint (hold) / Jump | Left Shift [L3] / Space [A] |
 | Crouch toggle / Walk toggle | Left Ctrl or C [R3] / Caps Lock |
 | Interact (hold to gather) | E [X] |
-| Pack (inventory) / Craft | Tab or I [Y] / Q [D-pad up] |
+| Pack (inventory) / Journal crafting tab | Tab or I [Y] / Q [D-pad up] |
+| Journal (Crafting, Items, Notes) | J [Select] |
+| GPS map (needs the Damaged GPS) | M [D-pad right], or use the GPS in the hotbar. Wheel zooms at the cursor, drag pans, Space re-centres |
+| Break down hovered pack item | B |
 | Hotbar use | 1–6 |
 | Place: confirm / cancel / rotate | LMB or E / RMB or Esc / mouse wheel |
 | Pause | Esc [Start] |
@@ -25,11 +28,12 @@ Automated check: in Play Mode, run `ASH.DebugTools.ASHPlayTest.Run` (through the
 In the pack: LMB uses a slot (eat food, place the campfire), RMB splits a stack, drag moves or merges stacks. The top row is the always-visible hotbar.
 
 ## Vertical slice loop
-1. Spawn at Grandpa Cabin.
-2. Gather 4 deadwood, 3 stones and 2 chokecherries. Resource nodes are 8–35 m from the cabin, outside a 6 m cabin clearance.
-3. Craft a campfire (Q).
-4. Climb to the ridge overlook. It was chosen automatically from the cabin: **701 m north, 127 m climb**, maximum straight-line slope 34°. The objective shows direction and distance, with a smoke column at the campsite as a visual cue.
-5. Place the campfire within 30 m of the old campsite (12 m from the overlook) to finish: "Camp made before dark."
+1. Spawn at Grandpa Cabin (Redstone Camp) carrying a **Damaged GPS**. The map is fogged except for a rough fix around you.
+2. **Get your bearings:** climb the Redstone Camp lookout tower (115 m WNW of the cabin, ramp spiral to an 8 m platform) and hold E at the topo panel to log the viewpoint. This reveals the camp, the Mule Trail to The Overlook, the county road to the Ranger Station and the descent route. A Hunting Knife waits on the platform.
+3. Gather 4 deadwood, 3 stones and 2 chokecherries. Resource nodes are 8–35 m from the cabin, outside a 6 m cabin clearance.
+4. Craft a campfire (Q or J).
+5. Climb to The Overlook. It was chosen automatically from the cabin: **701 m north, 127 m climb**, maximum straight-line slope 34°. The objective shows direction and distance, with a smoke column at the campsite as a visual cue.
+6. Place the campfire within 30 m of the old campsite (12 m from the overlook) to finish: "Camp made before dark."
 
 Needs (hunger, thirst, stamina) decay over time. Eat chokecherries, and drink at the stock tank (on flat ground, 35 m or more from the start). If health reaches 0, the player respawns at `ASH_PlayerSpawn`, which sits at the cabin start.
 
@@ -50,6 +54,11 @@ The Genesis source (`A:\Dark Matter Genesis`) was **read only and never modified
 | `ASHInput` + `ASH_InputActions.inputactions` | `Assets/_Project/Settings/Input/InputSystem_Actions.inputactions` (Player map) | Input System | Bindings reused where actions overlap. Added Interact, Pack, Craft, hotbar keys and test overrides. |
 | `ASHUIState` | Genesis player input-blocking/cursor flags | — | Reduced to a panel token set. |
 | `ASHHud` | Genesis HUD layout (bars bottom-left, objective top-left, prompt under the reticle) | uGUI (legacy Text) | Built in code. Stat bars, prompt and hold bar, objective, clock, toasts, **hotbar and pack slot grid with item icons, stack counts, tooltips, drag/merge/split**, craft panel, pause and death screens. |
+| `ASHMapFog` (byte mask, soft circle/capsule reveal, dirty-rect upload, save bytes) | `Assets/_Project/Scripts/Map/MapFogOfWar.cs` | — | Lite port. Added a static "damaged GPS" corruption pattern (noise blocks, grid, scanlines), segment reveal and coverage. |
+| `ASHMapPanHandler` + `ASHMapUI` zoom | `Assets/_Project/Scripts/UI/MapViewportPanHandler.cs`, `MapUI.cs` | uGUI | Drag pan ported. Zoom toward the cursor with clamps, uncertainty-circle position, compass, survey markers. |
+| `ASHJournalUI` (Crafting / Items / Notes) | `Assets/_Project/Scripts/UI/JournalPanelUI.cs`, `JournalTabRail`, `CraftingUI` | ASHCrafting, ASHInventory | Code-built tabs, category filter, have/need with √/×, tool/station gates, progress, item use and break-down. |
+| Crafting stations (lit campfire) | `Assets/_Project/Scripts/Crafting/CraftingStation.cs`, `CraftingStationType` | ASHCampfire | Reduced to an `IASHCraftStation` registry: Anywhere or Campfire within 4 m. |
+| New (no Genesis equivalent): `ASHGpsMap`, `ASHSurveyPoint`/`ASHSurveyPointDef`, `ASHRegionMap`, `ASHJournalLog`, `ASHItemCatalog`, `ASHRegionBuilder` | — | — | See World and Region. |
 | New (no Genesis equivalent): `ASHPlacer`, `ASHCampfire`, `ASHObjectiveTracker`, `ASHAshFall`, `ASHIconBaker`, scene setup and painter tools | — | URP | See below. |
 
 ## World
@@ -68,17 +77,33 @@ The Genesis source (`A:\Dark Matter Genesis`) was **read only and never modified
   - Presets: Light, Default, Heavy, Extreme (20k/s, 60 m radius). All settings are exposed with wide ranges.
 - **Item icons:** `ASH/Build/5. Bake Item Icons` renders each item's prefab to a transparent 256 px sprite in `Assets/_ASH/Art/Icons` (difference matting, auto exposure).
 
+## Region, GPS map and survey points
+- **Layout source:** `Assets/_ASH/Data/Map/ASH_RegionLayout.json` (POIs, roads, trails, survey reveal data, all in world X/Z metres). It comes from Anthony's draft (`Assets/_ASH/Art/Map/ASH_map_draft.png`), fitted to the terrain by `Tools/MapArt` (layout.py places POIs on suitable ground, flow.py traces creeks with depression-filled flow routing, region.py writes the JSON, render.py draws the map).
+- **Map art:** `Assets/_ASH/Art/Map/ASH_RegionMap.png` (2048²). Hand-drawn topo look: paper, real 10 m / 50 m contours from the heightmap, hillshade, muted bands (Western Ridges / Gullies / Prairie), creeks, roads, dashed trails, hand-lettered labels (OFL fonts, rasterised only).
+- **POIs (world x, z):** Redstone Camp = cabin (522, 1560); Redstone lookout (433, 1632); The Overlook (540, 2265); Ranger Station (1270, 1180); Creek Crossing (1676, 994); Burned Homestead (1718, 567); Ash Hollow (2351, 616); Coyote Flats (2608, 1443); Old Quarry (287, 984); Western fire lookout ruin (256, 164); 4 supply caches.
+- **Survey chain** (one `ASHSurveyPointDef` each in `Data/Map/Surveys`):
+  1. Redstone lookout tower (full build, tutorial).
+  2. Ranger station roof.
+  3. Ash Hollow water tower.
+  4. Coyote Flats radio-relay hut roof.
+  5. Western fire lookout ruin (reveals everything).
+  Each logs a journal note with "Marked:" and "Next:".
+- **Builders:** `ASH/Build/7. Region + Survey Points` owns only the `ASH_Region` root and `ASH_Systems/GPS`. It never touches terrain trees, tree prototypes, heights, the player or the cabin, and aborts if tree counts change. Structures sidestep existing colliders. `ASH/World/Paint Region Roads + Trails` is a separate splat-only step (one write per route).
+- Placeholder structures are primitives with walkable ramps (17–25°) and railings.
+
 ## Project setup notes
 - **Input:** Active Input Handling is set to **Both** (needed by Invector). 19 Invector axes were added to the InputManager.
 - **Layers:** Gaia owns layers 8–11. ASH uses 6 Resource, 7 Item, 12 StopMove, **13 Player**, 14 HeadTrack, 15 BodyPart, 16 Enemy, 17 Triggers and 23 Climbable.
   - Invector shows a dismissable Scene-view banner because it expects Player on layer 8. **Do not run "Invector/Import ProjectSettings"**; it would overwrite Gaia's layers.
 - **Tags:** Enemy, CompanionAI and Weapon were added (Invector looks up "Enemy").
-- **Vendor folders stay out of git** (Procedural Worlds/Gaia, Invector and Gaia User Data). They are tracked in Unity Version Control.
+- **Vendor folders stay out of git** (Procedural Worlds/Gaia, Invector, Gaia User Data, NatureManufacture Assets, RUSTIC Grass). They are tracked in Unity Version Control.
 - **Invector compile fix:** stock files restored from `A:\Survival Pioneer - Copy`. See `Docs/GenesisReuseAudit.md`.
 - **Left uncommitted on purpose:** `Assets/Settings/PC_RPAsset.asset` and `Mobile_RPAsset.asset` (URP auto-upgrade), `ProjectSettings/URPProjectSettings.asset`, `ProjectSettings/SceneTemplateSettings.json`, and `Assets/Scenes/SampleScene.unity`.
-- **Terrain data is not committed yet.** At 76 MB (heights, splats and grass detail) it is under GitHub's 100 MB limit, but it will grow. **Decision for Anthony:** track `*.asset` terrain data with Git LFS (recommended), or commit it to git directly. Until then, the asset lives in the working copy and Unity Version Control.
+- **Terrain data is tracked with Git LFS** (`Assets/_ASH/Art/Terrain/*TerrainData.asset`).
 
 ## Known issues
+- Anthony's tree prototype `VS_Fir_04_Standalone_cheap` logs "couldn't be instanced" (one LOD uses a renderer other than MeshRenderer/BillboardRenderer). On 2026-11-14 its Edit Tree dialog got stuck modal during an ASH build, and Unity had to be force-quit. The ASH builders no longer save globally or touch trees. Fixing that prefab's LOD renderers (or using a non-LOD variant) would stop the warning.
+- Under the fog, unrevealed map labels are faintly readable (damaged-GPS look). Fog opacity in `ASHMapFog` can be raised if it should be blanker.
 - The Gaia warning "PC_High_Renderer ... missing RendererFeatures" comes from a legacy vendor renderer asset. It is harmless and was left alone (vendor code is not edited).
 - Gaia's own obsolete-API warnings are vendor code and were left alone.
 - Placeholder art: the deadwood, berry bush, campfire and campsite props are primitives plus the PW_Stone_01 mesh, waiting for vendor art.
@@ -86,8 +111,8 @@ The Genesis source (`A:\Dark Matter Genesis`) was **read only and never modified
 - NavMesh is deferred until AI exists.
 
 ## Next tasks
+0. Replace the placeholder survey structures and POIs with vendor art. Tune the survey reveal radii and item numbers after a playtest. Consider item condition/decay and a time cost for surveys.
 1. **Reactive ash ground:** trails and footprints where the player walks through the ash layer (render-texture trail mask feeding a terrain/decal shader, or a displacement/voxel approach). Planned, not started.
-2. Inventory polish: drop or discard items to the world, gamepad slot navigation, more items and recipes (water container, torch).
+2. Inventory polish: drop or discard items to the world, gamepad slot navigation, torch. (Items and recipes: see `Docs/ItemsAndCrafting.md`. The truck is undecided/optional; default play is on foot only.)
 3. Vendor art pass: animal and human vendor packs (Anthony), real deadwood, berry and campfire meshes, and cabin interior dressing.
-4. Terrain data in Git LFS (pending Anthony's decision), then commit it.
 5. Audio: wind, fire crackle, footsteps on ash.
