@@ -16,9 +16,111 @@ namespace ASH.EditorTools.Vendor
     {
         public static string Root = "Assets/ANGRY MESH";
         public const string UrpTemplate = "Assets/ANGRY MESH/Nature Pack - PBR Rocks/SRP/URP Template 12.1.0.unitypackage";
-        const string BeforeCsv = "AshBridge/vendor_angrymesh_before.csv";
-        const string LogCsv = "AshBridge/vendor_angrymesh_changes.csv";
-        public const string DocPath = "Docs/Vendor_AngryMesh_Materials.md";
+        static string Key => Root.Replace("Assets/", "").Replace(" ", "").ToLowerInvariant();
+        static string BeforeCsv => $"AshBridge/vendor_{Key}_before.csv";
+        static string LogCsv => $"AshBridge/vendor_{Key}_changes.csv";
+        public static string DocPath => Root.Contains("Quantum") ? "Docs/Vendor_QuantumTheory_Materials.md" : "Docs/Vendor_AngryMesh_Materials.md";
+        const string AshLit = "ASH/Accumulation Lit";
+
+        // Quantum Theory wrappers (exec takes parameterless methods)
+        [MenuItem("ASH/Vendor/ANGRY MESH/Material Inventory")] public static void AM_Inventory() { Root = "Assets/ANGRY MESH"; Inventory(); }
+        [MenuItem("ASH/Vendor/ANGRY MESH/Convert Remaining to URP")] public static void AM_Convert() { Root = "Assets/ANGRY MESH"; ConvertRemaining(); }
+        [MenuItem("ASH/Vendor/Quantum Theory/Material Inventory")]
+        public static void QT_Inventory() { Root = "Assets/Quantum Theory"; Inventory(); }
+        [MenuItem("ASH/Vendor/Quantum Theory/Convert (rocks -> ASH accumulation, rest -> URP)")]
+        public static void QT_Convert() { Root = "Assets/Quantum Theory"; ConvertRocksToAsh(); ConvertRemaining(); }
+        [MenuItem("ASH/Vendor/Quantum Theory/Write Material Report")]
+        public static void QT_Report() { Root = "Assets/Quantum Theory"; WriteReport(); }
+        /// <summary>Quantum Theory fix-up: FBX import embeds its own materials (materialLocation InPrefab), so the meshes ignored
+        /// Meshes/Materials/*.mat. Remap each embedded material to the .mat of the same name (FBX .meta externalObjects), and give the
+        /// rock .mats a matte smoothness from the original legacy Bumped Specular shininess (Unity's upgrade left it at 0).</summary>
+        [MenuItem("ASH/Vendor/Quantum Theory/Remap FBX Materials + Fix-up")]
+        public static void QT_Fixup()
+        {
+            Root = "Assets/Quantum Theory";
+            var shin = new Dictionary<string, float> { { "RockConcaveA", 0.22f }, { "RockConcaveB", 0.34f }, { "RockCubicA", 0.25f }, { "RockLarge", 0.32f }, { "RockLargeB", 0.19f }, { "RockWide", 0.23f } };
+            var mats = Mats().Where(x => x.EndsWith(".mat")).ToDictionary(x => Path.GetFileNameWithoutExtension(x), x => AssetDatabase.LoadAssetAtPath<Material>(x));
+            foreach (var kv in mats)
+            {
+                var m = kv.Value; if (!m || m.shader.name != AshLit) continue;
+                if (shin.TryGetValue(kv.Key, out var s)) m.SetFloat("_Smoothness", Mathf.Clamp(s * 0.6f, 0.08f, 0.3f));
+                m.SetFloat("_SmoothnessTextureChannel", 0f); m.DisableKeyword("_SMOOTHNESS_TEXTURE_ALBEDO_CHANNEL_A");
+                if (m.GetTexture("_BumpMap")) m.EnableKeyword("_NORMALMAP");
+                EditorUtility.SetDirty(m);
+            }
+            AssetDatabase.SaveAssets();
+            int remapped = 0;
+            foreach (var fbx in AssetDatabase.FindAssets("t:Model", new[] { Root }).Select(AssetDatabase.GUIDToAssetPath))
+            {
+                var imp = AssetImporter.GetAtPath(fbx) as ModelImporter; if (!imp) continue;
+                foreach (var em in AssetDatabase.LoadAllAssetsAtPath(fbx).OfType<Material>())
+                {
+                    if (!mats.TryGetValue(em.name, out var target)) mats.TryGetValue(Path.GetFileNameWithoutExtension(fbx), out target);
+                    if (!target) { Debug.Log($"[ASH] VENDOR QT no .mat for {fbx} / {em.name}"); continue; }
+                    imp.AddRemap(new AssetImporter.SourceAssetIdentifier(typeof(Material), em.name), target); remapped++;
+                    Debug.Log($"[ASH] VENDOR QT remap {Path.GetFileName(fbx)}:{em.name} -> {target.name}");
+                }
+                imp.SaveAndReimport();
+            }
+            Debug.Log($"[ASH] VENDOR QT fixup: {remapped} FBX material remaps");
+        }
+
+        [MenuItem("ASH/Vendor/ANGRY MESH/Rocks -> ASH Accumulation")]
+        public static void AM_Rocks() { Root = "Assets/ANGRY MESH"; ConvertRocksToAsh(); }
+        [MenuItem("ASH/Vendor/ANGRY MESH/Write Material Report")]
+        public static void AM_Report() { Root = "Assets/ANGRY MESH"; WriteReport(); }
+
+        /// <summary>Rock / cliff / boulder materials (by name or folder), not particles or terrain.</summary>
+        public static bool IsRock(string path, Material m)
+        {
+            // by material name only (pack folders like "PBR Rocks" contain everything); terrain-detail meshes stay unlit
+            var s = Path.GetFileNameWithoutExtension(path).ToLowerInvariant();
+            if (path.Contains("/Particles/") || s.StartsWith("detail_") || s.Contains("terrain") || s.Contains("sky")) return false;
+            return s.StartsWith("rock") || s.Contains("cliff") || s.Contains("boulder") || s.Contains("stone");
+        }
+
+        /// <summary>Rocks -> ASH/Accumulation Lit (URP Lit property set + slope ash over snow from the controller), maps preserved.</summary>
+        public static void ConvertRocksToAsh()
+        {
+            var ash = Shader.Find(AshLit); if (!ash) { Debug.LogError("[ASH] " + AshLit + " not found"); return; }
+            var log = File.Exists(LogCsv) ? File.ReadAllText(LogCsv) : "path,old shader,new shader,method,notes\n"; int n = 0;
+            foreach (var p in Mats())
+            {
+                var m = AssetDatabase.LoadAssetAtPath<Material>(p); if (!m || !IsRock(p, m) || m.shader && m.shader.name == AshLit) continue;
+                string old = m.shader ? m.shader.name : "(missing)";
+                float shin = F(m, -1f, "_Shininess"); bool spec = m.HasProperty("_SpecTex") && m.GetTexture("_SpecTex");
+                string notes = old.Contains("Props") ? ToAshFromAngryMesh(m, ash) : ToLit(m, ash, old);
+                if (old.StartsWith("Legacy Shaders")) // Bumped Specular: no PBR smoothness; keep rock matte, albedo alpha not trusted as gloss
+                { m.SetFloat("_Smoothness", Mathf.Clamp(shin * 0.6f, 0.08f, 0.3f)); m.SetFloat("_Metallic", 0f); notes = (notes.Length > 0 ? notes + "; " : "") + "legacy Bumped Specular: albedo + normal kept, smoothness from shininess" + (spec ? "; _SpecTex (legacy spec map) not used" : ""); }
+                EditorUtility.SetDirty(m); n++;
+                log += $"\"{p}\",\"{old}\",\"{AshLit}\",ash-accumulation,\"{notes}\"\n";
+            }
+            AssetDatabase.SaveAssets(); File.WriteAllText(LogCsv, log);
+            Debug.Log($"[ASH] VENDOR {Root}: {n} rock materials -> {AshLit}");
+        }
+
+        // ANGRY MESH "Detail Props Snow" (URP): base albedo(A smooth) + normal + AO(A noise) + detail; top layer replaced by ASH accumulation
+        static string ToAshFromAngryMesh(Material m, Shader ash)
+        {
+            var alb = FirstTex(m, "_BaseAlbedoASmoothness"); var nrm = FirstTex(m, "_BaseNormalMap"); var ao = FirstTex(m, "_BaseAOANoiseMask");
+            var dA = FirstTex(m, "_DetailAlbedo"); var dN = FirstTex(m, "_DetailNormalMap");
+            TryColor(m, out var col, "_BaseColor");
+            float bs = F(m, 0.5f, "_BaseSmoothness"), aoI = F(m, 0.5f, "_BaseAOIntensity"), nS = F(m, 1f, "_BumpScale");
+            float dUV = F(m, 10f, "_DetailUVScale"), dAI = F(m, 1f, "_DetailAlbedoIntensity"), dNI = F(m, 1f, "_DetailNormalMapIntensity");
+            var top = FirstTex(m, "_TopAlbedoASmoothness"); float topI = F(m, 0f, "_TopIntensity");
+            m.shader = ash; m.shaderKeywords = new string[0];
+            m.SetTexture("_BaseMap", alb); m.SetTextureScale("_BaseMap", Vector2.one); m.SetColor("_BaseColor", new Color(col.r, col.g, col.b, 1f));
+            m.SetFloat("_SmoothnessTextureChannel", 1f); m.EnableKeyword("_SMOOTHNESS_TEXTURE_ALBEDO_CHANNEL_A"); m.SetFloat("_Smoothness", Mathf.Clamp01(bs * 1.4f)); m.SetFloat("_Metallic", 0f);
+            if (nrm) { m.SetTexture("_BumpMap", nrm); m.SetFloat("_BumpScale", nS); m.EnableKeyword("_NORMALMAP"); }
+            if (ao) { m.SetTexture("_OcclusionMap", ao); m.SetFloat("_OcclusionStrength", aoI); m.EnableKeyword("_OCCLUSIONMAP"); }
+            if (dA || dN)
+            {
+                m.SetTexture("_DetailAlbedoMap", dA); m.SetTexture("_DetailNormalMap", dN); m.SetTextureScale("_DetailAlbedoMap", Vector2.one * dUV);
+                m.SetFloat("_DetailAlbedoMapScale", dAI); m.SetFloat("_DetailNormalMapScale", dNI); m.EnableKeyword("_DETAIL_MULX2");
+            }
+            m.SetFloat("_Surface", 0f); m.SetFloat("_AlphaClip", 0f); m.SetFloat("_Cull", 2f); m.renderQueue = -1; m.SetOverrideTag("RenderType", "Opaque");
+            return "base albedo(A smooth), normal, AO, detail kept" + (top && topI > 0.01f ? "; vendor top layer (moss/snow/sand) replaced by ASH ash-over-snow" : "");
+        }
 
         static string[] Mats() => AssetDatabase.FindAssets("t:Material", new[] { Root }).Select(AssetDatabase.GUIDToAssetPath).Distinct().OrderBy(p => p).ToArray();
 
@@ -47,7 +149,6 @@ namespace ASH.EditorTools.Vendor
             return true;
         }
 
-        [MenuItem("ASH/Vendor/Material Inventory (ANGRY MESH)")]
         public static void Inventory()
         {
             var sb = new StringBuilder("path,shader,status\n"); var counts = new Dictionary<string, int>(); var byShader = new Dictionary<string, int>();
@@ -60,7 +161,7 @@ namespace ASH.EditorTools.Vendor
             }
             Directory.CreateDirectory("AshBridge");
             if (!File.Exists(BeforeCsv)) File.WriteAllText(BeforeCsv, sb.ToString());
-            File.WriteAllText("AshBridge/vendor_angrymesh_now.csv", sb.ToString());
+            File.WriteAllText($"AshBridge/vendor_{Key}_now.csv", sb.ToString());
             Debug.Log($"[ASH] VENDOR inventory {Root}: {Mats().Length} materials; " + string.Join(", ", counts.Select(k => $"{k.Key} {k.Value}")));
             foreach (var k in byShader.OrderByDescending(k => k.Value)) Debug.Log($"[ASH] VENDOR   {k.Value,3} x {k.Key}");
             foreach (var s in AssetDatabase.FindAssets("t:Shader", new[] { Root }).Select(AssetDatabase.GUIDToAssetPath))
@@ -89,7 +190,6 @@ namespace ASH.EditorTools.Vendor
         static float F(Material m, float def, params string[] names) { foreach (var n in names) if (m.HasProperty(n)) { try { return m.GetFloat(n); } catch { } } return def; }
 
         /// <summary>Remap every material that still can't render in URP to URP/Lit (or URP particles), preserving maps.</summary>
-        [MenuItem("ASH/Vendor/Convert Remaining to URP (ANGRY MESH)")]
         public static void ConvertRemaining()
         {
             var lit = Shader.Find("Universal Render Pipeline/Lit"); var pUnlit = Shader.Find("Universal Render Pipeline/Particles/Unlit");
@@ -100,7 +200,10 @@ namespace ASH.EditorTools.Vendor
                 var st = Status(m); if (st == "OK") continue;
                 string old = m.shader ? m.shader.name : "(missing)"; string notes;
                 bool particle = old.StartsWith("Particles/") || old.StartsWith("Legacy Shaders/Particles") || p.Contains("/Particles/");
-                if (particle) notes = ToParticle(m, pUnlit); else notes = ToLit(m, lit, old);
+                bool terrain = old.Contains("TerrainEngine") || old.Contains("Terrain") || m.HasProperty("_Splat0");
+                if (particle) notes = ToParticle(m, pUnlit);
+                else if (terrain) { m.shader = Shader.Find("Universal Render Pipeline/Terrain/Lit"); notes = "terrain material template -> URP Terrain/Lit (splats come from TerrainLayers)"; }
+                else notes = ToLit(m, lit, old);
                 EditorUtility.SetDirty(m); n++;
                 log += $"\"{p}\",\"{old}\",\"{m.shader.name}\",remap,\"{notes}\"\n";
             }
@@ -161,7 +264,6 @@ namespace ASH.EditorTools.Vendor
         }
 
         /// <summary>Docs/Vendor_AngryMesh_Materials.md: before vs now for every material + change method.</summary>
-        [MenuItem("ASH/Vendor/Write ANGRY MESH Material Report")]
         public static void WriteReport()
         {
             var before = new Dictionary<string, string[]>();
@@ -169,10 +271,10 @@ namespace ASH.EditorTools.Vendor
             var remap = new Dictionary<string, string[]>();
             if (File.Exists(LogCsv)) foreach (var l in File.ReadAllLines(LogCsv).Skip(1)) { var c = Split(l); if (c.Length >= 5) remap[c[0]] = c; }
             var sb = new StringBuilder();
-            sb.AppendLine("# ANGRY MESH (Nature Pack - PBR Rocks / Common): URP material fix-up");
+            sb.AppendLine(Root.Contains("Quantum") ? "# Quantum Theory (Better Rocks and Cliffs): URP material fix-up" : "# ANGRY MESH (Nature Pack - PBR Rocks / Common): URP material fix-up");
             sb.AppendLine();
-            sb.AppendLine("Vendor pack stays out of git (`/Assets/ANGRY MESH/` in .gitignore); this log is ours. Tool: `Assets/_ASH/Editor/Vendor/ASHVendorMaterialTools.cs`.");
-            sb.AppendLine("Method `urp-template` = vendor's own `SRP/URP Template 12.1.0.unitypackage` (URP shaders + URP materials); `remap` = ASH remap to URP/Lit or URP Particles; `unchanged` = already URP-compatible.");
+            sb.AppendLine($"Vendor pack stays out of git (`/{Root}/` in .gitignore); this log is ours. Tool: `Assets/_ASH/Editor/Vendor/ASHVendorMaterialTools.cs`.");
+            sb.AppendLine("Methods: `urp-template` = vendor's own URP template package; `ash-accumulation` = rock material moved to `ASH/Accumulation Lit` (URP Lit property set + slope-based ash over snow driven by `ASH_Accumulation`), maps preserved; `remap` = ASH remap to URP/Lit / URP Terrain / URP Particles; `unchanged` = already URP-compatible. Rocks get ASH accumulation; non-rock assets are plain URP for now.");
             sb.AppendLine();
             sb.AppendLine("```csv"); sb.AppendLine("path,old shader,old status,new shader,new status,method,notes");
             int ok = 0, bad = 0;
@@ -182,7 +284,7 @@ namespace ASH.EditorTools.Vendor
                 var st = Status(m); if (st == "OK") ok++; else bad++;
                 before.TryGetValue(p, out var b); remap.TryGetValue(p, out var r);
                 string oldS = r != null ? r[1] : b != null ? b[1] : "(new from template)"; string oldSt = b != null ? b[2] : "-";
-                string method = r != null ? "remap" : b == null ? "urp-template" : b[1] != m.shader.name ? "urp-template" : "unchanged";
+                string method = r != null ? r[3] : b == null ? "urp-template" : b[1] != m.shader.name ? "urp-template" : "unchanged";
                 sb.AppendLine($"\"{p.Substring(Root.Length + 1)}\",\"{(b != null ? b[1] : oldS)}\",{oldSt},\"{m.shader.name}\",{st},{method},\"{(r != null ? r[4] : "")}\"");
             }
             sb.AppendLine("```"); sb.AppendLine(); sb.AppendLine($"Result: {ok} OK, {bad} not URP-compatible.");
@@ -248,6 +350,17 @@ namespace ASH.EditorTools.Vendor
             var names = new[] { "Rock_01_Moss", "Rock_01_Snow", "Rock_01_Sand", "Rock_07_Moss", "Grass_Group_01", "Fern_01", "Root_01" };
             var all = AssetDatabase.FindAssets("t:Prefab", new[] { Root }).Select(AssetDatabase.GUIDToAssetPath).ToList();
             ASH.DebugTools.ASHPrefabRenderCheck.Prefabs = names.Select(n => all.FirstOrDefault(x => Path.GetFileNameWithoutExtension(x) == n)).Where(x => x != null).Select(AssetDatabase.LoadAssetAtPath<GameObject>).ToArray();
+            ASH.DebugTools.ASHPrefabRenderCheck.Run();
+        }
+
+        /// <summary>Play Mode: ANGRY MESH rocks + Quantum Theory meshes under scene lighting with ASH accumulation (nothing saved).</summary>
+        public static void PlayRenderCheckRocks()
+        {
+            var am = AssetDatabase.FindAssets("t:Prefab", new[] { "Assets/ANGRY MESH" }).Select(AssetDatabase.GUIDToAssetPath).ToList();
+            var list = new[] { "Rock_01_Snow", "Rock_07_Moss", "Rock_13_Sand" }.Select(n => am.FirstOrDefault(x => Path.GetFileNameWithoutExtension(x) == n)).Where(x => x != null).ToList();
+            list.AddRange(AssetDatabase.FindAssets("t:Model", new[] { "Assets/Quantum Theory" }).Select(AssetDatabase.GUIDToAssetPath).OrderBy(x => x).Take(5));
+            foreach (var p in list) Debug.Log("[ASH] VENDOR row: " + p);
+            ASH.DebugTools.ASHPrefabRenderCheck.Prefabs = list.Select(AssetDatabase.LoadAssetAtPath<GameObject>).Where(g => g).ToArray();
             ASH.DebugTools.ASHPrefabRenderCheck.Run();
         }
 

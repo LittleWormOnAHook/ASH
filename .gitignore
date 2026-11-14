@@ -80,3 +80,7 @@ desktop.ini
 # Vendor: ANGRY MESH rocks/nature pack (Anthony imports locally)
 /Assets/ANGRY MESH/
 /Assets/ANGRY MESH.meta
+
+# Vendor: Quantum Theory (Better Rocks and Cliffs) - stays out of git
+/Assets/Quantum Theory/
+/Assets/Quantum Theory.meta
