@@ -13,6 +13,7 @@ namespace ASH.World.Accumulation
     {
         public static ASHAccumulationController Instance { get; private set; }
         public enum Preset { Light, Default, Heavy, Extreme }
+        public enum DeformQuality { Off, Low, Medium, High, Ultra, Extreme, Custom }
 
         [Header("Preset (use the context menu or ASH/World/Accumulation/Preset)")]
         public Preset preset = Preset.Default;
@@ -20,8 +21,10 @@ namespace ASH.World.Accumulation
         [Header("Layer state (relative depth 0..1; 1 = full design depth)")]
         [Range(0f, 1f)] public float ashAmount = 0.7f;
         [Range(0f, 1f)] public float snowAmount = 0.6f;
-        [Tooltip("Metres of material at relative depth 1 under a full drift (knee-deep).")]
+        [Tooltip("Depth in metres of the deepest drifts (knee-deep), drift mask R = 1.")]
         [Range(0.05f, 2f)] public float maxDepthMetres = 0.5f;
+        [Tooltip("Typical (ankle) depth in metres where the drift mask is average; drifts rise toward Max Depth (knee).")]
+        [Range(0.01f, 1f)] public float ankleDepthMetres = 0.12f;
 
         [Header("1. Accumulation rate")]
         [Tooltip("Relative depth gained per minute at fall intensity 1.")]
@@ -35,11 +38,32 @@ namespace ASH.World.Accumulation
         [Range(0.01f, 5f)] public float noiseScale = 0.35f;
         [Range(0f, 1.5f)] public float noiseStrength = 0.35f;
 
-        [Header("3. Deformation (phase 2: not built yet; fields reserved)")]
-        public bool deformationEnabled = false;
+        [Header("3. Deformation (footprints, trails, tracks; ASHDeformer stampers)")]
+        [Tooltip("Footprints/trails on (Play Mode). Stamps from ASHDeformer components into ASHDeformationField.")]
+        public bool deformation = true;
+        [Tooltip("Fraction of the layer a footprint pushes aside (1 = down to the ground).")]
         [Range(0f, 1f)] public float footprintDepth = 0.8f;
-        [Tooltip("Trail refill speed as a multiple of the accumulation rate x current fall intensity.")]
+        [Tooltip("Trail refill speed as a multiple of the accumulation rate x current fall intensity (new ash/snow fills prints).")]
         [Range(0f, 10f)] public float deformationRefill = 1f;
+        [Tooltip("Extra settling refill per minute even without new fall (0 = trails persist until new ash/snow falls).")]
+        [Range(0f, 1f)] public float trailFadePerMinute = 0f;
+        [Header("Visible depth (player-following displaced surface)")]
+        [Tooltip("Real geometric depth near the camera (ASHAccumulationSurface).")]
+        public bool visibleDepth = true;
+        public Shader surfaceShader, deformShader;
+
+        [Header("Deformation quality (graphics setting; runtime-safe via SetDeformationQuality)")]
+        [Tooltip("Off = shader-only coverage (no displaced surface, no trail field). Custom = keep the values below.")]
+        public DeformQuality deformationQuality = DeformQuality.Medium;
+        [Tooltip("Deformation render texture texels per side.")] [Range(256, 4096)] public int deformResolution = 1024;
+        [Tooltip("Radius of the area that records footprints/trails around the player, metres (window = 2x).")] [Range(8f, 256f)] public float deformAreaRadius = 64f;
+        [Tooltip("Radius of the displaced (real-depth) mesh around the camera, metres.")] [Range(4f, 128f)] public float displacedRadius = 24f;
+        [Tooltip("Mesh grid spacing, metres (smaller = denser mesh, sharper prints).")] [Range(0.05f, 1f)] public float meshDensity = 0.2f;
+        [Tooltip("Stamp/scroll updates per second (0 = every frame).")] [Range(0f, 120f)] public float stampUpdateRate = 30f;
+        [Tooltip("Refill updates per second while idle.")] [Range(0.5f, 60f)] public float refillUpdateRate = 4f;
+        [Tooltip("Displacement fades to shader-only coverage over this distance at the mesh edge, metres.")] [Range(0.5f, 40f)] public float displacementFade = 8f;
+        [Tooltip("0 Low (coarse vertex normals), 1 Medium (vertex normals), 2 High (+ per-pixel footprint normals).")] [Range(0, 2)] public int normalQuality = 1;
+        [Tooltip("CPU readback of the trail field for gameplay depth queries: radius around the follow target, metres.")] [Range(4f, 64f)] public float readbackRadius = 16f;
 
         [Header("4. Wind redistribution")]
         [Tooltip("How strongly wind strips exposed surfaces and piles drifts in lee/hollows (drift mask).")]
@@ -106,10 +130,16 @@ namespace ASH.World.Accumulation
         /// <summary>Material depth in metres at a world position (for speed/footstep systems).</summary>
         public float GetDepthMetres(Vector3 worldPos)
         {
+            return GetBaseDepthMetres(worldPos) * (1f - GetDeformation(worldPos));
+        }
+
+        /// <summary>Depth before any deformation (the undisturbed layer).</summary>
+        public float GetBaseDepthMetres(Vector3 worldPos)
+        {
             var dm = SampleDrift(worldPos);
-            float mask = Mathf.Lerp(0.5f, dm.r, EffectiveWind()) * (1f - pathDepthReduction * dm.a);
-            float t = Mathf.Clamp01(ashAmount + snowAmount * (1f - extraMelt)) * mask * coverage;
-            return t * maxDepthMetres * (1f - GetDeformation(worldPos));
+            float r = Mathf.Lerp(0.35f, dm.r, Mathf.Clamp01(EffectiveWind() * 2f)); // same curve as ASH_DepthMetres (shader)
+            float d = r <= 0.35f ? ankleDepthMetres * r / 0.35f : Mathf.Lerp(ankleDepthMetres, maxDepthMetres, Mathf.SmoothStep(0f, 1f, (r - 0.35f) / 0.65f));
+            return Mathf.Clamp01(ashAmount + snowAmount * (1f - extraMelt)) * (1f - pathDepthReduction * dm.a) * coverage * d;
         }
 
         /// <summary>Relative ash / snow layer thickness at a position (0..1 each) before deformation.</summary>
@@ -120,11 +150,61 @@ namespace ASH.World.Accumulation
             ash = ashAmount * mask; snow = snowAmount * (1f - extraMelt) * mask;
         }
 
-        /// <summary>PHASE 2 STUB: push material aside (footprints, tracks). Not implemented yet.</summary>
-        public void Deform(Vector3 worldPos, float radius, float strength) { if (!_warnedDeform) { _warnedDeform = true; Debug.Log("[ASH] Accumulation deformation is phase 2 (not built yet); Deform() ignored."); } }
-        /// <summary>PHASE 2 STUB: 0 = untouched .. 1 = pushed to the ground.</summary>
-        public float GetDeformation(Vector3 worldPos) => 0f;
-        bool _warnedDeform;
+        /// <summary>One-shot disturbance (explosion, dropped object, tire): pushes material aside around a point.</summary>
+        public void Deform(Vector3 worldPos, float radius, float strength) { if (Field) Field.AddStamp(worldPos, worldPos, radius, strength); }
+        /// <summary>Segment disturbance (drag, tire track) from a to b.</summary>
+        public void DeformSegment(Vector3 a, Vector3 b, float radius, float strength) { if (Field) Field.AddStamp(a, b, radius, strength); }
+        /// <summary>0 = untouched .. 1 = pushed to the ground (CPU readback of the deformation field, ~0.15 s latency).</summary>
+        public float GetDeformation(Vector3 worldPos) => Field ? Field.Sample(worldPos) : 0f;
+        /// <summary>Refill of trails per second (fraction of layer), from new fall and settling.</summary>
+        public float DeformRefillPerSecond() => (deformationRefill * accumulationRate * (_inputs.ashfallIntensity + _inputs.snowfallIntensity) + trailFadePerMinute) / 60f;
+        /// <summary>Graphics-menu entry point: applies a deformation quality preset at runtime (rebuilds RT/mesh cleanly).</summary>
+        public void SetDeformationQuality(DeformQuality q) { ApplyDeformationQualityPreset(q); deformationQuality = q; ApplyQualityToComponents(); }
+        /// <summary>Custom values at runtime (graphics menu sliders). Any argument &lt; 0 keeps the current value.</summary>
+        public void SetDeformationQualityCustom(int resolution = -1, float areaRadius = -1, float meshRadius = -1, float gridStep = -1, float stampHz = -1, float refillHz = -1, float fade = -1, int normals = -1)
+        {
+            deformationQuality = DeformQuality.Custom;
+            if (resolution > 0) deformResolution = Mathf.Clamp(Mathf.ClosestPowerOfTwo(resolution), 256, 4096);
+            if (areaRadius > 0) deformAreaRadius = Mathf.Clamp(areaRadius, 8f, 256f);
+            if (meshRadius > 0) displacedRadius = Mathf.Clamp(meshRadius, 4f, 128f);
+            if (gridStep > 0) meshDensity = Mathf.Clamp(gridStep, 0.05f, 1f);
+            if (stampHz >= 0) stampUpdateRate = Mathf.Clamp(stampHz, 0f, 120f);
+            if (refillHz > 0) refillUpdateRate = Mathf.Clamp(refillHz, 0.5f, 60f);
+            if (fade > 0) displacementFade = Mathf.Clamp(fade, 0.5f, 40f);
+            if (normals >= 0) normalQuality = Mathf.Clamp(normals, 0, 2);
+            ApplyQualityToComponents();
+        }
+        public bool DeformationQualityOn => deformationQuality != DeformQuality.Off;
+
+        public void ApplyDeformationQualityPreset(DeformQuality q)
+        {
+            //                    res   area  mesh  grid    stampHz refillHz fade normals
+            switch (q)
+            {
+                case DeformQuality.Low:     SetQ(512,  32f,  16f, 0.33f,  20f,  2f,  5f, 0); break;
+                case DeformQuality.Medium:  SetQ(1024, 64f,  24f, 0.2f,   30f,  4f,  8f, 1); break;
+                case DeformQuality.High:    SetQ(2048, 64f,  36f, 0.15f,  60f, 10f, 12f, 2); break;
+                case DeformQuality.Ultra:   SetQ(2048, 96f,  48f, 0.1f,    0f, 20f, 16f, 2); break;
+                case DeformQuality.Extreme: SetQ(4096, 128f, 64f, 0.075f,  0f, 30f, 24f, 2); break;
+            }
+        }
+        void SetQ(int res, float area, float mesh, float grid, float stamp, float refill, float fade, int normals)
+        { deformResolution = res; deformAreaRadius = area; displacedRadius = mesh; meshDensity = grid; stampUpdateRate = stamp; refillUpdateRate = refill; displacementFade = fade; normalQuality = normals; }
+
+        /// <summary>Single place the quality values reach the field/surface (they rebuild themselves when sizes change).</summary>
+        public void ApplyQualityToComponents()
+        {
+            if (Field)
+            {
+                Field.resolution = deformResolution; Field.sizeMetres = deformAreaRadius * 2f;
+                Field.stampRate = stampUpdateRate; Field.refillRate = refillUpdateRate; Field.readbackRadius = readbackRadius;
+            }
+            if (Surface) { Surface.size = displacedRadius * 2f; Surface.gridStep = meshDensity; Surface.edgeFade = displacementFade; Surface.normalQuality = normalQuality; }
+        }
+        DeformQuality _appliedQ = (DeformQuality)(-1);
+
+        public ASHDeformationField Field { get; private set; }
+        public ASHAccumulationSurface Surface { get; private set; }
 
         public void ApplyPreset(Preset p)
         {
@@ -154,6 +234,13 @@ namespace ASH.World.Accumulation
                 terrain.materialTemplate = terrainMaterial;
             }
             PushGlobals();
+            if (Application.isPlaying)
+            {
+                Field = GetComponent<ASHDeformationField>(); if (!Field) Field = gameObject.AddComponent<ASHDeformationField>();
+                if (!Field.updateShader) Field.updateShader = deformShader ? deformShader : Shader.Find("Hidden/ASH/DeformUpdate");
+                Surface = GetComponent<ASHAccumulationSurface>(); if (!Surface) Surface = gameObject.AddComponent<ASHAccumulationSurface>();
+                if (!Surface.shader) Surface.shader = surfaceShader ? surfaceShader : Shader.Find("Hidden/ASH/Accumulation Surface");
+            }
         }
 
         void OnDisable()
@@ -166,6 +253,8 @@ namespace ASH.World.Accumulation
 
         void Update()
         {
+            if (deformationQuality != _appliedQ) { if (deformationQuality != DeformQuality.Custom) ApplyDeformationQualityPreset(deformationQuality); _appliedQ = deformationQuality; }
+            if (Application.isPlaying) ApplyQualityToComponents();
             if (Application.isPlaying && simulateInPlayMode) Simulate(Time.deltaTime);
             PushGlobals();
         }
@@ -182,7 +271,7 @@ namespace ASH.World.Accumulation
             wetness = wetTarget > wetness ? Mathf.MoveTowards(wetness, wetTarget, wetRate * m) : Mathf.MoveTowards(wetness, wetTarget, dryRate * m);
             ashAmount = Mathf.Clamp01(ashAmount - ashDecayPerMinute * m);
             snowAmount = Mathf.Clamp01(snowAmount - snowDecayPerMinute * m);
-            // Phase 2: deformation refill = deformationRefill * accumulationRate * (ashfall + snowfall) per minute.
+            // Deformation refill: ASHDeformationField applies DeformRefillPerSecond() each frame.
         }
 
         float EffectiveWind() => Mathf.Clamp01(windRedistribution * (0.5f + (Application.isPlaying ? _inputs.windStrength : ambientWeather.windStrength)));
@@ -190,7 +279,7 @@ namespace ASH.World.Accumulation
         static readonly int ID_Layers = Shader.PropertyToID("_ASH_Layers"), ID_Surface = Shader.PropertyToID("_ASH_Surface"), ID_Weather = Shader.PropertyToID("_ASH_Weather"),
             ID_Noise = Shader.PropertyToID("_ASH_Noise"), ID_AshCol = Shader.PropertyToID("_ASH_AccumColor"), ID_SnowCol = Shader.PropertyToID("_ASH_SnowColor"), ID_TexNorm = Shader.PropertyToID("_ASH_TexNorm"),
             ID_Rect = Shader.PropertyToID("_ASH_TerrainRect"), ID_DRect = Shader.PropertyToID("_ASH_DeformRect"),
-            ID_AshTex = Shader.PropertyToID("_ASH_AshTex"), ID_SnowTex = Shader.PropertyToID("_ASH_SnowTex"), ID_Drift = Shader.PropertyToID("_ASH_DriftMask"), ID_Deform = Shader.PropertyToID("_ASH_DeformTex");
+            ID_AshTex = Shader.PropertyToID("_ASH_AshTex"), ID_SnowTex = Shader.PropertyToID("_ASH_SnowTex"), ID_Drift = Shader.PropertyToID("_ASH_DriftMask"), ID_Deform = Shader.PropertyToID("_ASH_DeformTex"), ID_Depth = Shader.PropertyToID("_ASH_Depth");
 
         public void PushGlobals()
         {
@@ -205,8 +294,8 @@ namespace ASH.World.Accumulation
             Shader.SetGlobalTexture(ID_AshTex, ashTexture ? ashTexture : Texture2D.grayTexture);
             Shader.SetGlobalTexture(ID_SnowTex, snowTexture ? snowTexture : Texture2D.whiteTexture);
             Shader.SetGlobalTexture(ID_Drift, driftMask ? driftMask : Texture2D.grayTexture);
-            Shader.SetGlobalTexture(ID_Deform, Texture2D.blackTexture);
-            Shader.SetGlobalVector(ID_DRect, Vector4.zero); // phase 2
+            if (!Field || !Field.isActiveAndEnabled || !Field.Active) { Shader.SetGlobalTexture(ID_Deform, Texture2D.blackTexture); Shader.SetGlobalVector(ID_DRect, Vector4.zero); }
+            Shader.SetGlobalVector(ID_Depth, new Vector4(maxDepthMetres, visibleDepth && DeformationQualityOn && Application.isPlaying ? 1f : 0f, ankleDepthMetres, 0f));
             if (terrain)
             {
                 var p = terrain.GetPosition(); var s = terrain.terrainData.size;

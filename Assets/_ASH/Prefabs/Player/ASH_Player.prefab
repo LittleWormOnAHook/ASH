@@ -56,7 +56,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 122537572601871621}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.011303435, y: -0.00033327928, z: 0.00070249505, w: 0.9999358}
+  m_LocalRotation: {x: -0.011303436, y: -0.00033327928, z: 0.0007024951, w: 0.9999358}
   m_LocalPosition: {x: 0.000000008405186, y: 0.13884689, z: -0.0000002562372}
   m_LocalScale: {x: 1, y: 1, z: 0.99999994}
   m_ConstrainProportionsScale: 0
@@ -2279,6 +2279,8 @@ GameObject:
   - component: {fileID: 4288894327698512809}
   - component: {fileID: 8144788992435636934}
   - component: {fileID: 1873793345580919012}
+  - component: {fileID: 1143463931130920594}
+  - component: {fileID: 2365888353130025831}
   m_Layer: 13
   m_Name: ASH_Player
   m_TagString: Player
@@ -2313,7 +2315,7 @@ Animator:
   m_GameObject: {fileID: 7505149521301787542}
   m_Enabled: 1
   m_Avatar: {fileID: 9000000, guid: 5f1e4acc09494f74fa2d721220af5983, type: 3}
-  m_Controller: {fileID: 9100000, guid: cbd1db45c75e5b948a5befe9ecb80421, type: 2}
+  m_Controller: {fileID: 9100000, guid: 69801b6f96fb8d741a5905bbd522da9a, type: 2}
   m_CullingMode: 1
   m_UpdateMode: 1
   m_ApplyRootMotion: 1
@@ -3215,6 +3217,58 @@ MonoBehaviour:
   controller: {fileID: 3885666712667246728}
   respawnPoint: {fileID: 0}
   respawnDelay: 5
+--- !u!114 &1143463931130920594
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7505149521301787542}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 18796f0a88293ba43abd1255042b1567, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ASH.Player.ASHFootIK
+  ikEnabled: 1
+  groundLayers:
+    serializedVersion: 2
+    m_Bits: 4294959099
+  rayStartAbove: 0.6
+  rayLengthBelow: 0.9
+  maxPelvisDrop: 0.4
+  maxPelvisRaise: 0.05
+  footOffset: 0
+  positionWeight: 1
+  rotationWeight: 1
+  maxFootAngle: 45
+  footSmoothing: 18
+  pelvisSmoothing: 10
+  rotationSmoothing: 16
+  leftCurve: LeftFootIK
+  rightCurve: RightFootIK
+  swingHeight: 0.2
+  onlyWhenGrounded: 1
+  debugDraw: 0
+--- !u!114 &2365888353130025831
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7505149521301787542}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 11e9e48501be24447a7bf8872ca686b6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ASH.World.Accumulation.ASHDeformer
+  points: []
+  autoHumanoidFeet: 1
+  footRadius: 0.13
+  surfaceTolerance: 0.05
+  wadingTrench: 1
+  trenchRadius: 0.3
+  trenchStrength: 0.6
+  trenchStartDepth: 0.18
 --- !u!1 &7766869945464538650
 GameObject:
   m_ObjectHideFlags: 0

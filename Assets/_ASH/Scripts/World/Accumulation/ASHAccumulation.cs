@@ -24,7 +24,9 @@ namespace ASH.World.Accumulation
         public static Func<Material, Material> VariantProvider;
         static readonly Dictionary<Material, Material> _runtime = new Dictionary<Material, Material>();
 
-        void OnEnable() { if (Application.isPlaying && !applied) Apply(); }
+        public static readonly List<ASHAccumulation> All = new List<ASHAccumulation>();
+        void OnEnable() { if (!All.Contains(this)) All.Add(this); if (Application.isPlaying && !applied) Apply(); }
+        void OnDisable() { All.Remove(this); }
 
         public static bool IsExcluded(Transform t)
         {

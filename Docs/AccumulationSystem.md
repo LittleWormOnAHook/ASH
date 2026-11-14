@@ -9,8 +9,10 @@ Status: **Phase 1 (buildup shader) built.** Phase 2 (deformable trails), phase 3
 ## Layer model
 One layered system: **ash on top**, **snow underneath**, base surface (terrain/material) below.
 Layer state lives on `ASHAccumulationController`: `ashAmount`, `snowAmount` (relative depth 0..1).
-Local depth = layer amount x drift mask x coverage. Drift mask R: 0.35 ≈ ankle-deep, 1.0 = knee-deep
-drift (`maxDepthMetres`, default 0.5 m). Future trails remove ash first, then snow, then expose ground.
+Local depth (metres) = layer amount x coverage x path factor x depth curve(drift mask R):
+R ≤ 0.35 scales up to `ankleDepthMetres` (0.12 m); R 0.35 → 1 rises smoothly to `maxDepthMetres` (knee, 0.5 m).
+Very low wind redistribution flattens drifts toward ankle depth. Map-wide ≈ 80% is 0.05–0.15 m, ≈ 10% is knee-deep.
+Same curve in C# (`GetBaseDepthMetres`) and HLSL (`ASH_DepthMetres`). Trails remove ash first, then snow, then expose ground.
 
 ## Files
 | What | Path |
@@ -84,16 +86,56 @@ void PushGlobals();
 * **Terrain**: `materialTemplate` = `ASH_TerrainAccum.mat`; the original is kept on the controller
   (`Restore Original Terrain Material` context menu).
 
-## Missing integration points (phase 2+)
-1. **Deformation**: a top-down render-texture "stamp" pass around the player writing `_ASH_DeformTex`
-   (R = fraction pushed aside), with `_ASH_DeformRect` set; the shader core already reads it (`ASH_DeformAt`).
-   Trails must persist through weather changes and **refill** at
-   `deformationRefill × accumulationRate × (ashfall + snowfall)` per minute (hook marked in `Simulate`).
-   `Deform()` / `GetDeformation()` become real; `GetDepthMetres` already subtracts deformation.
-2. **Real displacement** (tessellation/near-player mesh) for ankle/knee depth: not built; shading only today.
-3. **Speed and footsteps** read `GetDepthMetres` + terrain slope (phase 3).
-4. **Snow on top of ash** (fresh snowfall after ash) is simplified: ash always draws on top.
-5. Weather director: should call `SetWeatherInputs` (or implement `IASHWeatherInputs`) and nothing else.
+## Phase 2: visible depth, deformation, foot IK (Play Mode)
+All runtime parts are auto-added to the controller GameObject in Play (no scene changes needed).
+- **ASHAccumulationSurface**: dense grid following the camera, displaced in the vertex shader
+  (`Hidden/ASH/Accumulation Surface`) to terrain height + `ASH_DepthMetres`; fades to the terrain shader's coverage over
+  `displacementFade` at its edge. Visual only: colliders stay on the terrain, characters sink in. Oriented-box blockers
+  (nearest 16 within 40 m, refreshed every 1 s) keep structures with `ASHAccumulation` and pickups/interactables clear.
+- **ASHDeformationField**: ping-pong RHalf render texture (`Hidden/ASH/DeformUpdate`) that follows the player, R = fraction
+  pushed aside. Sets `_ASH_DeformTex` / `_ASH_DeformRect`; the terrain shader and the surface both read it (one field).
+  Refill per second = `(deformationRefill × accumulationRate × (ashfall + snowfall) + trailFadePerMinute) / 60`, so trails
+  persist through weather changes and new fall fills them. CPU copy (async region readback around the player) feeds
+  `GetDeformation` / `GetDepthMetres`. Trails outside the window are forgotten; changing area/resolution clears trails.
+- **ASHDeformer**: stamper component (player feet by default via the Humanoid rig; add explicit points for animals,
+  NPCs, tyres). Segments from the last contact position, wading trench when deep. Max 32 stamps per update.
+- **API**: `Deform(pos, radius, strength)`, `DeformSegment(a, b, radius, strength)`, `GetDeformation(pos)`,
+  `GetBaseDepthMetres(pos)`, `GetDepthMetres(pos)` (includes deformation).
+- **Globals**: `_ASH_Depth` (x knee m, y surface on, z ankle m), `_ASH_Heightmap`, `_ASH_HeightParams`,
+  `_ASH_SurfaceRect`, `_ASH_Blockers[16]`, `_ASH_BlockerRot[16]`, `_ASH_BlockerCount`, `_ASH_GridStep`, `_ASH_SurfQuality`.
+
+### Deformation quality (graphics setting)
+Controller → *Deformation quality*. Runtime-safe: `SetDeformationQuality(DeformQuality)` or
+`SetDeformationQualityCustom(resolution, areaRadius, meshRadius, gridStep, stampHz, refillHz, fade, normals)`.
+Components rebuild their render textures / mesh cleanly (old ones destroyed); Off frees both.
+
+| Preset | RT | Trail area radius | Mesh radius | Grid | Stamp Hz | Refill Hz | Fade | Normals | Verts |
+|---|---|---|---|---|---|---|---|---|---|
+| Off | – | – | – | – | – | – | – | – | 0 (shader-only coverage) |
+| Low | 512 | 32 m | 16 m | 0.33 m | 20 | 2 | 5 m | coarse | 9.6k |
+| Medium (default) | 1024 | 64 m | 24 m | 0.20 m | 30 | 4 | 8 m | vertex | 58k |
+| High | 2048 | 64 m | 36 m | 0.15 m | 60 | 10 | 12 m | + per-pixel prints | 231k |
+| Ultra | 2048 | 96 m | 48 m | 0.10 m | every frame | 20 | 16 m | + per-pixel | 924k |
+| Extreme | 4096 | 128 m | 64 m | 0.075 m | every frame | 30 | 24 m | + per-pixel | 2.9M |
+
+### Foot IK (`ASHFootIK`, on the player Animator)
+Needs IK Pass on base layer: `ASH/Player/Setup Foot IK + Ash Deformer` copies the Invector controller to
+`Assets/_ASH/Animation/ASH_BasicLocomotion.controller` (IK Pass on; vendor asset untouched) and adds ASHFootIK +
+ASHDeformer to `ASH_Player.prefab`. Per-foot raycast to the ground (under the ash), pelvis drops to the lower foot, feet
+rotate to the slope normal. Weights: animator floats `LeftFootIK` / `RightFootIK` if present, else a stance heuristic.
+Tunables: ray lengths, max pelvis drop/raise, foot offset, smoothing, max foot angle; Subtle / Default / Extreme presets.
+
+### Build notes
+- The hidden shaders are referenced by the controller's `surfaceShader` / `deformShader` fields (Shader.Find fallback);
+  assign them or add both to *Always Included Shaders* before a player build.
+- Terrain LOD: the surface samples the full-res heightmap; at distance the terrain's own LOD may differ slightly, hidden
+  by the edge fade.
+
+## Still missing
+1. **Speed and footsteps** read `GetDepthMetres` + terrain slope (phase 3).
+2. **Snow on top of ash** (fresh snowfall after ash) is simplified: ash always draws on top.
+3. Walkable structure tops (porch, roofs) do not deform yet.
+4. Weather director: should call `SetWeatherInputs` (or implement `IASHWeatherInputs`) and nothing else.
 
 ## Main paths
 Drift mask **A** = main-path factor (1 on the painted road/trail surface, falling to 0 over `pathFalloffMetres` beyond

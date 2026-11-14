@@ -17,6 +17,7 @@ float4 _ASH_Noise;        // x scale, y strength, z ash tiling (m), w snow tilin
 float4 _ASH_AccumColor;   // ash tint (rgb), a = ash darkness when wet
 float4 _ASH_SnowColor;    // snow tint (rgb)
 float4 _ASH_TexNorm;      // x = 1 / mean linear luminance of the ash texture; y = path depth reduction; z = path coverage reduction (drift mask A = path factor)
+float4 _ASH_Depth;        // x knee (drift) depth m, y surface enabled, z ankle (typical) depth m, w 0
 float4 _ASH_TerrainRect;  // x minX, y minZ, z 1/sizeX, w 1/sizeZ
 float4 _ASH_DeformRect;   // phase 2: x minX, y minZ, z 1/size, w enabled
 
@@ -43,6 +44,18 @@ half ASH_DeformAt(float3 positionWS)
     float2 uv = (positionWS.xz - _ASH_DeformRect.xy) * _ASH_DeformRect.z;
     if (any(uv < 0) || any(uv > 1)) return 0;
     return SAMPLE_TEXTURE2D_LOD(_ASH_DeformTex, sampler_ASH_DeformTex, uv, 0).r;
+}
+
+// Physical layer depth in metres (ash + snow) after wind, coverage, main-path reduction and deformation.
+// MUST match ASHAccumulationController.GetDepthMetres (CPU side used by speed/footsteps/deformers).
+float ASH_DepthMetres(half4 drift, half deform)
+{
+    if (_ASH_Layers.w < 0.5) return 0;
+    // drift R: 0.35 = typical (ankle), 1 = deepest drift (knee); calm wind -> uniform ankle depth
+    float r = lerp(0.35, drift.r, saturate(_ASH_Surface.w * 2.0)); // drifts are terrain-shaped; only very low redistribution flattens them
+    float d = r <= 0.35 ? _ASH_Depth.z * r / 0.35 : lerp(_ASH_Depth.z, _ASH_Depth.x, smoothstep(0.35, 1.0, r));
+    float t = saturate(_ASH_Layers.x + _ASH_Layers.y * (1.0 - _ASH_Weather.y)) * (1.0 - _ASH_TexNorm.y * saturate(drift.a)) * _ASH_Surface.x;
+    return t * d * (1.0 - saturate(deform));
 }
 
 // Core. drift = mask sample (R depth01, G exposure). geomNormalWS = un-mapped surface normal.
