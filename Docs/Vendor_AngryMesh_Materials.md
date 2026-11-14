@@ -1,0 +1,76 @@
+# ANGRY MESH (Nature Pack - PBR Rocks / Common): URP material fix-up
+
+Vendor pack stays out of git (`/Assets/ANGRY MESH/` in .gitignore); this log is ours. Tool: `Assets/_ASH/Editor/Vendor/ASHVendorMaterialTools.cs`.
+Method `urp-template` = vendor's own `SRP/URP Template 12.1.0.unitypackage` (URP shaders + URP materials); `remap` = ASH remap to URP/Lit or URP Particles; `unchanged` = already URP-compatible.
+
+```csv
+path,old shader,old status,new shader,new status,method,notes
+"Nature Pack - Common/Sources/Materials/AG_Global_Settings.mat","Standard",BUILTIN,"Universal Render Pipeline/Simple Lit",OK,urp-template,""
+"Nature Pack - Common/Sources/Materials/AG_Global_Snow.mat","Standard",BUILTIN,"Universal Render Pipeline/Simple Lit",OK,urp-template,""
+"Nature Pack - Common/Sources/Materials/Helper_Ground.mat","Standard",BUILTIN,"Universal Render Pipeline/Lit",OK,urp-template,""
+"Nature Pack - PBR Rocks/Particles/Material_Dust.mat","Legacy Shaders/Particles/Alpha Blended",BUILTIN,"Universal Render Pipeline/Particles/Unlit",OK,urp-template,""
+"Nature Pack - PBR Rocks/Particles/Material_Snow.mat","Legacy Shaders/Particles/Alpha Blended",BUILTIN,"Universal Render Pipeline/Particles/Unlit",OK,urp-template,""
+"Nature Pack - PBR Rocks/Particles/Material_Snow_Ground.mat","Legacy Shaders/Particles/Alpha Blended",BUILTIN,"Universal Render Pipeline/Particles/Unlit",OK,urp-template,""
+"Nature Pack - PBR Rocks/Skybox/Sky_Moss_01.mat","Skybox/Procedural",OK,"Skybox/Procedural",OK,unchanged,""
+"Nature Pack - PBR Rocks/Skybox/Sky_Sand_01.mat","Skybox/Procedural",OK,"Skybox/Procedural",OK,unchanged,""
+"Nature Pack - PBR Rocks/Skybox/Sky_Snow_01.mat","Skybox/Procedural",OK,"Skybox/Procedural",OK,unchanged,""
+"Nature Pack - PBR Rocks/Sources/Materials/Moss Rocks/Rock_01_Moss.mat","ANGRYMESH/Nature Pack/Standard/Detail Props Snow",BUILTIN,"ANGRYMESH/Nature Pack/URP/Detail Props Snow",OK,urp-template,""
+"Nature Pack - PBR Rocks/Sources/Materials/Moss Rocks/Rock_02_Moss.mat","ANGRYMESH/Nature Pack/Standard/Detail Props Snow",BUILTIN,"ANGRYMESH/Nature Pack/URP/Detail Props Snow",OK,urp-template,""
+"Nature Pack - PBR Rocks/Sources/Materials/Moss Rocks/Rock_03_Moss.mat","ANGRYMESH/Nature Pack/Standard/Detail Props Snow",BUILTIN,"ANGRYMESH/Nature Pack/URP/Detail Props Snow",OK,urp-template,""
+"Nature Pack - PBR Rocks/Sources/Materials/Moss Rocks/Rock_04_Moss.mat","ANGRYMESH/Nature Pack/Standard/Detail Props Snow",BUILTIN,"ANGRYMESH/Nature Pack/URP/Detail Props Snow",OK,urp-template,""
+"Nature Pack - PBR Rocks/Sources/Materials/Moss Rocks/Rock_05_Moss.mat","ANGRYMESH/Nature Pack/Standard/Detail Props Snow",BUILTIN,"ANGRYMESH/Nature Pack/URP/Detail Props Snow",OK,urp-template,""
+"Nature Pack - PBR Rocks/Sources/Materials/Moss Rocks/Rock_06_Moss.mat","ANGRYMESH/Nature Pack/Standard/Detail Props Snow",BUILTIN,"ANGRYMESH/Nature Pack/URP/Detail Props Snow",OK,urp-template,""
+"Nature Pack - PBR Rocks/Sources/Materials/Moss Rocks/Rock_07_Moss.mat","ANGRYMESH/Nature Pack/Standard/Detail Props Snow",BUILTIN,"ANGRYMESH/Nature Pack/URP/Detail Props Snow",OK,urp-template,""
+"Nature Pack - PBR Rocks/Sources/Materials/Moss Rocks/Rock_08_Moss.mat","ANGRYMESH/Nature Pack/Standard/Detail Props Snow",BUILTIN,"ANGRYMESH/Nature Pack/URP/Detail Props Snow",OK,urp-template,""
+"Nature Pack - PBR Rocks/Sources/Materials/Moss Rocks/Rock_09_10_Moss.mat","ANGRYMESH/Nature Pack/Standard/Detail Props Snow",BUILTIN,"ANGRYMESH/Nature Pack/URP/Detail Props Snow",OK,urp-template,""
+"Nature Pack - PBR Rocks/Sources/Materials/Moss Rocks/Rock_11_12_Moss.mat","ANGRYMESH/Nature Pack/Standard/Detail Props Snow",BUILTIN,"ANGRYMESH/Nature Pack/URP/Detail Props Snow",OK,urp-template,""
+"Nature Pack - PBR Rocks/Sources/Materials/Moss Rocks/Rock_13_22_Moss.mat","ANGRYMESH/Nature Pack/Standard/Detail Props Snow",BUILTIN,"ANGRYMESH/Nature Pack/URP/Detail Props Snow",OK,urp-template,""
+"Nature Pack - PBR Rocks/Sources/Materials/Moss Rocks/Rock_Group_01_02_Moss.mat","ANGRYMESH/Nature Pack/Standard/Detail Props Snow",BUILTIN,"ANGRYMESH/Nature Pack/URP/Detail Props Snow",OK,urp-template,""
+"Nature Pack - PBR Rocks/Sources/Materials/Moss Rocks/Rocks_Low_Moss.mat","ANGRYMESH/PBR Rocks/BP BlendTopDetail",BUILTIN,"ANGRYMESH/Nature Pack/URP/Detail Props Snow",OK,urp-template,""
+"Nature Pack - PBR Rocks/Sources/Materials/Nature/Clover.mat","ANGRYMESH/Nature Pack/Standard/Grass",BUILTIN,"ANGRYMESH/Nature Pack/URP/Grass",OK,urp-template,""
+"Nature Pack - PBR Rocks/Sources/Materials/Nature/Desert_Plant.mat","ANGRYMESH/Nature Pack/Standard/Grass",BUILTIN,"ANGRYMESH/Nature Pack/URP/Grass",OK,urp-template,""
+"Nature Pack - PBR Rocks/Sources/Materials/Nature/Fern.mat","ANGRYMESH/Nature Pack/Standard/Grass",BUILTIN,"ANGRYMESH/Nature Pack/URP/Grass",OK,urp-template,""
+"Nature Pack - PBR Rocks/Sources/Materials/Nature/Grass_01.mat","ANGRYMESH/Nature Pack/Standard/Grass",BUILTIN,"ANGRYMESH/Nature Pack/URP/Grass",OK,urp-template,""
+"Nature Pack - PBR Rocks/Sources/Materials/Nature/Grass_02.mat","ANGRYMESH/Nature Pack/Standard/Grass",BUILTIN,"ANGRYMESH/Nature Pack/URP/Grass",OK,urp-template,""
+"Nature Pack - PBR Rocks/Sources/Materials/Nature/Grass_03.mat","ANGRYMESH/Nature Pack/Standard/Grass",BUILTIN,"ANGRYMESH/Nature Pack/URP/Grass",OK,urp-template,""
+"Nature Pack - PBR Rocks/Sources/Materials/Nature/Roots_01.mat","ANGRYMESH/Nature Pack/Standard/Props Snow",BUILTIN,"ANGRYMESH/Nature Pack/URP/Props Snow",OK,urp-template,""
+"Nature Pack - PBR Rocks/Sources/Materials/Nature/Roots_02.mat","ANGRYMESH/Nature Pack/Standard/Props Snow",BUILTIN,"ANGRYMESH/Nature Pack/URP/Props Snow",OK,urp-template,""
+"Nature Pack - PBR Rocks/Sources/Materials/Sand Rocks/Rock_01_Sand.mat","ANGRYMESH/Nature Pack/Standard/Detail Props Snow",BUILTIN,"ANGRYMESH/Nature Pack/URP/Detail Props Snow",OK,urp-template,""
+"Nature Pack - PBR Rocks/Sources/Materials/Sand Rocks/Rock_02_Sand.mat","ANGRYMESH/Nature Pack/Standard/Detail Props Snow",BUILTIN,"ANGRYMESH/Nature Pack/URP/Detail Props Snow",OK,urp-template,""
+"Nature Pack - PBR Rocks/Sources/Materials/Sand Rocks/Rock_03_Sand.mat","ANGRYMESH/Nature Pack/Standard/Detail Props Snow",BUILTIN,"ANGRYMESH/Nature Pack/URP/Detail Props Snow",OK,urp-template,""
+"Nature Pack - PBR Rocks/Sources/Materials/Sand Rocks/Rock_04_Sand.mat","ANGRYMESH/Nature Pack/Standard/Detail Props Snow",BUILTIN,"ANGRYMESH/Nature Pack/URP/Detail Props Snow",OK,urp-template,""
+"Nature Pack - PBR Rocks/Sources/Materials/Sand Rocks/Rock_05_Sand.mat","ANGRYMESH/Nature Pack/Standard/Detail Props Snow",BUILTIN,"ANGRYMESH/Nature Pack/URP/Detail Props Snow",OK,urp-template,""
+"Nature Pack - PBR Rocks/Sources/Materials/Sand Rocks/Rock_06_Sand.mat","ANGRYMESH/Nature Pack/Standard/Detail Props Snow",BUILTIN,"ANGRYMESH/Nature Pack/URP/Detail Props Snow",OK,urp-template,""
+"Nature Pack - PBR Rocks/Sources/Materials/Sand Rocks/Rock_07_Sand.mat","ANGRYMESH/Nature Pack/Standard/Detail Props Snow",BUILTIN,"ANGRYMESH/Nature Pack/URP/Detail Props Snow",OK,urp-template,""
+"Nature Pack - PBR Rocks/Sources/Materials/Sand Rocks/Rock_08_Sand.mat","ANGRYMESH/Nature Pack/Standard/Detail Props Snow",BUILTIN,"ANGRYMESH/Nature Pack/URP/Detail Props Snow",OK,urp-template,""
+"Nature Pack - PBR Rocks/Sources/Materials/Sand Rocks/Rock_09_10_Sand.mat","ANGRYMESH/Nature Pack/Standard/Detail Props Snow",BUILTIN,"ANGRYMESH/Nature Pack/URP/Detail Props Snow",OK,urp-template,""
+"Nature Pack - PBR Rocks/Sources/Materials/Sand Rocks/Rock_11_12_Sand.mat","ANGRYMESH/Nature Pack/Standard/Detail Props Snow",BUILTIN,"ANGRYMESH/Nature Pack/URP/Detail Props Snow",OK,urp-template,""
+"Nature Pack - PBR Rocks/Sources/Materials/Sand Rocks/Rock_13_22_Sand.mat","ANGRYMESH/Nature Pack/Standard/Detail Props Snow",BUILTIN,"ANGRYMESH/Nature Pack/URP/Detail Props Snow",OK,urp-template,""
+"Nature Pack - PBR Rocks/Sources/Materials/Sand Rocks/Rock_Group_01_02_Sand.mat","ANGRYMESH/Nature Pack/Standard/Detail Props Snow",BUILTIN,"ANGRYMESH/Nature Pack/URP/Detail Props Snow",OK,urp-template,""
+"Nature Pack - PBR Rocks/Sources/Materials/Sand Rocks/Rocks_Low_Sand.mat","ANGRYMESH/PBR Rocks/BP BlendTopDetail",BUILTIN,"ANGRYMESH/Nature Pack/URP/Detail Props Snow",OK,urp-template,""
+"Nature Pack - PBR Rocks/Sources/Materials/Snow Rocks/Rock_01_Snow.mat","ANGRYMESH/Nature Pack/Standard/Detail Props Snow",BUILTIN,"ANGRYMESH/Nature Pack/URP/Detail Props Snow",OK,urp-template,""
+"Nature Pack - PBR Rocks/Sources/Materials/Snow Rocks/Rock_02_Snow.mat","ANGRYMESH/Nature Pack/Standard/Detail Props Snow",BUILTIN,"ANGRYMESH/Nature Pack/URP/Detail Props Snow",OK,urp-template,""
+"Nature Pack - PBR Rocks/Sources/Materials/Snow Rocks/Rock_03_Snow.mat","ANGRYMESH/Nature Pack/Standard/Detail Props Snow",BUILTIN,"ANGRYMESH/Nature Pack/URP/Detail Props Snow",OK,urp-template,""
+"Nature Pack - PBR Rocks/Sources/Materials/Snow Rocks/Rock_04_Snow.mat","ANGRYMESH/Nature Pack/Standard/Detail Props Snow",BUILTIN,"ANGRYMESH/Nature Pack/URP/Detail Props Snow",OK,urp-template,""
+"Nature Pack - PBR Rocks/Sources/Materials/Snow Rocks/Rock_05_Snow.mat","ANGRYMESH/Nature Pack/Standard/Detail Props Snow",BUILTIN,"ANGRYMESH/Nature Pack/URP/Detail Props Snow",OK,urp-template,""
+"Nature Pack - PBR Rocks/Sources/Materials/Snow Rocks/Rock_06_Snow.mat","ANGRYMESH/Nature Pack/Standard/Detail Props Snow",BUILTIN,"ANGRYMESH/Nature Pack/URP/Detail Props Snow",OK,urp-template,""
+"Nature Pack - PBR Rocks/Sources/Materials/Snow Rocks/Rock_07_Snow.mat","ANGRYMESH/Nature Pack/Standard/Detail Props Snow",BUILTIN,"ANGRYMESH/Nature Pack/URP/Detail Props Snow",OK,urp-template,""
+"Nature Pack - PBR Rocks/Sources/Materials/Snow Rocks/Rock_08_Snow.mat","ANGRYMESH/Nature Pack/Standard/Detail Props Snow",BUILTIN,"ANGRYMESH/Nature Pack/URP/Detail Props Snow",OK,urp-template,""
+"Nature Pack - PBR Rocks/Sources/Materials/Snow Rocks/Rock_09_10_Snow.mat","ANGRYMESH/Nature Pack/Standard/Detail Props Snow",BUILTIN,"ANGRYMESH/Nature Pack/URP/Detail Props Snow",OK,urp-template,""
+"Nature Pack - PBR Rocks/Sources/Materials/Snow Rocks/Rock_11_12_Snow.mat","ANGRYMESH/Nature Pack/Standard/Detail Props Snow",BUILTIN,"ANGRYMESH/Nature Pack/URP/Detail Props Snow",OK,urp-template,""
+"Nature Pack - PBR Rocks/Sources/Materials/Snow Rocks/Rock_13_22_Snow.mat","ANGRYMESH/Nature Pack/Standard/Detail Props Snow",BUILTIN,"ANGRYMESH/Nature Pack/URP/Detail Props Snow",OK,urp-template,""
+"Nature Pack - PBR Rocks/Sources/Materials/Snow Rocks/Rock_Group_01_02_Snow.mat","ANGRYMESH/Nature Pack/Standard/Detail Props Snow",BUILTIN,"ANGRYMESH/Nature Pack/URP/Detail Props Snow",OK,urp-template,""
+"Nature Pack - PBR Rocks/Sources/Materials/Snow Rocks/Rocks_Low_Snow.mat","ANGRYMESH/PBR Rocks/BP BlendTopDetail",BUILTIN,"ANGRYMESH/Nature Pack/URP/Detail Props Snow",OK,urp-template,""
+"Nature Pack - PBR Rocks/Sources/Materials/Terrain Detail Unlit/Detail_Low_Rocks.mat","Unlit/Texture",OK,"Unlit/Texture",OK,unchanged,""
+"Nature Pack - PBR Rocks/Sources/Materials/Terrain Detail Unlit/Detail_Rocks.mat","Unlit/Texture",OK,"Unlit/Texture",OK,unchanged,""
+"Nature Pack - PBR Rocks/Sources/Terrain Layers/Terrain_URP.mat","(new from template)",-,"Universal Render Pipeline/Terrain/Lit",OK,urp-template,""
+```
+
+Result: 59 OK, 0 not URP-compatible.
+
+## Notes
+- 53 of 58 original materials were pink (vendor Built-in surface shaders: `ANGRYMESH/Nature Pack/Standard/*`, `ANGRYMESH/PBR Rocks/BP BlendTopDetail`, `Standard`, legacy particles). The vendor URP Template 12.1.0 fixed all of them (plus 1 new terrain material); no manual remaps were needed, top layers (moss/snow/sand), detail and AO are preserved.
+- The vendor top layer is multiplied by `AGP_*` / `AGH_*` globals that the vendor `AG Global Settings`/`AG Global Snow` prefab normally sets. ASH sets the vendor defaults itself (`Assets/_ASH/Scripts/World/Vendor/ASHVendorShaderGlobals.cs`, strings only, compiles without the pack), so no vendor prefab in our scene.
+- The vendor URP shaders are Amplify URP 12 code: in our Forward+ renderer the main light, shadows, GI, fog and SSAO work; extra point/spot lights may not light them (old `_CLUSTERED_RENDERING` keyword).
+- The Built-in `Unity Standard` shader folder is left in the pack, unused. Vendor demo scenes were replaced by the template's URP versions (vendor files only).
+- Re-run: ASH/Vendor/Material Inventory (ANGRY MESH) -> `AshBridge/vendor_angrymesh_now.csv`.
