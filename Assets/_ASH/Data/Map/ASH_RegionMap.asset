@@ -1,0 +1,86 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 05144772366f25e4db3d58e60279bffd, type: 3}
+  m_Name: ASH_RegionMap
+  m_EditorClassIdentifier: Assembly-CSharp::ASH.Map.ASHRegionMap
+  regionName: Ash Region
+  mapTexture: {fileID: 2800000, guid: 68bf7e18052b9f04c88a62055cc50da1, type: 3}
+  worldMin: {x: 0, y: 0}
+  worldSize: {x: 4000, y: 4000}
+  startRevealRadius: 140
+  walkRevealRadius: 30
+  gpsUncertainty: 70
+  gpsDrift: 25
+  fogResolution: 512
+  pois:
+  - id: redstone_camp
+    displayName: Redstone Camp
+    kind: 0
+    worldXZ: {x: 522.1, y: 1559.7}
+  - id: redstone_lookout
+    displayName: Redstone Camp Lookout
+    kind: 1
+    worldXZ: {x: 432.7, y: 1632.1}
+  - id: the_overlook
+    displayName: The Overlook
+    kind: 5
+    worldXZ: {x: 539.5, y: 2265.4}
+  - id: ranger_station
+    displayName: Ranger Station
+    kind: 1
+    worldXZ: {x: 1269.5, y: 1180.1}
+  - id: creek_crossing
+    displayName: Creek Crossing
+    kind: 3
+    worldXZ: {x: 1676.3, y: 993.5}
+  - id: burned_homestead
+    displayName: Burned Homestead
+    kind: 4
+    worldXZ: {x: 1717.7, y: 566.5}
+  - id: ash_hollow
+    displayName: Ash Hollow
+    kind: 1
+    worldXZ: {x: 2351.4, y: 616.4}
+  - id: coyote_flats
+    displayName: Coyote Flats
+    kind: 1
+    worldXZ: {x: 2607.9, y: 1442.9}
+  - id: old_quarry
+    displayName: Old Quarry
+    kind: 5
+    worldXZ: {x: 287.4, y: 983.5}
+  - id: lookout_ruin
+    displayName: Western Fire Lookout (ruin)
+    kind: 1
+    worldXZ: {x: 256, y: 163.7}
+  - id: cache_north
+    displayName: Hunting cabin (cache)
+    kind: 6
+    worldXZ: {x: 2478.4, y: 3058.6}
+  - id: cache_far_north
+    displayName: Line shack (cache)
+    kind: 6
+    worldXZ: {x: 3418, y: 3299.9}
+  - id: cache_gully
+    displayName: Washout cache
+    kind: 6
+    worldXZ: {x: 1158.1, y: 1810.6}
+  - id: cache_prairie
+    displayName: Windmill pump
+    kind: 6
+    worldXZ: {x: 3122.7, y: 793.4}
+  surveys:
+  - {fileID: 11400000, guid: 35685ee0dddf7ff4d821885e739a076e, type: 2}
+  - {fileID: 11400000, guid: 91ecfbc2be6b61246a10371c34747f22, type: 2}
+  - {fileID: 11400000, guid: 8eb18a709c990da42b2dfe19c6eec227, type: 2}
+  - {fileID: 11400000, guid: 06b60fd42c5c7b1489765617882c5f7a, type: 2}
+  - {fileID: 11400000, guid: 64b0c815e1569eb49877fa347aa7747d, type: 2}

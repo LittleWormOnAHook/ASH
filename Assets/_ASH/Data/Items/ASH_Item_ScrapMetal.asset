@@ -15,7 +15,7 @@ MonoBehaviour:
   itemId: scrapmetal
   displayName: Scrap Metal
   description: Flattened tin and bent wire.
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: 3ba41b5cc78b1f142bef78662184bfab, type: 3}
   uiTint: {r: 0.55, g: 0.56, b: 0.58, a: 1}
   category: 0
   maxStack: 20

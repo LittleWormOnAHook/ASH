@@ -15,7 +15,7 @@ MonoBehaviour:
   itemId: fiberbandage
   displayName: Fiber Bandage
   description: Coarse plant-fiber wrap. Better than nothing.
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: 51cc58cb64d590941948cf64e7ffc87b, type: 3}
   uiTint: {r: 0.7, g: 0.66, b: 0.45, a: 1}
   category: 5
   maxStack: 10

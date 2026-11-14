@@ -1,0 +1,41 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f9e0e4dd499143d44bd07ca8aac13329, type: 3}
+  m_Name: ASH_Survey_s5_lookout_ruin
+  m_EditorClassIdentifier: Assembly-CSharp::ASH.Map.ASHSurveyPointDef
+  surveyId: s5_lookout_ruin
+  displayName: Western Fire Lookout
+  structureName: Fire lookout ruin
+  kind: 1
+  order: 5
+  worldXZ: {x: 254.84, y: 163.7}
+  journalEntry: 'The whole country lies open from up here: every ridge trail, every
+    road out. The region map is complete.'
+  nextHint: Choose your way out.
+  unlocksPois:
+  - redstone_camp
+  - redstone_lookout
+  - the_overlook
+  - ranger_station
+  - creek_crossing
+  - burned_homestead
+  - ash_hollow
+  - coyote_flats
+  - old_quarry
+  - lookout_ruin
+  - cache_north
+  - cache_far_north
+  - cache_gully
+  - cache_prairie
+  circles: []
+  paths: []
+  revealAll: 1

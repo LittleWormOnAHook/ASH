@@ -15,7 +15,7 @@ MonoBehaviour:
   itemId: gascan
   displayName: Gas Can (optional)
   description: 'Half full. Optional truck content: undecided.'
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: db98b0ed6b713c24faddec25d1c58aa4, type: 3}
   uiTint: {r: 0.75, g: 0.2, b: 0.15, a: 1}
   category: 6
   maxStack: 1

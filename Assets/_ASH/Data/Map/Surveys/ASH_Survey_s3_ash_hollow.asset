@@ -1,0 +1,80 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f9e0e4dd499143d44bd07ca8aac13329, type: 3}
+  m_Name: ASH_Survey_s3_ash_hollow
+  m_EditorClassIdentifier: Assembly-CSharp::ASH.Map.ASHSurveyPointDef
+  surveyId: s3_ash_hollow
+  displayName: Ash Hollow Water Tower
+  structureName: Water tower
+  kind: 2
+  order: 3
+  worldXZ: {x: 2354.5999, y: 616.60004}
+  journalEntry: From the tank catwalk you can see the county road run east out of
+    the region, and a radio mast standing over Coyote Flats to the north. A windmill
+    pump turns out on the prairie.
+  nextHint: Coyote Flats radio mast, north along the county road.
+  unlocksPois:
+  - coyote_flats
+  - cache_prairie
+  circles:
+  - center: {x: 2351.4, y: 616.4}
+    radius: 750
+  - center: {x: 2607.9, y: 1442.9}
+    radius: 320
+  - center: {x: 3122.7, y: 793.4}
+    radius: 220
+  paths:
+  - name: county_road_south
+    points:
+    - {x: 2351.4, y: 616.4}
+    - {x: 2448.7717, y: 592.2094}
+    - {x: 2588.2, y: 557.575}
+    - {x: 2746.378, y: 518.2531}
+    - {x: 2900, y: 480}
+    - {x: 3048.9639, y: 441.81564}
+    - {x: 3203.6626, y: 401.475}
+    - {x: 3356.5295, y: 362.89685}
+    - {x: 3500, y: 330}
+    - {x: 3641.7188, y: 303.20312}
+    - {x: 3782.5, y: 280.625}
+    - {x: 3904.5312, y: 262.73438}
+    - {x: 3990, y: 250}
+    width: 260
+  - name: county_road_north
+    points:
+    - {x: 2351.4, y: 616.4}
+    - {x: 2368.8499, y: 666.97504}
+    - {x: 2393.825, y: 739.45}
+    - {x: 2422.2373, y: 821.3}
+    - {x: 2450, y: 900}
+    - {x: 2478.1538, y: 975.1852}
+    - {x: 2508.1687, y: 1052.5438}
+    - {x: 2536.5994, y: 1128.6305}
+    - {x: 2560, y: 1200}
+    - {x: 2577.464, y: 1270.4329}
+    - {x: 2590.825, y: 1340.2}
+    - {x: 2600.7483, y: 1400.5922}
+    - {x: 2607.9, y: 1442.9}
+    width: 260
+  - name: windmill_spur
+    points:
+    - {x: 2900, y: 480}
+    - {x: 2928.7646, y: 508.90466}
+    - {x: 2970.4563, y: 550.41254}
+    - {x: 3014.4197, y: 596.7141}
+    - {x: 3050, y: 640}
+    - {x: 3075.314, y: 682.40936}
+    - {x: 3095.725, y: 726.7}
+    - {x: 3111.4485, y: 765.99066}
+    - {x: 3122.7, y: 793.4}
+    width: 160
+  revealAll: 0

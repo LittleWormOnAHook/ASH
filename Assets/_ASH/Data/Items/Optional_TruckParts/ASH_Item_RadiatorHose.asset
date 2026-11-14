@@ -15,7 +15,7 @@ MonoBehaviour:
   itemId: radiatorhose
   displayName: Radiator Hose (optional)
   description: 'Optional truck content: undecided.'
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: d911d1b19f51a9a40ab733d55018c2cb, type: 3}
   uiTint: {r: 0.15, g: 0.15, b: 0.15, a: 1}
   category: 6
   maxStack: 2

@@ -1,0 +1,99 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f9e0e4dd499143d44bd07ca8aac13329, type: 3}
+  m_Name: ASH_Survey_s2_ranger
+  m_EditorClassIdentifier: Assembly-CSharp::ASH.Map.ASHSurveyPointDef
+  surveyId: s2_ranger
+  displayName: Ranger Station Roof
+  structureName: Ranger station roof
+  kind: 1
+  order: 2
+  worldXZ: {x: 1270, y: 1180.7}
+  journalEntry: The survey disc on the roof still has its bearings. The creek crossing
+    and a burned homestead lie south-east, and past them the road runs on to Ash
+    Hollow, where a water tower stands above the flats.
+  nextHint: Ash Hollow water tower, south-east along the county road.
+  unlocksPois:
+  - creek_crossing
+  - burned_homestead
+  - ash_hollow
+  circles:
+  - center: {x: 1269.5, y: 1180.1}
+    radius: 650
+  - center: {x: 1676.3, y: 993.5}
+    radius: 220
+  - center: {x: 1717.7, y: 566.5}
+    radius: 220
+  - center: {x: 2351.4, y: 616.4}
+    radius: 260
+  paths:
+  - name: county_road_south
+    points:
+    - {x: 1269.5, y: 1180.1}
+    - {x: 1305.3914, y: 1157.2633}
+    - {x: 1356.8563, y: 1124.2062}
+    - {x: 1414.7681, y: 1089.071}
+    - {x: 1470, y: 1060}
+    - {x: 1524.7437, y: 1042.8173}
+    - {x: 1582.325, y: 1031.9625}
+    - {x: 1635.3187, y: 1018.5016}
+    - {x: 1676.3, y: 993.5}
+    - {x: 1702.0016, y: 952.72656}
+    - {x: 1716.8125, y: 901.5625}
+    - {x: 1724.7922, y: 845.4922}
+    - {x: 1730, y: 790}
+    - {x: 1724.6609, y: 730.4453}
+    - {x: 1709.5624, y: 665.9375}
+    - {x: 1701.6077, y: 607.58594}
+    - {x: 1717.7, y: 566.5}
+    - {x: 1765.9414, y: 548.14294}
+    - {x: 1836.1187, y: 545.7563}
+    - {x: 1917.6616, y: 552.11646}
+    - {x: 2000, y: 560}
+    - {x: 2091.2273, y: 570.9992}
+    - {x: 2193.3438, y: 587.79376}
+    - {x: 2286.6382, y: 604.79144}
+    - {x: 2351.4, y: 616.4}
+    width: 220
+  - name: descent_route
+    points:
+    - {x: 432.7, y: 1632.1}
+    - {x: 470.9797, y: 1590.8141}
+    - {x: 525.72504, y: 1531.6749}
+    - {x: 588.28284, y: 1464.7234}
+    - {x: 650, y: 1400}
+    - {x: 710.20074, y: 1337.5868}
+    - {x: 772.95624, y: 1272.9938}
+    - {x: 836.7336, y: 1209.4039}
+    - {x: 900, y: 1150}
+    - {x: 964.84375, y: 1097.6562}
+    - {x: 1031.25, y: 1050}
+    - {x: 1094.5312, y: 1002.34375}
+    - {x: 1150, y: 950}
+    - {x: 1194.5312, y: 891.71875}
+    - {x: 1231.25, y: 830}
+    - {x: 1264.8438, y: 765.78125}
+    - {x: 1300, y: 700}
+    - {x: 1335.1562, y: 630.7031}
+    - {x: 1368.75, y: 558.125}
+    - {x: 1405.4688, y: 486.48438}
+    - {x: 1450, y: 420}
+    - {x: 1505.4688, y: 357.5}
+    - {x: 1568.75, y: 297.5}
+    - {x: 1635.1562, y: 243.75}
+    - {x: 1700, y: 200}
+    - {x: 1768.3594, y: 168.28125}
+    - {x: 1840.625, y: 146.25}
+    - {x: 1905.0781, y: 131.09375}
+    - {x: 1950, y: 120}
+    width: 170
+  revealAll: 0

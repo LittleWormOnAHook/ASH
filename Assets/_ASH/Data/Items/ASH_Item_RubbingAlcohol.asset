@@ -15,7 +15,7 @@ MonoBehaviour:
   itemId: rubbingalcohol
   displayName: Rubbing Alcohol
   description: Antiseptic and an accelerant. Don't drink it.
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: 6ba810bd8b21438408abf0228afd4143, type: 3}
   uiTint: {r: 0.55, g: 0.7, b: 0.85, a: 1}
   category: 0
   maxStack: 5

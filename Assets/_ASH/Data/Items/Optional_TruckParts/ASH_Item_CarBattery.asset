@@ -15,7 +15,7 @@ MonoBehaviour:
   itemId: carbattery
   displayName: Car Battery (optional)
   description: 'Optional truck content: undecided.'
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: c205001498fecda468ae6f71ffd08aeb, type: 3}
   uiTint: {r: 0.2, g: 0.2, b: 0.22, a: 1}
   category: 6
   maxStack: 1

@@ -15,7 +15,7 @@ MonoBehaviour:
   itemId: oldshirt
   displayName: Old Flannel Shirt
   description: Too torn to wear. Cut it into cloth (a knife gets more).
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: a0f7e04a67b7070459f6706216049e60, type: 3}
   uiTint: {r: 0.55, g: 0.25, b: 0.2, a: 1}
   category: 4
   maxStack: 5

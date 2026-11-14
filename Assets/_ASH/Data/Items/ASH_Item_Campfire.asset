@@ -19,10 +19,20 @@ MonoBehaviour:
   uiTint: {r: 0.95, g: 0.55, b: 0.25, a: 1}
   category: 2
   maxStack: 1
+  useVerb: Use
   restoreHunger: 0
   restoreThirst: 0
   restoreHealth: 0
   restoreStamina: 0
+  requiresOpener: 0
+  smashedYield: 0.65
+  leftoverItem: {fileID: 0}
+  toolType: 0
+  breakdownYield: []
+  breakdownTool: 0
+  breakdownToolRequired: 0
+  breakdownSeconds: 2
+  breakdownNoToolYield: 0.5
   placeablePrefab: {fileID: 5310082379997538735, guid: fcef5a9efd09cad4aa9720d92466ed88, type: 3}
   placementFootprint: {x: 1.3, y: 0.5, z: 1.3}
   maxPlacementSlope: 24

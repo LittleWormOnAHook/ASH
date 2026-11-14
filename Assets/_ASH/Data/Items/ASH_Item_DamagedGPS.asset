@@ -16,7 +16,7 @@ MonoBehaviour:
   displayName: Damaged GPS
   description: 'Trailmate 40. Cracked screen, corrupt map data, a rough fix at best.
     Log viewpoints from high ground to rebuild the map. [M]'
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: 8fec1cfe46c6ecf4ab50b6cdbd2ad65f, type: 3}
   uiTint: {r: 0.4, g: 0.55, b: 0.45, a: 1}
   category: 3
   maxStack: 1

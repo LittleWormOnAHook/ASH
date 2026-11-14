@@ -1,0 +1,87 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f9e0e4dd499143d44bd07ca8aac13329, type: 3}
+  m_Name: ASH_Survey_s4_coyote
+  m_EditorClassIdentifier: Assembly-CSharp::ASH.Map.ASHSurveyPointDef
+  surveyId: s4_coyote
+  displayName: Coyote Flats Radio Mast
+  structureName: Radio relay hut
+  kind: 3
+  order: 4
+  worldXZ: {x: 2608.2, y: 1443.3}
+  journalEntry: The relay log names a hunting cabin and a line shack to the north,
+    both stocked before the ash came. Far to the west, on the highest ridge, the
+    old fire lookout still catches the light.
+  nextHint: The western fire lookout ruin, high on the far ridges (late).
+  unlocksPois:
+  - cache_north
+  - cache_far_north
+  - lookout_ruin
+  - old_quarry
+  circles:
+  - center: {x: 2607.9, y: 1442.9}
+    radius: 950
+  - center: {x: 2478.4, y: 3058.6}
+    radius: 260
+  - center: {x: 3418, y: 3299.9}
+    radius: 260
+  - center: {x: 256, y: 163.7}
+    radius: 180
+  - center: {x: 287.4, y: 983.5}
+    radius: 200
+  paths:
+  - name: county_road_north
+    points:
+    - {x: 2560, y: 1200}
+    - {x: 2565.2275, y: 1238.6259}
+    - {x: 2571.9438, y: 1292.8813}
+    - {x: 2584.663, y: 1361.4211}
+    - {x: 2607.9, y: 1442.9}
+    - {x: 2643.2568, y: 1538.7649}
+    - {x: 2688.1936, y: 1649.1313}
+    - {x: 2741.0085, y: 1770.6571}
+    - {x: 2800, y: 1900}
+    - {x: 2867.413, y: 2039.9523}
+    - {x: 2943.2563, y: 2191.0688}
+    - {x: 3022.471, y: 2346.6506}
+    - {x: 3100, y: 2500}
+    - {x: 3175, y: 2652.3438}
+    - {x: 3250, y: 2806.25}
+    - {x: 3325, y: 2957.0312}
+    - {x: 3400, y: 3100}
+    - {x: 3478.5156, y: 3234.6094}
+    - {x: 3559.375, y: 3363.125}
+    - {x: 3635.5469, y: 3485.0781}
+    - {x: 3700, y: 3600}
+    - {x: 3751.5625, y: 3714.375}
+    - {x: 3793.75, y: 3826.25}
+    - {x: 3826.5625, y: 3922.5}
+    - {x: 3850, y: 3990}
+    width: 300
+  - name: north_track
+    points:
+    - {x: 2800, y: 1900}
+    - {x: 2762.225, y: 2008.7827}
+    - {x: 2707.5999, y: 2165.0876}
+    - {x: 2649.175, y: 2338.8486}
+    - {x: 2600, y: 2500}
+    - {x: 2561.2375, y: 2655.653}
+    - {x: 2526.7, y: 2816.8}
+    - {x: 2498.4124, y: 2959.197}
+    - {x: 2478.4, y: 3058.6}
+    width: 180
+  - name: shack_spur
+    points:
+    - {x: 3400, y: 3100}
+    - {x: 3418, y: 3299.9}
+    width: 180
+  revealAll: 0
