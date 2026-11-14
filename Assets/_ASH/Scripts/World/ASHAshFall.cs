@@ -13,20 +13,26 @@ namespace ASH.World
     public sealed class ASHAshFall : MonoBehaviour
     {
         [Header("Volume")]
-        [Range(5f, 150f)] public float radius = 32f;
-        [Range(2f, 60f)] public float heightAboveCamera = 16f;
-        [Range(0f, 50000f)] public float particlesPerSecond = 900f;
-        [Range(100, 200000)] public int maxParticles = 12000;
-        [Range(1f, 60f)] public float lifetime = 14f;
+        [Range(5f, 150f)] public float radius = 22f;
+        [Tooltip("Top of the emission volume above the camera (m).")]
+        [Range(2f, 60f)] public float heightAboveCamera = 10f;
+        [Tooltip("Bottom of the emission volume below the camera (m). The volume must span eye level or flakes die before reaching view.")]
+        [Range(0f, 30f)] public float heightBelowCamera = 6f;
+        [Range(0f, 50000f)] public float particlesPerSecond = 1350f;
+        [Range(100, 200000)] public int maxParticles = 30000;
+        [Range(1f, 60f)] public float lifetime = 18f;
+        [Tooltip("Minimum on-screen size as a fraction of screen height, so distant flakes stay visible (0.0008 ~ 0.9 px at 1080p).")]
+        [Range(0f, 0.01f)] public float minScreenSize = 0.0008f;
+        [HideInInspector] public int configVersion = 0;
         [Header("Flakes")]
-        public Vector2 sizeRange = new Vector2(0.012f, 0.045f);
+        public Vector2 sizeRange = new Vector2(0.016f, 0.055f);
         public Color colorA = new Color(0.32f, 0.31f, 0.30f, 0.85f);
         public Color colorB = new Color(0.62f, 0.60f, 0.57f, 0.75f);
         [Tooltip("Small share of glowing embers among the flakes (0 = none).")]
         [Range(0f, 0.2f)] public float emberShare = 0.006f;
         public Color emberColor = new Color(1f, 0.45f, 0.15f, 1f);
         [Header("Motion")]
-        [Range(0f, 5f)] public float fallSpeed = 0.55f;
+        [Range(0f, 5f)] public float fallSpeed = 0.7f;
         public Vector3 wind = new Vector3(0.6f, 0f, 0.25f);
         [Range(0f, 5f)] public float flutter = 0.7f;
         [Range(0f, 2f)] public float flutterFrequency = 0.35f;
@@ -36,7 +42,7 @@ namespace ASH.World
         private ParticleSystem _ps;
         private Transform _follow;
 
-        private void OnEnable() { Apply(); }
+        private void OnEnable() { if (configVersion < 2) Base(); Apply(); }
         private void OnValidate() { if (isActiveAndEnabled) Apply(); }
 
         public void Apply()
@@ -56,7 +62,8 @@ namespace ASH.World
 
             var em = _ps.emission; em.enabled = true; em.rateOverTime = particlesPerSecond;
             var sh = _ps.shape; sh.enabled = true; sh.shapeType = ParticleSystemShapeType.Box;
-            sh.scale = new Vector3(radius * 2f, 1f, radius * 2f); sh.position = Vector3.zero;
+            float h = heightAboveCamera + heightBelowCamera;
+            sh.scale = new Vector3(radius * 2f, Mathf.Max(1f, h), radius * 2f); sh.position = new Vector3(0f, -h * 0.5f, 0f); sh.rotation = Vector3.zero;
 
             var vel = _ps.velocityOverLifetime; vel.enabled = true; vel.space = ParticleSystemSimulationSpace.World;
             vel.x = new ParticleSystem.MinMaxCurve(wind.x * 0.7f, wind.x * 1.3f);
@@ -78,7 +85,8 @@ namespace ASH.World
             var sub = _ps.customData; sub.enabled = false;
             var r = GetComponent<ParticleSystemRenderer>();
             r.renderMode = ParticleSystemRenderMode.Billboard;
-            r.minParticleSize = 0f; r.maxParticleSize = 0.05f;
+            r.minParticleSize = minScreenSize; r.maxParticleSize = 0.05f; r.sortingFudge = 0f;
+            r.alignment = ParticleSystemRenderSpace.View;
             r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off; r.receiveShadows = false;
 
             ConfigureEmbers();
@@ -95,7 +103,8 @@ namespace ASH.World
             m.startSize = new ParticleSystem.MinMaxCurve(sizeRange.x * 0.6f, sizeRange.y * 0.8f);
             m.startColor = emberColor; m.simulationSpace = ParticleSystemSimulationSpace.World; m.maxParticles = Mathf.Max(10, (int)(maxParticles * emberShare * 2f));
             var e = ps.emission; e.rateOverTime = particlesPerSecond * emberShare;
-            var s = ps.shape; s.shapeType = ParticleSystemShapeType.Box; s.scale = new Vector3(radius * 2f, 1f, radius * 2f);
+            var s = ps.shape; s.shapeType = ParticleSystemShapeType.Box; float hh = heightAboveCamera + heightBelowCamera; s.scale = new Vector3(radius * 2f, Mathf.Max(1f, hh), radius * 2f); s.position = new Vector3(0f, -hh * 0.5f, 0f);
+            var er = t.GetComponent<ParticleSystemRenderer>(); if (er) er.minParticleSize = minScreenSize;
             var v = ps.velocityOverLifetime; v.enabled = true; v.space = ParticleSystemSimulationSpace.World;
             v.x = new ParticleSystem.MinMaxCurve(wind.x * 0.7f, wind.x * 1.3f); v.y = new ParticleSystem.MinMaxCurve(-fallSpeed * 1.1f, -fallSpeed * 0.5f); v.z = new ParticleSystem.MinMaxCurve(wind.z * 0.7f, wind.z * 1.3f);
             var n = ps.noise; n.enabled = true; n.strength = flutter * 1.3f; n.frequency = flutterFrequency;
@@ -109,15 +118,39 @@ namespace ASH.World
         private void LateUpdate()
         {
             if (!followCamera) return;
-            if (_follow == null) { var cam = Camera.main; if (cam) _follow = cam.transform; }
+            // re-acquire if the cached camera was disabled/destroyed (e.g. scene camera vs Invector player camera)
+            if (_follow == null || !_follow.gameObject.activeInHierarchy) { _follow = null; var cam = Camera.main; if (cam) _follow = cam.transform; }
             if (_follow == null) return;
             var p = _follow.position; transform.position = new Vector3(p.x, p.y + heightAboveCamera, p.z);
             transform.rotation = Quaternion.identity;
         }
 
-        [ContextMenu("Preset/Light")] public void PresetLight() { particlesPerSecond = 250f; maxParticles = 4000; flutter = 0.5f; Apply(); }
-        [ContextMenu("Preset/Default")] public void PresetDefault() { particlesPerSecond = 900f; maxParticles = 12000; flutter = 0.7f; sizeRange = new Vector2(0.012f, 0.045f); Apply(); }
-        [ContextMenu("Preset/Heavy")] public void PresetHeavy() { particlesPerSecond = 3500f; maxParticles = 45000; flutter = 1.1f; sizeRange = new Vector2(0.015f, 0.06f); Apply(); }
-        [ContextMenu("Preset/Extreme (stress)")] public void PresetExtreme() { particlesPerSecond = 20000f; maxParticles = 200000; radius = 60f; flutter = 1.6f; Apply(); }
+        [ContextMenu("Preset/Light")] public void PresetLight() { Base(); particlesPerSecond = 500f; maxParticles = 15000; flutter = 0.5f; Apply(); }
+        [ContextMenu("Preset/Default")] public void PresetDefault() { Base(); Apply(); }
+        [ContextMenu("Preset/Heavy")] public void PresetHeavy() { Base(); particlesPerSecond = 4500f; maxParticles = 90000; flutter = 1.1f; sizeRange = new Vector2(0.035f, 0.1f); Apply(); }
+        [ContextMenu("Preset/Extreme (stress)")] public void PresetExtreme() { Base(); particlesPerSecond = 20000f; maxParticles = 200000; radius = 60f; heightAboveCamera = 25f; heightBelowCamera = 10f; flutter = 1.6f; sizeRange = new Vector2(0.04f, 0.12f); Apply(); }
+
+        void Base()
+        {
+            radius = 22f; heightAboveCamera = 10f; heightBelowCamera = 6f; particlesPerSecond = 1350f; maxParticles = 30000; lifetime = 18f;
+            minScreenSize = 0.0008f; sizeRange = new Vector2(0.016f, 0.055f); colorA = new Color(0.32f, 0.31f, 0.30f, 0.85f); colorB = new Color(0.62f, 0.60f, 0.57f, 0.75f);
+            emberShare = 0.006f; fallSpeed = 0.7f; wind = new Vector3(0.6f, 0f, 0.25f); flutter = 0.7f; flutterFrequency = 0.35f; spinDegreesPerSec = 90f; followCamera = true; configVersion = 2;
+        }
+
+        /// <summary>Play-mode diagnostic: logs each ash volume's state relative to the live camera.</summary>
+        public static void LogState()
+        {
+            var cam = Camera.main;
+            var all = FindObjectsByType<ASHAshFall>(FindObjectsInactive.Include);
+            Debug.Log($"[ASH] AshFall diag: instances={all.Length} Camera.main={(cam ? cam.name + " @" + cam.transform.position + " mask=" + cam.cullingMask : "NONE")}");
+            foreach (var a in all)
+            {
+                var ps = a.GetComponent<ParticleSystem>(); var r = a.GetComponent<ParticleSystemRenderer>();
+                var buf = new ParticleSystem.Particle[Mathf.Min(ps.particleCount, 20000)]; int n = ps.GetParticles(buf);
+                float minY = float.MaxValue, maxY = float.MinValue; int near = 0; float camY = cam ? cam.transform.position.y : 0f;
+                for (int i = 0; i < n; i++) { float dy = buf[i].position.y - camY; minY = Mathf.Min(minY, dy); maxY = Mathf.Max(maxY, dy); if (cam && (buf[i].position - cam.transform.position).sqrMagnitude < 15f * 15f) near++; }
+                Debug.Log($"[ASH] AshFall '{a.name}' active={a.isActiveAndEnabled} playing={ps.isPlaying} alive={ps.particleCount} near15m={near} dyRange=({(n > 0 ? minY : 0):F1},{(n > 0 ? maxY : 0):F1}) pos={a.transform.position} layer={a.gameObject.layer} inMask={(cam ? (cam.cullingMask & (1 << a.gameObject.layer)) != 0 : false)} shader={(r.sharedMaterial ? r.sharedMaterial.shader.name : "NULL")} rate={a.particlesPerSecond} size={a.sizeRange} v={a.configVersion}");
+            }
+        }
     }
 }

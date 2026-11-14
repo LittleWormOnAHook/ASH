@@ -295,6 +295,25 @@ namespace ASH.EditorTools.Build
             ASHBuildUtil.SavePrefab(root, WorldPrefabs + "/ASH_Sagebrush.prefab");
         }
 
+        /// <summary>Applies the current ASHAshFall Default preset to the prefab asset and every instance in the open scene, then saves.</summary>
+        [MenuItem("ASH/Build/Upgrade Ash Fall (prefab + open scene)")]
+        public static void UpgradeAshFall()
+        {
+            string path = FxPrefabs + "/ASH_AshFall.prefab";
+            var root = PrefabUtility.LoadPrefabContents(path);
+            root.GetComponent<ASH.World.ASHAshFall>().PresetDefault();
+            PrefabUtility.SaveAsPrefabAsset(root, path); PrefabUtility.UnloadPrefabContents(root);
+            int n = 0;
+            foreach (var a in Object.FindObjectsByType<ASH.World.ASHAshFall>(FindObjectsInactive.Include))
+            {
+                Undo.RecordObject(a, "Upgrade ash fall"); a.PresetDefault(); EditorUtility.SetDirty(a);
+                var ps = a.GetComponent<ParticleSystem>(); EditorUtility.SetDirty(ps); n++;
+            }
+            UnityEditor.SceneManagement.EditorSceneManager.MarkAllScenesDirty();
+            UnityEditor.SceneManagement.EditorSceneManager.SaveOpenScenes();
+            Debug.Log($"[ASH] Ash fall upgraded: prefab + {n} scene instance(s).");
+        }
+
         static void BuildAshFall(Material flakeMat, Material emberMat)
         {
             var root = new GameObject("ASH_AshFall", typeof(ParticleSystem));
