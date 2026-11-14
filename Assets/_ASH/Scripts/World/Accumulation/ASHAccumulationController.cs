@@ -1,0 +1,229 @@
+using UnityEngine;
+
+namespace ASH.World.Accumulation
+{
+    /// <summary>
+    /// SINGLE SOURCE OF TRUTH for ash/snow surface accumulation (and, from phase 2, deformation).
+    /// Layered: snow underneath, ash on top, base surface below. Holds the layer state, simulates it from weather
+    /// inputs (SetWeatherInputs / IASHWeatherInputs) and drives the global shader properties read by
+    /// ASH/Accumulation Lit and ASH/Terrain Lit Accum. See Docs/AccumulationSystem.md.
+    /// </summary>
+    [ExecuteAlways, DefaultExecutionOrder(-200), DisallowMultipleComponent]
+    public sealed class ASHAccumulationController : MonoBehaviour
+    {
+        public static ASHAccumulationController Instance { get; private set; }
+        public enum Preset { Light, Default, Heavy, Extreme }
+
+        [Header("Preset (use the context menu or ASH/World/Accumulation/Preset)")]
+        public Preset preset = Preset.Default;
+
+        [Header("Layer state (relative depth 0..1; 1 = full design depth)")]
+        [Range(0f, 1f)] public float ashAmount = 0.7f;
+        [Range(0f, 1f)] public float snowAmount = 0.6f;
+        [Tooltip("Metres of material at relative depth 1 under a full drift (knee-deep).")]
+        [Range(0.05f, 2f)] public float maxDepthMetres = 0.5f;
+
+        [Header("1. Accumulation rate")]
+        [Tooltip("Relative depth gained per minute at fall intensity 1.")]
+        [Range(0f, 2f)] public float accumulationRate = 0.05f;
+
+        [Header("2. Surface coverage")]
+        [Range(0f, 2f)] public float coverage = 1f;
+        [Tooltip("Surface normal Y above which material settles (lower = steeper faces collect).")]
+        [Range(-1f, 1f)] public float normalThreshold = 0.45f;
+        [Range(0.01f, 1f)] public float normalBlend = 0.35f;
+        [Range(0.01f, 5f)] public float noiseScale = 0.35f;
+        [Range(0f, 1.5f)] public float noiseStrength = 0.35f;
+
+        [Header("3. Deformation (phase 2: not built yet; fields reserved)")]
+        public bool deformationEnabled = false;
+        [Range(0f, 1f)] public float footprintDepth = 0.8f;
+        [Tooltip("Trail refill speed as a multiple of the accumulation rate x current fall intensity.")]
+        [Range(0f, 10f)] public float deformationRefill = 1f;
+
+        [Header("4. Wind redistribution")]
+        [Tooltip("How strongly wind strips exposed surfaces and piles drifts in lee/hollows (drift mask).")]
+        [Range(0f, 1f)] public float windRedistribution = 0.7f;
+        [Tooltip("Prevailing wind (blows TOWARDS, world XZ). Used to bake the drift mask.")]
+        public Vector2 prevailingWind = new Vector2(1f, 0f);
+
+        [Header("5. Rain and melting")]
+        [Range(0f, 1f)] public float wetness = 0f;
+        [Tooltip("Snow lost per minute per degree C above 0.")]
+        [Range(0f, 1f)] public float meltPerDegree = 0.01f;
+        [Range(0f, 10f)] public float rainMeltBoost = 2f;
+        [Tooltip("Wetness gain per minute at rain 1.")] [Range(0f, 5f)] public float wetRate = 0.6f;
+        [Tooltip("Wetness loss per minute when dry.")] [Range(0f, 5f)] public float dryRate = 0.05f;
+        [Tooltip("Extra visual melt of the snow layer (manual).")] [Range(0f, 1f)] public float extraMelt = 0f;
+
+        [Header("6. Persistence (0 = permanent)")]
+        [Range(0f, 1f)] public float ashDecayPerMinute = 0f;
+        [Range(0f, 1f)] public float snowDecayPerMinute = 0f;
+
+        [Header("Look")]
+        public Color ashColor = new Color(0.44f, 0.44f, 0.46f);
+        [Range(0.1f, 1f)] public float wetAshDarkness = 0.5f;
+        public Color snowColor = new Color(0.93f, 0.94f, 0.96f);
+        public Texture2D ashTexture, snowTexture;
+        [Range(0.2f, 20f)] public float ashTiling = 3f, snowTiling = 4f;
+        [Tooltip("Mean linear luminance of the ash texture; it is used as detail around Ash Color (0.05 for ASH_TL_Ash_D).")]
+        [Range(0.005f, 1f)] public float ashTextureMean = 0.05f;
+
+        [Header("Terrain")]
+        public Terrain terrain;
+        [Tooltip("RGBA: R depth01 (0.35 ankle .. 1 knee drift), G wind exposure, B slope keep. Readable.")]
+        public Texture2D driftMask;
+
+        [Header("Main paths (ASH_RegionLayout roads/trails; drift mask A channel)")]
+        [Tooltip("Depth removed on the path itself (0 = none, 1 = bare). Runtime; also lowers GetDepthMetres for speed/deformation.")]
+        [Range(0f, 1f)] public float pathDepthReduction = 0.6f;
+        [Tooltip("Visual coverage removed on paths (0 = none, 1 = fully clear).")]
+        [Range(0f, 1f)] public float pathCoverageReduction = 0.6f;
+        [Tooltip("Falloff beyond the painted path edge, metres (bake: re-run Generate Drift Mask).")]
+        [Range(0f, 40f)] public float pathFalloffMetres = 5f;
+        [Tooltip("Extra corridor added to the painted half-width, metres (bake).")]
+        [Range(0f, 10f)] public float pathCorridorExtra = 0.5f;
+        public Material terrainMaterial;
+        [HideInInspector] public Material originalTerrainMaterial;
+        public bool applyTerrainMaterial = true;
+
+        [Header("Weather inputs")]
+        [Tooltip("Optional component implementing IASHWeatherInputs (e.g. ASHWeatherDirector). Polled every frame.")]
+        public MonoBehaviour weatherSource;
+        [Tooltip("Used while nothing calls SetWeatherInputs and no weatherSource is set.")]
+        public ASHWeatherInputs ambientWeather = ASHWeatherInputs.Calm;
+        public bool simulateInPlayMode = true;
+
+        ASHWeatherInputs _inputs; bool _hasExternal; float _lastExternal = -999f;
+        public ASHWeatherInputs CurrentInputs => _inputs;
+
+        // ------------------------------------------------------------- public API
+        /// <summary>Push weather (call every frame or whenever it changes). Overrides ambientWeather for 5 s.</summary>
+        public void SetWeatherInputs(in ASHWeatherInputs w) { _inputs = w; _hasExternal = true; _lastExternal = Time.time; }
+        public void SetWeatherInputs(float ashfall, float snowfall, Vector2 windDir, float windStrength, float temperatureC, float rain)
+            => SetWeatherInputs(new ASHWeatherInputs { ashfallIntensity = ashfall, snowfallIntensity = snowfall, windDirection = windDir, windStrength = windStrength, temperatureC = temperatureC, rainIntensity = rain });
+
+        /// <summary>Material depth in metres at a world position (for speed/footstep systems).</summary>
+        public float GetDepthMetres(Vector3 worldPos)
+        {
+            var dm = SampleDrift(worldPos);
+            float mask = Mathf.Lerp(0.5f, dm.r, EffectiveWind()) * (1f - pathDepthReduction * dm.a);
+            float t = Mathf.Clamp01(ashAmount + snowAmount * (1f - extraMelt)) * mask * coverage;
+            return t * maxDepthMetres * (1f - GetDeformation(worldPos));
+        }
+
+        /// <summary>Relative ash / snow layer thickness at a position (0..1 each) before deformation.</summary>
+        public void GetLayers(Vector3 worldPos, out float ash, out float snow)
+        {
+            var dm = SampleDrift(worldPos);
+            float mask = Mathf.Lerp(0.5f, dm.r, EffectiveWind()) * (1f - pathDepthReduction * dm.a) * coverage;
+            ash = ashAmount * mask; snow = snowAmount * (1f - extraMelt) * mask;
+        }
+
+        /// <summary>PHASE 2 STUB: push material aside (footprints, tracks). Not implemented yet.</summary>
+        public void Deform(Vector3 worldPos, float radius, float strength) { if (!_warnedDeform) { _warnedDeform = true; Debug.Log("[ASH] Accumulation deformation is phase 2 (not built yet); Deform() ignored."); } }
+        /// <summary>PHASE 2 STUB: 0 = untouched .. 1 = pushed to the ground.</summary>
+        public float GetDeformation(Vector3 worldPos) => 0f;
+        bool _warnedDeform;
+
+        public void ApplyPreset(Preset p)
+        {
+            preset = p;
+            switch (p)
+            {
+                case Preset.Light: ashAmount = 0.35f; snowAmount = 0.3f; coverage = 0.8f; accumulationRate = 0.02f; windRedistribution = 0.6f; noiseStrength = 0.45f; normalThreshold = 0.5f; break;
+                case Preset.Default: ashAmount = 0.7f; snowAmount = 0.6f; coverage = 1f; accumulationRate = 0.05f; windRedistribution = 0.7f; noiseStrength = 0.35f; normalThreshold = 0.45f; break;
+                case Preset.Heavy: ashAmount = 0.95f; snowAmount = 0.85f; coverage = 1.3f; accumulationRate = 0.1f; windRedistribution = 0.8f; noiseStrength = 0.25f; normalThreshold = 0.35f; break;
+                case Preset.Extreme: ashAmount = 1f; snowAmount = 1f; coverage = 2f; accumulationRate = 0.5f; windRedistribution = 1f; noiseStrength = 0.15f; normalThreshold = 0.15f; break;
+            }
+            PushGlobals();
+        }
+        [ContextMenu("Preset/Light")] void PL() => ApplyPreset(Preset.Light);
+        [ContextMenu("Preset/Default")] void PD() => ApplyPreset(Preset.Default);
+        [ContextMenu("Preset/Heavy")] void PH() => ApplyPreset(Preset.Heavy);
+        [ContextMenu("Preset/Extreme")] void PE() => ApplyPreset(Preset.Extreme);
+
+        // ------------------------------------------------------------- lifecycle
+        void OnEnable()
+        {
+            Instance = this; _inputs = ambientWeather;
+            if (!terrain) terrain = Terrain.activeTerrain;
+            if (applyTerrainMaterial && terrain && terrainMaterial && terrain.materialTemplate != terrainMaterial)
+            {
+                if (!originalTerrainMaterial) originalTerrainMaterial = terrain.materialTemplate;
+                terrain.materialTemplate = terrainMaterial;
+            }
+            PushGlobals();
+        }
+
+        void OnDisable()
+        {
+            if (Instance == this) Instance = null;
+            Shader.SetGlobalVector(ID_Layers, Vector4.zero); // shaders go inert without a controller
+        }
+
+        void OnValidate() { if (isActiveAndEnabled) PushGlobals(); }
+
+        void Update()
+        {
+            if (Application.isPlaying && simulateInPlayMode) Simulate(Time.deltaTime);
+            PushGlobals();
+        }
+
+        void Simulate(float dt)
+        {
+            if (weatherSource is IASHWeatherInputs src) _inputs = src.GetWeatherInputs();
+            else if (!_hasExternal || Time.time - _lastExternal > 5f) { _inputs = ambientWeather; _hasExternal = false; }
+            float m = dt / 60f; var w = _inputs;
+            ashAmount = Mathf.Clamp01(ashAmount + accumulationRate * w.ashfallIntensity * m);
+            snowAmount = Mathf.Clamp01(snowAmount + accumulationRate * w.snowfallIntensity * m);
+            if (w.temperatureC > 0f) snowAmount = Mathf.Clamp01(snowAmount - meltPerDegree * w.temperatureC * (1f + rainMeltBoost * w.rainIntensity) * m);
+            float wetTarget = Mathf.Max(w.rainIntensity, w.temperatureC > 0f && snowAmount > 0.01f ? 0.35f : 0f);
+            wetness = wetTarget > wetness ? Mathf.MoveTowards(wetness, wetTarget, wetRate * m) : Mathf.MoveTowards(wetness, wetTarget, dryRate * m);
+            ashAmount = Mathf.Clamp01(ashAmount - ashDecayPerMinute * m);
+            snowAmount = Mathf.Clamp01(snowAmount - snowDecayPerMinute * m);
+            // Phase 2: deformation refill = deformationRefill * accumulationRate * (ashfall + snowfall) per minute.
+        }
+
+        float EffectiveWind() => Mathf.Clamp01(windRedistribution * (0.5f + (Application.isPlaying ? _inputs.windStrength : ambientWeather.windStrength)));
+
+        static readonly int ID_Layers = Shader.PropertyToID("_ASH_Layers"), ID_Surface = Shader.PropertyToID("_ASH_Surface"), ID_Weather = Shader.PropertyToID("_ASH_Weather"),
+            ID_Noise = Shader.PropertyToID("_ASH_Noise"), ID_AshCol = Shader.PropertyToID("_ASH_AccumColor"), ID_SnowCol = Shader.PropertyToID("_ASH_SnowColor"), ID_TexNorm = Shader.PropertyToID("_ASH_TexNorm"),
+            ID_Rect = Shader.PropertyToID("_ASH_TerrainRect"), ID_DRect = Shader.PropertyToID("_ASH_DeformRect"),
+            ID_AshTex = Shader.PropertyToID("_ASH_AshTex"), ID_SnowTex = Shader.PropertyToID("_ASH_SnowTex"), ID_Drift = Shader.PropertyToID("_ASH_DriftMask"), ID_Deform = Shader.PropertyToID("_ASH_DeformTex");
+
+        public void PushGlobals()
+        {
+            var wd = (Application.isPlaying ? _inputs.windDirection : prevailingWind); if (wd.sqrMagnitude < 1e-4f) wd = prevailingWind; wd.Normalize();
+            Shader.SetGlobalVector(ID_Layers, new Vector4(ashAmount, snowAmount, Mathf.Clamp01(ashAmount + snowAmount), enabled ? 1f : 0f));
+            Shader.SetGlobalVector(ID_Surface, new Vector4(coverage, normalThreshold, normalBlend, EffectiveWind()));
+            Shader.SetGlobalVector(ID_Weather, new Vector4(wetness, extraMelt, wd.x, wd.y));
+            Shader.SetGlobalVector(ID_Noise, new Vector4(noiseScale, noiseStrength, ashTiling, snowTiling));
+            Shader.SetGlobalColor(ID_AshCol, new Color(ashColor.r, ashColor.g, ashColor.b, wetAshDarkness));
+            Shader.SetGlobalColor(ID_SnowCol, snowColor);
+            Shader.SetGlobalVector(ID_TexNorm, new Vector4(1f / Mathf.Max(ashTextureMean, 0.005f), driftMask ? pathDepthReduction : 0f, driftMask ? pathCoverageReduction : 0f, 0f));
+            Shader.SetGlobalTexture(ID_AshTex, ashTexture ? ashTexture : Texture2D.grayTexture);
+            Shader.SetGlobalTexture(ID_SnowTex, snowTexture ? snowTexture : Texture2D.whiteTexture);
+            Shader.SetGlobalTexture(ID_Drift, driftMask ? driftMask : Texture2D.grayTexture);
+            Shader.SetGlobalTexture(ID_Deform, Texture2D.blackTexture);
+            Shader.SetGlobalVector(ID_DRect, Vector4.zero); // phase 2
+            if (terrain)
+            {
+                var p = terrain.GetPosition(); var s = terrain.terrainData.size;
+                Shader.SetGlobalVector(ID_Rect, new Vector4(p.x, p.z, 1f / s.x, 1f / s.z));
+            }
+        }
+
+        Color SampleDrift(Vector3 worldPos)
+        {
+            if (!driftMask || !driftMask.isReadable || !terrain) return new Color(0.35f, 0.5f, 1f, 0f);
+            var p = terrain.GetPosition(); var s = terrain.terrainData.size;
+            float u = (worldPos.x - p.x) / s.x, v = (worldPos.z - p.z) / s.z;
+            if (u < 0f || u > 1f || v < 0f || v > 1f) return new Color(0.35f, 0.5f, 1f, 0f);
+            return driftMask.GetPixelBilinear(u, v);
+        }
+
+        [ContextMenu("Restore Original Terrain Material")]
+        public void RestoreTerrainMaterial() { if (terrain) terrain.materialTemplate = originalTerrainMaterial; applyTerrainMaterial = false; }
+    }
+}

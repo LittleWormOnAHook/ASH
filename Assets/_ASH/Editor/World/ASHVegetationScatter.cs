@@ -337,7 +337,7 @@ namespace ASH.EditorTools.World
             r = ScriptableObject.CreateInstance<ASHVegetationRecord>(); AssetDatabase.CreateAsset(r, RecordPath); return r;
         }
 
-        static void Backup(string dataPath)
+        public static void Backup(string dataPath)
         {
             ASHBuildUtil.Folder(BackupDir);
             var dst = $"{BackupDir}/{Path.GetFileNameWithoutExtension(dataPath)}_backup_{DateTime.Now:yyyyMMdd_HHmmss}.asset";
