@@ -17,3 +17,4 @@
 *.controller text merge=unityyamlmerge
 *.anim text merge=unityyamlmerge
 *.meta text
+Assets/_ASH/Art/Terrain/*TerrainData.asset filter=lfs diff=lfs merge=lfs -text
