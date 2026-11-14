@@ -1,0 +1,64 @@
+{
+  "asset_status": "PROCEDURAL FALLBACK \u2014 NOT REAL ELEVATION DATA",
+  "reason": "USGS 3DEP service retrieval was unavailable from this environment on 2026-11-13; this asset is a deterministic design approximation.",
+  "geographic_reference_area": {
+    "name": "Spanish Peaks foothills reference box, southern Colorado",
+    "bounds_wgs84": {
+      "west": -104.9227,
+      "east": -104.8775,
+      "south": 37.39,
+      "north": 37.426
+    }
+  },
+  "coordinate_order": "west-to-east columns; north-to-south rows",
+  "dimensions": {
+    "world_size_m": [
+      4000,
+      4000
+    ],
+    "samples": [
+      4097,
+      4097
+    ],
+    "sample_spacing_m": 0.9765625
+  },
+  "format": {
+    "encoding": "unsigned 16-bit integer",
+    "byte_order": "little-endian",
+    "row_order": "north-to-south",
+    "no_header": true
+  },
+  "elevation_encoding": {
+    "source_min_m": 2000.0,
+    "source_max_m": 3400.0,
+    "decode": "meters = 2000 + (uint16 / 65535) * 1400"
+  },
+  "tiles": {
+    "world_size_m": [
+      2000,
+      2000
+    ],
+    "samples": [
+      2049,
+      2049
+    ],
+    "layout": "NW, NE, SW, SE; shared edge sample is byte-identical"
+  },
+  "suggested_unity_terrain": {
+    "heightmap_resolution": 4097,
+    "terrain_width_m": 4000,
+    "terrain_length_m": 4000,
+    "terrain_height_m": 1400,
+    "vertical_offset_m": 2000,
+    "raw_import": {
+      "depth": "16-bit",
+      "byte_order": "Windows / little endian",
+      "flip_vertically": false
+    }
+  },
+  "source_attribution": "None for terrain values: procedural terrain, seeded noise and authored ridge/drainage forms. Geographic placement is only a design reference.",
+  "generator": {
+    "file": "make_ash_heightmap.py",
+    "seed": 1847
+  }
+}
