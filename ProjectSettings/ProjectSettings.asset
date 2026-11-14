@@ -823,7 +823,8 @@ PlayerSettings:
   webGLCloseOnQuit: 0
   webWasm2023: 0
   webEnableSubmoduleStrippingCompatibility: 0
-  scriptingDefineSymbols: {}
+  scriptingDefineSymbols:
+    Standalone: INVECTOR_BASIC;GAIA_INPUT_SYSTEM;UPPipeline;GAIA_2023;GAIA_MESH_PRESENT
   additionalCompilerArguments: {}
   platformArchitecture: {}
   scriptingBackend:
@@ -920,7 +921,7 @@ PlayerSettings:
   qnxGraphicConfPath: 
   apiCompatibilityLevel: 6
   captureStartupLogs: {}
-  activeInputHandler: 1
+  activeInputHandler: 2
   windowsGamepadBackendHint: 0
   enableDirectStorage: 0
   cloudProjectId: d57b0b16-c35f-42b0-8e37-92e0f2aacbb2
