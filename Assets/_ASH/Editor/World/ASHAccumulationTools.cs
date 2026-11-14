@@ -31,17 +31,31 @@ namespace ASH.EditorTools.World
         static ASHAccumulationTools() { ASHAccumulation.VariantProvider = VariantAsset; }
 
         // ------------------------------------------------------------------ material variants (assets)
+        public const string VariantRoot = ASHContentBuilder.Root + "/Materials/Accumulation";
+
+        /// <summary>Persistent ASH/Accumulation Lit copy of a material, cached at Assets/_ASH/Materials/Accumulation/&lt;source&gt;/ (vendor files untouched).</summary>
         public static Material VariantAsset(Material src)
         {
             if (!ASHAccumulation.IsSupported(src)) return src;
             if (!Shader.Find(ASHAccumulation.ShaderName)) { Debug.LogError("[ASH] Shader ASH/Accumulation Lit missing."); return src; }
-            ASHBuildUtil.Folder(MatDir);
             var srcPath = AssetDatabase.GetAssetPath(src);
-            string key = string.IsNullOrEmpty(srcPath) ? San(src.name).GetHashCode().ToString("x8") : AssetDatabase.AssetPathToGUID(srcPath).Substring(0, 8);
-            var path = $"{MatDir}/{San(src.name)}_{key}_Accum.mat";
-            var existing = AssetDatabase.LoadAssetAtPath<Material>(path); if (existing) return existing;
+            string key = string.IsNullOrEmpty(srcPath) ? ((uint)San(src.name).GetHashCode()).ToString("x8") : AssetDatabase.AssetPathToGUID(srcPath).Substring(0, 8);
+            if (AssetDatabase.IsSubAsset(src)) key += "_" + ((uint)src.name.GetHashCode()).ToString("x4");
+            var legacy = $"{MatDir}/{San(src.name)}_{key}_Accum.mat"; // phase-1 location: reuse if present
+            var old = AssetDatabase.LoadAssetAtPath<Material>(legacy); if (old) { _reused++; return old; }
+            var dir = $"{VariantRoot}/{SourceFolder(srcPath)}"; ASHBuildUtil.Folder(dir);
+            var path = $"{dir}/{San(src.name)}_{key}_Accum.mat";
+            var existing = AssetDatabase.LoadAssetAtPath<Material>(path); if (existing) { _reused++; return existing; }
             var m = ASHAccumulation.CreateVariant(src); if (!m) return src; m.name = Path.GetFileNameWithoutExtension(path);
-            AssetDatabase.CreateAsset(m, path); return m;
+            AssetDatabase.CreateAsset(m, path); _created++; CreatedPaths.Add(path); return m;
+        }
+        static int _created, _reused;
+        internal static readonly List<string> CreatedPaths = new List<string>();
+        /// <summary>Top folder under Assets (vendor pack name, e.g. "HQ Survival Pack"); "_Scene" for unsaved materials.</summary>
+        static string SourceFolder(string srcPath)
+        {
+            if (string.IsNullOrEmpty(srcPath) || !srcPath.StartsWith("Assets/")) return "_Scene";
+            var parts = srcPath.Split('/'); return parts.Length > 2 ? San(parts[1]) : "_Assets";
         }
         static string San(string s) { foreach (var c in Path.GetInvalidFileNameChars()) s = s.Replace(c, '_'); return s.Replace(' ', '_'); }
 
@@ -280,14 +294,114 @@ namespace ASH.EditorTools.World
 
         // ------------------------------------------------------------------ structures (drop-on)
         [MenuItem("ASH/World/Apply Accumulation To Selected", priority = 60)]
-        public static void ApplyToSelected() => ApplyTo(Selection.gameObjects);
+        public static void ApplyToSelected() => ApplyToTargets(Selection.objects, true);
 
         [MenuItem("ASH/World/Remove Accumulation From Selected", priority = 61)]
-        public static void RemoveFromSelected()
+        public static void RemoveFromSelected() => ApplyToTargets(Selection.objects, false);
+
+        /// <summary>
+        /// Selection -> targets: prefab assets (Project), folders (all prefabs inside), prefab instances (scene: edits the outermost
+        /// instance's source prefab; a variant instance edits the variant), plain scene objects (edited in the scene with Undo).
+        /// Model (FBX) instances can't be saved as prefabs, so they are done in the scene.
+        /// </summary>
+        public static string ApplyToTargets(IEnumerable<Object> objs, bool apply)
         {
-            foreach (var go in Selection.gameObjects) { var a = go.GetComponent<ASHAccumulation>(); if (!a) continue; Undo.RecordObject(a, "Remove accumulation"); a.Revert(); Undo.DestroyObjectImmediate(a); }
+            var prefabs = new List<string>(); var sceneObjs = new List<GameObject>(); var instances = new Dictionary<string, List<GameObject>>();
+            foreach (var o in objs)
+            {
+                if (!o) continue;
+                var path = AssetDatabase.GetAssetPath(o);
+                if (!string.IsNullOrEmpty(path) && AssetDatabase.IsValidFolder(path)) { prefabs.AddRange(AssetDatabase.FindAssets("t:Prefab", new[] { path }).Select(AssetDatabase.GUIDToAssetPath)); continue; }
+                var go = o as GameObject; if (!go) continue;
+                if (!string.IsNullOrEmpty(path)) // asset in the Project window
+                {
+                    var root = go.transform.root.gameObject; var type = PrefabUtility.GetPrefabAssetType(root);
+                    if (type == PrefabAssetType.Regular || type == PrefabAssetType.Variant) prefabs.Add(path);
+                    else Debug.LogWarning($"[ASH] Accumulation: {path} is a {type} asset (not a saveable prefab); drop it in the scene or make a prefab first.");
+                    continue;
+                }
+                if (PrefabUtility.IsPartOfPrefabInstance(go))
+                {
+                    var outer = PrefabUtility.GetOutermostPrefabInstanceRoot(go);
+                    var src = PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(outer);
+                    var type = PrefabUtility.GetPrefabAssetType(outer);
+                    if (!string.IsNullOrEmpty(src) && (type == PrefabAssetType.Regular || type == PrefabAssetType.Variant))
+                    { prefabs.Add(src); if (!instances.TryGetValue(src, out var l)) instances[src] = l = new List<GameObject>(); l.Add(outer); continue; }
+                }
+                sceneObjs.Add(go);
+            }
+            var sb = new StringBuilder(); _created = 0; _reused = 0;
+            foreach (var p in prefabs.Distinct())
+            {
+                if (instances.TryGetValue(p, out var insts)) foreach (var i in insts) CleanInstance(i, sb);
+                sb.Append(apply ? ApplyPrefab(p) : RemovePrefab(p));
+            }
+            if (sceneObjs.Count > 0) sb.Append(apply ? ApplyTo(sceneObjs) : RemoveScene(sceneObjs));
+            AssetDatabase.SaveAssets();
+            var msg = $"[ASH] Accumulation {(apply ? "apply" : "remove")}: {prefabs.Distinct().Count()} prefab(s), {sceneObjs.Count} scene object(s); material copies created {_created}, reused {_reused}. {sb}";
+            Debug.Log(msg); return msg;
         }
 
+        /// <summary>Instance-level leftovers (an ASHAccumulation added on the scene instance and its material overrides) would mask
+        /// the prefab: restore and remove them so the instance shows the prefab's setup.</summary>
+        static void CleanInstance(GameObject inst, StringBuilder sb)
+        {
+            foreach (var a in inst.GetComponentsInChildren<ASHAccumulation>(true))
+            {
+                if (!PrefabUtility.IsAddedComponentOverride(a)) continue;
+                var rs = a.slots.Select(s => s.renderer).Where(r => r).ToList();
+                Undo.RecordObject(a, "Clean accumulation"); foreach (var r in rs) Undo.RecordObject(r, "Clean accumulation");
+                a.Revert(); Undo.DestroyObjectImmediate(a);
+                foreach (var r in rs) { var so = new SerializedObject(r); var prop = so.FindProperty("m_Materials"); if (prop != null && prop.prefabOverride) PrefabUtility.RevertPropertyOverride(prop, InteractionMode.UserAction); }
+                sb.Append($"(instance '{inst.name}': removed scene-only accumulation, reverted {rs.Count} material overrides) ");
+            }
+        }
+
+        static string ApplyPrefab(string path)
+        {
+            var root = PrefabUtility.LoadPrefabContents(path);
+            try
+            {
+                if (IsPickupLike(root) || path.Contains("/Pickups/") || path.Contains("/Items/") || path.Contains("Pickup")) return $"REFUSED {path} (pickup/interactable); ";
+                var a = root.GetComponent<ASHAccumulation>(); bool added = !a; if (!a) a = root.AddComponent<ASHAccumulation>();
+                int n = a.Apply(out int skipped, out int sc, out int sk);
+                var kept = new List<string>();
+                foreach (var r in root.GetComponentsInChildren<Renderer>(true)) foreach (var m in r.sharedMaterials) { var why = ASHAccumulation.UnsupportedReason(m); if (why != null && why != "already ASH" && m) kept.Add($"{m.name} ({why})"); }
+                PrefabUtility.SaveAsPrefabAsset(root, path);
+                var type = PrefabUtility.GetPrefabAssetType(AssetDatabase.LoadAssetAtPath<GameObject>(path));
+                return $"{path} [{type}]: component {(added ? "added" : "kept")}, {n} renderers / {sc} slots -> ASH ({skipped} renderers skipped{(kept.Count > 0 ? ", kept: " + string.Join(", ", kept.Distinct()) : "")}); ";
+            }
+            finally { PrefabUtility.UnloadPrefabContents(root); }
+        }
+
+        static string RemovePrefab(string path)
+        {
+            var root = PrefabUtility.LoadPrefabContents(path);
+            try
+            {
+                var list = root.GetComponentsInChildren<ASHAccumulation>(true); if (list.Length == 0) return $"{path}: no accumulation; ";
+                int restored = 0; foreach (var a in list) { restored += a.slots.Count; a.Revert(); Object.DestroyImmediate(a); }
+                PrefabUtility.SaveAsPrefabAsset(root, path);
+                return $"{path}: removed, {restored} renderers restored to original materials; ";
+            }
+            finally { PrefabUtility.UnloadPrefabContents(root); }
+        }
+
+        static string RemoveScene(IEnumerable<GameObject> gos)
+        {
+            var sb = new StringBuilder();
+            foreach (var go in gos)
+            {
+                var a = go.GetComponent<ASHAccumulation>(); if (!a) continue;
+                Undo.RecordObject(a, "Remove accumulation"); foreach (var s in a.slots) if (s.renderer) Undo.RecordObject(s.renderer, "Remove accumulation");
+                int n = a.slots.Count; a.Revert(); Undo.DestroyObjectImmediate(a);
+                if (go.scene.IsValid()) EditorSceneManager.MarkSceneDirty(go.scene);
+                sb.Append($"{go.name}: removed, {n} renderers restored; ");
+            }
+            return sb.ToString();
+        }
+
+        /// <summary>Scene objects (non-prefab): component + material copies in the scene, undoable.</summary>
         public static string ApplyTo(IEnumerable<GameObject> gos)
         {
             var sb = new StringBuilder();
@@ -297,12 +411,55 @@ namespace ASH.EditorTools.World
                 if (IsPickupLike(go)) { sb.Append($"REFUSED {go.name} (pickup/interactable); "); continue; }
                 var a = go.GetComponent<ASHAccumulation>(); if (!a) a = Undo.AddComponent<ASHAccumulation>(go);
                 foreach (var r in go.GetComponentsInChildren<Renderer>(true)) Undo.RecordObject(r, "Apply accumulation");
-                int n = a.Apply(out int skipped); EditorUtility.SetDirty(a);
+                Undo.RecordObject(a, "Apply accumulation");
+                int n = a.Apply(out int skipped, out int sc, out _); EditorUtility.SetDirty(a);
                 if (go.scene.IsValid()) EditorSceneManager.MarkSceneDirty(go.scene);
-                sb.Append($"{go.name}: {n} renderers ({skipped} skipped); ");
+                sb.Append($"{go.name} (scene): {n} renderers / {sc} slots ({skipped} skipped); ");
             }
             AssetDatabase.SaveAssets();
-            var msg = "[ASH] Accumulation applied: " + sb; Debug.Log(msg); return msg;
+            return sb.ToString();
+        }
+
+        /// <summary>exec test: copy a vendor prefab to Assets/_ASH/Tests, make a variant, apply/remove via asset, variant and scene instance; logs results and cleans up.</summary>
+        public static void SelfTest()
+        {
+            const string src = "Assets/HQ Survival Pack/Prefabs/Building/BuildingParts/Wood/PlankParts/Doorway_Planks.prefab";
+            const string dir = ASHContentBuilder.Root + "/Tests"; ASHBuildUtil.Folder(dir);
+            string copy = dir + "/ASH_TestDoorwayPlanks.prefab", variant = dir + "/ASH_TestDoorwayPlanks_Variant.prefab";
+            AssetDatabase.DeleteAsset(copy); AssetDatabase.DeleteAsset(variant); CreatedPaths.Clear();
+            if (!AssetDatabase.CopyAsset(src, copy)) { Debug.LogError("[ASH] ACCUMTEST copy failed"); return; }
+            var baseGo = AssetDatabase.LoadAssetAtPath<GameObject>(copy);
+            var vi = (GameObject)PrefabUtility.InstantiatePrefab(baseGo); PrefabUtility.SaveAsPrefabAsset(vi, variant); Object.DestroyImmediate(vi);
+            string Check(string p)
+            {
+                var g = AssetDatabase.LoadAssetAtPath<GameObject>(p); var a = g.GetComponent<ASHAccumulation>();
+                var mats = g.GetComponentsInChildren<Renderer>(true).SelectMany(r => r.sharedMaterials).Where(m => m).ToList();
+                return $"{Path.GetFileName(p)}: comp {(bool)a} slots {(a ? a.slots.Count : 0)}, materials {mats.Count(m => m.shader.name == ASHAccumulation.ShaderName)}/{mats.Count} ASH ({string.Join(", ", mats.Select(m => AssetDatabase.GetAssetPath(m).Replace(VariantRoot, "~")).Distinct().Take(4))})";
+            }
+            Debug.Log("[ASH] ACCUMTEST before: " + Check(copy));
+            ApplyToTargets(new Object[] { baseGo }, true); Debug.Log("[ASH] ACCUMTEST asset apply: " + Check(copy) + " | variant inherits: " + Check(variant));
+            ApplyToTargets(new Object[] { baseGo }, true); Debug.Log("[ASH] ACCUMTEST re-apply (idempotent): " + Check(copy));
+            ApplyToTargets(new Object[] { baseGo }, false); Debug.Log("[ASH] ACCUMTEST asset remove: " + Check(copy) + " | variant: " + Check(variant));
+            ApplyToTargets(new Object[] { AssetDatabase.LoadAssetAtPath<GameObject>(variant) }, true); Debug.Log("[ASH] ACCUMTEST variant apply: " + Check(variant) + " | base untouched: " + Check(copy));
+            ApplyToTargets(new Object[] { AssetDatabase.LoadAssetAtPath<GameObject>(variant) }, false); Debug.Log("[ASH] ACCUMTEST variant remove: " + Check(variant));
+            // scene instance (child selected) -> edits the source prefab; then a plain scene object
+            var inst = (GameObject)PrefabUtility.InstantiatePrefab(baseGo, UnityEngine.SceneManagement.SceneManager.GetActiveScene());
+            var child = inst.GetComponentInChildren<Renderer>(true).gameObject;
+            ApplyToTargets(new Object[] { child }, true);
+            var ir = inst.GetComponentsInChildren<Renderer>(true).SelectMany(r => r.sharedMaterials).Where(m => m).ToList();
+            Debug.Log("[ASH] ACCUMTEST instance apply -> prefab: " + Check(copy) + $" | instance shows {ir.Count(m => m.shader.name == ASHAccumulation.ShaderName)}/{ir.Count} ASH, instance added comp override {inst.GetComponent<ASHAccumulation>() && PrefabUtility.IsAddedComponentOverride(inst.GetComponent<ASHAccumulation>())}");
+            ApplyToTargets(new Object[] { inst }, false); Debug.Log("[ASH] ACCUMTEST instance remove -> prefab: " + Check(copy));
+            Object.DestroyImmediate(inst);
+            var plain = new GameObject("ASH_TestPlain"); var cube = GameObject.CreatePrimitive(PrimitiveType.Cube); cube.transform.SetParent(plain.transform);
+            var lit = new Material(Shader.Find("Universal Render Pipeline/Lit")) { name = "ASH_TestLit" }; cube.GetComponent<Renderer>().sharedMaterial = lit;
+            ApplyToTargets(new Object[] { plain }, true); var sm = cube.GetComponent<Renderer>().sharedMaterial;
+            Debug.Log($"[ASH] ACCUMTEST plain scene apply: comp {(bool)plain.GetComponent<ASHAccumulation>()}, material {sm.shader.name}");
+            ApplyToTargets(new Object[] { plain }, false); Debug.Log($"[ASH] ACCUMTEST plain scene remove: comp {(bool)plain.GetComponent<ASHAccumulation>()}, material {cube.GetComponent<Renderer>().sharedMaterial.name}");
+            Object.DestroyImmediate(plain);
+            AssetDatabase.DeleteAsset(variant); AssetDatabase.DeleteAsset(copy); AssetDatabase.DeleteAsset(dir);
+            foreach (var cp in CreatedPaths.Distinct()) AssetDatabase.DeleteAsset(cp);
+            Debug.Log($"[ASH] ACCUMTEST cleanup: deleted test prefabs + {CreatedPaths.Distinct().Count()} generated copies");
+            Debug.Log("[ASH] ACCUMTEST DONE");
         }
 
         /// <summary>Guard: never pickups. Component checks (ASHItemPickup / IASHUsable in parents) + pickup folders for prefab assets.</summary>

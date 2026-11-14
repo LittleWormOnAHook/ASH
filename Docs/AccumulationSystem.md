@@ -79,8 +79,17 @@ void PushGlobals();
 * **Trees**: `ASH/World/Accumulation/3. Apply To ASH Tree Prototypes` makes prefab variants
   (`Art/Accumulation/Trees/*_Accum.prefab`) with ASH material copies and swaps only the ASH-scattered prototypes
   (also updates the vegetation settings/record so re-scatters keep them). Anthony's own prototypes are untouched.
-* **Structures**: add `ASHAccumulation` (or select + `ASH/World/Apply Accumulation To Selected`). Only URP/Lit and Gaia
-  PW General (cabin) materials are converted (PW: albedo/normal/metal-gloss/cutout remapped; its vertex AO, wind and PW cover layers are dropped) (variants cached in `Art/Accumulation/Materials`); others are skipped. `Revert()` restores.
+* **Structures / props**: select prefab assets (Project window), folders of prefabs, prefab instances or plain scene objects, then
+  `ASH/World/Apply Accumulation To Selected`. Prefabs are set up in the prefab asset itself (LoadPrefabContents / SaveAsPrefabAsset):
+  the `ASHAccumulation` component is added and every material slot of every Mesh/Skinned renderer gets an `ASH/Accumulation Lit` copy.
+  A scene instance edits its outermost prefab's source (a variant instance edits the variant; scene-only accumulation on that instance is
+  removed so the prefab shows through). Model (FBX) instances and plain objects are done in the scene (Undo). Copies are cached and reused at
+  `Assets/_ASH/Materials/Accumulation/<source pack>/<material>_<guid8>_Accum.mat` (old copies in `Art/Accumulation/Materials` are reused);
+  vendor files are never edited. Maps and settings carry over: URP Lit / Complex Lit copy as is; other opaque/cutout shaders (PW General,
+  vendor shader graphs, legacy) are remapped (albedo + tiling, color, normal, metallic/smoothness or mask, AO, emission, detail, alpha clip,
+  cull). Transparent, particle, UI, sky and terrain materials stay as they are (logged as "kept"). `Remove Accumulation From Selected` uses
+  the same targets, restores the original materials and removes the component (Undo in the scene; prefab assets are re-saved). Each run logs
+  per target: renderers / slots converted, skipped, kept materials, copies created vs reused.
 * **Pickups are never accumulated**: any renderer under `ASHItemPickup` or an `IASHUsable` is skipped, and
   pickup prefab folders are refused.
 * **Terrain**: `materialTemplate` = `ASH_TerrainAccum.mat`; the original is kept on the controller
@@ -148,6 +157,21 @@ Tool: `ASH/Vendor/ANGRY MESH/Rocks -> ASH Accumulation`, `ASH/Vendor/Quantum The
 2. **Snow on top of ash** (fresh snowfall after ash) is simplified: ash always draws on top.
 3. Walkable structure tops (porch, roofs) do not deform yet.
 4. Weather director: should call `SetWeatherInputs` (or implement `IASHWeatherInputs`) and nothing else.
+
+## Future weather integration (notes)
+- **Cover / indoors (no ash, snow, rain or particles under cover)**: a sky-occlusion (cover) map, a top-down depth render of colliders above
+  the player area (orthographic, following the camera like the deformation field, refreshed on change or slowly). A surface or particle is
+  covered when its height is below the stored top height at that XZ. The accumulation shaders, the ASHAccumulationSurface, rain/ash/snow
+  particles (kill or collide below the cover height) and the drift mask all read it. Plus **interior volumes** (box/mesh triggers on
+  buildings, caves, porches) that force zero coverage and stop precipitation particles and wet/ash audio inside, so floors and inner walls of
+  buildings, and anything with a collider the player can stand under, stay clean. Interior walls also need a facing test (only upward,
+  open-to-sky surfaces collect).
+- **Wind sway**: trees and wind-capable prefabs (vegetation shaders with wind, cloth, hanging props) driven by a global wind vector/strength
+  from the weather director (one source of truth with the accumulation globals); ASH accumulation copies of tree materials must keep or
+  re-add the wind vertex motion.
+- **Wind-blown ash/snow**: gusts lift ash/snow off rocks, roofs and some trees (spindrift / dusting particles from exposed edges and
+  ridges), rate driven by wind speed and the accumulated depth there (`GetDepthMetres` / per-object coverage); blowing slowly lowers
+  coverage on the windward side and adds drift on the lee side (drift mask).
 
 ## Main paths
 Drift mask **A** = main-path factor (1 on the painted road/trail surface, falling to 0 over `pathFalloffMetres` beyond

@@ -2,13 +2,16 @@ using System;
 using System.Collections.Generic;
 using ASH.Interaction;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 namespace ASH.World.Accumulation
 {
     /// <summary>
-    /// Drop-on: swaps this object's URP/Lit (and Gaia PW General) materials to cached ASH/Accumulation Lit variants so it collects ash/snow.
-    /// NEVER used on pickups: renderers under an ASHItemPickup or any IASHUsable (interactable) are skipped.
-    /// Editor: ASH/World/Apply Accumulation To Selected (creates variant assets). Play mode: in-memory variants.
+    /// Drop-on: swaps this object's materials (every slot of every Mesh/Skinned renderer) to cached ASH/Accumulation Lit copies so it
+    /// collects ash/snow. Maps and settings are carried over (URP Lit property set; other shaders remapped). Transparent, particle and
+    /// UI materials are left as they are. NEVER used on pickups: renderers under an ASHItemPickup or any IASHUsable are skipped.
+    /// Editor: ASH/World/Apply Accumulation To Selected (prefab assets/instances edit the prefab; copies under Assets/_ASH/Materials/Accumulation).
+    /// Play mode: in-memory copies.
     /// </summary>
     [ExecuteAlways, DisallowMultipleComponent]
     public sealed class ASHAccumulation : MonoBehaviour
@@ -42,47 +45,80 @@ namespace ASH.World.Accumulation
         {
             if (!m || !m.shader) return m;
             if (m.shader.name == ShaderName) return m;
-            if (!IsSupported(m)) return m; // unsupported shader: left as is
+            if (!IsSupported(m)) return m; // transparent / particle / UI: left as is
             if (VariantProvider != null) return VariantProvider(m) ?? m;
             if (_runtime.TryGetValue(m, out var v) && v) return v;
             v = CreateVariant(m); if (!v) return m; _runtime[m] = v; return v;
         }
 
         public const string PWGeneralShaderName = "Shader Graphs/PW_General_ShaderGraph_URP";
-        public static bool IsSupported(Material m) => m && m.shader && (m.shader.name == SourceShaderName || m.shader.name == PWGeneralShaderName);
 
-        /// <summary>New (unsaved) accumulation copy. URP/Lit: same properties. Gaia PW General: albedo/normal/metal-gloss/cutout remapped.</summary>
+        /// <summary>Why a material is not converted (null = convertible).</summary>
+        public static string UnsupportedReason(Material m)
+        {
+            if (!m || !m.shader) return "missing";
+            var n = m.shader.name;
+            if (n == ShaderName) return "already ASH";
+            if (n.Contains("Particle") || n.StartsWith("UI/") || n.StartsWith("Sprites/") || n.StartsWith("Skybox") || n.StartsWith("Hidden/") || n.Contains("TextMeshPro") || n.Contains("Terrain")) return "particle/UI/sky/terrain shader";
+            if (m.renderQueue >= 2900 || m.GetTag("RenderType", false) == "Transparent" || (m.HasProperty("_Surface") && m.GetFloat("_Surface") > 0.5f) || m.IsKeywordEnabled("_SURFACE_TYPE_TRANSPARENT")) return "transparent";
+            return null;
+        }
+        public static bool IsSupported(Material m) => UnsupportedReason(m) == null;
+
+        static readonly string[] BaseTex = { "_BaseMap", "_MainTex", "_BaseColorMap", "_Albedo", "_AlbedoMap", "_BaseAlbedoASmoothness", "_Diffuse", "_DiffuseMap", "_MainTexture", "_Texture", "_Albedo_Texture" };
+        static readonly string[] ColorP = { "_BaseColor", "_Color", "_Tint", "_MainColor", "_AlbedoColor" };
+        static readonly string[] NormTex = { "_BumpMap", "_NormalMap", "_BaseNormalMap", "_Normal", "_NormalTex", "_MainNormal", "_Normal_Map" };
+
+        /// <summary>New (unsaved) accumulation copy of any opaque/cutout material. URP Lit property sets copy as is; others are remapped
+        /// (albedo, color, normal, metallic/smoothness, mask, occlusion, emission, detail, alpha clip, cull, tiling).</summary>
         public static Material CreateVariant(Material src)
         {
             var sh = Shader.Find(ShaderName); if (!sh || !IsSupported(src)) return null;
-            if (src.shader.name == SourceShaderName) return new Material(src) { name = src.name + "_Accum", shader = sh };
+            var sn = src.shader.name;
+            if (sn == SourceShaderName || sn == "Universal Render Pipeline/Complex Lit")
+                return new Material(src) { name = src.name + "_Accum", shader = sh };
+
+            Texture T(params string[] ns) { foreach (var n in ns) if (src.HasProperty(n) && src.GetTexture(n)) return src.GetTexture(n); return null; }
+            string TN(params string[] ns) { foreach (var n in ns) if (src.HasProperty(n) && src.GetTexture(n)) return n; return null; }
+            float F(float d, params string[] ns) { foreach (var n in ns) if (src.HasProperty(n)) { try { return src.GetFloat(n); } catch { } } return d; }
+            bool C(out Color c, params string[] ns) { foreach (var n in ns) if (src.HasProperty(n)) { try { c = src.GetColor(n); return true; } catch { } } c = Color.white; return false; }
+
             var m = new Material(sh) { name = src.name + "_Accum" };
-            Texture T(string n) => src.HasProperty(n) ? src.GetTexture(n) : null;
-            float F(string n, float d) => src.HasProperty(n) ? src.GetFloat(n) : d;
-            var main = T("_MainTex"); m.SetTexture("_BaseMap", main);
-            if (src.HasProperty("_MainTex")) { m.SetTextureScale("_BaseMap", src.GetTextureScale("_MainTex")); m.SetTextureOffset("_BaseMap", src.GetTextureOffset("_MainTex")); }
-            if (src.HasProperty("_Color")) m.SetColor("_BaseColor", src.GetColor("_Color"));
-            var bump = T("_BumpMap"); if (bump) { m.SetTexture("_BumpMap", bump); m.SetFloat("_BumpScale", F("_BumpMapScale", 1f)); m.EnableKeyword("_NORMALMAP"); }
-            var mg = T("_MetallicGlossMap"); if (mg) { m.SetTexture("_MetallicGlossMap", mg); m.EnableKeyword("_METALLICSPECGLOSSMAP"); }
-            m.SetFloat("_Metallic", F("_Metallic", 0f)); m.SetFloat("_Smoothness", F("_Glossiness", 0.3f));
-            if (F("_AlphaTest", 0f) > 0.5f || src.IsKeywordEnabled("_ALPHATEST_ON")) { m.SetFloat("_AlphaClip", 1f); m.SetFloat("_Cutoff", F("_Cutoff", 0.5f)); m.EnableKeyword("_ALPHATEST_ON"); m.renderQueue = 2450; }
-            if (src.HasProperty("_CullMode")) m.SetFloat("_Cull", F("_CullMode", 2f));
+            var baseName = TN(BaseTex); var baseT = baseName != null ? src.GetTexture(baseName) : null;
+            m.SetTexture("_BaseMap", baseT);
+            if (baseName != null) { m.SetTextureScale("_BaseMap", src.GetTextureScale(baseName)); m.SetTextureOffset("_BaseMap", src.GetTextureOffset(baseName)); }
+            if (C(out var col, ColorP)) { col.a = 1f; m.SetColor("_BaseColor", col); }
+            var nrm = T(NormTex); if (nrm) { m.SetTexture("_BumpMap", nrm); m.SetFloat("_BumpScale", F(1f, "_BumpScale", "_BumpMapScale", "_NormalScale", "_NormalStrength")); m.EnableKeyword("_NORMALMAP"); }
+            var mask = T("_MaskMap", "_Mask"); var mg = T("_MetallicGlossMap", "_MetallicSmoothness", "_Metallic_Smoothness", "_MetallicMap");
+            float metal = F(0f, "_Metallic"), smooth = F(0.3f, "_Smoothness", "_Glossiness", "_GlossMapScale", "_BaseSmoothness");
+            if (mask) { m.SetTexture("_MetallicGlossMap", mask); m.EnableKeyword("_METALLICSPECGLOSSMAP"); m.SetTexture("_OcclusionMap", mask); m.EnableKeyword("_OCCLUSIONMAP"); m.SetFloat("_Smoothness", 1f); m.SetFloat("_Metallic", 1f); }
+            else if (mg) { m.SetTexture("_MetallicGlossMap", mg); m.EnableKeyword("_METALLICSPECGLOSSMAP"); m.SetFloat("_Smoothness", smooth); }
+            else { m.SetFloat("_Metallic", metal); m.SetFloat("_Smoothness", smooth); }
+            if (baseName == "_BaseAlbedoASmoothness") { m.SetFloat("_SmoothnessTextureChannel", 1f); m.EnableKeyword("_SMOOTHNESS_TEXTURE_ALBEDO_CHANNEL_A"); }
+            var occ = T("_OcclusionMap", "_AO", "_AOMap", "_Occlusion", "_BaseAOANoiseMask"); if (occ && !mask) { m.SetTexture("_OcclusionMap", occ); m.SetFloat("_OcclusionStrength", F(1f, "_OcclusionStrength", "_AOStrength", "_BaseAOIntensity")); m.EnableKeyword("_OCCLUSIONMAP"); }
+            var em = T("_EmissionMap", "_Emission"); if (em && C(out var emC, "_EmissionColor") && emC.maxColorComponent > 0.001f) { m.SetTexture("_EmissionMap", em); m.SetColor("_EmissionColor", emC); m.EnableKeyword("_EMISSION"); }
+            var dA = T("_DetailAlbedoMap", "_DetailAlbedo"); var dN = T("_DetailNormalMap", "_DetailNormal");
+            if (dA || dN) { m.SetTexture("_DetailAlbedoMap", dA); m.SetTexture("_DetailNormalMap", dN); m.SetFloat("_DetailNormalMapScale", F(1f, "_DetailNormalMapScale", "_DetailNormalScale", "_DetailNormalMapIntensity")); m.EnableKeyword("_DETAIL_MULX2"); }
+            bool clip = src.IsKeywordEnabled("_ALPHATEST_ON") || F(0f, "_AlphaClip", "_AlphaTest") > 0.5f || (src.renderQueue >= 2450 && src.renderQueue < 2900);
+            if (clip) { m.SetFloat("_AlphaClip", 1f); m.SetFloat("_Cutoff", F(0.5f, "_Cutoff", "_AlphaCutoff", "_Cutout")); m.EnableKeyword("_ALPHATEST_ON"); m.renderQueue = (int)RenderQueue.AlphaTest; m.SetOverrideTag("RenderType", "TransparentCutout"); }
+            float cull = F(2f, "_Cull", "_CullMode"); m.SetFloat("_Cull", cull); if (cull < 0.5f) m.doubleSidedGI = true;
             m.enableInstancing = src.enableInstancing;
             return m;
         }
 
-        /// <summary>Returns renderers changed; skipped = renderers excluded (pickups/interactables) or unsupported.</summary>
+        /// <summary>Returns renderers changed; skipped = renderers excluded (pickups/interactables) or with nothing convertible.</summary>
         public int Apply() => Apply(out _);
-        public int Apply(out int skipped)
+        public int Apply(out int skipped) => Apply(out skipped, out _, out _);
+        public int Apply(out int skipped, out int slotsChanged, out int slotsKept)
         {
-            skipped = 0; int changed = 0;
+            skipped = 0; slotsChanged = 0; slotsKept = 0; int changed = 0;
             if (IsExcluded(transform)) { skipped = 1; Debug.LogWarning($"[ASH] Accumulation refused on '{name}': pickup/interactable."); return 0; }
             foreach (var r in GetComponentsInChildren<Renderer>(true))
             {
                 if (!(r is MeshRenderer) && !(r is SkinnedMeshRenderer)) continue;
                 if (IsExcluded(r.transform) || slots.Exists(s => s.renderer == r)) { skipped++; continue; }
                 var src = r.sharedMaterials; var dst = new Material[src.Length]; bool any = false;
-                for (int i = 0; i < src.Length; i++) { dst[i] = Variant(src[i]); any |= dst[i] != src[i]; }
+                for (int i = 0; i < src.Length; i++) { dst[i] = Variant(src[i]); if (dst[i] != src[i]) { any = true; slotsChanged++; } else slotsKept++; }
                 if (!any) { skipped++; continue; }
                 slots.Add(new Slot { renderer = r, original = src }); r.sharedMaterials = dst; changed++;
             }
