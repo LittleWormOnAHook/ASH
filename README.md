@@ -33,4 +33,4 @@ Reference area bounds (WGS84): west **-104.9227°**, east **-104.8775°**, south
 
 ## Implementation handoff
 
-The complete BOB project brief, including the terrain preview, Unity configuration, implementation priorities, and first playable milestone, is in [`Docs/BOB_HANDOFF.md`](Docs/BOB_HANDOFF.md).
+The complete BOB project brief, including the terrain preview, Unity configuration, implementation priorities, and first playable milestone, is in [`Docs/BOB_HANDOFF.md`](Docs/BOB_HANDOFF.md). A copy-ready build task is also available in [`Docs/BOB_MASTER_PROMPT.md`](Docs/BOB_MASTER_PROMPT.md).
