@@ -52,3 +52,11 @@ ignore.conf
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# Vendor / third-party roots: tracked in Unity Version Control, NOT git (Anthony's decision)
+/Assets/Procedural Worlds/
+/Assets/Procedural Worlds.meta
+/Assets/Invector-3rdPersonController/
+/Assets/Invector-3rdPersonController.meta
+/Assets/Gaia User Data/
+/Assets/Gaia User Data.meta

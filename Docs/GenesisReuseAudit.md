@@ -40,3 +40,12 @@ default `Assembly-CSharp` (no asmdefs). That's why the systems are tightly cross
 
 ## Environment
 Gaia/Procedural Worlds, NatureManufacture and similar packs are installed in Genesis. They're candidates for the environment pass once the controller decision is made.
+
+## Invector compile fix (ASH copy only, 2026-11-14)
+
+ASH's Invector Basic Locomotion was copied from Genesis, whose copy references Genesis-only `Project.*` types (DMFootstepManager, DMFootstepProfile, GameAudioManager, DMSpawnedAudio, DustTrackLifetime, Project.Effects), which caused CS0246 errors. Minimal fix (Genesis untouched, no edits to Invector code):
+
+- Replaced with the unmodified stock versions from `A:\Survival Pioneer - Copy\Assets\Invector-3rdPersonController` (read-only source): `FootStep/Scripts/vFootStep.cs`, `FootStep/Scripts/vAudioSurface.cs`, `Generic/Animator/vTriggerSoundByState.cs` (.meta GUIDs kept from the Genesis copy so references hold).
+- Removed (not needed for the slice; Genesis-coupled in every local copy): `Generic/Triggers/vFindSpawnPoint.cs`, `Generic/Utils/vTeleport.cs`.
+- Remaining `Project.` mentions (vThirdPersonCamera.cs, vInvectorIcon.cs) are comments only.
+- Vendor roots (Invector, Procedural Worlds/Gaia) are excluded from git via .gitignore and tracked in Unity Version Control.
