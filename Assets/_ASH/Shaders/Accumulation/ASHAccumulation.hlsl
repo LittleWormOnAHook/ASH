@@ -7,6 +7,8 @@
 
 TEXTURE2D(_ASH_AshTex);     SAMPLER(sampler_ASH_AshTex);
 TEXTURE2D(_ASH_SnowTex);    SAMPLER(sampler_ASH_SnowTex);
+// Surface Texture (top of the layer): share the ash sampler (terrain pass is near the 16-sampler limit)
+TEXTURE2D(_ASH_AshNrm); TEXTURE2D(_ASH_SnowNrm); TEXTURE2D(_ASH_DetailTex); TEXTURE2D(_ASH_DetailNrm);
 TEXTURE2D(_ASH_DriftMask);  SAMPLER(sampler_ASH_DriftMask);   // R depth01 (0.35 ankle, 1 knee), G wind exposure, B slope keep, A main-path factor (1 on road/trail)
 TEXTURE2D(_ASH_DeformTex);  SAMPLER(sampler_ASH_DeformTex);   // phase 2: trail depth (R) around the player, not yet written
 
@@ -17,6 +19,8 @@ float4 _ASH_Noise;        // x scale, y strength, z ash tiling (m), w snow tilin
 float4 _ASH_AccumColor;   // ash tint (rgb), a = ash darkness when wet
 float4 _ASH_SnowColor;    // snow tint (rgb)
 float4 _ASH_TexNorm;      // x = 1 / mean linear luminance of the ash texture; y = path depth reduction; z = path coverage reduction (drift mask A = path factor)
+float4 _ASH_SurfTex;      // x layer normal strength, y detail tiling (m), z detail albedo strength, w detail normal strength
+float4 _ASH_SurfTex2;     // x mip bias, y layer normal maps assigned, z detail assigned
 float4 _ASH_Depth;        // x knee (drift) depth m, y surface enabled, z ankle (typical) depth m, w 0
 float4 _ASH_TerrainRect;  // x minX, y minZ, z 1/sizeX, w 1/sizeZ
 float4 _ASH_DeformRect;   // phase 2: x minX, y minZ, z 1/size, w enabled
@@ -93,12 +97,31 @@ void ASH_ApplyAccumulation(float3 positionWS, half3 geomNormalWS, half4 drift, h
     if (cov <= 0.001) return;
 
     float2 xz = positionWS.xz;
-    half4 snowS = SAMPLE_TEXTURE2D(_ASH_SnowTex, sampler_ASH_SnowTex, xz / max(_ASH_Noise.w, 0.01));
-    half4 ashS = SAMPLE_TEXTURE2D(_ASH_AshTex, sampler_ASH_AshTex, xz / max(_ASH_Noise.z, 0.01));
+    float2 uvS = xz / max(_ASH_Noise.w, 0.01), uvA = xz / max(_ASH_Noise.z, 0.01);
+    half bias = _ASH_SurfTex2.x;
+    half4 snowS = SAMPLE_TEXTURE2D_BIAS(_ASH_SnowTex, sampler_ASH_SnowTex, uvS, bias);
+    half4 ashS = SAMPLE_TEXTURE2D_BIAS(_ASH_AshTex, sampler_ASH_AshTex, uvA, bias);
     half lum = dot(ashS.rgb, half3(0.299, 0.587, 0.114));
     half detail = clamp(lum * max(_ASH_TexNorm.x, 0.01), 0.55, 1.6);
     half3 ashAlb = _ASH_AccumColor.rgb * detail * lerp(1.0, _ASH_AccumColor.a, _ASH_Weather.x);
     half3 snowAlb = snowS.rgb * _ASH_SnowColor.rgb * lerp(1.0, 0.85, _ASH_Weather.x);
+
+    // layer normal (tangent-space maps projected on world XZ around the un-mapped surface normal) + fine detail
+    half3 layerN = geomNormalWS; half3 tn = half3(0, 0, 0);
+    if (_ASH_SurfTex2.y > 0.5)
+    {
+        half3 nS = UnpackNormalScale(SAMPLE_TEXTURE2D_BIAS(_ASH_SnowNrm, sampler_ASH_AshTex, uvS, bias), _ASH_SurfTex.x);
+        half3 nA = UnpackNormalScale(SAMPLE_TEXTURE2D_BIAS(_ASH_AshNrm, sampler_ASH_AshTex, uvA, bias), _ASH_SurfTex.x);
+        tn.xy = lerp(nS.xy * snowCov, nA.xy, ashCov);
+    }
+    if (_ASH_SurfTex2.z > 0.5)
+    {
+        float2 uvD = xz / _ASH_SurfTex.y;
+        half dA = SAMPLE_TEXTURE2D_BIAS(_ASH_DetailTex, sampler_ASH_AshTex, uvD, bias).g;
+        half m = lerp(1.0, dA * 2.0, _ASH_SurfTex.z); snowAlb *= m; ashAlb *= m;
+        tn.xy += UnpackNormalScale(SAMPLE_TEXTURE2D_BIAS(_ASH_DetailNrm, sampler_ASH_AshTex, uvD, bias), _ASH_SurfTex.w).xy;
+    }
+    layerN = normalize(geomNormalWS + half3(tn.x, 0, tn.y));
 
     albedo = lerp(albedo, snowAlb, snowCov);
     albedo = lerp(albedo, ashAlb, ashCov);
@@ -106,7 +129,7 @@ void ASH_ApplyAccumulation(float3 positionWS, half3 geomNormalWS, half4 drift, h
     smoothness = lerp(smoothness, layerSmooth, cov);
     metallic = lerp(metallic, 0, cov);
     occlusion = lerp(occlusion, 1, cov * 0.7);
-    normalWS = normalize(lerp(normalWS, geomNormalWS, cov * 0.75));
+    normalWS = normalize(lerp(normalWS, layerN, cov * 0.75));
 }
 
 #endif

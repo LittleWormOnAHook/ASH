@@ -118,6 +118,14 @@ Components rebuild their render textures / mesh cleanly (old ones destroyed); Of
 | Ultra | 2048 | 96 m | 48 m | 0.10 m | every frame | 20 | 16 m | + per-pixel | 924k |
 | Extreme | 4096 | 128 m | 64 m | 0.075 m | every frame | 30 | 24 m | + per-pixel | 2.9M |
 
+### Surface Texture (top of the ash/snow; separate from deformation quality)
+On `ASH_Accumulation` > `ASHAccumulationController` > **Surface Texture** header. The deformation quality presets (RT resolution, trail area, mesh density/radius, stamp/refill rates, fade, footprint normals) never change anything here, and this section never changes deformation.
+- `ashTexture` / `ashNormal`, `snowTexture` / `snowNormal`: albedo + optional tangent-space normal, world-projected (XZ) on the layer.
+- `ashTiling` / `snowTiling`: metres per repeat. `surfaceNormalStrength`: layer normal strength. `ashTextureMean`: ash luminance normaliser.
+- `detailTexture` / `detailNormal`, `detailTiling` (m), `detailAlbedoStrength`, `detailNormalStrength`: fine detail over both layers (grey 0.5 = neutral).
+- `surfaceMipBias`: texture quality (negative sharper, positive softer/cheaper), runtime.
+- `surfaceMaxTextureSize` + context menu **Surface Texture/Apply Max Texture Size**: sets the import max size of the assigned textures (only ones under `Assets/_ASH`).
+Globals: `_ASH_AshNrm`, `_ASH_SnowNrm`, `_ASH_DetailTex`, `_ASH_DetailNrm`, `_ASH_SurfTex` (normal strength, detail tiling, detail albedo, detail normal), `_ASH_SurfTex2` (mip bias, normals on, detail on). They share the ash sampler (the terrain pass is near the sampler limit). Runtime API: set the fields, then `PushSurfaceTexture()` (also pushed every frame by `PushGlobals`).
 ### Foot IK (`ASHFootIK`, on the player Animator)
 Needs IK Pass on base layer: `ASH/Player/Setup Foot IK + Ash Deformer` copies the Invector controller to
 `Assets/_ASH/Animation/ASH_BasicLocomotion.controller` (IK Pass on; vendor asset untouched) and adds ASHFootIK +

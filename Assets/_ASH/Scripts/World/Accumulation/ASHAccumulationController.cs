@@ -88,10 +88,27 @@ namespace ASH.World.Accumulation
         public Color ashColor = new Color(0.44f, 0.44f, 0.46f);
         [Range(0.1f, 1f)] public float wetAshDarkness = 0.5f;
         public Color snowColor = new Color(0.93f, 0.94f, 0.96f);
-        public Texture2D ashTexture, snowTexture;
-        [Range(0.2f, 20f)] public float ashTiling = 3f, snowTiling = 4f;
+
+        // Surface Texture: the look of the TOP of the ash/snow. Independent of Deformation Quality: the deformation presets
+        // (RT resolution, area, mesh density, rates) never touch anything in this section, and vice versa.
+        [Header("Surface Texture (top of ash/snow; NOT affected by Deformation Quality)")]
+        [Tooltip("Ash albedo (world-projected). Its luminance is used as detail around Ash Color.")] public Texture2D ashTexture;
+        [Tooltip("Ash normal map (tangent-space, world-projected on the layer). Optional.")] public Texture2D ashNormal;
+        [Tooltip("Snow albedo (world-projected).")] public Texture2D snowTexture;
+        [Tooltip("Snow normal map (tangent-space, world-projected on the layer). Optional.")] public Texture2D snowNormal;
+        [Tooltip("Metres per texture repeat.")] [Range(0.05f, 50f)] public float ashTiling = 3f, snowTiling = 4f;
+        [Tooltip("Strength of the ash/snow normal maps.")] [Range(0f, 4f)] public float surfaceNormalStrength = 1f;
         [Tooltip("Mean linear luminance of the ash texture; it is used as detail around Ash Color (0.05 for ASH_TL_Ash_D).")]
         [Range(0.005f, 1f)] public float ashTextureMean = 0.05f;
+        [Tooltip("Fine detail albedo over both layers (grey 0.5 = neutral, x2 multiply). Optional.")] public Texture2D detailTexture;
+        [Tooltip("Fine detail normal map over both layers. Optional.")] public Texture2D detailNormal;
+        [Tooltip("Metres per detail repeat.")] [Range(0.02f, 10f)] public float detailTiling = 0.5f;
+        [Range(0f, 2f)] public float detailAlbedoStrength = 0.5f;
+        [Range(0f, 4f)] public float detailNormalStrength = 0.5f;
+        [Tooltip("Texture quality: mip bias for all surface textures (negative = sharper, positive = softer/cheaper).")]
+        [Range(-3f, 3f)] public float surfaceMipBias = 0f;
+        [Tooltip("Editor: max import size for the ASH surface textures above (applied with the context menu 'Surface Texture/Apply Max Texture Size'; only textures under Assets/_ASH).")]
+        public int surfaceMaxTextureSize = 2048;
 
         [Header("Terrain")]
         public Terrain terrain;
@@ -279,7 +296,37 @@ namespace ASH.World.Accumulation
         static readonly int ID_Layers = Shader.PropertyToID("_ASH_Layers"), ID_Surface = Shader.PropertyToID("_ASH_Surface"), ID_Weather = Shader.PropertyToID("_ASH_Weather"),
             ID_Noise = Shader.PropertyToID("_ASH_Noise"), ID_AshCol = Shader.PropertyToID("_ASH_AccumColor"), ID_SnowCol = Shader.PropertyToID("_ASH_SnowColor"), ID_TexNorm = Shader.PropertyToID("_ASH_TexNorm"),
             ID_Rect = Shader.PropertyToID("_ASH_TerrainRect"), ID_DRect = Shader.PropertyToID("_ASH_DeformRect"),
+            ID_AshNrm = Shader.PropertyToID("_ASH_AshNrm"), ID_SnowNrm = Shader.PropertyToID("_ASH_SnowNrm"), ID_DetTex = Shader.PropertyToID("_ASH_DetailTex"), ID_DetNrm = Shader.PropertyToID("_ASH_DetailNrm"),
+            ID_SurfTex = Shader.PropertyToID("_ASH_SurfTex"), ID_SurfTex2 = Shader.PropertyToID("_ASH_SurfTex2"),
             ID_AshTex = Shader.PropertyToID("_ASH_AshTex"), ID_SnowTex = Shader.PropertyToID("_ASH_SnowTex"), ID_Drift = Shader.PropertyToID("_ASH_DriftMask"), ID_Deform = Shader.PropertyToID("_ASH_DeformTex"), ID_Depth = Shader.PropertyToID("_ASH_Depth");
+
+        /// <summary>Surface Texture globals (top of the ash/snow). Separate from deformation quality on purpose.</summary>
+        public void PushSurfaceTexture()
+        {
+            Shader.SetGlobalTexture(ID_AshNrm, ashNormal ? ashNormal : Texture2D.normalTexture);
+            Shader.SetGlobalTexture(ID_SnowNrm, snowNormal ? snowNormal : Texture2D.normalTexture);
+            Shader.SetGlobalTexture(ID_DetTex, detailTexture ? detailTexture : Texture2D.linearGrayTexture);
+            Shader.SetGlobalTexture(ID_DetNrm, detailNormal ? detailNormal : Texture2D.normalTexture);
+            Shader.SetGlobalVector(ID_SurfTex, new Vector4(surfaceNormalStrength, Mathf.Max(detailTiling, 0.01f), detailTexture ? detailAlbedoStrength : 0f, detailNormal ? detailNormalStrength : 0f));
+            Shader.SetGlobalVector(ID_SurfTex2, new Vector4(surfaceMipBias, (ashNormal || snowNormal) ? 1f : 0f, (detailTexture || detailNormal) ? 1f : 0f, 0f));
+        }
+
+#if UNITY_EDITOR
+        [ContextMenu("Surface Texture/Apply Max Texture Size")]
+        void ApplySurfaceMaxTextureSize()
+        {
+            int n = 0;
+            foreach (var tex in new Texture2D[] { ashTexture, ashNormal, snowTexture, snowNormal, detailTexture, detailNormal })
+            {
+                if (!tex) continue; var path = UnityEditor.AssetDatabase.GetAssetPath(tex);
+                if (!path.StartsWith("Assets/_ASH/")) { Debug.Log($"[ASH] Surface Texture: skipped {path} (not under Assets/_ASH)"); continue; }
+                var imp = UnityEditor.AssetImporter.GetAtPath(path) as UnityEditor.TextureImporter; if (!imp) continue;
+                int size = Mathf.ClosestPowerOfTwo(Mathf.Clamp(surfaceMaxTextureSize, 32, 8192));
+                if (imp.maxTextureSize != size) { imp.maxTextureSize = size; imp.SaveAndReimport(); n++; }
+            }
+            Debug.Log($"[ASH] Surface Texture: max size {surfaceMaxTextureSize} applied to {n} textures");
+        }
+#endif
 
         public void PushGlobals()
         {
@@ -293,6 +340,7 @@ namespace ASH.World.Accumulation
             Shader.SetGlobalVector(ID_TexNorm, new Vector4(1f / Mathf.Max(ashTextureMean, 0.005f), driftMask ? pathDepthReduction : 0f, driftMask ? pathCoverageReduction : 0f, 0f));
             Shader.SetGlobalTexture(ID_AshTex, ashTexture ? ashTexture : Texture2D.grayTexture);
             Shader.SetGlobalTexture(ID_SnowTex, snowTexture ? snowTexture : Texture2D.whiteTexture);
+            PushSurfaceTexture();
             Shader.SetGlobalTexture(ID_Drift, driftMask ? driftMask : Texture2D.grayTexture);
             if (!Field || !Field.isActiveAndEnabled || !Field.Active) { Shader.SetGlobalTexture(ID_Deform, Texture2D.blackTexture); Shader.SetGlobalVector(ID_DRect, Vector4.zero); }
             Shader.SetGlobalVector(ID_Depth, new Vector4(maxDepthMetres, visibleDepth && DeformationQualityOn && Application.isPlaying ? 1f : 0f, ankleDepthMetres, 0f));
