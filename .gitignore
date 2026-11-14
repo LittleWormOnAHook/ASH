@@ -64,3 +64,11 @@ desktop.ini
 # Vendor: NatureManufacture (added by Anthony)
 /Assets/NatureManufacture Assets/
 /Assets/NatureManufacture Assets.meta
+
+# Vendor / vendor-derived (keep out of git)
+/Assets/RUSTIC Grass/
+/Assets/RUSTIC Grass.meta
+/Assets/_TerrainAutoUpgrade/
+/Assets/_TerrainAutoUpgrade.meta
+/Assets/_ASH/Art/MaterialBackups/
+/Assets/_ASH/Art/MaterialBackups.meta
