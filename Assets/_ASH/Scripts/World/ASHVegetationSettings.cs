@@ -18,6 +18,12 @@ namespace ASH.World
             [Tooltip("Relative weight per biome / near creeks (0 = never).")]
             [Range(0f, 2f)] public float ridge = 1f, gully = 0.5f, prairie = 0f, creek = 0.5f;
             [Range(0.3f, 3f)] public float minScale = 0.8f, maxScale = 1.25f;
+            [Tooltip("Above this slope (deg) the tree is swapped to slopeVariant, or skipped if none.")]
+            [Range(0f, 90f)] public float maxSlope = 30f;
+            [Tooltip("Optional slope-friendly prefab used above maxSlope (obeys its own entry's maxSlope if listed).")]
+            public GameObject slopeVariant;
+            [Tooltip("Root/trunk spread radius in metres at scale 1 (0 = global footprintRadius).")]
+            [Range(0f, 5f)] public float footprintRadius = 0f;
         }
 
         [Serializable]
@@ -50,6 +56,12 @@ namespace ASH.World
         [Range(0f, 1f)] [Tooltip("Clumping: 0 = even, 1 = strong groves and clearings.")] public float clumping = 0.65f;
         [Range(10f, 60f)] public float maxTreeSlope = 38f;
         [Range(0.1f, 5f)] public float treeDensityScale = 1f;
+
+        [Header("Slope sinking (hides root flares; prefabs are built for flat ground)")]
+        [Tooltip("Metres sunk per degree of slope.")] [Range(0f, 0.2f)] public float sinkPerDegree = 0.03f;
+        [Tooltip("Weight of the height drop across the root footprint (centre minus lowest sample).")] [Range(0f, 2f)] public float footprintDropWeight = 1f;
+        [Tooltip("Default root spread radius (m) at scale 1.")] [Range(0.1f, 5f)] public float footprintRadius = 0.9f;
+        [Tooltip("Maximum sink (m) at scale 1.")] [Range(0f, 10f)] public float maxSink = 2.5f;
 
         [Header("Grass detail (instances per detail cell)")]
         [Range(0f, 48f)] public float grassDensity = 12f;
@@ -86,9 +98,9 @@ namespace ASH.World
         {
             switch (p)
             {
-                case Preset.Low: treeDensityScale = 0.35f; grassDensity = 6f; treeDistance = 800f; billboardStart = 80f; maxFullLodTrees = 50; detailDistance = 80f; detailObjectDensity = 0.6f; break;
-                case Preset.Default: treeDensityScale = 1f; grassDensity = 12f; treeDistance = 1500f; billboardStart = 150f; maxFullLodTrees = 120; detailDistance = 130f; detailObjectDensity = 1f; break;
-                case Preset.Extreme: treeDensityScale = 3f; grassDensity = 24f; treeDistance = 2500f; billboardStart = 300f; maxFullLodTrees = 400; detailDistance = 250f; detailObjectDensity = 1f; break;
+                case Preset.Low: treeDensityScale = 0.35f; grassDensity = 6f; treeDistance = 800f; billboardStart = 80f; maxFullLodTrees = 50; detailDistance = 80f; detailObjectDensity = 0.6f; sinkPerDegree = 0.025f; maxSink = 2f; break;
+                case Preset.Default: treeDensityScale = 1f; grassDensity = 12f; treeDistance = 1500f; billboardStart = 150f; maxFullLodTrees = 120; detailDistance = 130f; detailObjectDensity = 1f; sinkPerDegree = 0.03f; maxSink = 2.5f; break;
+                case Preset.Extreme: treeDensityScale = 3f; grassDensity = 24f; treeDistance = 2500f; billboardStart = 300f; maxFullLodTrees = 400; detailDistance = 250f; detailObjectDensity = 1f; sinkPerDegree = 0.05f; maxSink = 4f; break;
             }
         }
     }

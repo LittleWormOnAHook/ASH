@@ -84,18 +84,21 @@ namespace ASH.EditorTools.World
         public static void FillDefaults(ASHVegetationSettings s)
         {
             s.trees.Clear(); s.grass.Clear();
-            void T(string name, float ridge, float gully, float prairie, float creek, float min = 0.8f, float max = 1.25f)
+            GameObject F(string n) => FindAsset<GameObject>(n, "t:Prefab", "/Prefabs/Standard/");
+            var small = F("Fir_02_Small"); var snag = F("Fir_08_Dead_Forest_cheap");
+            void T(string name, float ridge, float gully, float prairie, float creek, float min, float max, float maxSlope, GameObject variant, float foot)
             {
-                var p = FindAsset<GameObject>(name, "t:Prefab", "/Prefabs/Standard/");
-                if (p) s.trees.Add(new ASHVegetationSettings.TreeEntry { prefab = p, ridge = ridge, gully = gully, prairie = prairie, creek = creek, minScale = min, maxScale = max });
+                var p = F(name);
+                if (p) s.trees.Add(new ASHVegetationSettings.TreeEntry { prefab = p, ridge = ridge, gully = gully, prairie = prairie, creek = creek, minScale = min, maxScale = max, maxSlope = maxSlope, slopeVariant = variant, footprintRadius = foot });
                 else Debug.LogWarning("[ASH] Vegetation default tree not found: " + name);
             }
-            T("Fir_06_Forest_cheap", 1f, 0.3f, 0f, 0.3f);
-            T("Fir_07_Forest_cheap", 1f, 0.3f, 0f, 0.3f);
-            T("Fir_03_Medium", 0.5f, 0.8f, 0.3f, 1f, 0.7f, 1.2f);
-            T("Fir_02_Small", 0.35f, 0.6f, 0.4f, 0.7f, 0.7f, 1.3f);
-            T("Fir_05_Standalone_cheap", 0.1f, 0.4f, 1f, 0.3f, 0.8f, 1.2f);
-            T("Fir_08_Dead_Forest_cheap", 0.3f, 0.25f, 0.3f, 0.1f, 0.8f, 1.2f); // ash-killed snags
+            // Big flat-ground firs swap to the small fir above 28 deg; small fir to the narrow snag above 34; snag skipped above 40.
+            T("Fir_06_Forest_cheap", 1f, 0.3f, 0f, 0.3f, 0.8f, 1.25f, 28f, small, 1.2f);
+            T("Fir_07_Forest_cheap", 1f, 0.3f, 0f, 0.3f, 0.8f, 1.25f, 28f, small, 1.2f);
+            T("Fir_03_Medium", 0.5f, 0.8f, 0.3f, 1f, 0.7f, 1.2f, 28f, small, 1f);
+            T("Fir_02_Small", 0.35f, 0.6f, 0.4f, 0.7f, 0.7f, 1.3f, 34f, snag, 0.7f);
+            T("Fir_05_Standalone_cheap", 0.1f, 0.4f, 1f, 0.3f, 0.8f, 1.2f, 25f, small, 1.4f);
+            T("Fir_08_Dead_Forest_cheap", 0.3f, 0.25f, 0.3f, 0.1f, 0.8f, 1.2f, 40f, null, 0.6f); // ash-killed snags
 
             void Gr(string name, float wMin, float wMax, float hMin, float hMax, Color healthy, Color dry, float ridge, float gully, float prairie, float creek)
             {
@@ -164,7 +167,21 @@ namespace ASH.EditorTools.World
             for (int i = 0; i < protos.Count; i++) { if (ashTree.Contains(i)) remap[i] = -1; else { remap[i] = keptProtos.Count; keptProtos.Add(protos[i]); } }
             var kept = new List<TreeInstance>(inst.Length);
             foreach (var ti in inst) { if (ti.prototypeIndex >= remap.Length || remap[ti.prototypeIndex] < 0) continue; var c = ti; c.prototypeIndex = remap[ti.prototypeIndex]; kept.Add(c); }
-            int anthonyTrees = kept.Count, removedTrees = inst.Length - kept.Count;
+            int anthonyTrees = kept.Count;
+            // Anthony's manual edits to ASH-placed trees: instances on ASH prototypes that the record never placed are his
+            // additions (kept); recorded placements that are gone are his removals (not replanted within 2.5 m).
+            bool tracking = rec.placed != null && rec.placed.Count > 0;
+            var placedSet = new HashSet<long>(); if (tracking) foreach (var v in rec.placed) placedSet.Add(Key(v.x, v.y));
+            var present = new HashSet<long>(); var manualAdds = new List<(GameObject prefab, TreeInstance ti)>();
+            foreach (var ti in inst)
+                if (ti.prototypeIndex < remap.Length && remap[ti.prototypeIndex] < 0)
+                {
+                    long key = Key(ti.position.x, ti.position.z);
+                    if (!tracking || placedSet.Contains(key)) present.Add(key); else manualAdds.Add((protos[ti.prototypeIndex].prefab, ti));
+                }
+            var manualRemoved = tracking ? rec.placed.Where(v => !present.Contains(Key(v.x, v.y))).ToList() : new List<Vector2>();
+            int removedTrees = inst.Length - kept.Count - manualAdds.Count;
+            var manualKept = new List<TreeInstance>();
 
             var dprotos = data.detailPrototypes.ToList(); var ashDetail = new HashSet<int>();
             if (rec.terrainDataGuid == AssetDatabase.AssetPathToGUID(dataPath))
@@ -179,7 +196,7 @@ namespace ASH.EditorTools.World
 
             var newTrees = new List<TreeInstance>(); var newProtos = new List<TreePrototype>(); var newProtoPrefabs = new List<GameObject>();
             var newD = new List<DetailPrototype>(); var newLayers = new List<int[,]>(); var newDSrc = new List<Object>();
-            var skipped = new List<string>(); long grass = 0; string routeReport = "";
+            var skipped = new List<string>(); long grass = 0; List<GameObject> entryPrefabs = new List<GameObject>(); string routeReport = "", slopeReport = "";
 
             if (scatter)
             {
@@ -189,9 +206,15 @@ namespace ASH.EditorTools.World
                 foreach (var e in s.trees)
                 {
                     if (!ValidTree(e.prefab, out var why)) { skipped.Add($"{(e.prefab ? e.prefab.name : "null")} ({why})"); continue; }
-                    entries.Add(e); newProtos.Add(new TreePrototype { prefab = e.prefab, bendFactor = 0.2f }); newProtoPrefabs.Add(e.prefab);
+                    entries.Add(e);
                 }
-                if (entries.Count > 0) ScatterTrees(ctx, entries, keptProtos.Count, newTrees);
+                foreach (var e in entries.ToArray()) // unlisted slope variants get a hidden zero-weight entry
+                    if (e.slopeVariant && !entries.Exists(x => x.prefab == e.slopeVariant) && ValidTree(e.slopeVariant, out _))
+                        entries.Add(new ASHVegetationSettings.TreeEntry { prefab = e.slopeVariant, ridge = 0, gully = 0, prairie = 0, creek = 0, minScale = e.minScale, maxScale = e.maxScale, maxSlope = 90f });
+                foreach (var e in entries) { newProtos.Add(new TreePrototype { prefab = e.prefab, bendFactor = 0.2f }); newProtoPrefabs.Add(e.prefab); }
+                ResolveManual(manualAdds, keptProtos, newProtoPrefabs, manualKept);
+                foreach (var v in manualRemoved.Concat(rec.removedSpots)) ctx.Disc(new Vector2(ctx.origin.x + v.x * ctx.size.x, ctx.origin.z + v.y * ctx.size.z), 2.5f, ctx.blockT);
+                if (entries.Count > 0) slopeReport = ScatterTrees(ctx, entries, keptProtos.Count, newTrees);
                 float minRoadEdge = 1e9f, minTrail = 1e9f; int bad = 0;
                 foreach (var ti in newTrees)
                 {
@@ -218,24 +241,28 @@ namespace ASH.EditorTools.World
                 if (gEntries.Count > 0) grass = ScatterGrass(ctx, gEntries, dres, newLayers);
             }
 
+            if (!scatter) ResolveManual(manualAdds, keptProtos, newProtoPrefabs, manualKept);
+
             // ---- batched writes
             if (removedTrees > 0 || ashTree.Count > 0) data.SetTreeInstances(kept.ToArray(), false); // valid for old and new prototype arrays
             data.treePrototypes = keptProtos.Concat(newProtos).ToArray();
-            data.SetTreeInstances(kept.Concat(newTrees).ToArray(), true);
+            data.SetTreeInstances(kept.Concat(manualKept).Concat(newTrees).ToArray(), false); // ASH y = ground - slope sink; Anthony's keep their own y
 
             data.detailPrototypes = keptD.Concat(newD).ToArray();
             for (int i = 0; i < keptLayers.Count; i++) data.SetDetailLayer(0, 0, i, keptLayers[i]);
             for (int i = 0; i < newLayers.Count; i++) data.SetDetailLayer(0, 0, keptD.Count + i, newLayers[i]);
 
             // ---- guard: Anthony's trees intact
+            int expect = anthonyTrees + manualKept.Count(ti => ti.prototypeIndex < keptProtos.Count);
             int check = data.treeInstances.Count(ti => ti.prototypeIndex < keptProtos.Count);
-            if (check != anthonyTrees) Debug.LogError($"[ASH] Vegetation guard: non-ASH tree count changed {anthonyTrees} -> {check}. Restore from {BackupDir}.");
+            if (check != expect) Debug.LogError($"[ASH] Vegetation guard: non-ASH tree count changed {expect} -> {check}. Restore from {BackupDir}.");
 
             // ---- record
             rec.terrainDataGuid = AssetDatabase.AssetPathToGUID(dataPath);
             rec.treeIndices = Enumerable.Range(keptProtos.Count, newProtos.Count).ToList(); rec.treePrefabs = newProtoPrefabs;
             rec.detailIndices = Enumerable.Range(keptD.Count, newD.Count).ToList(); rec.detailSources = newDSrc;
-            rec.treesPlaced = newTrees.Count; rec.grassPlaced = grass; rec.lastRun = DateTime.Now.ToString("yyyy-MM-dd HH:mm");
+            foreach (var v in manualRemoved) if (!rec.removedSpots.Contains(v)) rec.removedSpots.Add(v);
+            rec.treesPlaced = newTrees.Count; rec.placed = newTrees.Select(ti => new Vector2(ti.position.x, ti.position.z)).ToList(); rec.grassPlaced = grass; rec.lastRun = DateTime.Now.ToString("yyyy-MM-dd HH:mm");
             EditorUtility.SetDirty(rec); AssetDatabase.SaveAssetIfDirty(rec);
 
             // ---- terrain render settings (scene)
@@ -249,9 +276,58 @@ namespace ASH.EditorTools.World
             EditorUtility.SetDirty(data); AssetDatabase.SaveAssetIfDirty(data);
 
             Debug.Log($"[ASH] Vegetation {(scatter ? "scattered" : "cleared")} in {(DateTime.Now - t0).TotalSeconds:F1}s: removed {removedTrees} old ASH trees; "
-                + $"Anthony trees kept {anthonyTrees} ({keptProtos.Count} prototypes); ASH trees {newTrees.Count} ({newProtos.Count} prototypes); "
-                + $"grass instances {grass} ({newD.Count} ASH layers, {keptD.Count} kept, detail res {dres}); total trees {data.treeInstanceCount}; {routeReport}."
+                + $"Anthony trees kept {anthonyTrees} ({keptProtos.Count} prototypes); his edits to ASH trees kept: +{manualAdds.Count} added, {manualRemoved.Count} removed spots not replanted{(tracking ? "" : " (no placement record yet)")}; ASH trees {newTrees.Count} ({newProtos.Count} prototypes); "
+                + $"grass instances {grass} ({newD.Count} ASH layers, {keptD.Count} kept, detail res {dres}); total trees {data.treeInstanceCount}; {routeReport}; {slopeReport}."
                 + (skipped.Count > 0 ? " Skipped: " + string.Join(", ", skipped) : ""));
+        }
+
+        static long Key(float x, float z) => (long)Mathf.Round(x * 1e6f) * 2000003L + (long)Mathf.Round(z * 1e6f);
+
+        /// <summary>Re-point Anthony's manual additions on ASH prototypes to the new prototype index (or keep the prefab as his own prototype).</summary>
+        static void ResolveManual(List<(GameObject prefab, TreeInstance ti)> adds, List<TreePrototype> keptProtos, List<GameObject> newPrefabs, List<TreeInstance> outKept)
+        {
+            outKept.Clear();
+            foreach (var (prefab, ti) in adds)
+            {
+                var c = ti; int ni = newPrefabs.IndexOf(prefab);
+                if (ni >= 0) { c.prototypeIndex = -1 - ni; outKept.Add(c); continue; } // fixed up below once keptProtos is final
+                int ki = keptProtos.FindIndex(p => p.prefab == prefab);
+                if (ki < 0) { keptProtos.Add(new TreePrototype { prefab = prefab, bendFactor = 0.2f }); ki = keptProtos.Count - 1; }
+                c.prototypeIndex = ki; outKept.Add(c);
+            }
+            for (int i = 0; i < outKept.Count; i++) if (outKept[i].prototypeIndex < 0) { var c = outKept[i]; c.prototypeIndex = keptProtos.Count + (-1 - c.prototypeIndex); outKept[i] = c; }
+        }
+
+        /// <summary>One-off bootstrap: treat the live ASH-prototype trees as the tool's own placements (exec).</summary>
+        public static void AdoptLiveAsPlaced()
+        {
+            var d = Terrain.activeTerrain.terrainData; var rec = Record(); var set = new HashSet<int>(rec.treeIndices);
+            rec.placed = d.treeInstances.Where(ti => set.Contains(ti.prototypeIndex)).Select(ti => new Vector2(ti.position.x, ti.position.z)).ToList();
+            EditorUtility.SetDirty(rec); AssetDatabase.SaveAssetIfDirty(rec); Debug.Log($"[ASH] VEG record adopted {rec.placed.Count} live ASH placements.");
+        }
+
+        /// <summary>One-off: record spots where an ASH tree existed in the older backup but not the newer one (exec; "older|newer" backup names in AshBridge/args.txt).</summary>
+        public static void SeedRemovedSpots() => SeedRemovedSpots(File.ReadAllText(Path.Combine(Application.dataPath, "../AshBridge/args.txt")).Trim());
+
+        public static void SeedRemovedSpots(string olderAndNewer)
+        {
+            var parts = olderAndNewer.Split('|'); var rec = Record(); var set = new HashSet<int>(rec.treeIndices);
+            TerrainData L(string n) => AssetDatabase.LoadAssetAtPath<TerrainData>($"{BackupDir}/{n}.asset");
+            var older = L(parts[0]); var newer = L(parts[1]);
+            var keep = new HashSet<long>(newer.treeInstances.Where(ti => set.Contains(ti.prototypeIndex)).Select(ti => Key(ti.position.x, ti.position.z)));
+            int n0 = 0;
+            foreach (var ti in older.treeInstances.Where(ti => set.Contains(ti.prototypeIndex)))
+                if (!keep.Contains(Key(ti.position.x, ti.position.z))) { var v = new Vector2(ti.position.x, ti.position.z); if (!rec.removedSpots.Contains(v)) { rec.removedSpots.Add(v); n0++; } }
+            EditorUtility.SetDirty(rec); AssetDatabase.SaveAssetIfDirty(rec); Debug.Log($"[ASH] VEG removed spots seeded: +{n0} (total {rec.removedSpots.Count}).");
+        }
+
+        /// <summary>Restore only tree prototypes + instances from the newest TerrainData backup (exec; heights/splat/grass untouched).</summary>
+        public static void RestoreTreesFromNewestBackup()
+        {
+            var path = AssetDatabase.FindAssets("_backup_", new[] { BackupDir }).Select(AssetDatabase.GUIDToAssetPath).OrderByDescending(x => x).First();
+            var b = AssetDatabase.LoadAssetAtPath<TerrainData>(path); var d = Terrain.activeTerrain.terrainData;
+            d.SetTreeInstances(new TreeInstance[0], false); d.treePrototypes = b.treePrototypes; d.SetTreeInstances(b.treeInstances, false);
+            EditorUtility.SetDirty(d); Debug.Log($"[ASH] VEG trees restored from {path}: {d.treeInstanceCount} instances, {d.treePrototypes.Length} prototypes (not saved yet).");
         }
 
         static ASHVegetationRecord Record()
@@ -413,7 +489,7 @@ namespace ASH.EditorTools.World
                 }
             }
 
-            void Disc(Vector2 c, float r, bool[] m)
+            public void Disc(Vector2 c, float r, bool[] m)
             {
                 int x0 = Mathf.Max(0, (int)((c.x - r - origin.x) / G)), x1 = Mathf.Min(N - 1, (int)((c.x + r - origin.x) / G));
                 int z0 = Mathf.Max(0, (int)((c.y - r - origin.z) / G)), z1 = Mathf.Min(N - 1, (int)((c.y + r - origin.z) / G));
@@ -450,12 +526,13 @@ namespace ASH.EditorTools.World
         [Serializable] class CreekJson { public CreekLine[] creeks; }
 
         // ------------------------------------------------------------------ trees
-        static void ScatterTrees(Ctx c, List<ASHVegetationSettings.TreeEntry> entries, int protoOffset, List<TreeInstance> outTrees)
+        static string ScatterTrees(Ctx c, List<ASHVegetationSettings.TreeEntry> entries, int protoOffset, List<TreeInstance> outTrees)
         {
             var s = c.s; var rnd = c.rnd;
             float clumpMax = 1f + s.clumping;
             float dMax = Mathf.Max(s.ridgeTrees, s.gullyTrees + s.creekTrees, s.prairieTrees + s.creekTrees * 0.6f) * s.treeDensityScale * clumpMax;
-            if (dMax <= 0f) return;
+            if (dMax <= 0f) return "";
+            int sunk = 0, swapped = 0, skippedSteep = 0; float maxDepth = 0f, sumDepth = 0f;
             float cell = Mathf.Sqrt(10000f / dMax);
             int nx = Mathf.FloorToInt(c.size.x / cell), nz = Mathf.FloorToInt(c.size.z / cell);
             var w = new float[entries.Count];
@@ -476,14 +553,35 @@ namespace ASH.EditorTools.World
                     if (sum <= 0f) continue;
                     float pick = (float)rnd.NextDouble() * sum; int sel = 0;
                     for (; sel < entries.Count - 1; sel++) { pick -= w[sel]; if (pick <= 0f) break; }
+                    // per-prototype max slope: swap to the slope variant (chained), else skip
+                    for (int hop = 0; hop < 3 && slope > entries[sel].maxSlope; hop++)
+                    {
+                        var v = entries[sel].slopeVariant; int vi = v ? entries.FindIndex(x => x.prefab == v) : -1;
+                        if (vi < 0 || vi == sel) break;
+                        if (hop == 0) swapped++; sel = vi;
+                    }
+                    if (slope > entries[sel].maxSlope) { skippedSteep++; continue; }
                     var en = entries[sel]; float sc = Mathf.Lerp(en.minScale, en.maxScale, (float)rnd.NextDouble());
+
+                    // sink = per-degree term + height drop across the (scaled) root footprint, clamped
+                    float tu = (p.x - c.origin.x) / c.size.x, tv = (p.y - c.origin.z) / c.size.z;
+                    float hc = c.d.GetInterpolatedHeight(tu, tv), r = (en.footprintRadius > 0f ? en.footprintRadius : s.footprintRadius) * sc, hmin = hc;
+                    for (int a = 0; a < 8; a++)
+                    {
+                        float ang = a * Mathf.PI * 0.25f;
+                        hmin = Mathf.Min(hmin, c.d.GetInterpolatedHeight((p.x + Mathf.Cos(ang) * r - c.origin.x) / c.size.x, (p.y + Mathf.Sin(ang) * r - c.origin.z) / c.size.z));
+                    }
+                    float depth = Mathf.Clamp(s.sinkPerDegree * slope + s.footprintDropWeight * (hc - hmin), 0f, s.maxSink * sc);
+                    if (depth > 0.05f) { sunk++; sumDepth += depth; maxDepth = Mathf.Max(maxDepth, depth); }
+
                     outTrees.Add(new TreeInstance
                     {
-                        position = new Vector3((p.x - c.origin.x) / c.size.x, 0f, (p.y - c.origin.z) / c.size.z),
+                        position = new Vector3(tu, Mathf.Max(0f, hc - depth) / c.size.y, tv),
                         prototypeIndex = protoOffset + sel, widthScale = sc * Mathf.Lerp(0.9f, 1.1f, (float)rnd.NextDouble()), heightScale = sc,
                         rotation = (float)(rnd.NextDouble() * Math.PI * 2.0), color = Color.Lerp(Color.white, new Color(0.85f, 0.85f, 0.82f), (float)rnd.NextDouble()), lightmapColor = Color.white,
                     });
                 }
+            return $"slope: sunk {sunk} (avg {(sunk > 0 ? sumDepth / sunk : 0f):F2} m, max {maxDepth:F2} m), swapped {swapped}, skipped steep {skippedSteep}";
         }
 
         // ------------------------------------------------------------------ grass

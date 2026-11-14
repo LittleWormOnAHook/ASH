@@ -18,6 +18,14 @@ namespace ASH.DebugTools
             new GameObject("ASH_VegetationCheck").AddComponent<ASHVegetationCheck>();
         }
 
+        /// <summary>Only the steep-slope trunk close-ups (exec ASH.DebugTools.ASHVegetationCheck.RunSteep).</summary>
+        public static void RunSteep()
+        {
+            if (!Application.isPlaying) { Debug.LogWarning("[ASH] VEG check requires Play Mode"); return; }
+            new GameObject("ASH_VegetationCheck").AddComponent<ASHVegetationCheck>()._steepOnly = true;
+        }
+        bool _steepOnly;
+
         [Serializable] class XZ { public float x, z; }
         [Serializable] class Route { public string id; public XZ[] pts; }
         [Serializable] class Layout { public Route[] roads, trails; }
@@ -28,6 +36,7 @@ namespace ASH.DebugTools
         IEnumerator Start()
         {
             Directory.CreateDirectory(Dir); _t = Terrain.activeTerrain;
+            if (_steepOnly) { yield return null; yield return Steep(); Debug.Log("[ASH] VEG steep check done; shots in " + Path.GetFullPath(Dir)); Destroy(gameObject); yield break; }
             var td = _t ? _t.terrainData : null;
             Debug.Log($"[ASH] VEG terrain trees {(td ? td.treeInstanceCount : 0)}, prototypes {(td ? td.treePrototypes.Length : 0)}, detail layers {(td ? td.detailPrototypes.Length : 0)}; treeDist {(_t ? _t.treeDistance : 0)}, billboard {(_t ? _t.treeBillboardDistance : 0)}, detailDist {(_t ? _t.detailObjectDistance : 0)}");
 
@@ -64,6 +73,34 @@ namespace ASH.DebugTools
             Destroy(cam.gameObject);
             Debug.Log("[ASH] VEG check done; shots in " + Path.GetFullPath(Dir));
             Destroy(gameObject);
+        }
+
+        /// <summary>Low trunk-height shots of ASH trees on 26-38 deg slopes (one ridge, one gully), viewed along the contour.</summary>
+        IEnumerator Steep()
+        {
+            var cam = new GameObject("ASH_VegCam").AddComponent<Camera>(); cam.depth = 100; cam.farClipPlane = 1500f; cam.fieldOfView = 55f;
+            var td = _t.terrainData; var size = td.size; var o = _t.GetPosition(); var protos = td.treePrototypes; var inst = td.treeInstances;
+            int shot = 0; float[] bandMin = { 0f, 900f }, bandMax = { 850f, 2050f }; string[] names = { "06_steep_ridge.png", "07_steep_gully.png" };
+            for (int b = 0; b < 2; b++)
+            {
+                int best = -1; float bestScore = 0f;
+                for (int i = 0; i < inst.Length; i += 3)
+                {
+                    var pr = protos[inst[i].prototypeIndex].prefab; if (!pr || pr.name.Contains("Snow") || pr.name.StartsWith("PW_")) continue;
+                    float wx = o.x + inst[i].position.x * size.x; if (wx < bandMin[b] || wx > bandMax[b]) continue;
+                    float sl = td.GetSteepness(inst[i].position.x, inst[i].position.z); if (sl < 26f || sl > 38f) continue;
+                    float score = sl + inst[i].heightScale * 4f; if (score > bestScore) { bestScore = score; best = i; }
+                }
+                if (best < 0) { Debug.Log($"[ASH] VEG no steep ASH tree found in band {b}"); continue; }
+                var ti = inst[best]; var w = Vector3.Scale(ti.position, size) + o;
+                var n = td.GetInterpolatedNormal(ti.position.x, ti.position.z); var contour = Vector3.Cross(n, Vector3.up).normalized;
+                var cpos = Ground(w + contour * 6f) + Vector3.up * 1.1f;
+                cam.transform.position = cpos; cam.transform.LookAt(new Vector3(w.x, Ground(w).y + 0.6f, w.z));
+                Debug.Log($"[ASH] VEG steep shot {names[b]}: {protos[ti.prototypeIndex].prefab.name} slope {td.GetSteepness(ti.position.x, ti.position.z):F0} deg, sunk {Ground(w).y - w.y:F2} m at ({w.x:F0},{w.z:F0})");
+                yield return new WaitForSecondsRealtime(1.2f);
+                ScreenCapture.CaptureScreenshot(Dir + names[b]); yield return null; yield return null; yield return null; shot++;
+            }
+            Destroy(cam.gameObject);
         }
 
         Vector3 Ground(Vector3 p) { if (_t) p.y = _t.SampleHeight(p) + _t.GetPosition().y; return p; }

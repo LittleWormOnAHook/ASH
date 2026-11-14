@@ -1,0 +1,176 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e8cbbd086ba5d5547aa71f6088b17856, type: 3}
+  m_Name: ASH_VegetationSettings
+  m_EditorClassIdentifier: Assembly-CSharp::ASH.World.ASHVegetationSettings
+  trees:
+  - prefab: {fileID: 1215118662403220, guid: e20bb7877bc0b2f4abf5115af4f24b04, type: 3}
+    ridge: 1
+    gully: 0.3
+    prairie: 0
+    creek: 0.3
+    minScale: 0.8
+    maxScale: 1.25
+    maxSlope: 28
+    slopeVariant: {fileID: 1601854496961328, guid: caea32e62fcc7ec4cbe028e4d6fae967, type: 3}
+    footprintRadius: 1.2
+  - prefab: {fileID: 1268013635547018, guid: e84c65e80a840e24581a78d8e6b77d3f, type: 3}
+    ridge: 1
+    gully: 0.3
+    prairie: 0
+    creek: 0.3
+    minScale: 0.8
+    maxScale: 1.25
+    maxSlope: 28
+    slopeVariant: {fileID: 1601854496961328, guid: caea32e62fcc7ec4cbe028e4d6fae967, type: 3}
+    footprintRadius: 1.2
+  - prefab: {fileID: 1759527095229760, guid: edbe4661ee778bc4f9c9a65b7f89b82b, type: 3}
+    ridge: 0.5
+    gully: 0.8
+    prairie: 0.3
+    creek: 1
+    minScale: 0.7
+    maxScale: 1.2
+    maxSlope: 28
+    slopeVariant: {fileID: 1601854496961328, guid: caea32e62fcc7ec4cbe028e4d6fae967, type: 3}
+    footprintRadius: 1
+  - prefab: {fileID: 1601854496961328, guid: caea32e62fcc7ec4cbe028e4d6fae967, type: 3}
+    ridge: 0.35
+    gully: 0.6
+    prairie: 0.4
+    creek: 0.7
+    minScale: 0.7
+    maxScale: 1.3
+    maxSlope: 34
+    slopeVariant: {fileID: 1442081961505338, guid: b2f31eb4ad4fd4443b0e13feabd14de4, type: 3}
+    footprintRadius: 0.7
+  - prefab: {fileID: 1492687703916904, guid: b109e9c5ed7fa2948babb88daa9901c9, type: 3}
+    ridge: 0.1
+    gully: 0.4
+    prairie: 1
+    creek: 0.3
+    minScale: 0.8
+    maxScale: 1.2
+    maxSlope: 25
+    slopeVariant: {fileID: 1601854496961328, guid: caea32e62fcc7ec4cbe028e4d6fae967, type: 3}
+    footprintRadius: 1.4
+  - prefab: {fileID: 1442081961505338, guid: b2f31eb4ad4fd4443b0e13feabd14de4, type: 3}
+    ridge: 0.3
+    gully: 0.25
+    prairie: 0.3
+    creek: 0.1
+    minScale: 0.8
+    maxScale: 1.2
+    maxSlope: 40
+    slopeVariant: {fileID: 0}
+    footprintRadius: 0.6
+  grass:
+  - texture: {fileID: 2800000, guid: 46ad76c3c26bc3f48b5934295ba16a23, type: 3}
+    mesh: {fileID: 0}
+    minWidth: 0.9
+    maxWidth: 1.6
+    minHeight: 0.5
+    maxHeight: 0.9
+    healthy: {r: 0.74, g: 0.69, b: 0.55, a: 1}
+    dry: {r: 0.6, g: 0.58, b: 0.52, a: 1}
+    ridge: 0.3
+    gully: 0.6
+    prairie: 1
+    creek: 0.2
+  - texture: {fileID: 2800000, guid: 4319b95c972dded42a37018c1f5cce6f, type: 3}
+    mesh: {fileID: 0}
+    minWidth: 0.9
+    maxWidth: 1.5
+    minHeight: 0.55
+    maxHeight: 1
+    healthy: {r: 0.8, g: 0.71, b: 0.5, a: 1}
+    dry: {r: 0.62, g: 0.55, b: 0.42, a: 1}
+    ridge: 0.1
+    gully: 0.4
+    prairie: 0.7
+    creek: 0.1
+  - texture: {fileID: 2800000, guid: 28a81d6130c629442ba1b8c4aad5f958, type: 3}
+    mesh: {fileID: 0}
+    minWidth: 1
+    maxWidth: 1.8
+    minHeight: 0.8
+    maxHeight: 1.4
+    healthy: {r: 0.8, g: 0.71, b: 0.5, a: 1}
+    dry: {r: 0.6, g: 0.58, b: 0.52, a: 1}
+    ridge: 0.4
+    gully: 0.8
+    prairie: 0.2
+    creek: 0.8
+  - texture: {fileID: 2800000, guid: 9c39afa5defb16d469e8c1a5084299d6, type: 3}
+    mesh: {fileID: 0}
+    minWidth: 0.9
+    maxWidth: 1.5
+    minHeight: 0.5
+    maxHeight: 0.9
+    healthy: {r: 0.6, g: 0.58, b: 0.52, a: 1}
+    dry: {r: 0.62, g: 0.55, b: 0.42, a: 1}
+    ridge: 0.6
+    gully: 0.3
+    prairie: 0.1
+    creek: 0.2
+  - texture: {fileID: 2800000, guid: fe3961cad6bdbaa4fa77fe37eb4e90f3, type: 3}
+    mesh: {fileID: 0}
+    minWidth: 0.8
+    maxWidth: 1.3
+    minHeight: 1.1
+    maxHeight: 1.8
+    healthy: {r: 0.8, g: 0.71, b: 0.5, a: 1}
+    dry: {r: 0.62, g: 0.55, b: 0.42, a: 1}
+    ridge: 0
+    gully: 0.05
+    prairie: 0
+    creek: 1.2
+  ridgeToGully: 850
+  gullyToPrairie: 2050
+  boundaryWarp: 450
+  ridgeTrees: 70
+  gullyTrees: 6
+  creekTrees: 55
+  prairieTrees: 0.4
+  creekBand: 45
+  clumping: 0.65
+  maxTreeSlope: 38
+  treeDensityScale: 1
+  sinkPerDegree: 0.03
+  footprintDropWeight: 1
+  footprintRadius: 0.9
+  maxSink: 2.5
+  grassDensity: 12
+  maxGrassSlope: 40
+  rockReduction: 0.85
+  roadHalfWidth: 3.5
+  trailHalfWidth: 1.1
+  roadEdgeClearTrees: 6
+  trailClearTrees: 4
+  routeSplatBand: 12
+  routeSplatThreshold: 0.3
+  routeGrassFade: 2.5
+  grassOnRoute: 0.04
+  poiClearTrees: 28
+  poiClearGrass: 6
+  cabinClearTrees: 25
+  cabinClearGrass: 3
+  spawnClearTrees: 15
+  pickupClearTrees: 4
+  pickupClearGrass: 1
+  treeDistance: 1500
+  billboardStart: 150
+  treeCrossFade: 30
+  maxFullLodTrees: 120
+  detailDistance: 130
+  detailObjectDensity: 1
+  seed: 1337
