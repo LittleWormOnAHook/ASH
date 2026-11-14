@@ -50,6 +50,7 @@ namespace ASH.UI
         readonly List<SlotUI> _slots = new List<SlotUI>();
         readonly List<(Text text, float until)> _toasts = new List<(Text, float)>();
         float _deathTimer;
+        ASHEquipment _equip;
 
         sealed class Bar { public RectTransform fill; public Image fillImg; public Text label; public Color color; }
         sealed class SlotUI { public int index; public RectTransform rt; public Button button; public Image bg, icon, strip; public Text abbr, count, key; public float pulse; }
@@ -64,6 +65,7 @@ namespace ASH.UI
         void Awake()
         {
             if (gps == null) gps = FindAnyObjectByType<ASHGpsMap>();
+            _equip = inventory ? inventory.GetComponent<ASHEquipment>() : null; if (!_equip) _equip = FindAnyObjectByType<ASHEquipment>();
             _font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             Build();
         }
@@ -75,6 +77,7 @@ namespace ASH.UI
             if (gps) gps.SurveyLogged += OnSurvey;
             if (objective) { objective.Message += Toast; }
             if (stats) { stats.Died += OnDied; stats.Consumed += OnConsumed; }
+            if (_equip) _equip.Message += Toast;
         }
 
         void OnDisable()
@@ -84,6 +87,7 @@ namespace ASH.UI
             if (gps) gps.SurveyLogged -= OnSurvey;
             if (objective) { objective.Message -= Toast; }
             if (stats) { stats.Died -= OnDied; stats.Consumed -= OnConsumed; }
+            if (_equip) _equip.Message -= Toast;
         }
 
         void OnItemAdded(ASHItemDefinition i, int n) { Toast($"+{n} {i.displayName}"); PulseItem(i); }
@@ -235,7 +239,7 @@ namespace ASH.UI
 #endif
             });
             Label("Controls", rt, new Vector2(0.5f, 0), new Vector2(0, 90), new Vector2(1500, 80), 19, TextAnchor.MiddleCenter, Dim).text =
-                "WASD move   Mouse look   Shift sprint   Space jump   Ctrl/C crouch   CapsLock walk   E interact (hold to gather)   Tab pack   J journal   Q crafting   M GPS map   Esc pause";
+                "WASD move   Mouse look   Shift sprint   Space jump   Ctrl/C crouch   CapsLock walk   E interact (hold to gather)   L light   LMB use held item   Tab pack   J journal   Q crafting   M GPS map   Esc pause";
             _pausePanel.SetActive(false);
         }
 
@@ -476,6 +480,8 @@ namespace ASH.UI
                 if (placer.IsPlacing) placer.Cancel();
                 SetInv(false); SetCraft(false); placer.Begin(item); return true;
             }
+            if (item.IsEquippable && _equip) { _equip.ToggleEquip(item); return true; }
+            if (_equip && _equip.TryRefuelWith(item)) return true;
             if (item.CanBreakDown) { Toast($"{item.displayName}: break it down with [B] in the pack or from the journal."); return false; }
             if (item.toolType != ASHToolType.None) { Toast($"{item.displayName}: used automatically when you harvest, cut or open things."); return false; }
             Toast($"{item.displayName}: crafting material. Press [{(input ? input.BindingLabel("Craft") : "Q")}] for the journal.");

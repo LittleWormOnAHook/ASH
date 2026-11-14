@@ -67,7 +67,7 @@ namespace ASH.EditorTools.Build
                 D("Whiskey", "Whiskey", ASHItemCategory.Consumable, "Half a bottle. Antiseptic in a pinch, or a moment of warmth.", new Color(0.65f, 0.4f, 0.15f), Shape.Cyl, new Vector3(0.08f, 0.13f, 0.08f), 3, "Drink", it => { Restore(it, 0, 3, 0); it.restoreStamina = 15; }),
                 D("Painkillers", "Painkillers", ASHItemCategory.Medical, "A few pills rattling in a bottle.", new Color(0.9f, 0.85f, 0.7f), Shape.Cyl, new Vector3(0.05f, 0.05f, 0.05f), 10, "Take", it => Restore(it, 0, 0, 10)),
                 // tools (no combat use)
-                D("Hatchet", "Hatchet", ASHItemCategory.Tool, HatchetDesc, new Color(0.55f, 0.5f, 0.45f), Shape.Box, new Vector3(0.08f, 0.04f, 0.38f), 1, "Use", it => it.toolType = ASHToolType.Axe),
+                D("Hatchet", "Hatchet", ASHItemCategory.Tool, HatchetDesc, new Color(0.55f, 0.5f, 0.45f), Shape.Box, new Vector3(0.08f, 0.04f, 0.38f), 1, "Use", it => { it.toolType = ASHToolType.Axe; it.equipSlot = ASHEquipSlot.MainHand; }),
                 D("HuntingKnife", "Hunting Knife", ASHItemCategory.Tool, "Cuts cloth into strips, harvests meat, opens cans.", new Color(0.6f, 0.6f, 0.62f), Shape.Box, new Vector3(0.04f, 0.03f, 0.3f), 1, "Use", it => it.toolType = ASHToolType.Knife),
                 D("CanOpener", "Can Opener", ASHItemCategory.Tool, "Opens cans cleanly and keeps the tin.", new Color(0.65f, 0.65f, 0.6f), Shape.Box, new Vector3(0.05f, 0.02f, 0.14f), 1, "Use", it => it.toolType = ASHToolType.CanOpener),
                 D("ImprovisedKnife", "Improvised Knife", ASHItemCategory.Tool, "Scrap blade wrapped in cloth. Works as a knife.", new Color(0.5f, 0.5f, 0.48f), Shape.Box, new Vector3(0.04f, 0.03f, 0.24f), 1, "Use", it => it.toolType = ASHToolType.Knife, pickup: false),
@@ -90,6 +90,7 @@ namespace ASH.EditorTools.Build
                 D("FanBelt", "Fan Belt (optional)", ASHItemCategory.Key, "Optional truck content: undecided.", new Color(0.18f, 0.16f, 0.14f), Shape.Cyl, new Vector3(0.2f, 0.01f, 0.2f), 2, pickup: false, dir: TruckDir),
             };
             defs.AddRange(WoodDefs());
+            defs.AddRange(PackDefs());
 
             // pass 1: create assets so cross references resolve; pass 2: configure
             foreach (var d in defs) ASHBuildUtil.Asset<ASHItemDefinition>($"{d.dir}/ASH_Item_{d.file}.asset");
@@ -102,6 +103,7 @@ namespace ASH.EditorTools.Build
             HookExistingPrefabs();
             WirePlayer(recipes);
             ASHBuildUtil.SaveOwn();
+            ASH.EditorTools.World.ASHSurvivalPackTools.ApplyAfterCatalog();
             Debug.Log($"[ASH] Item catalog: {defs.Count} items, {recipes.Count} recipes, pickups in {PickupDir}");
         }
 
@@ -142,6 +144,12 @@ namespace ASH.EditorTools.Build
             foreach (var d in defs) ConfigureDef(d);
             var hatchet = I("Hatchet"); if (hatchet) { hatchet.description = HatchetDesc; EditorUtility.SetDirty(hatchet); }
             var recipes = WoodRecipes();
+            AppendRecipesToPlayer(recipes);
+            return recipes;
+        }
+/// <summary>Appends recipes to the player's crafting list (prefab + scene player) without touching the others.</summary>
+        public static void AppendRecipesToPlayer(List<ASHRecipe> recipes)
+        {
             void Append(GameObject go)
             {
                 var craft = go ? go.GetComponent<ASHCrafting>() : null; if (!craft) return;
@@ -156,8 +164,58 @@ namespace ASH.EditorTools.Build
             EditPrefab(ASHPlayerBuilder.PrefabPath, Append);
             var pl = GameObject.Find("ASH_Player"); if (pl) { Append(pl); UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(pl.scene); }
             ASHBuildUtil.SaveOwn();
+        }
+
+        // ------------------------------------------------------------------ HQ Survival Pack items (weapons, lights, supplies)
+        static List<Def> PackDefs()
+        {
+            var gun = new Color(0.3f, 0.28f, 0.26f); var brass = new Color(0.75f, 0.6f, 0.3f);
+            return new List<Def>
+            {
+                D("HuntingRifle", "Hunting Rifle", ASHItemCategory.Weapon, "Bolt-action .30-06 with a worn scope. Loud, heavy, and rounds are scarce. [hold: hotbar or cross bar, LMB fires]", gun, Shape.Box, new Vector3(0.08f, 0.08f, 1.1f), 1, "Hold"),
+                D("Pistol", "Pistol", ASHItemCategory.Weapon, "A scuffed 9mm semi-auto. [hold: hotbar or cross bar, LMB fires]", gun, Shape.Box, new Vector3(0.04f, 0.13f, 0.2f), 1, "Hold"),
+                D("WoodenBow", "Wooden Bow", ASHItemCategory.Weapon, "Self bow of seasoned ash wood. Quiet; arrows can be made. [hold: hotbar or cross bar, LMB shoots]", new Color(0.5f, 0.36f, 0.22f), Shape.Box, new Vector3(0.05f, 1.2f, 0.12f), 1, "Hold"),
+                D("RifleRounds", ".30-06 Rounds", ASHItemCategory.Ammo, "Hunting rifle cartridges.", brass, Shape.Box, new Vector3(0.1f, 0.05f, 0.07f), 20),
+                D("PistolRounds", "9mm Rounds", ASHItemCategory.Ammo, "Pistol cartridges.", brass, Shape.Box, new Vector3(0.08f, 0.04f, 0.06f), 30),
+                D("WoodenArrow", "Wooden Arrow", ASHItemCategory.Ammo, "Straight shaft, scrap-metal head, fiber-bound.", new Color(0.6f, 0.48f, 0.3f), Shape.Box, new Vector3(0.02f, 0.02f, 0.7f), 20),
+                D("Lantern", "Oil Lantern", ASHItemCategory.Light, "Hangs from your left hip. Burns rubbing alcohol. Toggle with [L]; refill by using rubbing alcohol (it tops itself up from the pack when it runs dry).", new Color(0.4f, 0.35f, 0.25f), Shape.Cyl, new Vector3(0.14f, 0.15f, 0.14f), 1, "Hold"),
+                D("Torch", "Torch", ASHItemCategory.Light, "Cloth soaked in alcohol, wrapped on a stick. Held high in the left hand; hold [RMB] to raise it toward where you look. Burns about five minutes. Toggle with [L].", new Color(0.45f, 0.32f, 0.2f), Shape.Box, new Vector3(0.05f, 0.05f, 0.6f), 3, "Hold"),
+                D("Flashlight", "Flashlight", ASHItemCategory.Light, "Left hand; hold [RMB] to aim the beam where you look. Runs on batteries. Toggle with [L].", new Color(0.2f, 0.2f, 0.22f), Shape.Cyl, new Vector3(0.05f, 0.12f, 0.05f), 1, "Hold"),
+                D("Battery", "Battery", ASHItemCategory.Resource, "A D-cell with some charge left. Powers the flashlight.", new Color(0.3f, 0.3f, 0.25f), Shape.Cyl, new Vector3(0.04f, 0.04f, 0.04f), 10),
+                D("Rope", "Rope", ASHItemCategory.Resource, "Twisted plant fiber cordage.", new Color(0.62f, 0.55f, 0.38f), Shape.Cyl, new Vector3(0.18f, 0.04f, 0.18f), 10),
+                D("FirstAidKit", "First Aid Kit", ASHItemCategory.Medical, "Gauze, tape and antiseptic wipes. Restores a lot of health.", new Color(0.75f, 0.2f, 0.18f), Shape.Box, new Vector3(0.25f, 0.1f, 0.18f), 3, "Apply", it => Restore(it, 0, 0, 45)),
+                D("EnergyBar", "Energy Bar", ASHItemCategory.Consumable, "Dense, sweet, a little stale.", new Color(0.7f, 0.55f, 0.3f), Shape.Box, new Vector3(0.12f, 0.02f, 0.04f), 10, "Eat", it => { Restore(it, 22, 0, 0); it.restoreStamina = 10; }),
+                D("SodaCan", "Can of Soda", ASHItemCategory.Consumable, "Warm and flat. Sugar and water. Keep the can.", new Color(0.7f, 0.2f, 0.2f), Shape.Cyl, new Vector3(0.07f, 0.06f, 0.07f), 6, "Drink", it => { Restore(it, 6, 14, 0); it.leftoverItem = I("EmptyTin"); }),
+                D("BottledWater", "Bottled Water", ASHItemCategory.Consumable, "Sealed. Safe to drink.", new Color(0.55f, 0.7f, 0.8f), Shape.Cyl, new Vector3(0.07f, 0.12f, 0.07f), 5, "Drink", it => Restore(it, 0, 30, 0)),
+            };
+        }
+
+        static List<ASHRecipe> PackRecipes()
+        {
+            var deadwood = ASHContentBuilder.LoadItem("ASH_Item_Deadwood");
+            return new List<ASHRecipe>
+            {
+                R("Torch", "Torch", ASHRecipeCategory.Tools, "Wrap alcohol-soaked cloth around a branch. Burns about five minutes.", I("Torch"), 1, 2f, ASHToolType.None, ASHCraftStation.Anywhere, new ASHRecipeIngredient { item = deadwood, amount = 1 }, G("Cloth", 1), G("RubbingAlcohol", 1)),
+                R("TorchKindling", "Torch (kindling)", ASHRecipeCategory.Tools, "Bind kindling into a handle instead of a branch.", I("Torch"), 1, 2.5f, ASHToolType.None, ASHCraftStation.Anywhere, G("Kindling", 2), G("Cloth", 1), G("RubbingAlcohol", 1)),
+                R("Rope", "Rope", ASHRecipeCategory.Materials, "Twist plant fiber into cordage.", I("Rope"), 1, 4f, ASHToolType.None, ASHCraftStation.Anywhere, G("PlantFiber", 4)),
+                R("WoodenArrows", "Wooden Arrows", ASHRecipeCategory.Tools, "Whittle shafts from kindling, scrap heads, fiber bindings.", I("WoodenArrow"), 3, 6f, ASHToolType.Knife, ASHCraftStation.Anywhere, G("Kindling", 2), G("ScrapMetal", 1), G("PlantFiber", 1)),
+                R("WoodenBow", "Wooden Bow", ASHRecipeCategory.Tools, "Carve a bow stave from split firewood and string it with rope.", I("WoodenBow"), 1, 10f, ASHToolType.Knife, ASHCraftStation.Anywhere, G("Firewood", 2), G("Rope", 1)),
+            };
+        }
+
+        /// <summary>Creates/updates only the HQ Survival Pack items + recipes and appends the recipes to the player.</summary>
+        public static List<ASHRecipe> BuildPackContent()
+        {
+            var defs = PackDefs();
+            foreach (var d in defs) ASHBuildUtil.Asset<ASHItemDefinition>($"{d.dir}/ASH_Item_{d.file}.asset");
+            ASHBuildUtil.SaveOwn();
+            foreach (var d in defs) ConfigureDef(d);
+            var recipes = PackRecipes();
+            AppendRecipesToPlayer(recipes);
             return recipes;
         }
+        public static readonly string[] PackItemFiles = { "HuntingRifle", "Pistol", "WoodenBow", "RifleRounds", "PistolRounds", "WoodenArrow", "Lantern", "Torch", "Flashlight", "Battery", "Rope", "FirstAidKit", "EnergyBar", "SodaCan", "BottledWater" };
+
         const string HatchetDesc = "Fells dead trees and chops logs and stumps into firewood and kindling. Splits deadwood faster; breaks down crates and furniture. Opens cans.";
 
         static void Restore(ASHItemDefinition it, float hunger, float thirst, float health) { it.restoreHunger = hunger; it.restoreThirst = thirst; it.restoreHealth = health; it.restoreStamina = 0; }
@@ -189,6 +247,7 @@ namespace ASH.EditorTools.Build
             list.Add(R("ClothFromShirt", "Cut Cloth Strips", ASHRecipeCategory.Materials, "Cut an old shirt into clean strips.", I("Cloth"), 3, 3f, ASHToolType.Knife, ASHCraftStation.Anywhere, G("OldShirt", 1)));
             list.Add(R("FlattenTins", "Flatten Tins", ASHRecipeCategory.Materials, "Hammer empty tins flat for scrap.", I("ScrapMetal"), 1, 2f, ASHToolType.None, ASHCraftStation.Anywhere, G("EmptyTin", 2)));
             list.AddRange(WoodRecipes());
+            list.AddRange(PackRecipes());
             return list;
         }
 

@@ -37,3 +37,12 @@ MonoBehaviour:
   placeablePrefab: {fileID: 0}
   placementFootprint: {x: 1.4, y: 0.6, z: 1.4}
   maxPlacementSlope: 22
+  equipSlot: 1
+  heldPrefab: {fileID: 8218398976768021537, guid: 671220c964b6dcd4c885444146844f44, type: 3}
+  holdPosition: {x: 0, y: 0, z: 0}
+  holdEuler: {x: 0, y: 0, z: 0}
+  gripStyle: 0
+  ammoItem: {fileID: 0}
+  fuelItem: {fileID: 0}
+  fuelSecondsPerUnit: 480
+  fuelCapacityUnits: 2

@@ -19,6 +19,7 @@ namespace ASH.EditorTools.Build
             ("ASH_Item_Deadwood", ASHContentBuilder.Root + "/Prefabs/Pickups/ASH_Deadwood_Branches02.prefab", 20f),
             ("ASH_Item_Firewood", ASHContentBuilder.Root + "/Prefabs/Harvest/ASH_Harvest_Log.prefab", 30f),
             ("ASH_Item_Kindling", ASHContentBuilder.Root + "/Prefabs/Pickups/ASH_Deadwood_Branches03.prefab", 55f),
+            ("ASH_Item_PlantFiber", ASHContentBuilder.Root + "/Prefabs/Pickups/ASH_Fiber_GrassGroup01.prefab", 25f),
             ("ASH_Item_Stone", "ASH_StonePile", -30f),
             ("ASH_Item_Chokecherries", "ASH_ChokecherryBush", 15f),
             ("ASH_Item_Campfire", "ASH_Campfire", 0f),
@@ -32,6 +33,9 @@ namespace ASH.EditorTools.Build
         {
             ASHBuildUtil.Folder(IconDir);
             int n = 0;
+            var savedLayers = Shader.GetGlobalVector("_ASH_Layers");
+            Shader.SetGlobalVector("_ASH_Layers", Vector4.zero); // clean icons: no ash/snow on foliage or rock materials
+            try {
             foreach (var (itemFile, prefabName, yaw) in Map)
             {
                 if (only != null && !only.Contains(itemFile)) continue;
@@ -59,6 +63,7 @@ namespace ASH.EditorTools.Build
                 if (!Bake(prefab, icon, 256, 35f)) { Debug.LogWarning("[ASH] Icon bake failed for " + file); continue; }
                 item.icon = AssetDatabase.LoadAssetAtPath<Sprite>(icon); EditorUtility.SetDirty(item); n++;
             }
+            } finally { Shader.SetGlobalVector("_ASH_Layers", savedLayers); }
             ASHBuildUtil.SaveOwn();
             Debug.Log($"[ASH] Baked {n} item icons into {IconDir}");
         }

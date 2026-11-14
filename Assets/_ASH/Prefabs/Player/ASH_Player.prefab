@@ -2284,6 +2284,8 @@ GameObject:
   - component: {fileID: 2531899541619058743}
   - component: {fileID: 4938709065564971861}
   - component: {fileID: 3850891075124291470}
+  - component: {fileID: 6668548555085997950}
+  - component: {fileID: 440507360124500524}
   m_Layer: 13
   m_Name: ASH_Player
   m_TagString: Player
@@ -3080,6 +3082,7 @@ MonoBehaviour:
   SimJournal: 0
   SimMap: 0
   SimBreakDown: 0
+  SimLight: 0
 --- !u!114 &3206216333396108928
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3178,6 +3181,11 @@ MonoBehaviour:
   - {fileID: 11400000, guid: c5fa66851d1b30f4b89f68e9054fc51b, type: 2}
   - {fileID: 11400000, guid: cf3fe87b129f4f44086db8db654253f2, type: 2}
   - {fileID: 11400000, guid: 9f9da71f035e6c24fb7495fc0473eaf9, type: 2}
+  - {fileID: 11400000, guid: 8d2175ff244b4f54bb1c363b3ad8775e, type: 2}
+  - {fileID: 11400000, guid: 92c12c374cb42cf428aabce59632dfe9, type: 2}
+  - {fileID: 11400000, guid: 175d1959d24317743b87ba6da11c0d39, type: 2}
+  - {fileID: 11400000, guid: fcebbcf4030a3cf4baa05093b70a89e3, type: 2}
+  - {fileID: 11400000, guid: 7414b72c4f456bc4bb20668dacf6dadb, type: 2}
   stationRange: 4
 --- !u!114 &8144788992435636934
 MonoBehaviour:
@@ -3342,6 +3350,52 @@ MonoBehaviour:
   mobileProfile: {fileID: 11400000, guid: 7dc7a73aaa8df324ab43fd96d0ec659e, type: 2}
   priority: 10
   stackEnabled: 1
+--- !u!114 &6668548555085997950
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7505149521301787542}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c19921fe5cef62c49b62bab4f442f29e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ASH.Gameplay.ASHEquipment
+  inventory: {fileID: 0}
+  input: {fileID: 0}
+  animator: {fileID: 0}
+  muzzleFlashSeconds: 0.06
+  hipOffset: {x: -0.19, y: -0.06, z: 0.03}
+  hipScale: 0.6
+  swingStiffness: 45
+  swingDamping: 5
+  swingResponse: 0.035
+  swingMaxAngle: 35
+--- !u!114 &440507360124500524
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7505149521301787542}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cbbed7a176e885d498245e7f12d422de, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ASH.Gameplay.ASHLightAim
+  aimWithTorch: 1
+  aimWithFlashlight: 1
+  aimRotationSpeed: 16
+  torchRaisedWeight: 0.9
+  aimWeight: 1
+  ikBlendSpeed: 6
+  torchRaisedOffset: {x: -0.1, y: 0.38, z: 0.2}
+  aimReach: 0.55
+  aimRaise: 0.05
+  elbowHintOffset: {x: -0.35, y: -0.2, z: -0.15}
+  torchAimTilt: 0.35
+  itemAlignWeight: 1
 --- !u!1 &7766869945464538650
 GameObject:
   m_ObjectHideFlags: 0

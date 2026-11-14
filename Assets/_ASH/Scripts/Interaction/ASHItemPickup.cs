@@ -11,6 +11,8 @@ namespace ASH.Interaction
 
         public Transform UseTransform => transform;
         public void Configure(ASHItemDefinition def, int count) { item = def; amount = count; }
+        public ASHItemDefinition Item => item;
+        public int Amount => amount;
 
         public float GetUsePriority(in ASHUseContext c) => item == null ? -1f : 60f;
         public float GetHoldDuration(in ASHUseContext c) => 0f;

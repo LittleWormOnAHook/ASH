@@ -20,7 +20,7 @@ namespace ASH.Player
         [Range(0.1f, 10f)] [SerializeField] private float gamepadLookSpeed = 2.2f;
         [SerializeField] private bool invertY;
 
-        private InputAction _journal, _map, _breakDown;
+        private InputAction _journal, _map, _breakDown, _lightToggle;
         private InputAction _move, _look, _jump, _sprint, _crouch, _walk, _interact, _inventory, _craft, _pause, _primary, _secondary, _zoom;
 
         // Automated test overrides (ASH editor play tests). Null = use real input.
@@ -46,7 +46,7 @@ namespace ASH.Player
             _primary = map.FindAction("Primary", true);
             _secondary = map.FindAction("Secondary", true);
             _zoom = map.FindAction("Zoom", true);
-            _journal = map.FindAction("Journal", false); _map = map.FindAction("Map", false); _breakDown = map.FindAction("BreakDown", false);
+            _journal = map.FindAction("Journal", false); _map = map.FindAction("Map", false); _breakDown = map.FindAction("BreakDown", false); _lightToggle = map.FindAction("Light", false);
         }
 
         private void OnEnable() { if (actions != null) actions.Enable(); }
@@ -81,6 +81,9 @@ namespace ASH.Player
         public bool PausePressed => _pause.WasPressedThisFrame();
         public bool PrimaryPressed => Consume(ref SimPrimary) || _primary.WasPressedThisFrame();
         public bool SecondaryPressed => Consume(ref SimSecondary) || _secondary.WasPressedThisFrame();
+        public bool? SimSecondaryHeld;
+        /// <summary>Held Secondary (RMB): aim a torch/flashlight.</summary>
+        public bool SecondaryHeld => SimSecondaryHeld ?? (!GameplayBlocked && _secondary.IsPressed());
         /// <summary>Index of a hotbar key (1..9 -> 0..8) pressed this frame, or -1.</summary>
         public int HotbarPressed
         {
@@ -92,7 +95,9 @@ namespace ASH.Player
                 return -1;
             }
         }
-        public bool SimJournal, SimMap, SimBreakDown;
+        public bool SimJournal, SimMap, SimBreakDown, SimLight;
+        /// <summary>Toggle the held light (lantern/torch/flashlight). L by default.</summary>
+        public bool LightPressed => Consume(ref SimLight) || (!GameplayBlocked && KeyHit(_lightToggle, UnityEngine.InputSystem.Key.L));
         public bool JournalPressed => Consume(ref SimJournal) || KeyHit(_journal, UnityEngine.InputSystem.Key.J);
         public bool MapPressed => Consume(ref SimMap) || KeyHit(_map, UnityEngine.InputSystem.Key.M);
         public bool BreakDownPressed => Consume(ref SimBreakDown) || KeyHit(_breakDown, UnityEngine.InputSystem.Key.B);
@@ -136,6 +141,7 @@ namespace ASH.Player
             map.AddAction("Journal", InputActionType.Button, "<Keyboard>/j").AddBinding("<Gamepad>/select");
             map.AddAction("Map", InputActionType.Button, "<Keyboard>/m").AddBinding("<Gamepad>/dpad/right");
             map.AddAction("BreakDown", InputActionType.Button, "<Keyboard>/b");
+            map.AddAction("Light", InputActionType.Button, "<Keyboard>/l");
             map.AddAction("Primary", InputActionType.Button, "<Mouse>/leftButton").AddBinding("<Gamepad>/rightTrigger");
             map.AddAction("Secondary", InputActionType.Button, "<Mouse>/rightButton").AddBinding("<Gamepad>/buttonEast");
             var zoom = map.AddAction("Zoom", InputActionType.Value, expectedControlLayout: "Vector2"); zoom.AddBinding("<Mouse>/scroll");

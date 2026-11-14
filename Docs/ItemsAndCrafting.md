@@ -1,6 +1,6 @@
 # ASH Items and Crafting
 
-_2026-11-14 (ET). All data are ScriptableObjects built by `ASH/Build/6. Item Catalog` (`Assets/_ASH/Editor/Build/ASHItemCatalog.cs`, table-driven and safe to re-run; GUIDs kept). Items: `Assets/_ASH/Data/Items`. Recipes: `Assets/_ASH/Data/Recipes`. Pickup prefabs (placeholder primitives): `Assets/_ASH/Prefabs/Pickups`. Numbers are first-pass placeholders, tunable on each asset._
+_2026-11-14 (ET). All data are ScriptableObjects built by `ASH/Build/6. Item Catalog` (`Assets/_ASH/Editor/Build/ASHItemCatalog.cs`, table-driven and safe to re-run; GUIDs kept). Items: `Assets/_ASH/Data/Items`. Recipes: `Assets/_ASH/Data/Recipes`. Pickup prefabs: `Assets/_ASH/Prefabs/Pickups` (HQ Survival Pack visuals, see Survival Pack below; ammo stays primitive, the pack has no ammo models). Numbers are first-pass placeholders, tunable on each asset._
 
 **Default play is on foot only.** Nothing depends on a vehicle.
 
@@ -16,7 +16,9 @@ _2026-11-14 (ET). All data are ScriptableObjects built by `ASH/Build/6. Item Cat
 | Scrap Metal | Break down Empty Tin; Flatten Tins; crate bonus (50%) | Improvised Knife |
 | Empty Tin Can | Left over after opening a can cleanly; drinking a tin of water | Fill at the stock tank (→ Tin of Creek Water); scrap |
 | Reclaimed Wood | Crates (2–3) and broken chairs (1–2); **hatchet required** | Campfire (planks) |
-| Rubbing Alcohol | Pickups (camp, ranger roof, caches) | Antiseptic Bandage, Campfire (alcohol start) |
+| Rubbing Alcohol | Pickups (camp, ranger roof, caches) | Antiseptic Bandage, Campfire (alcohol start), Torch, lantern fuel |
+| Rope | Craft (4 Plant Fiber); pickups | Wooden Bow |
+| Battery | Pickups (knife lookout, caches) | Flashlight power (20 min each) |
 
 ## Food and water (hunger / thirst / health restored)
 | Item | Restores | Notes |
@@ -32,6 +34,9 @@ _2026-11-14 (ET). All data are ScriptableObjects built by `ASH/Build/6. Item Cat
 | Tin of Creek Water | 0 / 15 / −2 | Fill an Empty Tin at the stock tank (when not thirsty) |
 | Tin of Boiled Water | 0 / 28 / 0 | Boil Water at a campfire; returns the tin |
 | Whiskey | 0 / 3 / 0, +15 stamina | Also antiseptic |
+| Energy Bar | 22 / 0 / 0, +10 stamina | Pickups |
+| Soda Can | 6 / 14 / 0 | Leaves an Empty Tin |
+| Bottled Water | 0 / 30 / 0 | Pickups |
 
 ## Medical
 | Item | Restores health | Recipe |
@@ -40,15 +45,39 @@ _2026-11-14 (ET). All data are ScriptableObjects built by `ASH/Build/6. Item Cat
 | Fiber Bandage | 8 | 3 Plant Fiber |
 | Antiseptic Bandage | 30 | Bandage + Rubbing Alcohol, or Bandage + Whiskey |
 | Painkillers | 10 | Found (radio hut roof) |
+| First Aid Kit | 45 | Found (supply caches) |
 
 ## Tools (no combat use)
 | Item | Tool role | Effect |
 |---|---|---|
-| Hatchet | Axe | Carried in the pack = equipped. Fells dead trees, chops logs and stumps; required for crates/furniture. Deadwood 2× yield at half the hold. Opens cans |
+| Hatchet | Axe | Carried in the pack = works as a tool (Pass B cross bar may tighten this). Use it from the hotbar to hold it in the right hand. Fells dead trees, chops logs and stumps; required for crates/furniture. Deadwood 2× yield at half the hold. Opens cans |
 | Hunting Knife | Knife | Required to harvest a rabbit and for Cut Cloth Strips. Better shirt/trout yields. Opens cans |
 | Improvised Knife | Knife | Craft: 2 Scrap Metal + 1 Cloth + 1 Stone |
 | Can Opener | CanOpener | Opens cans cleanly |
 | Damaged GPS | GPS | Starting item. Opens the map (M or hotbar). Needed to log survey points |
+
+## Weapons, ammo and lights (equip from the hotbar: 1–9 toggles hold)
+`ASHEquipment` on the player (`Assets/_ASH/Scripts/Gameplay`): three slots. **Main** = right hand (weapons, hatchet). **Off** = left hand (torch, flashlight). **Hip** = left hip (lantern). Using ammo or fuel from the hotbar loads/refuels instead.
+| Item | Slot | Use |
+|---|---|---|
+| Hunting Rifle | Main | LMB: fires one .30-06 round (stub: muzzle flash, no damage) |
+| Pistol | Main | LMB: one 9mm round (stub) |
+| Wooden Bow | Main | LMB: looses one Wooden Arrow (stub) |
+| Hatchet | Main | Held only; chopping works from the pack |
+| .30-06 Rounds / 9mm Rounds / Wooden Arrows | — | Ammo (stacks 20/30/20) |
+| Torch | Off | Crafted. Lit when equipped; burns 300 s then is used up (stack 3). Held raised by left-arm IK |
+| Flashlight | Off | Battery, 1200 s per battery; auto-swaps from the pack |
+| Oil Lantern | Hip | Pickup. Hangs from the left hip, scaled 0.6, spring swing. Burns Rubbing Alcohol: 480 s per unit, holds 2; tops itself up from the pack when dry; use alcohol to refill |
+
+- **L** toggles the light: the hand light first, else the hip lantern, else readies the first light in the pack. Off = no fuel burn.
+- **Hold RMB** with a torch or flashlight: aim. The body turns to face the camera (Invector strafe, settings restored on release); the left arm points the beam / raises the torch toward the aim (`ASHLightAim` on the player Animator).
+- Tunables: `ASHEquipment` (hip offset/scale, swing stiffness/damping/response/max angle) and `ASHLightAim` (aim rotation speed, IK weights, raised-torch offset, aim reach/raise, elbow hint, torch tilt, blend speed) on `ASH_Player`. Per-item grip: `holdPosition` / `holdEuler` / `gripStyle` on each item asset.
+
+## Survival Pack (`ASH/World/Survival Pack/…`, `Assets/_ASH/Editor/World/ASHSurvivalPackTools.cs`)
+- **1. Build** (also runs at the end of the Item Catalog build): pickup prefabs get a nested HQ Survival Pack "Visual" (vendor files unedited; ASHAccumulation stripped, plain material copies, colliders off, one trigger box, no accumulation). Pickup prefabs are updated in place, so scene instances keep position, item and amount. Also builds the held prefabs in `Assets/_ASH/Prefabs/Held`, wires the items, adds `ASHEquipment` + `ASHLightAim` to the player and rebakes icons.
+- World props: ASH_SalvageCrate → WoodenCrate01, ASH_StonePile → Stone, ASH_Campfire → vendor Campfire (ASH flames/light kept).
+- **2. Place New Item Pickups** (done once, scene saved) under `ASH_SurvivalPackPickups`: Lantern, Wooden Bow, Arrows ×6 at the Hatchet; Flashlight, Battery ×2 at the Hunting Knife; Pistol, 9mm ×8 at the Can Opener; Rifle, .30-06 ×5 at the first Whiskey; Energy Bars ×2, Soda, Bottled Water, Rope, First Aid Kit, Battery at the Canned Peaches caches.
+- The item models come from the pack's Prefabs subfolders (Food, Objects, Weapons, Medical, Resources). `Prefabs/Environment` is nature props.
 
 ## Salvage (Break Down: journal Items tab, or B over a pack slot)
 | Item | Yields | Tool |
@@ -61,7 +90,7 @@ _2026-11-14 (ET). All data are ScriptableObjects built by `ASH/Build/6. Item Cat
 | *World:* Salvage Crate / Broken Chair | Reclaimed Wood (+ scrap chance) | **Hatchet required** |
 | *World:* Dead tree / downed tree / log / stump | Logs, then Firewood + Kindling (see Axe harvesting) | **Hatchet required** |
 
-## Recipes (16)
+## Recipes (21)
 | Recipe | Category | Inputs → Output | Station / tool | Time |
 |---|---|---|---|---|
 | Campfire | Fire | 4 Deadwood, 3 Stone → Campfire | Anywhere | 1.5 s |
@@ -80,6 +109,11 @@ _2026-11-14 (ET). All data are ScriptableObjects built by `ASH/Build/6. Item Cat
 | Cut Cloth Strips | Materials | Old Shirt → 3 Cloth | Knife | 3 s |
 | Flatten Tins | Materials | 2 Empty Tin → 1 Scrap Metal | Anywhere | 2 s |
 | Split Kindling | Materials | 1 Firewood → 3 Kindling | Hatchet | 2 s |
+| Torch | Tools | 1 Deadwood, 1 Cloth, 1 Rubbing Alcohol → 1 | Anywhere | 2 s |
+| Torch (kindling) | Tools | 2 Kindling, 1 Cloth, 1 Rubbing Alcohol → 1 | Anywhere | 2 s |
+| Rope | Materials | 4 Plant Fiber → 1 | Anywhere | 4 s |
+| Wooden Arrows | Tools | 2 Kindling, 1 Scrap Metal, 1 Plant Fiber → 3 | Knife | 6 s |
+| Wooden Bow | Tools | 2 Firewood, 1 Rope → 1 | Knife | 10 s |
 
 ## Axe harvesting (`ASHChoppable`, `Assets/_ASH/Scripts/Interaction`)
 Hold Interact; each hold is one chop (placeholder chop audio from Genesis, `Assets/_ASH/Audio/Harvest`). Without a hatchet the prompt says "Needs Hatchet". The final chop is refused when the pack is full. Respawn: `respawnSeconds` on each prefab (default 0 = never).
