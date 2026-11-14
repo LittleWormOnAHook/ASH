@@ -84,3 +84,7 @@ desktop.ini
 # Vendor: Quantum Theory (Better Rocks and Cliffs) - stays out of git
 /Assets/Quantum Theory/
 /Assets/Quantum Theory.meta
+
+# Vendor: HQ Survival Pack - stays out of git
+/Assets/HQ Survival Pack/
+/Assets/HQ Survival Pack.meta
