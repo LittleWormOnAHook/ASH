@@ -76,3 +76,7 @@ desktop.ini
 # ASH TerrainData backups (Scatter Vegetation)
 /Assets/_ASH/Art/Terrain/Backups/
 /Assets/_ASH/Art/Terrain/Backups.meta
+
+# Vendor: ANGRY MESH rocks/nature pack (Anthony imports locally)
+/Assets/ANGRY MESH/
+/Assets/ANGRY MESH.meta
