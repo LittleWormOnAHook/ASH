@@ -16,7 +16,10 @@ namespace ASH.EditorTools
     /// context menu "Save Runtime Pose to Prefab" does the same once for that Play session. Logs everything it saved.
     /// Separate opt-in "ASH/Keep Held Item Placements From Play" (default off; context menu "Save Held Item Placements to Prefab"
     /// for one session): also writes the local position/rotation/scale of Held_ item objects - only the ones you moved yourself
-    /// in Play (inspector or scene gizmo edits, tracked through Undo) and that differ from their value at Play start.
+    /// in Play: every Held_ item and everything under it (grips, String_R, Stock, child meshes) plus the AimAnchor_/UseAnchor_
+    /// transforms are snapshotted at Play start and again once the rig has settled; at exit each one's authored local pose
+    /// (ASHHeldRig's forced aim pose is undone) is compared with the snapshot and whatever differs beyond a small epsilon is
+    /// saved. Transforms that moved by themselves between the two snapshots (runtime-driven) are left out.
     /// The prefab is backed up to Library/ASH_PrefabBackups before every write.
     /// </summary>
     [InitializeOnLoad]
@@ -35,7 +38,7 @@ namespace ASH.EditorTools
         [System.Serializable] class Prop { public string comp, path, prop, type, value; }
         [System.Serializable] class Data { public List<TPose> poses = new List<TPose>(); public List<Prop> props = new List<Prop>(); }
 
-        static ASHPlayModePersist() { EditorApplication.playModeStateChanged += OnPlayMode; Undo.postprocessModifications += OnModified; }
+        static ASHPlayModePersist() { EditorApplication.playModeStateChanged += OnPlayMode; }
 
         [MenuItem(Menu, priority = 210)] static void Toggle() => SessionState.SetBool(KeyOn, !SessionState.GetBool(KeyOn, false));
         [MenuItem(Menu, true)] static bool ToggleV() { UnityEditor.Menu.SetChecked(Menu, SessionState.GetBool(KeyOn, false)); return true; }
@@ -57,31 +60,44 @@ namespace ASH.EditorTools
         [MenuItem("CONTEXT/Transform/Save Held Item Placements to Prefab")] static void H3(MenuCommand c) => SaveHeldOnce(c);
         [MenuItem("CONTEXT/Transform/Save Held Item Placements to Prefab", true)] static bool H3V(MenuCommand c) => EditorApplication.isPlaying && c.context is Transform t && t.name.StartsWith(HeldPrefix);
 
-        static readonly Dictionary<string, TPose> _heldStart = new Dictionary<string, TPose>(), _heldEdited = new Dictionary<string, TPose>();
-        static readonly HashSet<Transform> _heldPending = new HashSet<Transform>();
+        static readonly Dictionary<string, TPose> _heldStart = new Dictionary<string, TPose>();
+        static readonly HashSet<string> _heldRuntime = new HashSet<string>();
+        static int _settleFrames = -1;
+        const int SettleFrames = 90;
 
-        static bool IsHeld(Transform t, Transform root) => t && root && t != root && t.name.StartsWith(HeldPrefix) && !t.name.EndsWith("(Clone)") && t.IsChildOf(root);
-        static TPose Pose(Transform t, Transform root) => new TPose { path = AnimationUtility.CalculateTransformPath(t, root), p = t.localPosition, r = t.localRotation, s = t.localScale };
-        static bool Same(TPose a, TPose b) => (a.p - b.p).sqrMagnitude < 1e-10f && Quaternion.Angle(a.r, b.r) < 0.01f && (a.s - b.s).sqrMagnitude < 1e-10f;
-
-        // user edits in Play (inspector / gizmo) arrive here; runtime script moves do not
-        static UndoPropertyModification[] OnModified(UndoPropertyModification[] mods)
+        static bool IsRigName(string n) => n.StartsWith(ASHHeldRig.AimAnchorPrefix) || n.StartsWith(ASHHeldRig.UseAnchorPrefix);
+        /// <summary>Held_ items, everything under them, and the aim/use anchors; never runtime clones or runtime-made objects.</summary>
+        static bool Tracked(Transform t, Transform root)
         {
-            if (!EditorApplication.isPlaying) return mods;
-            var root = PlayerRoot(); if (!root) return mods;
-            foreach (var m in mods)
+            if (!t || !root || t == root || !t.IsChildOf(root)) return false;
+            for (var x = t; x && x != root; x = x.parent)
             {
-                var tr = m.currentValue?.target as Transform; if (!tr || !IsHeld(tr, root)) continue;
-                if (_heldPending.Count == 0) EditorApplication.delayCall += SnapshotPending;
-                _heldPending.Add(tr);
+                if (x.name.EndsWith("(Clone)") || x.name.StartsWith("ASH_NockArrow") || x.name.StartsWith("ASH_HandArrow")) return false;
+                if (x.name.StartsWith(HeldPrefix)) return true;
             }
-            return mods;
+            return IsRigName(t.name);
         }
-        static void SnapshotPending()
-        {   // the edit is applied after postprocessModifications: read the value one editor tick later
-            var root = PlayerRoot();
-            foreach (var t in _heldPending) if (t && root) { var p = Pose(t, root); _heldEdited[p.path] = p; }
-            _heldPending.Clear();
+        static TPose Pose(Transform t, Transform root)
+        {
+            Vector3 p = t.localPosition; Quaternion r = t.localRotation;
+            var rig = root.GetComponentInChildren<ASHHeldRig>(true); if (rig) rig.AuthoredLocal(t, ref p, ref r); // undo the rig's aim-time forcing
+            return new TPose { path = AnimationUtility.CalculateTransformPath(t, root), p = p, r = r, s = t.localScale };
+        }
+        static bool Same(TPose a, TPose b) => (a.p - b.p).sqrMagnitude < 1e-8f && Quaternion.Angle(a.r, b.r) < 0.01f && (a.s - b.s).sqrMagnitude < 1e-8f;
+        static Dictionary<string, TPose> SnapshotHeld()
+        {
+            var d = new Dictionary<string, TPose>(); var root = PlayerRoot(); if (!root) return d;
+            foreach (var t in root.GetComponentsInChildren<Transform>(true)) if (Tracked(t, root)) { var p = Pose(t, root); d[p.path] = p; }
+            return d;
+        }
+        static void SettleTick()
+        {   // second snapshot after the rig has run: anything that moved on its own by now is runtime-driven, not a hand edit
+            if (!EditorApplication.isPlaying) { EditorApplication.update -= SettleTick; _settleFrames = -1; return; }
+            if (--_settleFrames > 0) return;
+            EditorApplication.update -= SettleTick; _settleFrames = -1;
+            foreach (var kv in SnapshotHeld())
+                if (_heldStart.TryGetValue(kv.Key, out var st) && !Same(st, kv.Value)) { _heldRuntime.Add(kv.Key); }
+            if (_heldRuntime.Count > 0) Debug.Log("[ASH] KEEP HELD: runtime-driven (never saved): " + string.Join(", ", _heldRuntime));
         }
 
         [System.Serializable] class HeldData { public List<TPose> poses = new List<TPose>(); }
@@ -90,17 +106,18 @@ namespace ASH.EditorTools
         {
             if (s == PlayModeStateChange.EnteredPlayMode)
             {
-                _heldStart.Clear(); _heldEdited.Clear(); _heldPending.Clear();
-                var root = PlayerRoot();
-                if (root) foreach (var t in root.GetComponentsInChildren<Transform>(true)) if (IsHeld(t, root)) { var p = Pose(t, root); _heldStart[p.path] = p; }
+                _heldStart.Clear(); _heldRuntime.Clear();
+                foreach (var kv in SnapshotHeld()) _heldStart[kv.Key] = kv.Value;
+                EditorApplication.update -= SettleTick; _settleFrames = SettleFrames; EditorApplication.update += SettleTick;
             }
             if (s == PlayModeStateChange.ExitingPlayMode && (KeepHeldOn || SessionState.GetBool(KeyHeldOnce, false)))
             {
-                SessionState.SetBool(KeyHeldOnce, false); SnapshotPending();
-                var hd = new HeldData();
-                foreach (var kv in _heldEdited) if (!_heldStart.TryGetValue(kv.Key, out var st) || !Same(st, kv.Value)) hd.poses.Add(kv.Value);
+                SessionState.SetBool(KeyHeldOnce, false);
+                var hd = new HeldData(); var now = SnapshotHeld();
+                foreach (var kv in now)
+                    if (_heldStart.TryGetValue(kv.Key, out var st) && !_heldRuntime.Contains(kv.Key) && !Same(st, kv.Value)) hd.poses.Add(kv.Value);
                 if (hd.poses.Count > 0) SessionState.SetString(KeyHeldData, JsonUtility.ToJson(hd));
-                else Debug.Log("[ASH] KEEP HELD: no Held_ items were moved in Play");
+                else Debug.Log($"[ASH] KEEP HELD: no Held_ item, grip or anchor differs from Play start ({now.Count} compared, {_heldStart.Count} at start)");
             }
             if (s == PlayModeStateChange.EnteredEditMode)
             {

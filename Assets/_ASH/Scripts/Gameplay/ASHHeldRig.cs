@@ -95,6 +95,13 @@ namespace ASH.Gameplay
             Restore(ref _forcedT, ref _restLp, ref _restLr, _forcedLp, _forcedLr);
             Restore(ref _forcedT2, ref _restLp2, ref _restLr2, _forcedLp2, _forcedLr2);
         }
+        /// <summary>Authored (edit-time) local pose of t: if the rig has t forced onto its aim/use anchor this frame, the pose it will restore; else t's own.</summary>
+        public void AuthoredLocal(Transform t, ref Vector3 lp, ref Quaternion lr)
+        {
+            if (!t) return;
+            if (t == _forcedT && t.localPosition == _forcedLp && t.localRotation == _forcedLr) { lp = _restLp; lr = _restLr; }
+            else if (t == _forcedT2 && t.localPosition == _forcedLp2 && t.localRotation == _forcedLr2) { lp = _restLp2; lr = _restLr2; }
+        }
         static void Restore(ref Transform t, ref Vector3 rlp, ref Quaternion rlr, Vector3 flp, Quaternion flr)
         {
             if (!t) { t = null; return; }

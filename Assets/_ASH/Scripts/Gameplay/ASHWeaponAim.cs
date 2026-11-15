@@ -144,6 +144,8 @@ namespace ASH.Gameplay
         public Vector3 arrowIdleOffset = new Vector3(0f, 0.02f, 0.03f);
         public Vector3 arrowIdleEuler = new Vector3(0f, 0f, 0f);
         [Range(0f, 1f)] public float bowShotHoldSeconds = 0.35f;
+        [Tooltip("The draw animation takes the arrow from the back quiver: the right-hand arrow (Held_HandArrow, then the nocked copy) is hidden while not aiming and appears once the draw passes this point (0 = at aim start), until the shot or the end of the aim.")]
+        [Range(0f, 1f)] public float handArrowAppearDraw01 = 0.08f;
         [Tooltip("Arrow rest height above the bow-hand grip, metres along the bow.")]
         [Range(-0.1f, 0.2f)] public float arrowRestAboveGrip = 0.045f;
         [Tooltip("Arrow rest offset to the archer's left of the riser centre (right-handed draw), metres.")]
@@ -473,7 +475,8 @@ namespace ASH.Gameplay
 
         void UpdateHandArrow()
         {
-            _arrowShown = Current == Kind.Bow && HasArrows && !(Time.time < _shotUntil && Draw01 < 0.05f);
+            // no arrow in the hand at rest: the draw clip reaches to the back quiver, the arrow shows from that point of the draw
+            _arrowShown = Current == Kind.Bow && HasArrows && Aiming && Draw01 > 0f && Draw01 >= handArrowAppearDraw01 && !(Time.time < _shotUntil && Draw01 < 0.05f);
             var rh = _anim ? _anim.GetBoneTransform(HumanBodyBones.RightHand) : null;
             if (!_restArrow && _eq) { var placed = _eq.Placed(ASHEquipment.HandArrowName); if (placed) { _restArrow = placed; _restPlaced = true; } }
             if (_arrowShown && !_restArrow && rh)

@@ -63,7 +63,7 @@ namespace ASH.DebugTools
             _inv.AddItem(torch, 1); _inv.AddItem(bow, 1); _inv.AddItem(arrow, 10);
             _eq.Equip(torch); _eq.Equip(bow); yield return null; yield return null;
             var ha = _wa.HandArrow;
-            Check("bow left hand, arrow right hand", _eq.Main == bow && _eq.Off == null && _eq.MainVisual && _eq.MainVisual == _eq.Placed(bow) && _eq.MainVisual.transform.IsChildOf(bowHand) && ha && ha == _eq.Placed(ASHEquipment.HandArrowName) && ha.activeSelf && ha.transform.IsChildOf(lh),
+            Check("bow left hand, right-hand arrow placed but hidden at rest (drawn from the quiver)", _eq.Main == bow && _eq.Off == null && _eq.MainVisual && _eq.MainVisual == _eq.Placed(bow) && _eq.MainVisual.transform.IsChildOf(bowHand) && ha && ha == _eq.Placed(ASHEquipment.HandArrowName) && !ha.activeSelf && ha.transform.IsChildOf(lh),
                 $"main={(_eq.Main ? _eq.Main.displayName : "-")} off={(_eq.Off ? _eq.Off.displayName : "-")} handArrow={(ha ? ha.transform.parent.name : "none")}");
 
             // RMB: nock + draw (strafe aim), hands together
