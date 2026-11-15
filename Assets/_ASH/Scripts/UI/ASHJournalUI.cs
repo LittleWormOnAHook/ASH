@@ -18,17 +18,20 @@ namespace ASH.UI
     /// </summary>
     public sealed class ASHJournalUI : MonoBehaviour
     {
-        public enum Tab { Crafting, Items, Notes }
+        public enum Tab { Crafting, Items, Notes, Objectives }
 
         ASHInventory _inv; ASHCrafting _craft; Func<ASHItemDefinition, bool> _useItem;
         readonly Dictionary<Tab, GameObject> _tabs = new Dictionary<Tab, GameObject>();
         readonly Dictionary<Tab, Image> _tabButtons = new Dictionary<Tab, Image>();
         readonly Dictionary<string, Image> _catButtons = new Dictionary<string, Image>();
-        RectTransform _recipeList, _itemList, _notesList;
+        RectTransform _recipeList, _itemList, _notesList, _objList; Text _oTitle, _oLines, _oStatus, _oTrackLabel; Button _oTrack; string _selObj;
+        ASH.Gameplay.ASHObjectiveTracker _objectives;
+        /// <summary>Objective tracker shown in the Objectives tab (set by the HUD).</summary>
+        public ASH.Gameplay.ASHObjectiveTracker Objectives { get => _objectives; set { if (_objectives && isActiveAndEnabled) _objectives.Changed -= MarkDirty; _objectives = value; if (_objectives && isActiveAndEnabled) _objectives.Changed += MarkDirty; } }
         Image _dIcon, _iIcon; Text _dIconAbbr, _iIconAbbr, _dName, _dDesc, _dReq, _dStatus, _iName, _iDesc, _iInfo, _iUseLabel, _iBreakLabel;
         Button _dCraft, _iUse, _iBreak; RectTransform _dProg, _dProgFill;
         string _cat = "All"; ASHRecipe _selRecipe; ASHItemDefinition _selItem; Tab _tab;
-        bool _dirty;
+        bool _dirty; float _objRefresh;
 
         public Tab Current => _tab;
         public bool IsOpen => gameObject.activeSelf;
@@ -50,6 +53,7 @@ namespace ASH.UI
             if (_inv) _inv.Changed += MarkDirty;
             if (_craft) { _craft.Crafted += OnCraftEvent; _craft.BrokeDown += OnBreakEvent; }
             var log = ASHJournalLog.Instance; if (log) log.Added += OnNote;
+            if (_objectives) _objectives.Changed += MarkDirty;
             _dirty = true;
         }
         void OnDisable()
@@ -57,6 +61,7 @@ namespace ASH.UI
             if (_inv) _inv.Changed -= MarkDirty;
             if (_craft) { _craft.Crafted -= OnCraftEvent; _craft.BrokeDown -= OnBreakEvent; }
             var log = ASHJournalLog.Instance; if (log) log.Added -= OnNote;
+            if (_objectives) _objectives.Changed -= MarkDirty;
         }
         void MarkDirty() => _dirty = true;
         void OnCraftEvent(ASHRecipe r) => _dirty = true;
@@ -72,7 +77,7 @@ namespace ASH.UI
             foreach (Tab t in Enum.GetValues(typeof(Tab)))
             {
                 var tab = t;
-                var b = K.At("Tab" + t, rt, new Vector2(0, 1), new Vector2(x, -20), new Vector2(150, 38)); x += 160;
+                var b = K.At("Tab" + t, rt, new Vector2(0, 1), new Vector2(x, -20), new Vector2(140, 38)); x += 146;
                 K.Button(b, t.ToString().ToUpperInvariant(), 18, () => Show(tab), new Color(1, 1, 1, 0.12f));
                 _tabButtons[t] = b.GetComponent<Image>();
             }
@@ -82,6 +87,54 @@ namespace ASH.UI
             _tabs[Tab.Crafting] = BuildCrafting(body);
             _tabs[Tab.Items] = BuildItems(body);
             _tabs[Tab.Notes] = BuildNotes(body);
+            _tabs[Tab.Objectives] = BuildObjectives(body);
+        }
+
+        GameObject BuildObjectives(RectTransform body)
+        {
+            var root = K.Stretch("Objectives", body);
+            _objList = K.ScrollList(K.Stretch("List", root, 0, 0, 640, 0));
+            var det = K.Stretch("Detail", root, 540, 0, 0, 0);
+            K.Image(det, new Color(1, 1, 1, 0.04f));
+            _oTitle = K.Text(K.At("Name", det, new Vector2(0, 1), new Vector2(24, -22), new Vector2(590, 40)), "", 28, K.Ink, TextAnchor.MiddleLeft, FontStyle.Bold);
+            _oStatus = K.Text(K.At("Status", det, new Vector2(0, 1), new Vector2(24, -62), new Vector2(590, 26)), "", 18, K.Dim, TextAnchor.MiddleLeft);
+            _oLines = K.Text(K.At("Lines", det, new Vector2(0, 1), new Vector2(24, -104), new Vector2(590, 400)), "", 20, K.Ink, TextAnchor.UpperLeft);
+            _oTrack = K.Button(K.At("Track", det, new Vector2(0, 0), new Vector2(24, 20), new Vector2(260, 48)), "TRACK", 22, () => { if (_objectives && _selObj != null) { _objectives.Track(_selObj); _dirty = true; } });
+            _oTrackLabel = _oTrack.GetComponentInChildren<Text>();
+            return root.gameObject;
+        }
+
+        void RebuildObjectives()
+        {
+            K.Clear(_objList);
+            if (!_objectives) { K.Layout(K.Text(K.Rect("Empty", _objList), "No objectives.", 20, K.Dim), 60); return; }
+            var tracked = _objectives.Tracked;
+            var all = new List<ASH.Gameplay.ASHObjectiveTracker.Objective>(_objectives.Objectives);
+            if (_selObj == null || all.Find(o => o.Id == _selObj) == null) _selObj = tracked?.Id;
+            bool anyDone = false;
+            foreach (var o in all)
+            {
+                if (o.Completed && !anyDone) { anyDone = true; K.Layout(K.Text(K.Rect("Done", _objList), "  COMPLETED", 15, K.Dim), 28); }
+                var obj = o; bool isTracked = tracked == o;
+                string title = o.Completed ? $"<color=#857d72>{o.Title}</color>" : isTracked ? $"<color=#e8a35a>◆</color> {o.Title}" : o.Title;
+                string right = o.Completed ? "done" : isTracked ? (_objectives.PlayerPicked ? "TRACKED" : "TRACKED (auto)") : Progress(o);
+                // click = select + track (click the tracked one again = back to automatic: newest objective)
+                Row(_objList, null, title, right, o.Id == _selObj, () => { _selObj = obj.Id; if (!obj.Completed) _objectives.Track(obj.Id); _dirty = true; });
+            }
+            var sel = all.Find(o => o.Id == _selObj);
+            _oTitle.text = sel != null ? sel.Title : "";
+            _oStatus.text = sel == null ? "" : sel.Completed ? "Completed" : sel == tracked ? (_objectives.PlayerPicked ? "Tracked on the HUD" : "Tracked automatically (newest)") : "Active - click to track";
+            var sb = new System.Text.StringBuilder();
+            if (sel != null) foreach (var (text, done) in sel.GetLines()) sb.AppendLine((done ? "<color=#9fd39b>√ " : "• ") + text + (done ? "</color>" : ""));
+            _oLines.text = sb.ToString();
+            _oTrack.gameObject.SetActive(sel != null && !sel.Completed);
+            if (sel != null) _oTrackLabel.text = sel == tracked && _objectives.PlayerPicked ? "STOP TRACKING" : sel == tracked ? "TRACKING" : "TRACK";
+        }
+
+        static string Progress(ASH.Gameplay.ASHObjectiveTracker.Objective o)
+        {
+            int n = 0, d = 0; foreach (var l in o.GetLines()) { n++; if (l.done) d++; }
+            return n > 0 ? $"{d}/{n}" : "";
         }
 
         GameObject BuildCrafting(RectTransform body)
@@ -157,6 +210,7 @@ namespace ASH.UI
 
         void Update()
         {
+            if (_tab == Tab.Objectives && Time.unscaledTime >= _objRefresh) { _objRefresh = Time.unscaledTime + 0.5f; _dirty = true; } // live progress / distances
             if (_dirty) { _dirty = false; Rebuild(); }
             if (_tab == Tab.Crafting && _craft)
             {
@@ -172,6 +226,7 @@ namespace ASH.UI
         {
             if (_tab == Tab.Crafting) RebuildCrafting();
             else if (_tab == Tab.Items) RebuildItems();
+            else if (_tab == Tab.Objectives) RebuildObjectives();
             else RebuildNotes();
         }
 

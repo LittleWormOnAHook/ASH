@@ -154,6 +154,7 @@ namespace ASH.UI
 
             BuildHotbar(); BuildCross(); BuildInventory();
             _journal = ASHJournalUI.Create(_root, inventory, crafting, UseItem);
+            _journal.Objectives = objective;
             if (gps) _map = ASHMapUI.Create(_root, gps);
             BuildPause(); BuildDeath();
             RefreshInventory();
@@ -546,6 +547,8 @@ namespace ASH.UI
                 _objTitle.text = objective.Title();
                 var sb = new System.Text.StringBuilder();
                 foreach (var (text, done) in objective.Lines()) sb.AppendLine((done ? "<color=#9fd39b>√ " : "• ") + text + (done ? "</color>" : ""));
+                int others = objective.OtherActiveCount;
+                if (others > 0) sb.AppendLine($"<size=16><color=#857d72>+{others} more objective{(others > 1 ? "s" : "")}  ·  journal [J]</color></size>");
                 _objLines.text = sb.ToString();
             }
             if (clock) { int h = (int)clock.timeOfDay; int m = (int)((clock.timeOfDay - h) * 60f); _clock.text = $"{h:00}:{m:00}"; }

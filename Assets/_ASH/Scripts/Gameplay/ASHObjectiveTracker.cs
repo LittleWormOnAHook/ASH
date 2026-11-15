@@ -42,24 +42,97 @@ namespace ASH.Gameplay
         public Transform Campsite => campsite;
         private bool _crafted, _reached;
 
-        // ---- priority objective (story beats such as the Phase 2A opening override the slice chain while active)
+        // ---- objective list (journal Objectives tab + HUD focus). The slice chain is one entry ("slice"); story beats such as
+        // the Phase 2A opening come in through SetPriority (they take the HUD focus when they start, like before) and stay
+        // in the list greyed out once cleared. Other systems can add their own with Register/Complete.
+        public sealed class Objective
+        {
+            public string Id, Title; public bool Completed, Priority; public int Order;
+            public Func<IEnumerable<(string text, bool done)>> Lines;
+            internal List<(string text, bool done)> Frozen;
+            public IEnumerable<(string text, bool done)> GetLines() { if (Frozen != null) return Frozen; return Lines != null ? Lines() : Array.Empty<(string, bool)>(); }
+        }
+        readonly List<Objective> _objectives = new List<Objective>(); int _order; Objective _slice;
+        /// <summary>All objectives: active (newest first), then completed (newest first).</summary>
+        public IEnumerable<Objective> Objectives { get { foreach (var o in Sorted()) yield return o; } }
+        List<Objective> Sorted() { EnsureSlice(); var l = new List<Objective>(_objectives); l.Sort((x, y) => x.Completed != y.Completed ? (x.Completed ? 1 : -1) : y.Order.CompareTo(x.Order)); return l; }
+        /// <summary>Id of the objective the player picked in the journal (null = automatic: newest active).</summary>
+        public string TrackedId { get; private set; }
+        public bool PlayerPicked { get; private set; }
+        public event Action<string> TrackedChanged;
+
+        void EnsureSlice()
+        {
+            if (_slice != null) return;
+            _slice = new Objective { Id = "slice", Order = _order++, Lines = SliceLines };
+            _objectives.Add(_slice);
+        }
+
+        public Objective Find(string id) { EnsureSlice(); return _objectives.Find(o => o.Id == id); }
+
+        /// <summary>The objective the HUD focuses on: the picked one while active, else the newest active one.</summary>
+        public Objective Tracked
+        {
+            get
+            {
+                EnsureSlice(); _slice.Title = SliceTitle(); _slice.Completed = Current == Stage.Complete;
+                var t = TrackedId != null ? Find(TrackedId) : null;
+                if (t != null && !t.Completed) return t;
+                Objective best = null; foreach (var o in _objectives) if (!o.Completed && (best == null || o.Order > best.Order)) best = o;
+                if (best == null) best = t ?? _slice;
+                if (t != null && t.Completed && best != t) { TrackedId = best.Id; TrackedChanged?.Invoke(TrackedId); } // tracked one finished: follow the next active one
+                return best;
+            }
+        }
+
+        /// <summary>Journal click: follow this objective. Picking the tracked one again returns to automatic.</summary>
+        public void Track(string id)
+        {
+            if (id != null && PlayerPicked && TrackedId == id) { id = null; }
+            TrackedId = id; PlayerPicked = id != null;
+            TrackedChanged?.Invoke(TrackedId); Changed?.Invoke();
+        }
+
+        /// <summary>Add or update an objective (other systems / future quests). New ones become the newest.</summary>
+        public Objective Register(string id, string title, Func<IEnumerable<(string text, bool done)>> lines, bool takeFocus = false)
+        {
+            var o = Find(id);
+            if (o == null) { o = new Objective { Id = id, Order = _order++ }; _objectives.Add(o); if (takeFocus) { TrackedId = id; PlayerPicked = false; } }
+            o.Title = title; o.Lines = lines; o.Completed = false; o.Frozen = null;
+            Changed?.Invoke(); return o;
+        }
+        public void Complete(string id, string message = null)
+        {
+            var o = Find(id); if (o == null || o.Completed) return;
+            o.Frozen = new List<(string, bool)>(o.GetLines()); o.Completed = true;
+            if (!string.IsNullOrEmpty(message)) Message?.Invoke(message);
+            Changed?.Invoke();
+        }
+
+        // ---- priority objective (story beats such as the Phase 2A opening take the HUD focus while active)
         /// <summary>Set before Start (e.g. by the opening sequence) to hold back the intro toast; ReplayIntro() shows it later.</summary>
         public static bool HoldIntroMessage;
-        string _prTitle; Func<IEnumerable<(string text, bool done)>> _prLines;
-        public bool HasPriority => _prTitle != null;
-        public string PriorityTitle => _prTitle;
+        Objective ActivePriority() { foreach (var o in _objectives) if (o.Priority && !o.Completed) return o; return null; }
+        public bool HasPriority => ActivePriority() != null;
+        public string PriorityTitle => ActivePriority()?.Title;
         public void SetPriority(string title, Func<IEnumerable<(string text, bool done)>> lines, string message = null)
         {
-            _prTitle = title; _prLines = lines; ASHLog.Info("Objective (priority) -> " + title);
+            EnsureSlice();
+            var o = ActivePriority();
+            if (o == null)
+            {
+                o = new Objective { Id = "story-" + _order, Order = _order++, Priority = true }; _objectives.Add(o);
+                TrackedId = o.Id; PlayerPicked = false; TrackedChanged?.Invoke(TrackedId); // story beats take the focus when they start
+            }
+            o.Title = title; o.Lines = lines;
+            ASHLog.Info("Objective (priority) -> " + title);
             if (!string.IsNullOrEmpty(message)) Message?.Invoke(message);
             Changed?.Invoke();
         }
         public void ClearPriority(string message = null)
         {
-            if (_prTitle == null) return;
-            _prTitle = null; _prLines = null;
-            if (!string.IsNullOrEmpty(message)) Message?.Invoke(message);
-            Changed?.Invoke();
+            var o = ActivePriority(); if (o == null) return;
+            Complete(o.Id, message);
         }
         public void ReplayIntro() { HoldIntroMessage = false; Message?.Invoke(IntroText()); Changed?.Invoke(); }
         string IntroText() => Current == Stage.Survey ? "The GPS is damaged. Climb the Redstone Camp lookout and log the viewpoint." : "Find deadwood, stones and something to eat before dark.";
@@ -79,7 +152,7 @@ namespace ASH.Gameplay
             if (gps) gps.SurveyLogged -= OnSurvey;
         }
 
-        private void Awake() { if (firstSurvey != null && gps != null) Current = Stage.Survey; }
+        private void Awake() { EnsureSlice(); if (firstSurvey != null && gps != null) Current = Stage.Survey; }
 
         private void OnSurvey(ASHSurveyPointDef d)
         {
@@ -138,9 +211,15 @@ namespace ASH.Gameplay
             Current = s; ASHLog.Info("Objective -> " + s); Message?.Invoke(msg); Changed?.Invoke();
         }
 
-        public string Title()
+        /// <summary>Title of the tracked objective (HUD).</summary>
+        public string Title() => Tracked.Title;
+        /// <summary>Lines of the tracked objective (HUD).</summary>
+        public IEnumerable<(string text, bool done)> Lines() => Tracked.GetLines();
+        /// <summary>Number of active objectives other than the tracked one.</summary>
+        public int OtherActiveCount { get { var t = Tracked; int n = 0; foreach (var o in _objectives) if (!o.Completed && o != t) n++; return n; } }
+
+        string SliceTitle()
         {
-            if (_prTitle != null) return _prTitle;
             switch (Current)
             {
                 case Stage.Survey: return "Get your bearings";
@@ -152,9 +231,8 @@ namespace ASH.Gameplay
             }
         }
 
-        public IEnumerable<(string text, bool done)> Lines()
+        IEnumerable<(string text, bool done)> SliceLines()
         {
-            if (_prLines != null) { foreach (var l in _prLines()) yield return l; yield break; }
             if (Current == Stage.Survey)
             {
                 float d = player && firstSurveyPoint ? Flat(player.position, firstSurveyPoint.position) : 0f;
