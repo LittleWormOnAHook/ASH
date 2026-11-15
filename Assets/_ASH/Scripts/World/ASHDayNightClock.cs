@@ -28,9 +28,16 @@ namespace ASH.World
         public Color ashHazeColor = new Color(0.55f, 0.50f, 0.46f);
         public bool driveFog = true;
         public bool previewInEditMode;
+        [Tooltip("Make the driven light the scene's Sun Source (RenderSettings.sun) so the skybox sun disc / glow and the volumetric fog " +
+                 "sit exactly where the light comes from. Off = leave Lighting > Environment > Sun Source as set.")]
+        public bool syncSkySun = true;
+        // runtime weather scaling (ASHWeatherOutputs); never serialized, 1/1/0 = the clock exactly as tuned
+        [System.NonSerialized] public float weatherSunScale = 1f, weatherAmbientScale = 1f, weatherHazeMin;
 
         public float Hour01 => timeOfDay / 24f;
         public bool IsNight => timeOfDay < 5.5f || timeOfDay > 19.8f;
+
+        private void OnEnable() { Apply(); }
 
         private void Update()
         {
@@ -45,6 +52,8 @@ namespace ASH.World
         public void Apply()
         {
             if (sun == null) sun = RenderSettings.sun;
+            // single source of truth: the procedural sky draws its disc from RenderSettings.sun, lighting/fog use the driven light
+            if (syncSkySun && sun != null && sun.type == LightType.Directional && sun.isActiveAndEnabled && RenderSettings.sun != sun) RenderSettings.sun = sun;
             float t = Hour01;
             // Sun path: rises 6:00 east, sets 20:00 west (summer-ish, high plains).
             float dayT = Mathf.InverseLerp(6f, 20f, timeOfDay);
@@ -56,14 +65,15 @@ namespace ASH.World
             {
                 sun.transform.rotation = Quaternion.Euler(Mathf.Max(elev, 2f), az, 0f);
                 float sunUp = Mathf.Clamp01(Mathf.InverseLerp(-2f, 12f, day ? elev : -10f));
-                sun.intensity = day ? maxSunIntensity * sunUp : moonIntensity;
+                sun.intensity = (day ? maxSunIntensity * sunUp : moonIntensity) * weatherSunScale;
                 sun.color = day ? sunColor.Evaluate(t) : new Color(0.55f, 0.62f, 0.85f);
                 sun.shadowStrength = day ? Mathf.Lerp(0.5f, 0.95f, sunUp) : 0.4f;
             }
-            var amb = Color.Lerp(ambientColor.Evaluate(t), ashHazeColor * ambientColor.Evaluate(t).maxColorComponent, ashHaze * 0.5f);
+            float haze = Mathf.Max(ashHaze, weatherHazeMin);
+            var amb = Color.Lerp(ambientColor.Evaluate(t), ashHazeColor * ambientColor.Evaluate(t).maxColorComponent, haze * 0.5f) * weatherAmbientScale;
             RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat;
             RenderSettings.ambientLight = amb;
-            if (driveFog) RenderSettings.fogColor = Color.Lerp(fogColor.Evaluate(t), ashHazeColor * fogColor.Evaluate(t).maxColorComponent, ashHaze);
+            if (driveFog) RenderSettings.fogColor = Color.Lerp(fogColor.Evaluate(t), ashHazeColor * fogColor.Evaluate(t).maxColorComponent, haze) * Mathf.Lerp(1f, weatherAmbientScale, 0.6f);
         }
 
         [ContextMenu("Preset/Default (48 min day)")] public void PresetDefault() { minutesPerDay = 48f; }

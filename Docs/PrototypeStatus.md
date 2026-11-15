@@ -1,6 +1,6 @@
 # ASH Prototype Status
 
-_Last updated 2026-11-14 (ET) by the ASH implementation agent. Unity 6000.4.11f1, URP._
+_Last updated 2026-11-15 (ET) by the ASH implementation agent. Unity 6000.4.11f1, URP._
 
 ## Open and run
 1. Open `A:\ASH` in Unity 6000.4.11f1.
@@ -60,6 +60,18 @@ The Genesis source (`A:\Dark Matter Genesis`) was **read only and never modified
 | Crafting stations (lit campfire) | `Assets/_Project/Scripts/Crafting/CraftingStation.cs`, `CraftingStationType` | ASHCampfire | Reduced to an `IASHCraftStation` registry: Anywhere or Campfire within 4 m. |
 | New (no Genesis equivalent): `ASHGpsMap`, `ASHSurveyPoint`/`ASHSurveyPointDef`, `ASHRegionMap`, `ASHJournalLog`, `ASHItemCatalog`, `ASHRegionBuilder` | — | — | See World and Region. |
 | New (no Genesis equivalent): `ASHPlacer`, `ASHCampfire`, `ASHObjectiveTracker`, `ASHAshFall`, `ASHIconBaker`, scene setup and painter tools | — | URP | See below. |
+
+
+## Phase 2A — The Last Normal Morning (opening + weather)
+Install / refresh in the open scene: **ASH > Phase 2A > Install Opening Sequence** (idempotent, adds one root `ASH_Phase2A`, never moves scene objects, never saves). `Rebuild Placeholders` deletes only `ASH_Phase2A` and reinstalls. `Toggle Opening On Play` turns the opening off for normal slice testing.
+
+**Flow** (all timings in `Assets/_ASH/Data/Opening/ASH_OpeningProfile.asset`): cabin morning with Grandpa's radio (75 s) → emergency alert tone + announcement with subtitles, static and dropouts, 3D from the radio → shaking (curve on `ASH_Earthquake`, camera shake, rumble, creaks/rattles, swinging lantern and picture, a bottle falls; player keeps control) → quiet, hazy light → first ash ramps up over ~4 min → first heavy wave: objective **"Secure the cabin and prepare for worsening conditions."** (stay inside, store water, set food aside, read the journal) → eases to Calm/Hazy → weather scheduler takes over (waves with calm periods).
+
+**Weather** — `ASHWeatherDirector` + `ASHWeatherOutputs` on `ASH_Phase2A/ASH_Weather`; states are profiles in `Assets/_ASH/Data/Weather/` (Clear, Calm/Hazy, Light Ash, Heavy Ash, Rain + Ash, Snowstorm, Thunderstorm). Nothing renders on its own; the outputs drive existing systems: ASHAshFall (rate/wind/size), ASHDayNightClock (sun/ambient scale, haze floor), scene fog density from visibility (never thinner than tuned), a runtime sky material copy, a runtime weather Volume (priority 50, weight = Atmosphere Weight: Color Adjustments, Vignette, ASH Volumetric Fog override) over Anthony's volumes (unchanged), ASHAccumulationController (persistent ground ash/snow; wind lifts dry ash, rain wets it), ambience loops muffled indoors, Enviro 3 rain/snow particle rigs and lightning bolt (copied to `Assets/_ASH/Prefabs/Weather/`, still reference Enviro materials). Indoors (cabin interior trigger) falling particles are removed.
+
+**Debug** (Play Mode): ASH > Phase 2A > Debug > Replay Opening / Skip To <stage> / Weather <state> / Auto (scheduler) / Strike Lightning. `debugSpeed` on `ASH_OpeningSequence` speeds the whole opening. Test: `ASH.DebugTools.ASHPhase2ATest.Run` (ends by suppressing the opening, so `ASHPlayTest.Run` can follow; ASHPlayTest also suppresses it itself).
+
+**Placeholders:** the radio is built from primitives; the table, crate, bucket, lantern and bottle are HQ Survival Pack props; the picture frame is primitives; the announcement is subtitles only (no voice clips yet). Audio credits: `Docs/AudioCredits.md`.
 
 ## World
 - **Terrain provenance: a procedural fallback heightmap. It is not real DEM data.** It is 4097² 16-bit little-endian RAW, imported with no flip, at 4000 × 1400 × 4000 m. Anthony built the terrain and imported the heights himself; the ASH tools never regenerate them.

@@ -45,6 +45,7 @@ namespace ASH.UI
         Text _prompt, _objTitle, _objLines, _clock, _placeHint, _deathText, _invDesc;
         RectTransform _holdBar, _holdFill, _reticle;
         RectTransform _toastRoot;
+        Text _subtitle; float _subUntil = -1f;
         GameObject _invPanel, _pausePanel, _deathPanel;
         ASHJournalUI _journal; ASHMapUI _map; int _hoverSlot = -1;
         readonly List<SlotUI> _slots = new List<SlotUI>();
@@ -148,6 +149,8 @@ namespace ASH.UI
 
             _placeHint = Label("PlaceHint", _root, new Vector2(0.5f, 0), new Vector2(0, 185), new Vector2(900, 60), 24, TextAnchor.MiddleCenter, Ink);
             AddShadow(_placeHint);
+            _subtitle = Label("Subtitle", _root, new Vector2(0.5f, 0), new Vector2(0, 250), new Vector2(1300, 96), 27, TextAnchor.LowerCenter, Ink);
+            AddShadow(_subtitle); _subtitle.enabled = false;
 
             BuildHotbar(); BuildCross(); BuildInventory();
             _journal = ASHJournalUI.Create(_root, inventory, crafting, UseItem);
@@ -574,10 +577,27 @@ namespace ASH.UI
                 var c = t.color; c.a = Mathf.Clamp01(left / 0.6f); t.color = c;
             }
 
+            // subtitles
+            if (_subtitle && _subtitle.enabled)
+            {
+                float sl = _subUntil - Time.unscaledTime;
+                if (sl <= 0f) _subtitle.enabled = false; else { var c = _subtitle.color; c.a = Mathf.Clamp01(sl / 0.4f); _subtitle.color = c; }
+            }
+
             // death
             _deathPanel.SetActive(dead || ASHUIState.IsOpen(ASHPanels.Death));
             if (_deathPanel.activeSelf) { _deathTimer = Mathf.Max(0f, _deathTimer - Time.deltaTime); _deathText.text = $"You didn't make it.\n<size=26>Back at camp in {Mathf.CeilToInt(_deathTimer)}...</size>"; }
         }
+
+        /// <summary>Bottom-centre subtitle (radio, narration). Replaces the current one.</summary>
+        public void ShowSubtitle(string text, float seconds)
+        {
+            if (_subtitle == null) return;
+            if (string.IsNullOrEmpty(text)) { _subtitle.enabled = false; return; }
+            _subtitle.text = text; _subtitle.enabled = true; var c = _subtitle.color; c.a = 1f; _subtitle.color = c;
+            _subUntil = Time.unscaledTime + Mathf.Max(0.5f, seconds);
+        }
+        public string SubtitleText => _subtitle && _subtitle.enabled ? _subtitle.text : "";
 
         public void Toast(string msg)
         {

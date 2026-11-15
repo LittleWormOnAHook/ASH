@@ -1,0 +1,64 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4eab5dcae291b704492a0df1dedeb647, type: 3}
+  m_Name: ASH_Phase2A_Audio
+  m_EditorClassIdentifier: Assembly-CSharp::ASH.World.Weather.ASHPhase2AAudio
+  radioMusic:
+  - {fileID: 8300000, guid: cff884b704c79814197543d77d2a5975, type: 3}
+  alertTone: {fileID: 0}
+  broadcastVoice: []
+  staticLoop: {fileID: 8300000, guid: ebe4b478781f7ba4cb066451bfe45f7c, type: 3}
+  staticBursts:
+  - {fileID: 8300000, guid: f6201bf4d121aa1478bee348f292f541, type: 3}
+  - {fileID: 8300000, guid: 3889d7f211fd8cb4dae6cb35a65b744d, type: 3}
+  - {fileID: 8300000, guid: 8142909cd13a58142bf0f83f2f931c32, type: 3}
+  rumbleLoop: {fileID: 8300000, guid: 684b98b3274a44440b338456514183c9, type: 3}
+  rumbleSwell:
+  - {fileID: 8300000, guid: f24c0416004a2134aa91bb4eb27bab31, type: 3}
+  - {fileID: 8300000, guid: 701556464648b1944825b19e506c499f, type: 3}
+  creaks:
+  - {fileID: 8300000, guid: 2b37c6c90a2f1784dad74c99abeec1e2, type: 3}
+  - {fileID: 8300000, guid: 13fe11e3fc45ded4a9ccd6a13e49fc47, type: 3}
+  - {fileID: 8300000, guid: 843acec613c5af544bf71419c3ea8046, type: 3}
+  - {fileID: 8300000, guid: 851b5b14f0edec647a5962bcc2ddc1b9, type: 3}
+  - {fileID: 8300000, guid: fde010c48a41d7b498e0df2ffdd099d3, type: 3}
+  rattles:
+  - {fileID: 8300000, guid: c23a46a700f218843ad7cc2c2dc89794, type: 3}
+  - {fileID: 8300000, guid: cc763e97f6b0cbc4baf937d3846581b9, type: 3}
+  - {fileID: 8300000, guid: 1398ab3930e74144aa555b45dd39e385, type: 3}
+  - {fileID: 8300000, guid: 45fb967e016158242a93f22f78ec4e94, type: 3}
+  - {fileID: 8300000, guid: 11008c1544efd4043a85d00650988728, type: 3}
+  falls:
+  - {fileID: 8300000, guid: c2998f6e20b33074ea35753871330f5e, type: 3}
+  - {fileID: 8300000, guid: 7a8729e5bf26a5542aa19f5fba2a8a0e, type: 3}
+  - {fileID: 8300000, guid: 51958cdf4354f67448f546a486d16f54, type: 3}
+  - {fileID: 8300000, guid: 63462ef05f849d04a8e4d89c06348c97, type: 3}
+  - {fileID: 8300000, guid: 1cbf40417dc3ce84a95831c8ecd3d2e5, type: 3}
+  windSoft: {fileID: 8300000, guid: 99cf7ceb37e4cde42b89ba68f6987c2d, type: 3}
+  windStrong: {fileID: 8300000, guid: bd85265fa555f8b43be96312efe279d3, type: 3}
+  windHowl: {fileID: 8300000, guid: 5a7fed7bd0cac9341a7626676b28beb0, type: 3}
+  rainSoft: {fileID: 8300000, guid: a1d7677bd1d48514bbb557a7f879bfa3, type: 3}
+  rainStrong: {fileID: 8300000, guid: 630fdf4a489685f459cbf5d091144071, type: 3}
+  morningAmbience: {fileID: 8300000, guid: 3e0b793299afd7c4086f6dfcd604aaba, type: 3}
+  thunder:
+  - {fileID: 8300000, guid: 6ca3bddd35a48a745b4dcecc9f65a83f, type: 3}
+  - {fileID: 8300000, guid: dd76e0dd59e215946a75c7338c043951, type: 3}
+  - {fileID: 8300000, guid: ee17606ad258a3543a73a326bf5bc5da, type: 3}
+  - {fileID: 8300000, guid: eb8c1b0f82ffe784da2459bc295b4854, type: 3}
+  - {fileID: 8300000, guid: e410de94ef87c1b4998b2d4731a717bc, type: 3}
+  - {fileID: 8300000, guid: 9782567e1b6333b48a1740387fff0fd1, type: 3}
+  - {fileID: 8300000, guid: 818cce4f54fca2c42afda10a751d6018, type: 3}
+  - {fileID: 8300000, guid: 8199e024b4a0d744a90efff950ca08ab, type: 3}
+  - {fileID: 8300000, guid: 2395073a1009b6740920b5017969933d, type: 3}
+  - {fileID: 8300000, guid: b2e3f2149ff8e664fbfb380e4a6efb16, type: 3}
+  ambienceMaster: 0.8
+  sfxMaster: 0.9

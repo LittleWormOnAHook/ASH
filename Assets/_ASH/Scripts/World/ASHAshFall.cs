@@ -125,6 +125,25 @@ namespace ASH.World
             transform.rotation = Quaternion.identity;
         }
 
+        /// <summary>Runtime weather drive (ASHWeatherOutputs): emission rate, wind drift and flake size only - cheap, no full re-apply.
+        /// clear = drop the particles already alive (e.g. the opening starts with clean air).</summary>
+        public void SetWeather(float rate, Vector3 windVelocity, float sizeMul, bool clear = false)
+        {
+            if (!_ps) _ps = GetComponent<ParticleSystem>(); if (!_ps) return;
+            var main = _ps.main;
+            int need = Mathf.Clamp(Mathf.CeilToInt(rate * lifetime * 1.1f), 100, 200000); if (main.maxParticles < need) main.maxParticles = need;
+            sizeMul = Mathf.Max(0.05f, sizeMul);
+            main.startSize = new ParticleSystem.MinMaxCurve(sizeRange.x * sizeMul, sizeRange.y * sizeMul);
+            var em = _ps.emission; em.rateOverTime = Mathf.Max(0f, rate);
+            var vel = _ps.velocityOverLifetime;
+            vel.x = new ParticleSystem.MinMaxCurve(windVelocity.x * 0.7f, windVelocity.x * 1.3f);
+            vel.z = new ParticleSystem.MinMaxCurve(windVelocity.z * 0.7f, windVelocity.z * 1.3f);
+            var t = transform.Find("Embers");
+            if (t && t.TryGetComponent<ParticleSystem>(out var eps)) { var e = eps.emission; e.rateOverTime = rate * emberShare; var v = eps.velocityOverLifetime; v.x = vel.x; v.z = vel.z; if (clear) eps.Clear(); }
+            if (clear) _ps.Clear();
+            if (rate > 0f && !_ps.isPlaying) _ps.Play(true);
+        }
+
         [ContextMenu("Preset/Light")] public void PresetLight() { Base(); particlesPerSecond = 500f; maxParticles = 15000; flutter = 0.5f; Apply(); }
         [ContextMenu("Preset/Default")] public void PresetDefault() { Base(); Apply(); }
         [ContextMenu("Preset/Heavy")] public void PresetHeavy() { Base(); particlesPerSecond = 4500f; maxParticles = 90000; flutter = 1.1f; sizeRange = new Vector2(0.035f, 0.1f); Apply(); }

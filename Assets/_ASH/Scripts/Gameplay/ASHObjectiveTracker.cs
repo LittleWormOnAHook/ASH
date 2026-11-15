@@ -42,6 +42,28 @@ namespace ASH.Gameplay
         public Transform Campsite => campsite;
         private bool _crafted, _reached;
 
+        // ---- priority objective (story beats such as the Phase 2A opening override the slice chain while active)
+        /// <summary>Set before Start (e.g. by the opening sequence) to hold back the intro toast; ReplayIntro() shows it later.</summary>
+        public static bool HoldIntroMessage;
+        string _prTitle; Func<IEnumerable<(string text, bool done)>> _prLines;
+        public bool HasPriority => _prTitle != null;
+        public string PriorityTitle => _prTitle;
+        public void SetPriority(string title, Func<IEnumerable<(string text, bool done)>> lines, string message = null)
+        {
+            _prTitle = title; _prLines = lines; ASHLog.Info("Objective (priority) -> " + title);
+            if (!string.IsNullOrEmpty(message)) Message?.Invoke(message);
+            Changed?.Invoke();
+        }
+        public void ClearPriority(string message = null)
+        {
+            if (_prTitle == null) return;
+            _prTitle = null; _prLines = null;
+            if (!string.IsNullOrEmpty(message)) Message?.Invoke(message);
+            Changed?.Invoke();
+        }
+        public void ReplayIntro() { HoldIntroMessage = false; Message?.Invoke(IntroText()); Changed?.Invoke(); }
+        string IntroText() => Current == Stage.Survey ? "The GPS is damaged. Climb the Redstone Camp lookout and log the viewpoint." : "Find deadwood, stones and something to eat before dark.";
+
         private void OnEnable()
         {
             if (inventory) inventory.ItemAdded += OnItemAdded;
@@ -70,7 +92,7 @@ namespace ASH.Gameplay
 
         private void Start()
         {
-            Message?.Invoke(Current == Stage.Survey ? "The GPS is damaged. Climb the Redstone Camp lookout and log the viewpoint." : "Find deadwood, stones and something to eat before dark.");
+            if (!HoldIntroMessage) Message?.Invoke(IntroText());
             Changed?.Invoke();
         }
 
@@ -118,6 +140,7 @@ namespace ASH.Gameplay
 
         public string Title()
         {
+            if (_prTitle != null) return _prTitle;
             switch (Current)
             {
                 case Stage.Survey: return "Get your bearings";
@@ -131,6 +154,7 @@ namespace ASH.Gameplay
 
         public IEnumerable<(string text, bool done)> Lines()
         {
+            if (_prLines != null) { foreach (var l in _prLines()) yield return l; yield break; }
             if (Current == Stage.Survey)
             {
                 float d = player && firstSurveyPoint ? Flat(player.position, firstSurveyPoint.position) : 0f;

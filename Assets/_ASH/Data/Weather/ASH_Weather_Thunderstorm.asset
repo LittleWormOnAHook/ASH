@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b1a9938cfa8686a4cbef0f93819d6a26, type: 3}
+  m_Name: ASH_Weather_Thunderstorm
+  m_EditorClassIdentifier: Assembly-CSharp::ASH.World.Weather.ASHWeatherProfile
+  kind: 6
+  displayName: Thunderstorm
+  ashfall: 0.15
+  rain: 0.9
+  snow: 0
+  ashFlakeSize: 1
+  wind: 0.6
+  windSpeed: 11
+  gustiness: 0.7
+  cloudDarkness: 0.85
+  ambientScale: 0.4
+  skyExposureScale: 0.25
+  skyAshTint: 0.5
+  haze: 0.55
+  visibilityMetres: 300
+  volFogDensity: 2.8
+  volFogAlbedo: {r: 0.45, g: 0.46, b: 0.5, a: 1}
+  volFogNoise: 0.5
+  volFogLight: 0.6
+  atmosphereWeight: 0.95
+  saturation: -30
+  postExposure: -0.6
+  colorFilter: {r: 0.82, g: 0.85, b: 0.92, a: 1}
+  vignette: 0.35
+  windVolume: 0.5
+  rainVolume: 1
+  ambienceVolume: 0
+  thunderPerMinute: 4
+  temperatureC: 10
+  probability: 0.5
+  majorEvent: 1
+  durationMinutes: {x: 3, y: 7}

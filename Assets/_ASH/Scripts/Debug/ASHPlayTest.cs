@@ -23,6 +23,7 @@ namespace ASH.DebugTools
         public static void Run()
         {
             if (!Application.isPlaying) { Debug.LogWarning("[ASH] TEST requires Play Mode"); return; }
+            ASH.Opening.ASHEruptionSequence.SuppressIfPresent(); // Phase 2A opening: back to the scene spawn, effects off
             var go = new GameObject("ASH_PlayTest"); go.AddComponent<ASHPlayTest>();
         }
 
@@ -226,7 +227,7 @@ namespace ASH.DebugTools
             }
             else Check("cook meat at campfire", false, $"recipe={(bool)cookR} fire={(bool)fireNow}");
             // ---- hatchet salvage: crate needs the axe
-            var crate = FindObjectsByType<ASHResourceNode>().Where(n => n.RequiredTool == ASHToolType.Axe && !n.Depleted).OrderBy(n => (n.transform.position - tr.position).sqrMagnitude).FirstOrDefault();
+            var crate = FindObjectsByType<ASHResourceNode>().Where(n => n.RequiredTool == ASHToolType.Axe && !n.Depleted && n.transform.root.name != "ASH_Phase2A").OrderBy(n => (n.transform.position - tr.position).sqrMagnitude).FirstOrDefault();
             var hatchet = Def("hatchet");
             if (crate && hatchet)
             {

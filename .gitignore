@@ -96,3 +96,10 @@ desktop.ini
 # Large audio library (referenced by ASH_SoundBank) - stays out of git
 /Assets/Audio/
 /Assets/Audio.meta
+
+# Vendor: Enviro 3 - Sky and Weather (parts library, referenced only) - stays out of git
+/Assets/Enviro 3 - Sky and Weather/
+/Assets/Enviro 3 - Sky and Weather.meta
+# Vendor: ARTnGAME (PPv2-only fog, unused) - stays out of git
+/Assets/ARTnGAME/
+/Assets/ARTnGAME.meta

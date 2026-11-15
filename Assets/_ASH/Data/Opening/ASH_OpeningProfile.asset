@@ -1,0 +1,77 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2471af45e35bc1d44a1519dbe47a93d3, type: 3}
+  m_Name: ASH_OpeningProfile
+  m_EditorClassIdentifier: Assembly-CSharp::ASH.Opening.ASHOpeningProfile
+  peacefulSeconds: 75
+  startTimeOfDay: 7.6
+  groundAshAtStart: 0
+  groundSnowAtStart: 0
+  musicVolume: 0.28
+  musicFadeSeconds: 1.5
+  alertSeconds: 7
+  broadcastVolume: 0.75
+  staticVolume: 0.12
+  dropoutsPerMinute: 6
+  broadcast:
+  - speaker: Radio
+    text: This is an emergency broadcast for the southern Colorado region.
+    seconds: 5
+  - speaker: Radio
+    text: The U.S. Geological Survey reports extraordinary seismic activity and a
+      major volcanic eruption in the Yellowstone region.
+    seconds: 8
+  - speaker: Radio
+    text: Volcanic ash may fall across the area over the coming hours. Ash can damage
+      lungs, engines and roofs.
+    seconds: 7
+  - speaker: Radio
+    text: Avoid unnecessary travel. Stay indoors and keep doors and windows closed.
+    seconds: 6
+  - speaker: Radio
+    text: Exposed water may become contaminated. Store clean drinking water now and
+      keep it covered.
+    seconds: 7
+  - speaker: Radio
+    text: Stay tuned to this station for further updates.
+    seconds: 5
+  afterQuake:
+  - speaker: Radio
+    text: ...repeat... remain indoors...
+    seconds: 4
+  - speaker: Radio
+    text: ...ashfall expected... cover your mouth and nose...
+    seconds: 5
+  - speaker: Radio
+    text: ...further information... as it becomes...
+    seconds: 4
+  quakeDelay: 14
+  quietSeconds: 20
+  hazeSeconds: 40
+  ashOnsetSeconds: 20
+  ashRampSeconds: 240
+  heavyRampSeconds: 90
+  heavyWaveSeconds: 180
+  easeSeconds: 120
+  objectiveTitle: Secure the cabin
+  objectiveMessage: Secure the cabin and prepare for worsening conditions.
+  journalBroadcastTitle: Emergency broadcast
+  journalBroadcastBody: 'Radio: extraordinary seismic activity and a major eruption
+    in the Yellowstone region. Ash may fall over the coming hours. Avoid travel,
+    stay indoors, and store and cover clean drinking water - exposed water may be
+    contaminated.'
+  journalWaveTitle: First fallout
+  journalWaveBody: The sky went dark by mid-morning. Ash is coming down like dirty
+    snow and the wind is picking it up off the ground. Stay in, collect water and
+    food, wait for it to ease.
+  startSchedulerAfter: 1
+  afterState: 1

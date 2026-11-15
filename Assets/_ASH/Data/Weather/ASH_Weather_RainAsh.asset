@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b1a9938cfa8686a4cbef0f93819d6a26, type: 3}
+  m_Name: ASH_Weather_RainAsh
+  m_EditorClassIdentifier: Assembly-CSharp::ASH.World.Weather.ASHWeatherProfile
+  kind: 4
+  displayName: Rain + Ash
+  ashfall: 0.3
+  rain: 0.7
+  snow: 0
+  ashFlakeSize: 1
+  wind: 0.45
+  windSpeed: 9
+  gustiness: 0.45
+  cloudDarkness: 0.6
+  ambientScale: 0.55
+  skyExposureScale: 0.4
+  skyAshTint: 0.6
+  haze: 0.6
+  visibilityMetres: 350
+  volFogDensity: 3
+  volFogAlbedo: {r: 0.5, g: 0.5, b: 0.5, a: 1}
+  volFogNoise: 0.5
+  volFogLight: 0.6
+  atmosphereWeight: 0.85
+  saturation: -32
+  postExposure: -0.45
+  colorFilter: {r: 0.88, g: 0.88, b: 0.86, a: 1}
+  vignette: 0.3
+  windVolume: 0.4
+  rainVolume: 0.75
+  ambienceVolume: 0
+  thunderPerMinute: 0.3
+  temperatureC: 6
+  probability: 0.8
+  majorEvent: 1
+  durationMinutes: {x: 5, y: 10}
