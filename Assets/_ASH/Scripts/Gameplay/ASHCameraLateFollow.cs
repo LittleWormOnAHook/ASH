@@ -30,6 +30,10 @@ namespace ASH.Gameplay
         void OnEnable()
         {
             vThirdPersonCamera.DMFollowInLateUpdate = true;
+            // Genesis also turned this on (it was never set in ASH): Invector's free-locomotion turn wrote transform.rotation every
+            // physics step, which teleports an interpolated Rigidbody and breaks its interpolation, so the character's whole
+            // transform stepped at physics rate while the camera stayed smooth (the walk/run micro-jitter). MoveRotation keeps it interpolated.
+            Invector.vCharacterController.vThirdPersonMotor.DMRotateViaRigidbody = true;
             if (interpolatePlayer)
             {
                 var cc = FindAnyObjectByType<Invector.vCharacterController.vThirdPersonController>();
