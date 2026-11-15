@@ -22,9 +22,16 @@ namespace ASH.Interaction
         bool Thirsty(in ASHUseContext c) => c.Stats != null && c.Stats.Thirst < c.Stats.MaxThirst - 0.5f;
         bool CanFill(in ASHUseContext c) => emptyContainer && filledContainer && c.Inventory != null && c.Inventory.Count(emptyContainer) > 0;
 
+        /// <summary>Grandpa's refillable bottle (ASH.Survival.ASHFaceProtection): refill when it isn't full.</summary>
+        public static System.Func<bool> BottleNeedsRefill;
+        public static System.Action<ASHWaterSource> RefillBottle;
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)] static void ResetHooks() { BottleNeedsRefill = null; RefillBottle = null; }
+        bool CanRefill => BottleNeedsRefill != null && RefillBottle != null && BottleNeedsRefill();
+
         public string GetPrompt(in ASHUseContext c)
         {
             if (Thirsty(c)) return $"Drink from {label}";
+            if (CanRefill) return $"Refill water bottle ({label})";
             if (CanFill(c)) return $"Fill {emptyContainer.displayName} ({label})";
             return $"Not thirsty ({label})";
         }
@@ -32,6 +39,7 @@ namespace ASH.Interaction
         public bool TryUse(in ASHUseContext c)
         {
             if (Thirsty(c)) { c.Stats.Drink(thirstPerDrink); return true; }
+            if (CanRefill) { RefillBottle(this); return true; }
             if (CanFill(c) && c.Inventory.Remove(emptyContainer, 1)) { c.Inventory.AddItem(filledContainer, 1); return true; }
             return false;
         }

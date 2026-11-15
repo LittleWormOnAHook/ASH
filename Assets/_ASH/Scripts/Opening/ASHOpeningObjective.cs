@@ -19,7 +19,7 @@ namespace ASH.Opening
         public BoxCollider interior;
 
         ASHObjectiveTracker _tracker; ASHInventory _inv; UI.ASHHud _hud; Transform _player;
-        int _water, _food; bool _journalRead, _active, _eased;
+        int _water, _food; bool _journalRead, _active, _eased, _hadBottle; ASHItemDefinition _bottle; bool _manualExists;
         public bool Active => _active;
         public bool WaterDone => _water >= waterNeeded;
         public bool FoodDone => _food >= foodNeeded;
@@ -34,6 +34,8 @@ namespace ASH.Opening
             _tracker = FindAnyObjectByType<ASHObjectiveTracker>(); _inv = FindAnyObjectByType<ASHInventory>(); _hud = FindAnyObjectByType<UI.ASHHud>();
             var cc = FindAnyObjectByType<Invector.vCharacterController.vThirdPersonController>(); _player = cc ? cc.transform : null;
             _water = Have(true); _food = Have(false); _journalRead = false; _eased = false; _active = true;
+            _bottle = ASHItemRegistry.I.Find("water_bottle"); _manualExists = ASHFieldManualData.I != null;
+            _hadBottle = _bottle && _inv && _inv.Count(_bottle) > 0;
             if (_inv) { _inv.ItemAdded -= OnAdded; _inv.ItemAdded += OnAdded; }
             if (_tracker) _tracker.SetPriority(title, Lines, message);
         }
@@ -59,6 +61,7 @@ namespace ASH.Opening
         void OnAdded(ASHItemDefinition item, int amount)
         {
             if (!_active || !item) return;
+            if (_bottle && item == _bottle && !_hadBottle) { _hadBottle = true; Toast("Grandpa's water bottle. Refill it at water sources."); }
             bool before = AllDone;
             if (item.restoreThirst > 0f) { _water += amount; if (_water - amount < waterNeeded && WaterDone) Toast("Drinking water stored."); }
             if (item.restoreHunger > 0f) { _food += amount; if (_food - amount < foodNeeded && FoodDone) Toast("Food set aside."); }
@@ -81,6 +84,9 @@ namespace ASH.Opening
             yield return ($"Store drinking water  {Mathf.Min(_water, waterNeeded)}/{waterNeeded}", WaterDone);
             yield return ($"Set aside food  {Mathf.Min(_food, foodNeeded)}/{foodNeeded}", FoodDone);
             yield return ("Read the broadcast notes in the journal [J]", _journalRead);
+            // optional (never block completion: AllDone ignores them)
+            if (_bottle) yield return ("<color=#a59e93>(Optional)</color> Take Grandpa's water bottle", _hadBottle);
+            if (_manualExists) yield return ("<color=#a59e93>(Optional)</color> Read Grandpa's journal", ASHFieldManual.Instance && ASHFieldManual.Instance.IsRead);
         }
     }
 }

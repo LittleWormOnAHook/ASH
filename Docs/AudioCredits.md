@@ -18,6 +18,8 @@ Clips shipped in the repo live in `Assets/_ASH/Audio/`. Vendor libraries (`Asset
 | ASH_Quake_Rattle_03–05.ogg, ASH_Quake_Fall_05.ogg | https://opengameart.org/content/100-cc0-sfx-2 (items_01/02, glass_03, glass_01) | rubberduck | CC0 |
 | ASH_Thunder_01.ogg | https://opengameart.org/content/100-cc0-sfx-2 (thunder_01) | rubberduck | CC0 |
 | ASH_Thunder_02.ogg | https://opengameart.org/content/rain-long-thunder (16 s cut at 0:18) | WuxiaScrub | CC0 |
+| Exposure/ASH_Cough_01.ogg | https://opengameart.org/content/old-man-cough (old-man-cough.ogg, mono, faded at 5.2 s) | Jordan Irwin (AntumDeluge) | CC0 |
+| Exposure/ASH_Breathing_Loop.ogg | https://opengameart.org/content/breathing-tired (breathing tired.wav, mono) | mikeask | CC0 |
 
 Generated at runtime (original, no license needed): the two-tone emergency attention signal (853 + 960 Hz) and the fallback radio static.
 

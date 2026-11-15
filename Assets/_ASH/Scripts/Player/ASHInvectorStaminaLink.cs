@@ -15,6 +15,10 @@ namespace ASH.Player
         [SerializeField] private vThirdPersonController controller;
         [SerializeField] private ASHSurvivalStats stats;
 
+        /// <summary>Extra stamina drain per real second (ash exposure, ASH.Survival.ASHExposure).</summary>
+        public static float ExtraDrainPerSecond;
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)] static void ResetHooks() => ExtraDrainPerSecond = 0f;
+
         private void Start() => ApplyTuning();
 
         public void ApplyTuning()
@@ -32,6 +36,7 @@ namespace ASH.Player
             if (controller == null || stats == null) return;
             // Invector adds staminaRecovery once per FixedUpdate.
             controller.staminaRecovery = stats.Tuning.staminaRecoveryPerSecond * stats.StaminaRecoveryMultiplier * Time.fixedDeltaTime;
+            if (ExtraDrainPerSecond > 0f && controller.currentStamina > 0f) controller.currentStamina = Mathf.Max(0f, controller.currentStamina - ExtraDrainPerSecond * Time.fixedDeltaTime);
         }
 
         private void LateUpdate()
