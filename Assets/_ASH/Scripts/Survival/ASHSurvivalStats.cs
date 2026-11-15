@@ -32,9 +32,11 @@ namespace ASH.Survival
 
         public bool HungerLow => Hunger <= MaxHunger * tuning.lowNeedThreshold;
         public bool ThirstLow => Thirst <= MaxThirst * tuning.lowNeedThreshold;
-        public float StaminaRecoveryMultiplier => (HungerLow || ThirstLow ? tuning.lowNeedsRecoveryMultiplier : 1f) * ExposureRecoveryMultiplier;
+        public float StaminaRecoveryMultiplier => (HungerLow || ThirstLow ? tuning.lowNeedsRecoveryMultiplier : 1f) * ExposureRecoveryMultiplier * ColdRecoveryMultiplier;
         /// <summary>Set by ash exposure (1 = no effect): slows stamina recovery outside in ash.</summary>
         public float ExposureRecoveryMultiplier { get; set; } = 1f;
+        /// <summary>Set by ASHBodyTemperature (cold slows stamina recovery).</summary>
+        public float ColdRecoveryMultiplier { get; set; } = 1f;
 
         /// <summary>Save restore: absolute values (clamped).</summary>
         public void RestoreValues(float health, float hunger, float thirst)

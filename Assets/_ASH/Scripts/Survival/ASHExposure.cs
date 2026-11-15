@@ -120,6 +120,31 @@ namespace ASH.Survival
                     Gameplay.ASHSfx.Play("exposure.cough", S.coughClips, transform.position + Vector3.up * 1.6f, S.coughVolume, 1f, 0.08f, 0f);
             }
             UpdateBreathing();
+            UpdateLabored();
+        }
+
+        AudioSource _labored; AudioLowPassFilter _laboredLp; float _nextLabored;
+        /// <summary>Strained breathing while the rag dries out / the filter runs low, heavier near empty.</summary>
+        void UpdateLabored()
+        {
+            if (!_face || _face.Worn == ASHFaceProtection.Kind.None || !_face.Low || _stats.IsDead || Time.timeScale <= 0f) { _nextLabored = Mathf.Max(_nextLabored, Time.time + 2f); return; }
+            var clip = S.laboredClip ? S.laboredClip : S.breathingLoop; if (!clip) return;
+            bool mask = _face.Worn == ASHFaceProtection.Kind.Mask;
+            float window = mask ? S.filterLowHours : S.ragDegradeHours;
+            float k = window > 0f ? Mathf.Clamp01(1f - _face.RemainingHours / window) : 1f;
+            if (mask && _face.FilterHours <= 0f) k = 1f;
+            if (Time.time < _nextLabored) return;
+            var iv = S.laboredIntervalSeconds;
+            _nextLabored = Time.time + Mathf.Lerp(iv.x, iv.y, k) * Random.Range(0.85f, 1.15f);
+            if (!_labored)
+            {
+                var go = new GameObject("ASH_LaboredBreath"); go.transform.SetParent(transform, false); go.transform.localPosition = Vector3.up * 1.6f;
+                _labored = go.AddComponent<AudioSource>(); _labored.playOnAwake = false; _labored.spatialBlend = 0f;
+                _laboredLp = go.AddComponent<AudioLowPassFilter>();
+            }
+            _laboredLp.cutoffFrequency = mask ? S.breathingMuffleHz : S.breathingMuffleHz * 1.8f;
+            _labored.pitch = Mathf.Lerp(1f, 0.93f, k) * (1f + Random.Range(-S.laboredPitchJitter, S.laboredPitchJitter));
+            _labored.PlayOneShot(clip, Mathf.Clamp01(S.laboredVolume * Mathf.Lerp(0.5f, 1f, k) * ASHGameSettings.CachedSfx));
         }
 
         void UpdateBreathing()

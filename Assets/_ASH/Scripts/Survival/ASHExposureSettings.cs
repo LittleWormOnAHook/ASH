@@ -91,6 +91,14 @@ namespace ASH.Survival
         [Range(0f, 1f)] public float breathingVolume = 0.35f;
         [Range(200f, 8000f)] public float breathingMuffleHz = 1100f;
 
+        [Header("Strained breathing (rag drying out / filter low)")]
+        [Tooltip("Clip for the strained breathing cue (empty = the breathing loop clip).")]
+        public AudioClip laboredClip;
+        [Range(0f, 1f)] public float laboredVolume = 0.35f;
+        [Tooltip("Seconds between strained breaths: x = when the warning starts, y = near empty (real seconds).")]
+        public Vector2 laboredIntervalSeconds = new Vector2(14f, 4f);
+        [Range(0f, 0.4f)] public float laboredPitchJitter = 0.06f;
+
         [Header("Water bottle")]
         [Range(1f, 100f)] public float sipPercent = 10f;
         [Range(0f, 100f)] public float thirstPerSip = 12f;
