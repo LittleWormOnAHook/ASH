@@ -14,12 +14,19 @@ namespace ASH.EditorTools
     /// Grip_R/Grip_L/String_R/Stock) - never the Held_ items' own placements - plus the value settings (numbers, toggles, vectors, enums - no object
     /// references) of ASHWeaponAim, ASHLightAim, ASHChopAnimator, ASHHeldRig, ASHActionLayer and ASHEquipment. A component's
     /// context menu "Save Runtime Pose to Prefab" does the same once for that Play session. Logs everything it saved.
+    /// Separate opt-in "ASH/Keep Held Item Placements From Play" (default off; context menu "Save Held Item Placements to Prefab"
+    /// for one session): also writes the local position/rotation/scale of Held_ item objects - only the ones you moved yourself
+    /// in Play (inspector or scene gizmo edits, tracked through Undo) and that differ from their value at Play start.
+    /// The prefab is backed up to Library/ASH_PrefabBackups before every write.
     /// </summary>
     [InitializeOnLoad]
     public static class ASHPlayModePersist
     {
         const string Menu = "ASH/Keep Player Play Changes";
         const string KeyOn = "ASH_KeepPlayChanges", KeyOnce = "ASH_KeepPlayChangesOnce", KeyData = "ASH_KeepPlayChangesData";
+        const string MenuHeld = "ASH/Keep Held Item Placements From Play";
+        const string KeyHeld = "ASH_KeepHeldPlacements", KeyHeldOnce = "ASH_KeepHeldPlacementsOnce", KeyHeldData = "ASH_KeepHeldPlacementsData";
+        const string HeldPrefix = "Held_";
         const string PlayerPrefab = "Assets/_ASH/Prefabs/Player/ASH_Player.prefab";
         static readonly System.Type[] Types = { typeof(ASHWeaponAim), typeof(ASHLightAim), typeof(ASHChopAnimator), typeof(ASHHeldRig), typeof(ASHActionLayer), typeof(ASHEquipment) };
         static readonly string[] RigPrefixes = { ASHHeldRig.AimAnchorPrefix, ASHHeldRig.UseAnchorPrefix, ASHHeldRig.GripR, ASHHeldRig.GripL, ASHHeldRig.StringR, ASHHeldRig.Stock }; // Held_ item rest placements are hand-set in edit mode and never written back
@@ -28,7 +35,7 @@ namespace ASH.EditorTools
         [System.Serializable] class Prop { public string comp, path, prop, type, value; }
         [System.Serializable] class Data { public List<TPose> poses = new List<TPose>(); public List<Prop> props = new List<Prop>(); }
 
-        static ASHPlayModePersist() { EditorApplication.playModeStateChanged += OnPlayMode; }
+        static ASHPlayModePersist() { EditorApplication.playModeStateChanged += OnPlayMode; Undo.postprocessModifications += OnModified; }
 
         [MenuItem(Menu, priority = 210)] static void Toggle() => SessionState.SetBool(KeyOn, !SessionState.GetBool(KeyOn, false));
         [MenuItem(Menu, true)] static bool ToggleV() { UnityEditor.Menu.SetChecked(Menu, SessionState.GetBool(KeyOn, false)); return true; }
@@ -40,8 +47,66 @@ namespace ASH.EditorTools
         [MenuItem("CONTEXT/ASHLightAim/Save Runtime Pose to Prefab")] static void S3(MenuCommand c) => SaveOnce(c);
         [MenuItem("CONTEXT/ASHChopAnimator/Save Runtime Pose to Prefab")] static void S4(MenuCommand c) => SaveOnce(c);
 
+        // ---- Held_ item placements (separate opt-in) ----
+        [MenuItem(MenuHeld, priority = 211)] static void ToggleHeld() => SessionState.SetBool(KeyHeld, !SessionState.GetBool(KeyHeld, false));
+        [MenuItem(MenuHeld, true)] static bool ToggleHeldV() { UnityEditor.Menu.SetChecked(MenuHeld, SessionState.GetBool(KeyHeld, false)); return true; }
+        public static bool KeepHeldOn { get => SessionState.GetBool(KeyHeld, false); set => SessionState.SetBool(KeyHeld, value); }
+        static void SaveHeldOnce(MenuCommand c) { SessionState.SetBool(KeyHeldOnce, true); Debug.Log("[ASH] KEEP HELD: Held_ items you moved this Play session will be saved to the prefab when you leave Play"); }
+        [MenuItem("CONTEXT/ASHHeldRig/Save Held Item Placements to Prefab")] static void H1(MenuCommand c) => SaveHeldOnce(c);
+        [MenuItem("CONTEXT/ASHEquipment/Save Held Item Placements to Prefab")] static void H2(MenuCommand c) => SaveHeldOnce(c);
+        [MenuItem("CONTEXT/Transform/Save Held Item Placements to Prefab")] static void H3(MenuCommand c) => SaveHeldOnce(c);
+        [MenuItem("CONTEXT/Transform/Save Held Item Placements to Prefab", true)] static bool H3V(MenuCommand c) => EditorApplication.isPlaying && c.context is Transform t && t.name.StartsWith(HeldPrefix);
+
+        static readonly Dictionary<string, TPose> _heldStart = new Dictionary<string, TPose>(), _heldEdited = new Dictionary<string, TPose>();
+        static readonly HashSet<Transform> _heldPending = new HashSet<Transform>();
+
+        static bool IsHeld(Transform t, Transform root) => t && root && t != root && t.name.StartsWith(HeldPrefix) && !t.name.EndsWith("(Clone)") && t.IsChildOf(root);
+        static TPose Pose(Transform t, Transform root) => new TPose { path = AnimationUtility.CalculateTransformPath(t, root), p = t.localPosition, r = t.localRotation, s = t.localScale };
+        static bool Same(TPose a, TPose b) => (a.p - b.p).sqrMagnitude < 1e-10f && Quaternion.Angle(a.r, b.r) < 0.01f && (a.s - b.s).sqrMagnitude < 1e-10f;
+
+        // user edits in Play (inspector / gizmo) arrive here; runtime script moves do not
+        static UndoPropertyModification[] OnModified(UndoPropertyModification[] mods)
+        {
+            if (!EditorApplication.isPlaying) return mods;
+            var root = PlayerRoot(); if (!root) return mods;
+            foreach (var m in mods)
+            {
+                var tr = m.currentValue?.target as Transform; if (!tr || !IsHeld(tr, root)) continue;
+                if (_heldPending.Count == 0) EditorApplication.delayCall += SnapshotPending;
+                _heldPending.Add(tr);
+            }
+            return mods;
+        }
+        static void SnapshotPending()
+        {   // the edit is applied after postprocessModifications: read the value one editor tick later
+            var root = PlayerRoot();
+            foreach (var t in _heldPending) if (t && root) { var p = Pose(t, root); _heldEdited[p.path] = p; }
+            _heldPending.Clear();
+        }
+
+        [System.Serializable] class HeldData { public List<TPose> poses = new List<TPose>(); }
+
         static void OnPlayMode(PlayModeStateChange s)
         {
+            if (s == PlayModeStateChange.EnteredPlayMode)
+            {
+                _heldStart.Clear(); _heldEdited.Clear(); _heldPending.Clear();
+                var root = PlayerRoot();
+                if (root) foreach (var t in root.GetComponentsInChildren<Transform>(true)) if (IsHeld(t, root)) { var p = Pose(t, root); _heldStart[p.path] = p; }
+            }
+            if (s == PlayModeStateChange.ExitingPlayMode && (KeepHeldOn || SessionState.GetBool(KeyHeldOnce, false)))
+            {
+                SessionState.SetBool(KeyHeldOnce, false); SnapshotPending();
+                var hd = new HeldData();
+                foreach (var kv in _heldEdited) if (!_heldStart.TryGetValue(kv.Key, out var st) || !Same(st, kv.Value)) hd.poses.Add(kv.Value);
+                if (hd.poses.Count > 0) SessionState.SetString(KeyHeldData, JsonUtility.ToJson(hd));
+                else Debug.Log("[ASH] KEEP HELD: no Held_ items were moved in Play");
+            }
+            if (s == PlayModeStateChange.EnteredEditMode)
+            {
+                var hj = SessionState.GetString(KeyHeldData, ""); SessionState.EraseString(KeyHeldData);
+                if (!string.IsNullOrEmpty(hj)) ApplyHeld(JsonUtility.FromJson<HeldData>(hj));
+            }
             if (s == PlayModeStateChange.ExitingPlayMode && (KeepOn || SessionState.GetBool(KeyOnce, false)))
             {
                 SessionState.SetBool(KeyOnce, false);
@@ -115,6 +180,30 @@ namespace ASH.EditorTools
             return false;
         }
 
+        static void Backup()
+        {
+            var dir = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Library/ASH_PrefabBackups"); System.IO.Directory.CreateDirectory(dir);
+            var dst = System.IO.Path.Combine(dir, "ASH_Player_" + System.DateTime.Now.ToString("yyyyMMdd_HHmmss_fff") + ".prefab");
+            System.IO.File.Copy(PlayerPrefab, dst, true); Debug.Log($"[ASH] KEEP backup {dst}");
+        }
+
+        static void ApplyHeld(HeldData d)
+        {
+            var root = PrefabUtility.LoadPrefabContents(PlayerPrefab); var sb = new StringBuilder(); int n = 0;
+            try
+            {
+                foreach (var tp in d.poses)
+                {
+                    var t = root.transform.Find(tp.path); if (!t) { sb.Append($"  (missing in prefab) {tp.path}\n"); continue; }
+                    if (t.localPosition == tp.p && t.localRotation == tp.r && t.localScale == tp.s) continue;
+                    t.localPosition = tp.p; t.localRotation = tp.r; t.localScale = tp.s; n++; sb.Append($"  {tp.path} pos {tp.p:F4} rot {tp.r.eulerAngles:F2} scale {tp.s:F4}\n");
+                }
+                if (n > 0) { Backup(); PrefabUtility.SaveAsPrefabAsset(root, PlayerPrefab); }
+            }
+            finally { PrefabUtility.UnloadPrefabContents(root); }
+            Debug.Log(n > 0 ? $"[ASH] KEEP HELD saved {n} Held_ placement(s) to {PlayerPrefab} (scene untouched):\n{sb}" : "[ASH] KEEP HELD: nothing to save\n" + sb);
+        }
+
         static void Apply(Data d)
         {
             var root = PrefabUtility.LoadPrefabContents(PlayerPrefab); var sb = new StringBuilder(); int n = 0;
@@ -134,7 +223,7 @@ namespace ASH.EditorTools
                     foreach (var pr in g) { var sp = so.FindProperty(pr.prop); if (sp != null && Set(sp, pr.type, pr.value)) { any = true; n++; sb.Append($"  {f.comp}.{pr.prop} = {pr.value}\n"); } }
                     if (any) so.ApplyModifiedPropertiesWithoutUndo();
                 }
-                if (n > 0) PrefabUtility.SaveAsPrefabAsset(root, PlayerPrefab);
+                if (n > 0) { Backup(); PrefabUtility.SaveAsPrefabAsset(root, PlayerPrefab); }
             }
             finally { PrefabUtility.UnloadPrefabContents(root); }
             Debug.Log(n > 0 ? $"[ASH] KEEP saved {n} Play-mode change(s) to {PlayerPrefab} (scene untouched):\n{sb}" : "[ASH] KEEP: no player changes to save");
@@ -143,5 +232,7 @@ namespace ASH.EditorTools
         /// <summary>Harness: switch the session toggle from the bridge.</summary>
         public static void EnableKeep() { KeepOn = true; Debug.Log("[ASH] KEEP toggle=True"); }
         public static void DisableKeep() { KeepOn = false; Debug.Log("[ASH] KEEP toggle=False"); }
+        public static void EnableKeepHeld() { KeepHeldOn = true; Debug.Log("[ASH] KEEP HELD toggle=True"); }
+        public static void DisableKeepHeld() { KeepHeldOn = false; Debug.Log("[ASH] KEEP HELD toggle=False"); }
     }
 }
