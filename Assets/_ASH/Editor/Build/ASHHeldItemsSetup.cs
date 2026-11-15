@@ -15,6 +15,7 @@ namespace ASH.EditorTools.Build
     /// - Right hand: Held_HuntingRifle, Held_Pistol, Held_Hatchet, Held_HandArrow
     /// - Left hand: Held_WoodenBow, Held_Torch, Held_Flashlight
     /// - Hips/Holder_Hip/Held_Lantern
+    /// - Held_HuntingRifle/LeftHandIK, Held_Pistol/LeftHandIK: support-hand (left wrist) targets for ASHWeaponAim
     /// ADDS MISSING ONLY: an existing child (found by name anywhere under the player) is never moved, re-scaled, re-parented or
     /// replaced. New children start at the runtime grip captured by ASHHeldCapture (Library/ASH_HeldCapture.txt) when present,
     /// otherwise at the item grip fields. Children are unpacked copies of the Held/ prefabs, so rebuilding those never moves them.
@@ -86,11 +87,34 @@ namespace ASH.EditorTools.Build
                     Add(wa.arrowPrefab, rh, ASHEquipment.HandArrowName, pose); changed = true;
                     sb.Append($"{ASHEquipment.HandArrowName} added under {rh.name}; ");
                 }
+                // gun support-hand targets (wrist pose for the left hand, like Genesis/Invector handIKTarget): added once, never moved
+                changed |= AddLeftHandIK(anim, Existing("Held_HuntingRifle"), new Vector3(0f, 0.01f, 0.38f), new Vector3(1f, 0f, 0.35f), Vector3.up, sb);
+                changed |= AddLeftHandIK(anim, Existing("Held_Pistol"), new Vector3(-0.045f, -0.02f, 0.01f), new Vector3(0f, -1f, 0.35f), Vector3.right, sb);
                 if (changed) PrefabUtility.SaveAsPrefabAsset(root, ASHPlayerBuilder.PrefabPath);
                 sb.Append(changed ? "saved" : "nothing to add");
             }
             finally { PrefabUtility.UnloadPrefabContents(root); }
             return sb.ToString();
+        }
+
+        /// <summary>Adds gun/LeftHandIK (only if missing): the left wrist pose that puts the left palm centre on gripLocal with the
+        /// fingers along fingersLocal and the palm facing palmLocal (gun local). Edit it by hand afterwards; it is never overwritten.</summary>
+        static bool AddLeftHandIK(Animator anim, Transform gun, Vector3 gripLocal, Vector3 fingersLocal, Vector3 palmLocal, StringBuilder sb)
+        {
+            if (!gun) return false;
+            if (gun.Find(ASHWeaponAim.LeftHandIKName)) { sb.Append($"{gun.name}/{ASHWeaponAim.LeftHandIKName} kept; "); return false; }
+            var hand = Bone(anim, HumanBodyBones.LeftHand); var mid = Bone(anim, HumanBodyBones.LeftMiddleProximal);
+            var idx = Bone(anim, HumanBodyBones.LeftIndexProximal); var lit = Bone(anim, HumanBodyBones.LeftLittleProximal);
+            if (!hand || !mid || !idx || !lit) { sb.Append($"{gun.name}/{ASHWeaponAim.LeftHandIKName} skip (no left hand bones); "); return false; }
+            var A = (mid.position - hand.position).normalized; var T = Vector3.ProjectOnPlane(idx.position - lit.position, A).normalized; var P = -Vector3.Cross(A, T).normalized;
+            var pc = Vector3.Lerp(hand.position, mid.position, 0.6f) + P * 0.03f;
+            var H = hand.rotation; var aL = Quaternion.Inverse(H) * A; var pL = Quaternion.Inverse(H) * P; var offL = Quaternion.Inverse(H) * (pc - hand.position);
+            var aW = gun.TransformDirection(fingersLocal).normalized; var pW = Vector3.ProjectOnPlane(gun.TransformDirection(palmLocal), aW).normalized;
+            var Hd = Quaternion.LookRotation(aW, pW) * Quaternion.Inverse(Quaternion.LookRotation(aL, pL));
+            var t = new GameObject(ASHWeaponAim.LeftHandIKName).transform; t.SetParent(gun, false);
+            t.rotation = Hd; t.position = gun.TransformPoint(gripLocal) - Hd * offL;
+            sb.Append($"{gun.name}/{ASHWeaponAim.LeftHandIKName} added at {t.localPosition:F3}; ");
+            return true;
         }
 
         static void Add(GameObject prefab, Transform parent, string name, Pose pose)

@@ -62,6 +62,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 2825166062131655574}
+  - {fileID: 2594075450544289038}
   m_Father: {fileID: 5536186336677997004}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &122537572601871621
@@ -1113,6 +1114,37 @@ Transform:
   - {fileID: 7120122397058720873}
   m_Father: {fileID: 6347052598291756073}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &2801894615069857947
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1182575392995877420}
+  m_Layer: 0
+  m_Name: LeftHandIK
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1182575392995877420
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2801894615069857947}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0.54739904, y: 0.41139963, z: -0.4286807, w: 0.5893536}
+  m_LocalPosition: {x: -0.055163786, y: -0.020000549, z: 0.36069325}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 7753442058604040703}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &2916476026743258253
 GameObject:
   m_ObjectHideFlags: 0
@@ -1143,6 +1175,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1908263405027432939}
+  - {fileID: 1182575392995877420}
   m_Father: {fileID: 5536186336677997004}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &2975490765557373738
@@ -2653,6 +2686,37 @@ Transform:
   m_Children:
   - {fileID: 2592840931991997186}
   m_Father: {fileID: 5033040211746070160}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &6870060029012313347
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2594075450544289038}
+  m_Layer: 0
+  m_Name: LeftHandIK
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2594075450544289038
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6870060029012313347}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0.6779731, y: 0.09616616, z: 0.7198588, w: -0.11361294}
+  m_LocalPosition: {x: -0.075000025, y: 0.035163924, z: -0.009307026}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 2585170663643156082}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &6998562312588038825
 GameObject:
@@ -4201,8 +4265,23 @@ MonoBehaviour:
   aimRotationSpeed: 18
   itemAlignWeight: 1
   gunAimEuler: {x: 0, y: 0, z: 0}
-  bowAimEuler: {x: 0, y: 0, z: -90}
+  bowAimTrimEuler: {x: 0, y: 0, z: 0}
   bowTiltDeg: 8
+  bowArmIKWeight: 1
+  bowArmReach: 0.5
+  bowArmLateral: -0.06
+  bowArmHeight: 0.1
+  bowArmElbowHint: {x: -0.5, y: -0.4, z: 0.05}
+  armIKBlendSpeed: 8
+  gunLeftHandAimWeight: 1
+  gunLeftHandIdleWeight: 0
+  gunLeftElbowHint: {x: -0.4, y: -0.5, z: 0}
+  aimCamera: 1
+  aimCameraRight: 0.38
+  aimCameraHeight: 1.55
+  aimCameraDistance: 1.6
+  aimCameraFov: 52
+  aimCameraBlendSpeed: 8
   allowHipFire: 1
   range: 150
   hitImpulse: 4
@@ -4218,7 +4297,7 @@ MonoBehaviour:
   bowDrawLength: 0.62
   bowDrawIKWeight: 1
   bowDrawRaise: 0.04
-  bowDrawElbowHint: {x: 0.45, y: 0.05, z: -0.4}
+  bowDrawElbowHint: {x: 0.45, y: 0.25, z: -0.4}
   bowAimStartNormalized: 0
   bowAimHoldNormalized: 0.95
   minDraw01: 0.2
@@ -4235,6 +4314,10 @@ MonoBehaviour:
   arrowIdleOffset: {x: 0, y: 0.02, z: 0.03}
   arrowIdleEuler: {x: 0, y: 0, z: 0}
   bowShotHoldSeconds: 0.35
+  arrowRestAboveGrip: 0.045
+  arrowRestSide: 0.02
+  pullBowString: 1
+  fireLockAfterAimRelease: 0.2
 --- !u!1 &7766869945464538650
 GameObject:
   m_ObjectHideFlags: 0

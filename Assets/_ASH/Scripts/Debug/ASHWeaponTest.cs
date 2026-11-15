@@ -11,7 +11,7 @@ using UnityEngine;
 namespace ASH.DebugTools
 {
     /// <summary>Pass C smoke test (Play Mode, exec ASH.DebugTools.ASHWeaponTest.Run): bow (left hand) + arrow (right hand, draws),
-    /// RMB nock/draw, release fires a gravity arrow (speed scales with draw), arrows stick + become pickups, rifle/pistol aim,
+    /// RMB nock/draw, string toward the archer, arrow nocked forward, string pulled, RMB release never fires, LMB while aiming fires a gravity arrow from the bow rest (speed scales with draw), arrows stick + become pickups, rifle/pistol aim,
     /// fire, recoil and ammo, axe chop animation synced to the harvest hit. Logs "[ASH] WEAPON ..." + SUMMARY.</summary>
     public sealed class ASHWeaponTest : MonoBehaviour
     {
@@ -65,24 +65,67 @@ namespace ASH.DebugTools
 
             // RMB: nock + draw (strafe aim), hands together
             bool strafe0 = _cc.isStrafing;
-            _in.SimSecondaryHeld = true; yield return new WaitForSeconds(1.1f);
+            var chest = _eq.Animator.GetBoneTransform(HumanBodyBones.UpperChest) ?? _eq.Animator.GetBoneTransform(HumanBodyBones.Chest);
+            _in.SimSecondaryHeld = true; { float tw0 = 0f; while (_wa.Draw01 < 0.99f && tw0 < 3f) { tw0 += Time.deltaTime; yield return null; } } yield return new WaitForSeconds(0.5f); yield return new WaitForEndOfFrame();
             var bowPos = _eq.MainVisual.transform.position; float handsGap = Vector3.Distance(lh.position, bowPos);
-            ha = _wa.HandArrow; Vector3 arrowDir = ha ? ha.transform.forward : Vector3.zero; float alignDot = Vector3.Dot(arrowDir, (bowPos - lh.position).normalized);
-            var aimFwd = Camera.main ? Camera.main.transform.forward : _cc.transform.forward; aimFwd.y = 0f; aimFwd.Normalize();
-            float drawBack = Vector3.Dot(bowPos - lh.position, aimFwd); // right hand sits behind the bow along the aim
-            Check("RMB nock + full draw (right hand draws)", _wa.Aiming && _cc.isStrafing && _wa.Draw01 >= 0.99f && _layer.State == "BowAim" && _layer.Weight > 0.5f && alignDot > 0.9f && drawBack > 0.45f && handsGap < 1.1f,
-                $"aim={_wa.Aiming} strafe={_cc.isStrafing} draw={_wa.Draw01:F2} layer={_layer.State} w={_layer.Weight:F2} hands gap {handsGap:F2} m draw-back {drawBack:F2} m arrow->bow dot {alignDot:F2}");
+            var aimFwd = Camera.main ? Camera.main.transform.forward : _cc.transform.forward; var aimFlat = Vector3.ProjectOnPlane(aimFwd, Vector3.up).normalized;
+            var restW = _wa.ArrowRestWorld; var nockW = _wa.NockWorld;
+            float drawBack = Vector3.Dot(restW - nockW, aimFlat); // string fingers sit behind the arrow rest along the aim
+            Check("RMB nock + full draw (right hand draws)", _wa.Aiming && _cc.isStrafing && _wa.Draw01 >= 0.99f && _layer.State == "BowAim" && _layer.Weight > 0.5f && drawBack > 0.45f && handsGap < 1.1f,
+                $"aim={_wa.Aiming} strafe={_cc.isStrafing} draw={_wa.Draw01:F2} layer={_layer.State} w={_layer.Weight:F2} hands gap {handsGap:F2} m draw-back {drawBack:F2} m");
+            // bow orientation: limbs up, string side toward the archer (not the limbs' back)
+            var sDir = _wa.BowStringDirWorld; var toArcher = Vector3.ProjectOnPlane((chest ? chest.position : _cc.transform.position + Vector3.up * 1.4f) - restW, Vector3.up).normalized;
+            float stringDot = Vector3.Dot(sDir, toArcher), limbUp = Vector3.Dot(_eq.MainVisual.transform.forward, Vector3.up);
+            Check("string faces the archer at full draw", _wa.BowGeometryOk && stringDot > 0.6f && limbUp > 0.85f,
+                $"string->archer dot {stringDot:F2} limbs-up dot {limbUp:F2} string side sign {_wa.BowStringSign:+0;-0} geometry={_wa.BowGeometryOk}");
+            // nocked arrow: nock on the string at the fingers, resting on the bow, tip forward along the aim
+            ha = _wa.HandArrow;
+            Vector3 aF = ha ? ha.transform.forward : Vector3.zero, aP = ha ? ha.transform.position : Vector3.zero;
+            var aimLine = (_wa.AimPoint(out _) - restW).normalized;
+            float fwdDot = Vector3.Dot(aF, aimLine), restOff = ha ? Vector3.Cross(aF, restW - aP).magnitude : 9f, nockOff = ha ? Vector3.Distance(aP, nockW) : 9f, fingerOff = Vector3.Distance(nockW, _wa.FingerWorld);
+            Check("arrow nocked on the string, forward along the aim", ha && ha.name == "ASH_NockArrow" && ha.activeInHierarchy && fwdDot > 0.97f && restOff < 0.04f && nockOff < 0.03f && fingerOff < 0.08f && Vector3.Dot(restW - aP, aF) > 0.3f,
+                $"arrow={(ha ? ha.name : "none")} fwd.aimLine {fwdDot:F3} rest off line {restOff * 100f:F1} cm nock off {nockOff * 100f:F1} cm nock-fingers {fingerOff * 100f:F1} cm");
+            Check("string pulled to the drawing hand", _wa.BowStringVerts > 0 && _wa.StringPullMetres > 0.3f,
+                $"string verts {_wa.BowStringVerts} pull {_wa.StringPullMetres:F2} m");
+            // bow arm: left hand in toward the chest centre line, in front of the chest, elbow slightly bent
+            {
+                var an = _eq.Animator; var lua = an.GetBoneTransform(HumanBodyBones.LeftUpperArm); var rua = an.GetBoneTransform(HumanBodyBones.RightUpperArm); var lla = an.GetBoneTransform(HumanBodyBones.LeftLowerArm);
+                var midS = (lua.position + rua.position) * 0.5f; var rt = _cc.transform.right;
+                float lat = Vector3.Dot(bowHand.position - midS, rt), fwd = Vector3.Dot(bowHand.position - midS, aimFlat);
+                float bend = Vector3.Angle(lla.position - lua.position, bowHand.position - lla.position);
+                Check("bow hand in front of the chest, elbow bent", lat > -0.2f && lat < 0.08f && fwd > 0.3f && bend > 4f && bend < 60f,
+                    $"bow hand lateral {lat:F2} m (centre 0, - = left) forward {fwd:F2} m elbow bend {bend:F0} deg");
+            }
+            Check("aim camera over the right shoulder", _wa.CameraAiming && _wa.CameraTargetState == ASHWeaponAim.AimCameraState && _wa.CameraRightNow > _wa.aimCameraRight * 0.7f,
+                $"aiming={_wa.CameraAiming} state={_wa.CameraTargetState} right now {_wa.CameraRightNow:F2} (target {_wa.aimCameraRight:F2})");
 
             // holds full draw while RMB stays down
             yield return new WaitForSeconds(2f);
             float nt = _layer.NormalizedTime;
             Check("bow holds full draw until RMB release", _wa.Aiming && _wa.Draw01 >= 0.99f && _layer.State == "BowAim" && _layer.Weight > 0.9f && nt >= _wa.bowAimHoldNormalized - 0.05f && nt <= _wa.bowAimHoldNormalized + 0.05f,
                 $"aim={_wa.Aiming} draw={_wa.Draw01:F2} state={_layer.State} w={_layer.Weight:F2} clip t {nt:F2} (hold {_wa.bowAimHoldNormalized:F2})");
-            // release: full-draw arrow
+            // RMB release NEVER fires: after the long hold, after a short hold, and an LMB click right after letting go
+            var lastBefore = ASHArrow.Last; int shots0 = _wa.Shots, ar0 = _inv.Count(arrow), live0 = ASHArrow.Live.Count;
+            _in.SimSecondaryHeld = false; yield return new WaitForSeconds(0.6f);
+            bool noFireLong = _wa.Shots == shots0 && _inv.Count(arrow) == ar0 && ASHArrow.Last == lastBefore && ASHArrow.Live.Count == live0;
+            _in.SimSecondaryHeld = true; yield return new WaitForSeconds(0.35f); _in.SimSecondaryHeld = false; yield return new WaitForSeconds(0.6f);
+            bool noFireShort = _wa.Shots == shots0 && _inv.Count(arrow) == ar0 && ASHArrow.Last == lastBefore;
+            _in.SimSecondaryHeld = true; yield return new WaitForSeconds(0.6f); _in.SimSecondaryHeld = false; yield return null; _in.SimPrimary = true; yield return null; yield return null; yield return new WaitForSeconds(0.3f);
+            bool noFireLmbAfter = _wa.Shots == shots0 && _inv.Count(arrow) == ar0 && ASHArrow.Last == lastBefore;
+            Check("RMB release never fires", noFireLong && noFireShort && noFireLmbAfter && !_wa.Aiming,
+                $"after long hold {noFireLong}, after short hold {noFireShort}, LMB just after letting go {noFireLmbAfter}; shots {shots0}->{_wa.Shots} arrows {ar0}->{_inv.Count(arrow)} layer={_layer.State}");
+
+            // LMB while aiming: full-draw arrow, launched from the arrow rest on the bow toward the crosshair
+            _in.SimSecondaryHeld = true; yield return new WaitForSeconds(1.2f); yield return new WaitForEndOfFrame();
+            var restAtShot = _wa.ArrowRestWorld; var aimPt = _wa.AimPoint(out _);
             int a0 = _inv.Count(arrow); _in.SimPrimary = true; yield return null; yield return null;
-            var full = ASHArrow.Last; float fullSpeed = full ? full.LaunchVelocity.magnitude : 0f;
-            Check("release fires an arrow", full && _inv.Count(arrow) == a0 - 1 && fullSpeed > 40f && _layer.State.StartsWith("Bow"),
-                $"arrows {a0}->{_inv.Count(arrow)} launch {fullSpeed:F1} m/s stuck={(full && full.Stuck)} in {(full && full.StuckIn ? full.StuckIn.name : "-")} after {(full ? full.FlightTime : 0f):F2}s layer={_layer.State}");
+            var full = ASHArrow.Last; float fullSpeed = full && full != lastBefore ? full.LaunchVelocity.magnitude : 0f;
+            Check("LMB while aiming fires an arrow", full && full != lastBefore && _inv.Count(arrow) == a0 - 1 && fullSpeed > 40f && _layer.State.StartsWith("Bow"),
+                $"arrows {a0}->{_inv.Count(arrow)} launch {fullSpeed:F1} m/s stuck={(full && full.Stuck)} in {(full && full.StuckIn ? full.StuckIn.name : "-")} layer={_layer.State}");
+            float spawnOff = full ? Vector3.Distance(full.LaunchPosition, restAtShot) : 9f, spawnBody = full ? Vector3.Distance(full.LaunchPosition, chest ? chest.position : bowPos) : 0f;
+            float aimDot = full ? Vector3.Dot(full.LaunchVelocity.normalized, (aimPt - full.LaunchPosition).normalized) : 0f;
+            Check("arrow spawns at the bow, aimed at the crosshair", full && spawnOff < 0.08f && spawnBody > 0.35f && aimDot > 0.995f,
+                $"spawn-rest {spawnOff * 100f:F1} cm spawn-chest {spawnBody:F2} m dir.toCrosshair {aimDot:F4}");
             // gravity arc + faces velocity: a level shot high above the player
             var gGo = Instantiate(_wa.arrowPrefab); gGo.transform.position = _cc.transform.position + Vector3.up * 40f;
             var g = gGo.AddComponent<ASHArrow>(); g.Launch(_cc.transform.forward * 30f, _cc.transform, 1f, 0.02f, 5f, arrow, false, 0f, 30);
@@ -91,7 +134,7 @@ namespace ASH.DebugTools
             Check("gravity arc, faces velocity", g && g.Velocity.y < -2.5f && facing && g.transform.position.y < g.LaunchPosition.y - 0.3f, $"vy {(g ? g.Velocity.y : 0f):F2} drop {(g ? g.LaunchPosition.y - g.transform.position.y : 0f):F2} m faces={facing}");
             if (g) Destroy(g.gameObject);
             // short draw = slower
-            _in.SimSecondaryHeld = false; yield return null; yield return null; // let go, then a fresh short draw
+            _in.SimSecondaryHeld = false; yield return new WaitForSeconds(0.3f); // let go, then a fresh short draw
             _in.SimSecondaryHeld = true; yield return new WaitForSeconds(0.35f);
             _in.SimPrimary = true; yield return null; yield return null;
             var weak = ASHArrow.Last; float weakSpeed = weak && weak != full ? weak.LaunchVelocity.magnitude : 0f;
@@ -113,6 +156,10 @@ namespace ASH.DebugTools
             // rifle: aim, fire, recoil, ammo
             _inv.AddItem(rifle, 1); _inv.AddItem(rounds, 5); _eq.Equip(rifle); yield return null;
             _in.SimSecondaryHeld = true; yield return new WaitForSeconds(0.5f);
+            yield return new WaitForEndOfFrame();
+            var rIK = _eq.MainVisual ? _eq.MainVisual.transform.Find(ASHWeaponAim.LeftHandIKName) : null;
+            Check("rifle support hand on LeftHandIK", rIK && _wa.GunLeftHandError >= 0f && _wa.GunLeftHandError < 0.03f && _wa.GunLeftHandWeight > 0.95f,
+                $"target={(bool)rIK} left hand error {_wa.GunLeftHandError * 100f:F1} cm weight {_wa.GunLeftHandWeight:F2} reach {_wa.GunLeftReach:F2}/{_wa.GunLeftArmLength:F2} m pulled back {_wa.GunPull * 100f:F0} cm target(root) {(_eq.MainVisual && _eq.MainVisual.transform.Find(ASHWeaponAim.LeftHandIKName) ? _wa.transform.InverseTransformPoint(_eq.MainVisual.transform.Find(ASHWeaponAim.LeftHandIKName).position).ToString("F2") : "-")}");
             string rState = _layer.State; int r0 = _inv.Count(rounds); int s0 = _wa.Shots;
             _in.SimPrimary = true; yield return null; yield return null;
             var kick = Camera.main ? Camera.main.GetComponent<ASHCameraKick>() : null;
@@ -123,6 +170,10 @@ namespace ASH.DebugTools
             // pistol: aim pose + one round
             _inv.AddItem(pistol, 1); _inv.AddItem(pr, 5); _eq.Equip(pistol); yield return null;
             _in.SimSecondaryHeld = true; yield return new WaitForSeconds(0.4f);
+            yield return new WaitForEndOfFrame();
+            var pIK = _eq.MainVisual ? _eq.MainVisual.transform.Find(ASHWeaponAim.LeftHandIKName) : null;
+            Check("pistol support hand on LeftHandIK", pIK && _wa.GunLeftHandError >= 0f && _wa.GunLeftHandError < 0.03f && _wa.GunLeftHandWeight > 0.95f,
+                $"target={(bool)pIK} left hand error {_wa.GunLeftHandError * 100f:F1} cm weight {_wa.GunLeftHandWeight:F2} reach {_wa.GunLeftReach:F2}/{_wa.GunLeftArmLength:F2} m pulled back {_wa.GunPull * 100f:F0} cm target(root) {(_eq.MainVisual && _eq.MainVisual.transform.Find(ASHWeaponAim.LeftHandIKName) ? _wa.transform.InverseTransformPoint(_eq.MainVisual.transform.Find(ASHWeaponAim.LeftHandIKName).position).ToString("F2") : "-")}");
             string pState = _layer.State; int p0 = _inv.Count(pr);
             _in.SimPrimary = true; yield return null; yield return null;
             Check("pistol aim + fire", pState == "PistolAim" && _inv.Count(pr) == p0 - 1, $"layer {pState} rounds {p0}->{_inv.Count(pr)}");

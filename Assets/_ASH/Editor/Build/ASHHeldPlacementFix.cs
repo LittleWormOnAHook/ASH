@@ -79,8 +79,7 @@ namespace ASH.EditorTools.Build
                 // lantern hook: back and out so the hanging lantern clears the left hand
                 var hook = Find(ASHEquipment.HipHolderName);
                 if (hook) { var b = Pose(hook); hook.position += root.transform.TransformDirection(new Vector3(-0.035f, 0f, -0.09f)); sb.Append($"Holder_Hip: {b} -> {Pose(hook)}; "); }
-                // bow aim: string toward the archer (string is on the bow's +X side)
-                var wa = anim.GetComponent<ASHWeaponAim>(); if (wa) { sb.Append($"bowAimEuler {wa.bowAimEuler} -> (0,0,-90); "); wa.bowAimEuler = new Vector3(0f, 0f, -90f); }
+                // (the bow aim pose is now derived from the bow mesh at runtime: ASHWeaponAim.bowAimTrimEuler is only a trim)
                 PrefabUtility.SaveAsPrefabAsset(root, ASHPlayerBuilder.PrefabPath);
                 sb.Append("saved");
             }
