@@ -34,6 +34,7 @@ MonoBehaviour:
   breakdownToolRequired: 0
   breakdownSeconds: 2
   breakdownNoToolYield: 0.5
+  worldPickupPrefab: {fileID: 4828761016266082402, guid: c9d02740be2c1034e82c857813aac507, type: 3}
   placeablePrefab: {fileID: 0}
   placementFootprint: {x: 1.4, y: 0.6, z: 1.4}
   maxPlacementSlope: 22

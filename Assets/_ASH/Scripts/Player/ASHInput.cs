@@ -116,7 +116,9 @@ namespace ASH.Player
         public bool InteractHeld => SimInteractHeld ?? (!GameplayBlocked && _interact.IsPressed());
         public bool InventoryPressed => Consume(ref SimInventory) || _inventory.WasPressedThisFrame();
         public bool CraftPressed => Consume(ref SimCraft) || _craft.WasPressedThisFrame();
-        public bool PausePressed => _pause.WasPressedThisFrame();
+        /// <summary>Test hook: Esc counts as pressed on this frame number (every reader sees it that frame).</summary>
+        public int SimPauseFrame = -1;
+        public bool PausePressed => SimPauseFrame == Time.frameCount || _pause.WasPressedThisFrame();
         public bool PrimaryPressed => Consume(ref SimPrimary) || _primary.WasPressedThisFrame();
         public bool SecondaryPressed => Consume(ref SimSecondary) || _secondary.WasPressedThisFrame();
         public bool? SimSecondaryHeld;

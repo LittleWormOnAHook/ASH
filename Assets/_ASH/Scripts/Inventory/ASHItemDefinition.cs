@@ -58,6 +58,10 @@ namespace ASH.Inventory
         [Range(0f, 1f)] [Tooltip("Yield multiplier without the (optional) tool. Rounds down, minimum 1.")]
         public float breakdownNoToolYield = 0.5f;
 
+        [Header("World")]
+        [Tooltip("World pickup spawned when this item is dropped from the pack (ASH_Pickup_* prefab with ASHItemPickup). Filled by ASH/Build/Link Item Pickups; a simple pickup is made at runtime when empty.")]
+        public GameObject worldPickupPrefab;
+
         [Header("Placeable")]
         [Tooltip("Spawned in the world when this item is placed.")]
         public GameObject placeablePrefab;

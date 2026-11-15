@@ -21,7 +21,12 @@ namespace ASH.Inventory
             public void Clear() { item = null; amount = 0; }
         }
 
-        [Range(4, 40)] [SerializeField] private int slotCount = 12;
+        [Tooltip("Pack slots. Never fewer than MinPackSlots at runtime (older scenes/prefabs saved 12).")]
+        [Range(4, 60)] [SerializeField] private int slotCount = MinPackSlots;
+        /// <summary>Pack size floor: the original 12 slots plus the 10 added later. Older saved layouts are migrated up to this.</summary>
+        public const int MinPackSlots = 22;
+        /// <summary>Effective pack size (serialized slotCount, raised to MinPackSlots).</summary>
+        int Pack => Mathf.Max(slotCount, MinPackSlots);
         [SerializeField] private List<Slot> slots = new List<Slot>();
 
         /// <summary>Slots are created on first access so UI built before this Awake still sees them.</summary>
@@ -39,21 +44,47 @@ namespace ASH.Inventory
             ResizeSlots();
         }
 
+        /// <summary>Resizes the pack while keeping the cross bar (the last CrossCount slots of the old layout) on the cross bar.
+        /// Pack items beyond a smaller pack move into free pack slots; anything that still doesn't fit is reported.</summary>
         private void ResizeSlots()
         {
-            while (slots.Count < TotalSlots) slots.Add(new Slot());
-            if (slots.Count > TotalSlots) slots.RemoveRange(TotalSlots, slots.Count - TotalSlots);
+            var old = new List<Slot>(slots);
+            int oldPack = old.Count >= CrossCount ? old.Count - CrossCount : old.Count;
+            var pack = new List<Slot>(); var cross = new List<Slot>(); var spill = new List<Slot>();
+            for (int i = 0; i < oldPack; i++) (i < Pack ? pack : spill).Add(old[i] ?? new Slot());
+            for (int i = oldPack; i < old.Count; i++) cross.Add(old[i] ?? new Slot());
+            while (pack.Count < Pack) pack.Add(new Slot());
+            while (cross.Count < CrossCount) cross.Add(new Slot());
+            foreach (var s in spill)
+            {
+                if (s.IsEmpty) continue;
+                int free = pack.FindIndex(p => p.IsEmpty);
+                if (free >= 0) pack[free] = s; else Debug.LogWarning($"[ASH] Inventory resize: no room for {s.item.displayName} x{s.amount}");
+            }
+            slots.Clear(); slots.AddRange(pack); slots.AddRange(cross);
+        }
+
+        // ---------------------------------------------------------------- drop
+        /// <summary>Takes up to amount from slot i out of the inventory (for dropping). Returns the item and how many were taken.</summary>
+        public int TakeFromSlot(int i, int amount, out ASHItemDefinition item)
+        {
+            EnsureSlots(); item = null;
+            if (i < 0 || i >= slots.Count || slots[i].IsEmpty || amount <= 0) return 0;
+            item = slots[i].item; int take = Mathf.Min(amount, slots[i].amount);
+            slots[i].amount -= take; if (slots[i].amount <= 0) slots[i].Clear();
+            Changed?.Invoke();
+            return take;
         }
 
         // ---------------------------------------------------------------- cross bar (Genesis Hot Cross, adapted)
         /// <summary>Cross bar quadrants, stored as 4 extra slots after the pack: [CrossStart + quadrant].</summary>
         public enum CrossQuad { Weapon = 0, Ammo = 1, Light = 2, Food = 3 }
         public const int CrossCount = 4;
-        public int CrossStart => slotCount;
-        public int TotalSlots => slotCount + CrossCount;
-        public int CrossIndex(CrossQuad q) => slotCount + (int)q;
-        public bool IsCross(int i) => i >= slotCount && i < TotalSlots;
-        public bool IsHotbar(int i) => i >= 0 && i < Mathf.Min(hotbarSize, slotCount);
+        public int CrossStart => Pack;
+        public int TotalSlots => Pack + CrossCount;
+        public int CrossIndex(CrossQuad q) => Pack + (int)q;
+        public bool IsCross(int i) => i >= Pack && i < TotalSlots;
+        public bool IsHotbar(int i) => i >= 0 && i < Mathf.Min(hotbarSize, Pack);
         public ASHInventory.Slot CrossSlot(CrossQuad q) { EnsureSlots(); return slots[CrossIndex(q)]; }
 
         /// <summary>Slot category rules: pack and hotbar take anything; each cross quadrant takes one kind.</summary>
@@ -61,7 +92,7 @@ namespace ASH.Inventory
         {
             if (item == null) return true;
             if (!IsCross(i)) return true;
-            return CrossAccepts((CrossQuad)(i - slotCount), item);
+            return CrossAccepts((CrossQuad)(i - Pack), item);
         }
 
         public static bool CrossAccepts(CrossQuad q, ASHItemDefinition item)
@@ -96,7 +127,7 @@ namespace ASH.Inventory
                 int add = Mathf.Min(remaining, item.maxStack - slots[i].amount);
                 slots[i].amount += add; remaining -= add;
             }
-            for (int i = 0; i < slotCount && remaining > 0; i++)
+            for (int i = 0; i < Pack && remaining > 0; i++)
             {
                 if (!slots[i].IsEmpty) continue;
                 int add = Mathf.Min(remaining, item.maxStack);
@@ -115,7 +146,7 @@ namespace ASH.Inventory
             for (int i = 0; i < slots.Count; i++)
             {
                 var s = slots[i];
-                if (s.IsEmpty) { if (i < slotCount) free += item.maxStack; }
+                if (s.IsEmpty) { if (i < Pack) free += item.maxStack; }
                 else if (s.item == item) free += item.maxStack - s.amount;
                 if (free >= amount) return true;
             }
@@ -145,7 +176,7 @@ namespace ASH.Inventory
             return true;
         }
 
-        public int SlotCount => slotCount;
+        public int SlotCount => Pack;
         /// <summary>Slots [0, HotbarSize) double as the always-visible hotbar (keys 1..N).</summary>
         [Range(0, 10)] public int hotbarSize = 6;
 
@@ -177,7 +208,7 @@ namespace ASH.Inventory
         {
             EnsureSlots();
             if (i < 0 || i >= slots.Count || slots[i].IsEmpty || slots[i].amount < 2) return false;
-            int empty = -1; for (int k = 0; k < slotCount; k++) if (slots[k].IsEmpty) { empty = k; break; } if (empty < 0) return false;
+            int empty = -1; for (int k = 0; k < Pack; k++) if (slots[k].IsEmpty) { empty = k; break; } if (empty < 0) return false;
             int half = slots[i].amount / 2;
             slots[empty].item = slots[i].item; slots[empty].amount = half; slots[i].amount -= half;
             Changed?.Invoke();
@@ -214,7 +245,7 @@ namespace ASH.Inventory
         private void AddItemSilently(ASHItemDefinition item, int amount)
         {
             EnsureSlots();
-            for (int i = 0; i < slotCount && amount > 0; i++)
+            for (int i = 0; i < Pack && amount > 0; i++)
                 if (slots[i].IsEmpty) { int add = Mathf.Min(amount, item.maxStack); slots[i].item = item; slots[i].amount = add; amount -= add; }
             Changed?.Invoke();
         }

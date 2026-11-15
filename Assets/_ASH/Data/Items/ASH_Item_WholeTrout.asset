@@ -35,6 +35,17 @@ MonoBehaviour:
   breakdownToolRequired: 0
   breakdownSeconds: 3
   breakdownNoToolYield: 0.5
+  worldPickupPrefab: {fileID: 8645748886357642363, guid: affba95cafdffb5438540d293f6c7c85, type: 3}
   placeablePrefab: {fileID: 0}
   placementFootprint: {x: 1.4, y: 0.6, z: 1.4}
   maxPlacementSlope: 22
+  equipSlot: 0
+  heldPrefab: {fileID: 0}
+  holdPosition: {x: 0, y: 0, z: 0}
+  holdEuler: {x: 0, y: 0, z: 0}
+  gripStyle: 0
+  heldScale: 1
+  ammoItem: {fileID: 0}
+  fuelItem: {fileID: 0}
+  fuelSecondsPerUnit: 480
+  fuelCapacityUnits: 2

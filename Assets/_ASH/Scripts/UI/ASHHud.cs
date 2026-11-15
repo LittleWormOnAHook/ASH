@@ -63,7 +63,7 @@ namespace ASH.UI
         Text _tipTitle, _tipBody;
         static readonly Color SlotEmpty = new Color(0.10f, 0.095f, 0.085f, 0.55f);
         static readonly Color SlotFull = new Color(0.17f, 0.155f, 0.14f, 0.88f);
-        const string PackHint = "<color=#d9cbb4>LMB</color> use   <color=#d9cbb4>RMB</color> split   <color=#d9cbb4>B</color> break down   <color=#d9cbb4>Drag</color> move (pack, hotbar, cross bar)   <color=#d9cbb4>J</color> journal   <color=#d9cbb4>Tab</color> close";
+        const string PackHint = "<color=#d9cbb4>LMB</color> use   <color=#d9cbb4>RMB</color> menu (use, drop, split)   <color=#d9cbb4>B</color> break down   <color=#d9cbb4>Drag</color> move (pack, hotbar, cross bar)   <color=#d9cbb4>J</color> journal   <color=#d9cbb4>Tab</color> close";
 
         void Awake()
         {
@@ -182,7 +182,7 @@ namespace ASH.UI
             void On(EventTriggerType type, System.Action<PointerEventData> a) { var e = new EventTrigger.Entry { eventID = type }; e.callback.AddListener(d => a((PointerEventData)d)); trig.triggers.Add(e); }
             On(EventTriggerType.PointerEnter, _ => { _hoverSlot = idx; ShowTip(idx); });
             On(EventTriggerType.PointerExit, _ => { if (_hoverSlot == idx) _hoverSlot = -1; HideTip(); });
-            On(EventTriggerType.PointerClick, d => { if (d.button == PointerEventData.InputButton.Right && inventory) inventory.Split(idx); });
+            On(EventTriggerType.PointerClick, d => { if (d.button == PointerEventData.InputButton.Right && inventory && _invPanel && _invPanel.activeSelf) OpenContext(idx, d.position); });
             On(EventTriggerType.BeginDrag, d => BeginSlotDrag(idx, d));
             On(EventTriggerType.Drag, d => { if (_dragGhost) _dragGhost.rectTransform.position = d.position; });
             On(EventTriggerType.EndDrag, _ => EndSlotDrag());
@@ -308,6 +308,152 @@ namespace ASH.UI
             _invDesc.text = PackHint;
             HideTip();
             _invPanel.SetActive(false);
+            BuildContextMenu();
+        }
+
+        // ---------------------------------------------------------------- item context menu (RMB on a pack slot)
+        GameObject _ctxBlocker; RectTransform _ctxPanel; int _ctxSlot = -1;
+        sealed class CtxEntry { public string id; public Image bg; public Button button; public Text text; }
+        readonly List<CtxEntry> _ctx = new List<CtxEntry>();
+        const float CtxW = 230f, CtxRow = 40f, CtxPad = 8f;
+
+        void BuildContextMenu()
+        {
+            // full-screen click catcher: clicking anywhere outside the menu closes it
+            var blk = Img("ItemMenuBlocker", _root, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero, new Color(0, 0, 0, 0));
+            blk.rectTransform.offsetMin = blk.rectTransform.offsetMax = Vector2.zero; blk.raycastTarget = true;
+            var bt = blk.gameObject.AddComponent<EventTrigger>();
+            var e = new EventTrigger.Entry { eventID = EventTriggerType.PointerDown }; e.callback.AddListener(_ => CloseContext()); bt.triggers.Add(e);
+            _ctxBlocker = blk.gameObject;
+            var panel = Img("ItemMenu", blk.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(CtxW, 100), new Color(Panel.r, Panel.g, Panel.b, 0.96f));
+            panel.raycastTarget = true; _ctxPanel = panel.rectTransform; _ctxPanel.pivot = new Vector2(0, 1);
+            var ol = panel.gameObject.AddComponent<Outline>(); ol.effectColor = new Color(0.92f, 0.82f, 0.66f, 0.22f); ol.effectDistance = new Vector2(1.5f, -1.5f);
+            var acc = Img("Accent", _ctxPanel, new Vector2(0, 1), new Vector2(1, 1), Vector2.zero, new Vector2(0, 3), new Color(Accent.r, Accent.g, Accent.b, 0.8f)).rectTransform;
+            acc.pivot = new Vector2(0.5f, 1); acc.anchoredPosition = Vector2.zero; acc.sizeDelta = new Vector2(0, 3);
+            foreach (var id in new[] { "use", "drop1", "dropall", "split" })
+            {
+                var bg = Img("Item_" + id, _ctxPanel, new Vector2(0, 1), new Vector2(0, 1), Vector2.zero, new Vector2(CtxW - CtxPad * 2, CtxRow - 4), new Color(1, 1, 1, 0.05f));
+                bg.raycastTarget = true; bg.rectTransform.pivot = new Vector2(0, 1);
+                var b = bg.gameObject.AddComponent<Button>(); b.targetGraphic = bg;
+                var cb = b.colors; cb.colorMultiplier = 1.6f; cb.normalColor = new Color(0.625f, 0.625f, 0.625f, 1f); cb.highlightedColor = new Color(1f, 0.9f, 0.74f, 1f); cb.pressedColor = new Color(0.5f, 0.47f, 0.44f, 1f); cb.disabledColor = new Color(0.3f, 0.3f, 0.3f, 0.6f); cb.selectedColor = cb.normalColor; cb.fadeDuration = 0.06f; b.colors = cb;
+                var nav = b.navigation; nav.mode = Navigation.Mode.None; b.navigation = nav;
+                var t = Label("Text", bg.rectTransform, new Vector2(0, 0.5f), new Vector2(12, 0), new Vector2(CtxW - CtxPad * 2 - 16, CtxRow - 4), 20, TextAnchor.MiddleLeft, Ink, pivot: new Vector2(0, 0.5f));
+                var entry = new CtxEntry { id = id, bg = bg, button = b, text = t };
+                b.onClick.AddListener(() => ContextPick(entry.id));
+                _ctx.Add(entry);
+            }
+            _ctxBlocker.SetActive(false);
+        }
+
+        public bool ContextOpen => _ctxSlot >= 0 && _ctxBlocker && _ctxBlocker.activeSelf;
+        public int ContextSlot => ContextOpen ? _ctxSlot : -1;
+
+        /// <summary>Opens the Use / Drop / Split menu for a pack, hotbar or cross slot at a screen position (defaults to the slot).</summary>
+        public bool OpenContext(int slot, Vector2? screenPos = null)
+        {
+            if (inventory == null || _ctxBlocker == null || slot < 0 || slot >= inventory.Slots.Count || inventory.Slots[slot].IsEmpty) { CloseContext(); return false; }
+            EndSlotDrag(); _ctxSlot = slot;
+            var s = inventory.Slots[slot]; var it = s.item;
+            int rows = 0;
+            foreach (var e in _ctx)
+            {
+                bool show = true, enabled = true; string label = "";
+                switch (e.id)
+                {
+                    case "use": label = UseLabel(it); enabled = CanUse(it); break;
+                    case "drop1": label = s.amount > 1 ? "Drop 1" : "Drop"; break;
+                    case "dropall": show = s.amount > 1; label = $"Drop all  <color=#a59e93>x{s.amount}</color>"; break;
+                    case "split": show = s.amount > 1; label = "Split stack"; break;
+                }
+                e.bg.gameObject.SetActive(show);
+                if (!show) continue;
+                e.button.interactable = enabled;
+                e.text.text = label; e.text.color = enabled ? Ink : new Color(Dim.r, Dim.g, Dim.b, 0.55f);
+                e.bg.rectTransform.anchoredPosition = new Vector2(CtxPad, -CtxPad - 3 - rows * CtxRow);
+                rows++;
+            }
+            _ctxPanel.sizeDelta = new Vector2(CtxW, rows * CtxRow + CtxPad * 2 + 3);
+            // place at the cursor (or the slot), kept on screen
+            Vector2 sp = screenPos ?? (Vector2)RectTransformUtility.WorldToScreenPoint(null, SlotRect(slot) ? SlotRect(slot).position : _root.position);
+            RectTransformUtility.ScreenPointToLocalPointInRectangle(_root, sp, null, out var local);
+            var half = _root.rect.size * 0.5f;
+            local.x = Mathf.Clamp(local.x + 6f, -half.x + 4f, half.x - CtxW - 4f);
+            local.y = Mathf.Clamp(local.y - 6f, -half.y + _ctxPanel.sizeDelta.y + 4f, half.y - 4f);
+            _ctxPanel.anchoredPosition = local;
+            _ctxBlocker.transform.SetAsLastSibling(); _ctxBlocker.SetActive(true);
+            HideTip();
+            return true;
+        }
+
+        RectTransform SlotRect(int slot)
+        {
+            foreach (var ui in _slots) if (ui.index == slot) return ui.rt;
+            foreach (var ui in _cross) if (ui.index == slot) return ui.rt;
+            foreach (var ui in _hotbar) if (ui.index == slot) return ui.rt;
+            return null;
+        }
+
+        public void CloseContext() { _ctxSlot = -1; if (_ctxBlocker) _ctxBlocker.SetActive(false); }
+
+        /// <summary>Test hook: visible menu rows as "label:enabled|...".</summary>
+        public string ContextText()
+        {
+            if (!ContextOpen) return "";
+            var sb = new System.Text.StringBuilder();
+            foreach (var e in _ctx) if (e.bg.gameObject.activeSelf) sb.Append(System.Text.RegularExpressions.Regex.Replace(e.text.text, "<.*?>", "")).Append(':').Append(e.button.interactable ? 1 : 0).Append('|');
+            return sb.ToString();
+        }
+
+        /// <summary>Runs a menu row by id ("use", "drop1", "dropall", "split") as a click would. False when hidden/disabled.</summary>
+        public bool ContextPick(string id)
+        {
+            if (!ContextOpen) return false;
+            var e = _ctx.Find(x => x.id == id); if (e == null || !e.bg.gameObject.activeSelf || !e.button.interactable) return false;
+            int i = _ctxSlot; CloseContext();
+            switch (id)
+            {
+                case "use": return UseSlot(i);
+                case "drop1": return DropSlot(i, 1) != null;
+                case "dropall": return DropSlot(i, int.MaxValue) != null;
+                case "split": return inventory.Split(i);
+            }
+            return false;
+        }
+
+        string UseLabel(ASHItemDefinition it)
+        {
+            if (it.toolType == ASHToolType.GPS) return "Open map";
+            if (it.IsEquippable) return _equip && _equip.IsEquipped(it) ? "Unequip" : "Equip";
+            if (it.IsPlaceable) return "Place";
+            if (it.IsConsumable) return string.IsNullOrEmpty(it.useVerb) || it.useVerb == "Use" ? (it.restoreThirst > it.restoreHunger ? "Drink" : it.category == ASHItemCategory.Medical ? "Apply" : "Eat") : it.useVerb;
+            if (IsFuelForEquipped(it)) return "Refuel";
+            return "Use";
+        }
+
+        /// <summary>True when UseSlot would do something with this item (eat, place, equip, refuel, open the map).</summary>
+        public bool CanUse(ASHItemDefinition it)
+        {
+            if (it == null) return false;
+            if (it.toolType == ASHToolType.GPS) return _map != null;
+            if (it.IsConsumable) return stats != null;
+            if (it.IsPlaceable) return placer != null;
+            if (it.IsEquippable) return _equip != null;
+            return IsFuelForEquipped(it);
+        }
+
+        bool IsFuelForEquipped(ASHItemDefinition it) =>
+            _equip && it && ((_equip.Main && _equip.Main.fuelItem == it) || (_equip.Off && _equip.Off.fuelItem == it) || (_equip.Hip && _equip.Hip.fuelItem == it));
+
+        /// <summary>Drops up to amount from slot i as a world pickup on the ground in front of the player. Returns the pickup.</summary>
+        public ASHItemPickup DropSlot(int i, int amount)
+        {
+            if (inventory == null || i < 0 || i >= inventory.Slots.Count || inventory.Slots[i].IsEmpty) return null;
+            var who = _equip && _equip.Animator ? _equip.Animator.transform : inventory.transform;
+            int n = inventory.TakeFromSlot(i, amount, out var item);
+            if (n <= 0) return null;
+            var pk = ASHItemDrop.Spawn(item, n, who);
+            Toast(n > 1 ? $"Dropped {item.displayName} x{n}" : $"Dropped {item.displayName}");
+            return pk;
         }
 
         void BuildPause()
@@ -347,7 +493,9 @@ namespace ASH.UI
             if (!dead)
             {
                 bool placing = placer && placer.IsPlacing;
-                if (input.PausePressed && !(placer && placer.LastCancelFrame == Time.frameCount) && !placing)
+                bool ctxEsc = ContextOpen && input.PausePressed;   // Esc closes the item menu first
+                if (ctxEsc) CloseContext();
+                if (!ctxEsc && input.PausePressed && !(placer && placer.LastCancelFrame == Time.frameCount) && !placing)
                 {
                     if (AnyPanelOpen) { SetInv(false); SetCraft(false); SetMap(false); }
                     else SetPause(!ASHUIState.IsOpen(ASHPanels.Pause));
@@ -413,6 +561,7 @@ namespace ASH.UI
             AnimateSlots(_hotbar); AnimateSlots(_slots); AnimateSlots(_cross);
             if (_equip && (_equip.Main != _lastMain || _equip.Off != _lastOff || _equip.Hip != _lastHip)) { _lastMain = _equip.Main; _lastOff = _equip.Off; _lastHip = _equip.Hip; RefreshCross(); }
             if (_dragFrom >= 0 && !_invPanel.activeSelf) EndSlotDrag();
+            if (ContextOpen && (!_invPanel.activeSelf || inventory == null || _ctxSlot >= inventory.Slots.Count || inventory.Slots[_ctxSlot].IsEmpty)) CloseContext();
 
             // crafting progress
 
@@ -439,7 +588,7 @@ namespace ASH.UI
             if (_toasts.Count > 6) { Destroy(_toasts[0].text.gameObject); _toasts.RemoveAt(0); }
         }
 
-        void SetInv(bool open) { _invPanel.SetActive(open); ASHUIState.SetOpen(ASHPanels.Inventory, open); if (open) { RefreshInventory(); HideTip(); } else EndSlotDrag(); }
+        void SetInv(bool open) { _invPanel.SetActive(open); ASHUIState.SetOpen(ASHPanels.Inventory, open); if (open) { RefreshInventory(); HideTip(); } else { EndSlotDrag(); CloseContext(); } }
         void SetCraft(bool open) { if (open) SetJournal(true, ASHJournalUI.Tab.Crafting); else SetJournal(false, ASHJournalUI.Tab.Crafting); }
         void SetJournal(bool open, ASHJournalUI.Tab tab)
         {
