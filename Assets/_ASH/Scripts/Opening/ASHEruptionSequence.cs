@@ -1,4 +1,5 @@
 using ASH.Gameplay;
+using ASH.Interaction;
 using ASH.Map;
 using ASH.World;
 using ASH.World.Accumulation;
@@ -32,6 +33,8 @@ namespace ASH.Opening
         public ASHEarthquakeEffects quake;
         public ASHOpeningObjective objective;
         public ASHDayNightClock clock;
+        [Tooltip("Cabin door(s) locked until Profile > Lock Doors Until.")] public ASHDoor[] cabinDoors;
+        [Tooltip("Invisible colliders over other cabin exits (windows/gaps), active while the doors are locked.")] public GameObject exitBlockers;
         [Header("Debug")]
         [Tooltip("Time multiplier for the whole opening (testing).")] [Range(0.1f, 50f)] public float debugSpeed = 1f;
         public bool logStages = true;
@@ -42,11 +45,12 @@ namespace ASH.Opening
         public bool Suppressed { get; private set; }
         public event System.Action<Stage> StageChanged;
 
-        // opening-owned fog density (own runtime volume above the weather volume, so nothing blends against it)
+        // opening-owned fog Density Multiplier (own runtime volume above the weather volume, so nothing blends against it)
         Volume _fogVol; VolumeProfile _fogProf; ASHVolumetricFog _fogOv;
         float _fogFrom, _fogTo, _fogT = 1f, _fogDur = 1f, _fogW = 1f, _fogWTarget = 1f, _fogWSpeed; AnimationCurve _fogCurve;
-        public float FogDensity => _fogOv != null ? _fogOv.density.value : -1f;
+        public float FogMultiplier => _fogOv != null ? _fogOv.densityMultiplier.value : -1f;
 
+        float _unlockTimer = -1f; public bool CabinLocked { get; private set; }
         float _t; bool _quakeStarted, _ashStarted; Vector3 _origPos; Quaternion _origRot; bool _haveOrig; vThirdPersonController _cc;
 
         void Awake() { Instance = this; if (playOnStart) ASHObjectiveTracker.HoldIntroMessage = true; }
@@ -70,12 +74,13 @@ namespace ASH.Opening
             if (quake) quake.Stop();
             if (objective) objective.End();
             if (director) { director.SetScheduler(false); director.Snap(director.Profile(profile.startState) ? profile.startState : ASHWeatherKind.Clear); }
-            FogSet(profile.startFogDensity); FogWeight(1f, 0f);
+            FogSet(profile.startFogMultiplier); FogWeight(1f, 0f);
             var acc = ASHAccumulationController.Instance;
             if (acc) { if (profile.groundAshAtStart >= 0f) acc.ashAmount = profile.groundAshAtStart; if (profile.groundSnowAtStart >= 0f) acc.snowAmount = profile.groundSnowAtStart; }
             if (clock && profile.startTimeOfDay >= 0f) clock.timeOfDay = profile.startTimeOfDay;
             var ash = FindAnyObjectByType<ASHAshFall>(); if (ash) ash.SetWeather(0f, Vector3.zero, 1f, true);
             if (openingSpawn) TeleportPlayer(openingSpawn.position, openingSpawn.rotation);
+            if (profile.lockDoorsUntil != DoorUnlockAt.Never) LockCabin(); else UnlockCabin(false);
             Enter(Stage.Morning);
             if (radio) radio.PlayMusic();
         }
@@ -97,10 +102,37 @@ namespace ASH.Opening
                 if (s == Stage.Done) director.Snap(profile.afterState);
             }
             _quakeStarted = s > Stage.Quake; _ashStarted = s > Stage.FirstAsh;
-            if (s <= Stage.FirstAsh) FogSet(profile.startFogDensity); else if (s <= Stage.Easing) FogSet(profile.ashFogDensity); else FogSet(profile.easedFogDensity);
+            FogSet(s <= Stage.FirstAsh ? profile.startFogMultiplier : profile.ashFogMultiplier);
             FogWeight(1f, 0f);
             Enter(s);
             if (s == Stage.Quake && quake) { quake.Begin(); _quakeStarted = true; }
+            var us = UnlockStage;
+            if (profile.lockDoorsUntil == DoorUnlockAt.Never || s > us) UnlockCabin(false); else { LockCabin(); if (s == us) _unlockTimer = profile.doorUnlockDelay; }
+        }
+
+        // ------------------------------------------------------------------ cabin doors
+        Stage UnlockStage => profile.lockDoorsUntil switch
+        {
+            DoorUnlockAt.QuakeStart => Stage.Quake, DoorUnlockAt.QuakeEnd => Stage.Quiet,
+            DoorUnlockAt.FirstAsh => Stage.FirstAsh, DoorUnlockAt.OpeningDone => Stage.Done, _ => Stage.Inactive
+        };
+
+        void LockCabin()
+        {
+            _unlockTimer = -1f; CabinLocked = true;
+            if (cabinDoors != null) foreach (var d in cabinDoors) if (d) { d.SnapClosed(); d.Lock(); if (profile) d.lockedMessage = profile.lockedDoorMessage; }
+            if (exitBlockers) exitBlockers.SetActive(true);
+        }
+
+        void UnlockCabin(bool ajar)
+        {
+            _unlockTimer = -1f; CabinLocked = false;
+            if (cabinDoors != null) foreach (var d in cabinDoors) if (d && d.Locked)
+            {
+                d.Unlock(ajar);
+                if (ajar && profile && profile.doorAjarOnUnlock && profile.doorAjarAngle > 0f) d.Ajar(profile.doorAjarAngle, openingSpawn ? openingSpawn.position : transform.position);
+            }
+            if (exitBlockers) exitBlockers.SetActive(false);
         }
 
         /// <summary>Automated tests (ASHPlayTest) need the regular slice start: stop everything and return the player
@@ -114,6 +146,7 @@ namespace ASH.Opening
             ASHQuakeProp.ResetAll();
             if (director) { director.SetScheduler(false); director.debugOverride = false; director.Snap(ASHWeatherKind.Clear); }
             FogWeight(0f, 0f);
+            UnlockCabin(false);
             var ash = FindAnyObjectByType<ASHAshFall>(); if (ash) ash.SetWeather(0f, Vector3.zero, 1f, true);
             if (_haveOrig) TeleportPlayer(_origPos, _origRot);
             var hud = FindAnyObjectByType<UI.ASHHud>(); if (hud) hud.ShowSubtitle(null, 0f);
@@ -135,6 +168,7 @@ namespace ASH.Opening
         void Enter(Stage s)
         {
             Current = s; _t = 0f;
+            if (profile && CabinLocked && profile.lockDoorsUntil != DoorUnlockAt.Never && s == UnlockStage && _unlockTimer < 0f) _unlockTimer = profile.doorUnlockDelay;
             if (logStages) Debug.Log($"[ASH] Opening stage -> {s}");
             StageChanged?.Invoke(s);
             float sp = Mathf.Max(0.01f, debugSpeed);
@@ -151,7 +185,6 @@ namespace ASH.Opening
                 case Stage.Easing:
                     if (director) director.TransitionTo(profile.afterState, profile.easeSeconds / sp);
                     if (objective) objective.MarkEased();
-                    FogRamp(profile.easedFogDensity, profile.easeSeconds / sp, null);
                     break;
                 case Stage.Done:
                     if (objective) objective.End(objective.AllDone ? "The first wave has passed." : "The first wave has passed. Keep preparing - more will come.");
@@ -181,9 +214,9 @@ namespace ASH.Opening
         float CurrentFog() { float k = _fogCurve != null && _fogCurve.length > 1 ? Mathf.Clamp01(_fogCurve.Evaluate(_fogT)) : Mathf.SmoothStep(0f, 1f, _fogT); return Mathf.LerpUnclamped(_fogFrom, _fogTo, k); }
         void ApplyFog()
         {
-            if (!profile || !profile.driveFogDensity) { if (_fogVol) _fogVol.weight = 0f; return; }
+            if (!profile || !profile.driveFogMultiplier) { if (_fogVol) _fogVol.weight = 0f; return; }
             EnsureFogVolume();
-            _fogOv.enabled.Override(true); _fogOv.density.Override(Mathf.Max(0f, CurrentFog())); _fogOv.densityMultiplier.Override(profile.fogDensityMultiplier);
+            _fogOv.densityMultiplier.Override(Mathf.Clamp(CurrentFog(), 0f, 10f)); // only parameter overridden
             _fogVol.weight = _fogW;
         }
         void TickFog(float dt)
@@ -197,6 +230,7 @@ namespace ASH.Opening
         void Update()
         {
             if (_fogVol) TickFog(Time.deltaTime);
+            if (_unlockTimer >= 0f && !Suppressed) { _unlockTimer -= Time.deltaTime * Mathf.Max(0.01f, debugSpeed); if (_unlockTimer < 0f) UnlockCabin(true); }
             if (Suppressed || !profile || Current == Stage.Inactive || Current == Stage.Done) return;
             float sp = Mathf.Max(0.01f, debugSpeed);
             _t += Time.deltaTime * sp;
@@ -216,7 +250,7 @@ namespace ASH.Opening
                     if (_t >= profile.quietSeconds) Enter(Stage.FirstAsh);
                     break;
                 case Stage.FirstAsh:
-                    if (!_ashStarted && _t >= profile.ashOnsetSeconds) { _ashStarted = true; if (director) director.TransitionTo(ASHWeatherKind.LightAsh, profile.ashRampSeconds / sp); FogRamp(profile.ashFogDensity, profile.fogRampSeconds / sp, profile.fogRampCurve); }
+                    if (!_ashStarted && _t >= profile.ashOnsetSeconds) { _ashStarted = true; if (director) director.TransitionTo(ASHWeatherKind.LightAsh, profile.ashRampSeconds / sp); FogRamp(profile.ashFogMultiplier, profile.fogRampSeconds / sp, profile.fogRampCurve); }
                     if (_t >= profile.ashOnsetSeconds + profile.ashRampSeconds) Enter(Stage.HeavyWave);
                     break;
                 case Stage.HeavyWave:

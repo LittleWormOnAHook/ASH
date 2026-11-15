@@ -24,6 +24,8 @@ float4 _ASH_SurfTex2;     // x mip bias, y layer normal maps assigned, z detail 
 float4 _ASH_Depth;        // x knee (drift) depth m, y surface enabled, z ankle (typical) depth m, w 0
 float4 _ASH_TerrainRect;  // x minX, y minZ, z 1/sizeX, w 1/sizeZ
 float4 _ASH_DeformRect;   // phase 2: x minX, y minZ, z 1/size, w enabled
+float4 _ASH_Edge;         // x coverage edge softness, y patch noise scale (1/m), z patch noise strength, w smooth (bicubic) drift sampling 0/1
+float4 _ASH_DriftTexel;   // x 1/width, y 1/height, z width, w height (drift mask)
 
 float ASH_Hash(float2 p) { p = frac(p * float2(123.34, 456.21)); p += dot(p, p + 45.32); return frac(p.x * p.y); }
 float ASH_Noise(float2 p)
@@ -33,12 +35,45 @@ float ASH_Noise(float2 p)
 }
 float ASH_Fbm(float2 p) { return ASH_Noise(p) * 0.6 + ASH_Noise(p * 2.37 + 17.1) * 0.3 + ASH_Noise(p * 5.11 + 3.7) * 0.1; }
 
-// Drift mask lookup by world position (objects) or terrain uv.
+// Drift mask lookup. Smooth mode = cubic B-spline from 4 bilinear taps, so the coarse mask texels (1-2 m) never show
+// as stair-stepped diagonal edges once the coverage ramps it up; falls back to plain bilinear.
+half4 ASH_DriftBicubic(float2 uv)
+{
+    float2 st = uv * _ASH_DriftTexel.zw - 0.5;
+    float2 i = floor(st), f = st - i, f2 = f * f, f3 = f2 * f;
+    float2 w0 = (1.0 - 3.0 * f + 3.0 * f2 - f3) / 6.0, w1 = (4.0 - 6.0 * f2 + 3.0 * f3) / 6.0;
+    float2 w2 = (1.0 + 3.0 * f + 3.0 * f2 - 3.0 * f3) / 6.0, w3 = f3 / 6.0;
+    float2 g0 = w0 + w1, g1 = w2 + w3;
+    float2 p0 = (i - 1.0 + w1 / g0 + 0.5) * _ASH_DriftTexel.xy, p1 = (i + 1.0 + w3 / g1 + 0.5) * _ASH_DriftTexel.xy;
+    half4 a = SAMPLE_TEXTURE2D_LOD(_ASH_DriftMask, sampler_ASH_DriftMask, float2(p0.x, p0.y), 0);
+    half4 b = SAMPLE_TEXTURE2D_LOD(_ASH_DriftMask, sampler_ASH_DriftMask, float2(p1.x, p0.y), 0);
+    half4 c = SAMPLE_TEXTURE2D_LOD(_ASH_DriftMask, sampler_ASH_DriftMask, float2(p0.x, p1.y), 0);
+    half4 d = SAMPLE_TEXTURE2D_LOD(_ASH_DriftMask, sampler_ASH_DriftMask, float2(p1.x, p1.y), 0);
+    return lerp(lerp(a, b, g1.x), lerp(c, d, g1.x), g1.y);
+}
+
+half4 ASH_DriftUV(float2 uv)
+{
+    half4 r = SAMPLE_TEXTURE2D_LOD(_ASH_DriftMask, sampler_ASH_DriftMask, uv, 0);
+    if (_ASH_Edge.w > 0.5 && _ASH_DriftTexel.z > 2.0) r = ASH_DriftBicubic(uv);
+    return r;
+}
+
+// Drift mask lookup by world position (objects, surface) - terrain passes call ASH_DriftUV with their uv.
 half4 ASH_DriftAt(float3 positionWS)
 {
     float2 uv = (positionWS.xz - _ASH_TerrainRect.xy) * _ASH_TerrainRect.zw;
     if (any(uv < 0) || any(uv > 1)) return half4(0.35, 0.5, 1, 0);
-    return SAMPLE_TEXTURE2D_LOD(_ASH_DriftMask, sampler_ASH_DriftMask, uv, 0);
+    return ASH_DriftUV(uv);
+}
+
+// Soft coverage ramp: smoothstep centred on c over the edge softness width (replaces the old linear x2 gain).
+half ASH_Cov(half x, half c) { half w = max(_ASH_Edge.x, 0.01) * 0.5; return smoothstep(c - w, c + w, x); }
+// world-space breakup (fine fbm + large patches) for natural, patchy thin-layer edges
+half ASH_Breakup(float2 xz)
+{
+    half b = (ASH_Fbm(xz * _ASH_Noise.x) - 0.5) * _ASH_Noise.y;
+    return b + (ASH_Fbm(xz * max(_ASH_Edge.y, 1e-4) + 31.7) - 0.5) * _ASH_Edge.z;
 }
 
 // Phase-2 hook: how much of the layer is pushed aside here (0 none .. 1 to the ground). Not written yet.
@@ -76,8 +111,7 @@ void ASH_ApplyAccumulation(float3 positionWS, half3 geomNormalWS, half4 drift, h
     // wind redistribution: drift mask depth (terrain lee/hollows) and windward faces of objects lose loose material
     half depthMask = lerp(0.5, drift.r, _ASH_Surface.w);
     half windLoss = _ASH_Surface.w * saturate(objectWindward) * 0.6;
-    half n = ASH_Fbm(positionWS.xz * _ASH_Noise.x);
-    half breakup = (n - 0.5) * _ASH_Noise.y;
+    half breakup = ASH_Breakup(positionWS.xz);
 
     // layer thicknesses (relative): ash on top, snow underneath (melt removes snow only); deformation removes from the top
     half deform = ASH_DeformAt(positionWS);
@@ -89,9 +123,10 @@ void ASH_ApplyAccumulation(float3 positionWS, half3 geomNormalWS, half4 drift, h
     half ashLeft = max(0, ashT - remove);
     half snowLeft = max(0, snowT - max(0, remove - ashT));
 
-    half snowCov = saturate((snowLeft * 4.0 + breakup) * 2.0);
+    // soft edges + thin layers fade to nothing (no hard thresholds on the coarse mask)
+    half snowCov = ASH_Cov(snowLeft * 4.0 + breakup, 0.25) * smoothstep(0.0, 0.03, snowLeft);
     // ash is a thinner, patchier top layer so the snow underneath shows through where it is thin (exposed spots, noise)
-    half ashCov = saturate((ashLeft * 2.2 + breakup * 1.6 - 0.25) * 2.0);
+    half ashCov = ASH_Cov(ashLeft * 2.2 + breakup * 1.6 - 0.25, 0.25) * smoothstep(0.0, 0.03, ashLeft);
     half pathCov = 1.0 - _ASH_TexNorm.z * pathF; snowCov *= pathCov; ashCov *= pathCov; // main paths: less buildup
     half cov = max(snowCov, ashCov);
     if (cov <= 0.001) return;

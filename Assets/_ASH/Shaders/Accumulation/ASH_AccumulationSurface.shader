@@ -18,6 +18,16 @@ Shader "Hidden/ASH/Accumulation Surface"
         TEXTURE2D(_ASH_ColliderMask); // collider fade (1 = cleared): real collider footprints + padding + softness, texel-aligned
         float4 _ASH_ColliderMaskRect; // x minX, y minZ, z 1/size (square), w enabled
         float  _ASH_GridStep;
+        float4 _ASH_Thin;           // x thin fade start depth m, y thin fade end depth m, z lift above terrain m, w enabled
+
+        // Height of the real-depth surface over the terrain. Where the layer is thinner than the fade start it sinks under the
+        // terrain (those pixels are clipped anyway); elsewhere it stays at least Lift above it, so the 0.2 m grid never
+        // intersects the differently-triangulated terrain at near-zero depth (that intersection drew sawtooth bands).
+        float ASH_LiftDepth(float depth)
+        {
+            if (_ASH_Thin.w < 0.5) return depth - 0.08 * (1.0 - saturate(depth / 0.04)); // legacy
+            return depth < _ASH_Thin.x * 0.5 ? -0.08 : max(depth, _ASH_Thin.z);
+        }
         float4 _ASH_SurfNormal;     // x normal smoothing (heightmap texels), y deform normal strength, z deform texel size m
         float4 _ASH_SurfQuality;    // x normal step multiplier (vertex normals), y per-pixel footprint normal detail 0..1, z deform texel size m
 
@@ -68,7 +78,7 @@ Shader "Hidden/ASH/Accumulation Surface"
             float2 dd = abs(xz - _ASH_SurfaceRect.xy);
             float edge = saturate((_ASH_SurfaceRect.z - max(dd.x, dd.y)) / max(_ASH_SurfaceRect.w, 0.01));
             depth = ASH_DepthMetres(drift, deform) * edge * (1.0 - ASH_BlockAt(xz));
-            return ASH_TerrainHeight(xz) + depth - 0.08 * (1.0 - saturate(depth / 0.04));
+            return ASH_TerrainHeight(xz) + ASH_LiftDepth(depth);
         }
 
         // ash/snow depth above the terrain at xz (same terms as ASH_SurfaceHeight, without the terrain height)
@@ -79,7 +89,21 @@ Shader "Hidden/ASH/Accumulation Surface"
             float2 dd = abs(xz - _ASH_SurfaceRect.xy);
             float edge = saturate((_ASH_SurfaceRect.z - max(dd.x, dd.y)) / max(_ASH_SurfaceRect.w, 0.01));
             float depth = ASH_DepthMetres(drift, deform) * edge * (1.0 - ASH_BlockAt(xz));
-            return depth - 0.08 * (1.0 - saturate(depth / 0.04));
+            return ASH_LiftDepth(depth);
+        }
+
+        // Per-pixel thin-layer fade: where the layer is thinner than Thin Fade End the real-depth surface dissolves with a
+        // world-space noise threshold (patchy, stable, no screen dither) and the terrain's own soft coverage shows instead.
+        void ASH_ThinClip(float3 positionWS)
+        {
+            if (_ASH_Thin.w < 0.5) return;
+            float2 xz = positionWS.xz;
+            float2 dd = abs(xz - _ASH_SurfaceRect.xy);
+            float edge = saturate((_ASH_SurfaceRect.z - max(dd.x, dd.y)) / max(_ASH_SurfaceRect.w, 0.01));
+            float depth = ASH_DepthMetres(ASH_DriftAt(positionWS), ASH_DeformAt(positionWS)) * edge;
+            float f = smoothstep(_ASH_Thin.x, max(_ASH_Thin.y, _ASH_Thin.x + 1e-4), depth);
+            float n = ASH_Fbm(xz * max(_ASH_Edge.y, 1e-4) * 4.0 + 11.3) * 0.96 + 0.02;
+            clip(f - n);
         }
 
         // Smooth surface normal: 3x3 Sobel on the terrain heightmap at (smoothing x) one heightmap texel - texel-correct, so the
@@ -152,6 +176,7 @@ Shader "Hidden/ASH/Accumulation Surface"
             half4 Frag(Varyings i) : SV_Target
             {
                 ASH_ColliderClip(i.positionWS.xz, i.positionCS);
+                ASH_ThinClip(i.positionWS);
                 float3 n = ASH_SurfaceNormal(i.positionWS.xz); // per pixel, not interpolated from the coarse grid
                 half3 albedo = _ASH_SnowColor.rgb; half3 nn = n; half smooth = 0.3, metal = 0, occ = 1;
                 ASH_ApplyAccumulation(i.positionWS, n, i.drift, 0, albedo, nn, smooth, metal, occ);
@@ -187,7 +212,7 @@ Shader "Hidden/ASH/Accumulation Surface"
             #pragma target 3.5
             #pragma vertex SurfaceVert
             #pragma fragment FragDepth
-            half FragDepth(Varyings i) : SV_Target { ASH_ColliderClip(i.positionWS.xz, i.positionCS); return i.positionCS.z; }
+            half FragDepth(Varyings i) : SV_Target { ASH_ColliderClip(i.positionWS.xz, i.positionCS); ASH_ThinClip(i.positionWS); return i.positionCS.z; }
             ENDHLSL
         }
 
@@ -200,7 +225,7 @@ Shader "Hidden/ASH/Accumulation Surface"
             #pragma target 3.5
             #pragma vertex SurfaceVert
             #pragma fragment FragDN
-            half4 FragDN(Varyings i) : SV_Target { ASH_ColliderClip(i.positionWS.xz, i.positionCS); return half4(NormalizeNormalPerPixel(normalize(i.normalWS)), 0.0); }
+            half4 FragDN(Varyings i) : SV_Target { ASH_ColliderClip(i.positionWS.xz, i.positionCS); ASH_ThinClip(i.positionWS); return half4(NormalizeNormalPerPixel(normalize(i.normalWS)), 0.0); }
             ENDHLSL
         }
     }

@@ -1,9 +1,12 @@
 using System;
 using UnityEngine;
+using UnityEngine.Serialization;
 using ASH.World.Weather;
 
 namespace ASH.Opening
 {
+    public enum DoorUnlockAt { Never, QuakeStart, QuakeEnd, FirstAsh, OpeningDone }
+
     /// <summary>All timings and texts of the Phase 2A opening ("The Last Normal Morning"). One asset, wide ranges.</summary>
     [CreateAssetMenu(menuName = "ASH/Opening Profile", fileName = "ASH_OpeningProfile")]
     public sealed class ASHOpeningProfile : ScriptableObject
@@ -63,16 +66,22 @@ namespace ASH.Opening
         [TextArea(2, 6)] public string journalWaveTitle = "First fallout";
         [TextArea(3, 8)] public string journalWaveBody = "The sky went dark by mid-morning. Ash is coming down like dirty snow and the wind is picking it up off the ground. Stay in, collect water and food, wait for it to ease.";
 
-        [Header("ASH Volumetric Fog density (extinction per metre; 0.004 ~ 1 km visibility, 0.05 ~ 80 m, 0.9 ~ 4 m)")]
-        [Tooltip("The opening owns the fog Density through its own runtime volume (priority above the weather volume, weight 1), so nothing fights it. Off = weather/scene fog as usual.")]
-        public bool driveFogDensity = true;
-        [Tooltip("Density during the morning, before the ash.")] [Range(0f, 5f)] public float startFogDensity = 0.05f;
-        [Tooltip("Density reached once the ash has been falling for Fog Ramp Seconds.")] [Range(0f, 5f)] public float ashFogDensity = 0.9f;
-        [Tooltip("Ramp time from the first ash to Ash Fog Density (s).")] [Range(1f, 3600f)] public float fogRampSeconds = 330f;
-        public AnimationCurve fogRampCurve = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
-        [Tooltip("Density Multiplier while the opening drives the fog (scene profile uses its own).")] [Range(0f, 10f)] public float fogDensityMultiplier = 1f;
-        [Tooltip("Density the fog thins to while the first wave eases.")] [Range(0f, 5f)] public float easedFogDensity = 0.3f;
-        [Tooltip("After the opening, the fog is handed back to the weather/scene over this many seconds.")] [Range(0f, 600f)] public float fogHandoffSeconds = 30f;
+        [Header("Keep the player in the cabin")]
+        [Tooltip("Cabin door(s) start shut and locked (and other exits blocked) until this moment. Never = doors work from the start.")]
+        public DoorUnlockAt lockDoorsUntil = DoorUnlockAt.QuakeStart;
+        [Tooltip("Message shown when the player tries the locked door.")] public string lockedDoorMessage = "It's stuck.";
+        [Tooltip("Seconds after the unlock moment before the door gives (lets the shaking build first).")] [Range(0f, 60f)] public float doorUnlockDelay = 2f;
+        [Tooltip("The shaking knocks the door ajar when it unlocks.")] public bool doorAjarOnUnlock = true;
+        [Range(0f, 120f)] public float doorAjarAngle = 14f;
+
+        [Header("ASH Volumetric Fog - Density Multiplier only (base density and all other fog settings stay at your volume profile)")]
+        [Tooltip("The opening drives ONLY the ASH Volumetric Fog Density Multiplier, through its own runtime volume (priority above the weather volume). Off = weather/scene fog as usual.")]
+        [FormerlySerializedAs("driveFogDensity")] public bool driveFogMultiplier = true;
+        [Tooltip("Density Multiplier during the morning, before the ash.")] [Range(0f, 10f)] [FormerlySerializedAs("startFogDensity")] public float startFogMultiplier = 0.05f;
+        [Tooltip("Density Multiplier reached once the ash has been falling for Fog Ramp Seconds (held through the rest of the opening).")] [Range(0f, 10f)] [FormerlySerializedAs("ashFogDensity")] public float ashFogMultiplier = 0.9f;
+        [Tooltip("Ramp time from the first ash to Ash Fog Multiplier (s).")] [Range(1f, 3600f)] public float fogRampSeconds = 330f;
+        [Tooltip("Ease of the ramp (x = time 0-1, y = progress 0-1).")] public AnimationCurve fogRampCurve = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
+        [Tooltip("After the opening, the multiplier is handed back to the weather/scene over this many seconds.")] [Range(0f, 600f)] public float fogHandoffSeconds = 30f;
 
         [HideInInspector] public int configVersion;
         void OnEnable() { if (configVersion < 2) { groundSnowAtStart = 0.25f; startState = ASHWeatherKind.LightSnowMorning; configVersion = 2; } }

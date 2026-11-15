@@ -26,6 +26,12 @@ namespace ASH.World.Accumulation
         [Tooltip("Deform Normal Strength: how strongly footprints / trails / drifts tilt the lighting normal (0 = flat lighting over them).")]
         [Range(0f, 3f)] public float deformNormalStrength = 1f;
         [Tooltip("Defaults to Camera.main.")] public Transform follow;
+        [Header("Thin layer (no stair-steps where the layer is only a few cm)")]
+        [Tooltip("Dissolve the real-depth surface where the layer is thin (world-space noise, patchy), letting the terrain's soft coverage show. Off = legacy behaviour.")] public bool thinFade = true;
+        [Tooltip("Depth (m) below which the real-depth surface is fully dissolved.")] [Range(0f, 0.5f)] public float thinFadeStart = 0.01f;
+        [Tooltip("Depth (m) above which the real-depth surface is fully solid.")] [Range(0.001f, 1f)] public float thinFadeEnd = 0.04f;
+        [Tooltip("Minimum height (m) of the visible surface above the terrain, so it never intersects the terrain mesh.")] [Range(0f, 0.2f)] public float surfaceLift = 0.02f;
+
         [Header("Collider fade (ash clears around every collider's real footprint)")]
         public bool colliderFade = true;
         [Tooltip("Hidden/ASH/Collider Fade Mask (found automatically in the editor; assign for builds).")] public Shader colliderMaskShader;
@@ -41,7 +47,7 @@ namespace ASH.World.Accumulation
         RenderTexture _maskRaw, _maskRow, _mask; Material _maskMat; CommandBuffer _cb; Vector2 _maskMin; float _maskSize; int _maskRes;
         Mesh _cube, _sphere, _capsule;
         static readonly int ID_HM = Shader.PropertyToID("_ASH_Heightmap"), ID_HP = Shader.PropertyToID("_ASH_HeightParams"), ID_SR = Shader.PropertyToID("_ASH_SurfaceRect"),
-            ID_CM = Shader.PropertyToID("_ASH_ColliderMask"), ID_CMR = Shader.PropertyToID("_ASH_ColliderMaskRect"), ID_GS = Shader.PropertyToID("_ASH_GridStep"), ID_SQ = Shader.PropertyToID("_ASH_SurfQuality"), ID_SN = Shader.PropertyToID("_ASH_SurfNormal");
+            ID_CM = Shader.PropertyToID("_ASH_ColliderMask"), ID_CMR = Shader.PropertyToID("_ASH_ColliderMaskRect"), ID_GS = Shader.PropertyToID("_ASH_GridStep"), ID_SQ = Shader.PropertyToID("_ASH_SurfQuality"), ID_SN = Shader.PropertyToID("_ASH_SurfNormal"), ID_Thin = Shader.PropertyToID("_ASH_Thin");
 
         public void ApplyPreset(Preset p)
         {
@@ -114,6 +120,7 @@ namespace ASH.World.Accumulation
             Shader.SetGlobalVector(ID_HP, new Vector4(td.heightmapResolution, td.size.y / (32766f / 65535f), t.GetPosition().y, 0f));
             Shader.SetGlobalVector(ID_SR, new Vector4(centre.x, centre.z, size * 0.5f, edgeFade));
             Shader.SetGlobalFloat(ID_GS, gridStep);
+            Shader.SetGlobalVector(ID_Thin, new Vector4(thinFadeStart, Mathf.Max(thinFadeEnd, thinFadeStart + 0.001f), surfaceLift, thinFade ? 1f : 0f));
             var fld = c.Field; float texel = fld && fld.Active ? fld.sizeMetres / fld.resolution : 0.125f;
             Shader.SetGlobalVector(ID_SN, new Vector4(normalSmoothing, deformNormalStrength, texel, 0f));
             Shader.SetGlobalVector(ID_SQ, new Vector4(normalQuality == 0 ? 2f : 1f, normalQuality >= 2 ? 0.6f : 0f, texel, 0f));

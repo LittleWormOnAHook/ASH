@@ -112,6 +112,121 @@ namespace ASH.EditorTools
             return a;
         }
 
+        // ================================================================== doors
+        const string DoorAudio = "Assets/Audio/Doors", DeviceAudio = "Assets/Audio/Devices";
+
+        static void FillDoorAudio(ASHDoor d, ASHPhase2AAudio bank)
+        {
+            if (d.openClips == null || d.openClips.Length == 0) d.openClips = Many(Clip($"{DoorAudio}/Wood Open Door.wav"), Clip($"{DoorAudio}/openDoor.wav"));
+            if (d.closeClips == null || d.closeClips.Length == 0) d.closeClips = Many(Clip($"{DoorAudio}/Wood Close Door.wav"), Clip($"{DoorAudio}/closeDoor.wav"));
+            if (d.lockedClips == null || d.lockedClips.Length == 0) { var l = new List<AudioClip> { Clip($"{DeviceAudio}/locked.wav") }; if (bank && bank.rattles != null) l.AddRange(bank.rattles); d.lockedClips = Many(l.ToArray()); }
+            if (d.unlockClips == null || d.unlockClips.Length == 0) d.unlockClips = Many(Clip($"{DoorAudio}/Unlock Door.mp3"), Clip($"{DeviceAudio}/unlocked.wav"));
+        }
+
+        /// <summary>Interactive door for a scene door leaf: own object (scene leaf is never moved or re-parented in the editor).</summary>
+        static ASHDoor SetupDoor(Transform root, GameObject leaf, ASHPhase2AAudio bank)
+        {
+            if (!leaf) { _log.Append("WARN cabin door: no 'WoodenDoor-Cabin' in the scene - doorway relies on the exit blockers only\n"); return null; }
+            var t = root.Find("ASH_CabinDoor"); if (!t) { t = new GameObject("ASH_CabinDoor").transform; t.SetParent(root, false); }
+            var d = t.GetComponent<ASHDoor>(); if (!d) d = t.gameObject.AddComponent<ASHDoor>();
+            if (!d.leaf) d.leaf = leaf.transform;
+            t.SetPositionAndRotation(leaf.transform.position, leaf.transform.rotation); // our helper object only
+            t.gameObject.layer = 0;
+            FillDoorAudio(d, bank);
+            if (leaf.isStatic) _log.Append($"WARN door leaf '{leaf.name}' is Static - untick Static so it can swing\n");
+            _log.Append($"cabin door: {leaf.name} at {leaf.transform.position:F2} (hinge auto from mesh bounds, opens {d.openAngle:F0} deg away from the player)\n");
+            return d;
+        }
+
+        [MenuItem("ASH/World/Make Selected Door Interactive (E)", false, 60)]
+        static void MakeSelectedDoor()
+        {
+            int n = 0;
+            foreach (var go in Selection.gameObjects)
+            {
+                if (go.GetComponent<ASHDoor>() || !go.GetComponent<MeshFilter>()) continue;
+                var holder = new GameObject("ASH_Door_" + go.name); Undo.RegisterCreatedObjectUndo(holder, "Make Door");
+                holder.transform.SetPositionAndRotation(go.transform.position, go.transform.rotation);
+                var d = holder.AddComponent<ASHDoor>(); d.leaf = go.transform; FillDoorAudio(d, null); n++;
+            }
+            Debug.Log($"[ASH] Made {n} interactive door(s) (each on its own ASH_Door_* object; the door meshes were not moved). Save the scene to keep them.");
+        }
+
+        /// <summary>Finds openings out of the cabin (rays from inside that escape) other than the door, and covers each with an
+        /// invisible collider (layer Ignore Raycast, so interaction and the camera ignore it). Rebuilt on every install.</summary>
+        static GameObject BuildExitBlockers(Transform root, GameObject cabin, BoxCollider interior, GameObject doorLeaf)
+        {
+            var old = root.Find("ASH_OpeningExitBlockers"); if (old) Object.DestroyImmediate(old.gameObject);
+            var go = new GameObject("ASH_OpeningExitBlockers"); go.transform.SetParent(root, false); go.layer = 2;
+            if (!interior) return go;
+            Physics.SyncTransforms();
+            var b = interior.bounds; float floor = b.min.y;
+            Bounds doorB = default; bool hasDoor = false;
+            if (doorLeaf && doorLeaf.GetComponent<Renderer>()) { doorB = doorLeaf.GetComponent<Renderer>().bounds; doorB.Expand(new Vector3(0.6f, 0.4f, 0.6f)); hasDoor = true; }
+            var pts = new List<(Vector3 p, Vector3 n)>();
+            var cabT = cabin ? cabin.transform : null;
+            bool WallHit(Vector3 o, Vector3 d, float dist, out RaycastHit best)
+            {
+                best = default; float bd = float.MaxValue; bool any = false;
+                foreach (var h in Physics.RaycastAll(o, d, dist, ~(1 << 2), QueryTriggerInteraction.Ignore))
+                    if (h.distance < bd && (!cabT || h.collider.transform.IsChildOf(cabT))) { bd = h.distance; best = h; any = true; }
+                return any;
+            }
+            var inner = b; inner.Expand(new Vector3(-0.8f, 10f, -0.8f));
+            Bounds cabinB = default; var cabCol = cabin ? cabin.GetComponentInChildren<Collider>() : null; if (cabCol) { cabinB = cabCol.bounds; cabinB.Expand(0.6f); }
+            var origins = new List<Vector3>();
+            for (int gx = -1; gx <= 1; gx++) for (int gz = -1; gz <= 1; gz++) origins.Add(new Vector3(b.center.x + gx * b.extents.x * 0.6f, 0f, b.center.z + gz * b.extents.z * 0.6f));
+            float maxR = Mathf.Max(b.extents.x, b.extents.z) + 3.5f;
+            foreach (var o0 in origins)
+                for (float h = 0.25f; h <= 2.8f; h += 0.15f)
+                    for (int i = 0; i < 120; i++)
+                    {
+                        float a = i * 3f * Mathf.Deg2Rad; var dir = new Vector3(Mathf.Sin(a), 0f, Mathf.Cos(a));
+                        var o = new Vector3(o0.x, floor + h, o0.z);
+                        if (Physics.CheckSphere(o, 0.05f, ~0, QueryTriggerInteraction.Ignore)) continue;
+                        if (Physics.Raycast(o, dir, out var hit, 25f, ~(1 << 2), QueryTriggerInteraction.Ignore) && hit.distance < maxR) continue;
+                        // escaped: the wall is where a slightly lower/higher ray in the same direction stops
+                        // wall distance: neighbouring rays (angle, then height) that do stop at the wall around the opening
+                        float wall = -1f; Vector3 n = -dir;
+                        foreach (float da in new[] { 4f, -4f, 8f, -8f, 12f, -12f, 18f, -18f })
+                        {
+                            var d2 = Quaternion.AngleAxis(da, Vector3.up) * dir;
+                            if (WallHit(o, d2, maxR, out var wh)) { wall = wh.distance * Mathf.Max(0.2f, Vector3.Dot(d2, -wh.normal)) / Mathf.Max(0.2f, Vector3.Dot(dir, -wh.normal)); n = wh.normal; break; }
+                        }
+                        if (wall < 0f) foreach (float dh in new[] { -0.3f, -0.6f, 0.3f, 0.6f, -1f })
+                            if (WallHit(o + Vector3.up * dh, dir, maxR, out var wh)) { wall = wh.distance; n = wh.normal; break; }
+                        if (wall < 0f || wall > maxR) continue; // no wall found nearby: not a cabin opening
+                        var p = o + dir * (wall + 0.05f);
+                        if (cabinB.size != Vector3.zero && !cabinB.Contains(p)) continue;
+                        if (inner.Contains(new Vector3(p.x, inner.center.y, p.z))) continue; // never inside the room
+                        if (hasDoor && doorB.Contains(p)) continue;
+                        n.y = 0f; if (n.sqrMagnitude < 1e-4f) n = -dir; n.Normalize();
+                        pts.Add((p, n));
+                    }
+            // cluster points per wall direction and proximity, one box per cluster
+            var used = new bool[pts.Count]; int boxes = 0;
+            for (int i = 0; i < pts.Count; i++)
+            {
+                if (used[i]) continue;
+                var cl = new List<int> { i }; used[i] = true;
+                for (int k = 0; k < cl.Count; k++)
+                    for (int j = 0; j < pts.Count; j++)
+                        if (!used[j] && Vector3.Dot(pts[j].n, pts[cl[k]].n) > 0.8f && (pts[j].p - pts[cl[k]].p).sqrMagnitude < 0.8f * 0.8f) { used[j] = true; cl.Add(j); }
+                var nrm = pts[i].n; var rot = Quaternion.LookRotation(-nrm, Vector3.up);
+                var inv = Quaternion.Inverse(rot); Vector3 mn = Vector3.one * 1e9f, mx = -mn;
+                foreach (var j in cl) { var l = inv * pts[j].p; mn = Vector3.Min(mn, l); mx = Vector3.Max(mx, l); }
+                var pad = new Vector3(0.35f, 0.35f, 0f); mn -= pad; mx += pad;
+                var c = rot * ((mn + mx) * 0.5f);
+                var bt = new GameObject($"Blocker_{boxes}").transform; bt.SetParent(go.transform, false); bt.gameObject.layer = 2;
+                bt.SetPositionAndRotation(c, rot);
+                var bc = bt.gameObject.AddComponent<BoxCollider>(); bc.size = new Vector3(Mathf.Max(0.3f, mx.x - mn.x), Mathf.Max(0.3f, mx.y - mn.y), 0.5f);
+                boxes++;
+                _log.Append($"  blocker {boxes - 1}: c={c:F2} size={bc.size:F2} facing {(-nrm):F2} ({cl.Count} samples)\n");
+            }
+            _log.Append($"exit blockers: {boxes} invisible blocker(s) over {pts.Count} escaping ray samples (door area excluded); active until the doors unlock\n");
+            return go;
+        }
+
         static ASHWeatherProfile[] EnsureWeatherProfiles()
         {
             Folder(DataDir);
@@ -300,7 +415,7 @@ namespace ASH.EditorTools
             }
 
             var cabin = GameObject.Find("Grandpa Cabin");
-            var doorGo = GameObject.Find("WoodenDoor"); var door = doorGo ? doorGo.transform.position : Vector3.zero;
+            var doorGo = GameObject.Find("WoodenDoor-Cabin") ?? GameObject.Find("WoodenDoor"); var door = doorGo ? doorGo.transform.position : Vector3.zero;
             var interiorCol = Child<BoxCollider>("ASH_CabinInterior", out bool madeInterior);
             Interior inside = null;
             if (madeInterior || !root.transform.Find("ASH_OpeningSpawn"))
@@ -356,6 +471,11 @@ namespace ASH.EditorTools
             var obj = Child<ASHOpeningObjective>("ASH_OpeningObjective", out _); if (!obj.interior) obj.interior = interiorCol;
             var seq = Child<ASHEruptionSequence>("ASH_OpeningSequence", out _);
             if (!seq.profile) seq.profile = opening; if (!seq.openingSpawn) seq.openingSpawn = spawnT; if (!seq.director) seq.director = director;
+            // ---- cabin door (E open/close, locked until the quake) + invisible blockers over other exits
+            var cabinDoor = SetupDoor(root.transform, doorGo, audio);
+            if (cabinDoor && (seq.cabinDoors == null || seq.cabinDoors.Length == 0 || !seq.cabinDoors[0])) seq.cabinDoors = new[] { cabinDoor };
+            var blockers = BuildExitBlockers(root.transform, cabin, interiorCol, doorGo);
+            seq.exitBlockers = blockers;
             if (!seq.radio) seq.radio = radio; if (!seq.quake) seq.quake = quake; if (!seq.objective) seq.objective = obj; if (!seq.clock) seq.clock = Object.FindAnyObjectByType<ASHDayNightClock>();
 
             foreach (var c in root.GetComponentsInChildren<Component>(true)) if (c) EditorUtility.SetDirty(c);

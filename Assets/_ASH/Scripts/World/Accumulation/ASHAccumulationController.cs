@@ -37,6 +37,10 @@ namespace ASH.World.Accumulation
         [Range(0.01f, 1f)] public float normalBlend = 0.35f;
         [Range(0.01f, 5f)] public float noiseScale = 0.35f;
         [Range(0f, 1.5f)] public float noiseStrength = 0.35f;
+        [Tooltip("Coverage edge softness: width of the soft ramp where the layer thins out (higher = softer, wider edges).")] [Range(0.01f, 3f)] public float edgeSoftness = 0.6f;
+        [Tooltip("Large-scale patch noise frequency (1/m) that breaks thin layers into natural patches.")] [Range(0.001f, 2f)] public float patchNoiseScale = 0.08f;
+        [Tooltip("Strength of the patch noise (0 = off).")] [Range(0f, 2f)] public float patchNoiseStrength = 0.25f;
+        [Tooltip("Smooth (bicubic) drift mask sampling - removes stair-steps from the coarse mask texels. 4 texture taps instead of 1.")] public bool smoothDriftSampling = true;
 
         [Header("3. Deformation (footprints, trails, tracks; ASHDeformer stampers)")]
         [Tooltip("Footprints/trails on (Play Mode). Stamps from ASHDeformer components into ASHDeformationField.")]
@@ -301,7 +305,7 @@ namespace ASH.World.Accumulation
             ID_Rect = Shader.PropertyToID("_ASH_TerrainRect"), ID_DRect = Shader.PropertyToID("_ASH_DeformRect"),
             ID_AshNrm = Shader.PropertyToID("_ASH_AshNrm"), ID_SnowNrm = Shader.PropertyToID("_ASH_SnowNrm"), ID_DetTex = Shader.PropertyToID("_ASH_DetailTex"), ID_DetNrm = Shader.PropertyToID("_ASH_DetailNrm"),
             ID_SurfTex = Shader.PropertyToID("_ASH_SurfTex"), ID_SurfTex2 = Shader.PropertyToID("_ASH_SurfTex2"),
-            ID_AshTex = Shader.PropertyToID("_ASH_AshTex"), ID_SnowTex = Shader.PropertyToID("_ASH_SnowTex"), ID_Drift = Shader.PropertyToID("_ASH_DriftMask"), ID_Deform = Shader.PropertyToID("_ASH_DeformTex"), ID_Depth = Shader.PropertyToID("_ASH_Depth");
+            ID_AshTex = Shader.PropertyToID("_ASH_AshTex"), ID_SnowTex = Shader.PropertyToID("_ASH_SnowTex"), ID_Drift = Shader.PropertyToID("_ASH_DriftMask"), ID_Deform = Shader.PropertyToID("_ASH_DeformTex"), ID_Depth = Shader.PropertyToID("_ASH_Depth"), ID_Edge = Shader.PropertyToID("_ASH_Edge"), ID_DTex = Shader.PropertyToID("_ASH_DriftTexel");
 
         /// <summary>Surface Texture globals (top of the ash/snow). Separate from deformation quality on purpose.</summary>
         public void PushSurfaceTexture()
@@ -345,6 +349,8 @@ namespace ASH.World.Accumulation
             Shader.SetGlobalTexture(ID_SnowTex, snowTexture ? snowTexture : Texture2D.whiteTexture);
             PushSurfaceTexture();
             Shader.SetGlobalTexture(ID_Drift, driftMask ? driftMask : Texture2D.grayTexture);
+            Shader.SetGlobalVector(ID_Edge, new Vector4(edgeSoftness, patchNoiseScale, patchNoiseStrength, smoothDriftSampling && driftMask ? 1f : 0f));
+            Shader.SetGlobalVector(ID_DTex, driftMask ? new Vector4(1f / driftMask.width, 1f / driftMask.height, driftMask.width, driftMask.height) : Vector4.zero);
             if (!Field || !Field.isActiveAndEnabled || !Field.Active) { Shader.SetGlobalTexture(ID_Deform, Texture2D.blackTexture); Shader.SetGlobalVector(ID_DRect, Vector4.zero); }
             Shader.SetGlobalVector(ID_Depth, new Vector4(maxDepthMetres, visibleDepth && DeformationQualityOn && Application.isPlaying ? 1f : 0f, ankleDepthMetres, 0f));
             if (terrain)

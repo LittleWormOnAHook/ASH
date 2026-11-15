@@ -454,7 +454,7 @@ void SplatmapFragment(
     // ---- ASH accumulation (ash over snow). Applied identically in base/add/basemap passes: each pass's albedo is
     // normalized and later weighted by its splat alpha, so the layered result composes correctly across passes.
     {
-        half4 ashDrift = SAMPLE_TEXTURE2D(_ASH_DriftMask, sampler_ASH_DriftMask, IN.uvMainAndLM.xy);
+        half4 ashDrift = ASH_DriftUV(IN.uvMainAndLM.xy);
         half3 ashGeomN = inputData.normalWS;
         ASH_ApplyAccumulation(IN.positionWS, ashGeomN, ashDrift, 0, albedo, inputData.normalWS, smoothness, metallic, occlusion);
     }
