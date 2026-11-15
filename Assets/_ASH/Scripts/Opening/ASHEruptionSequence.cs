@@ -4,7 +4,9 @@ using ASH.World;
 using ASH.World.Accumulation;
 using ASH.World.Weather;
 using Invector.vCharacterController;
+using ASH.Rendering;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 namespace ASH.Opening
 {
@@ -40,6 +42,11 @@ namespace ASH.Opening
         public bool Suppressed { get; private set; }
         public event System.Action<Stage> StageChanged;
 
+        // opening-owned fog density (own runtime volume above the weather volume, so nothing blends against it)
+        Volume _fogVol; VolumeProfile _fogProf; ASHVolumetricFog _fogOv;
+        float _fogFrom, _fogTo, _fogT = 1f, _fogDur = 1f, _fogW = 1f, _fogWTarget = 1f, _fogWSpeed; AnimationCurve _fogCurve;
+        public float FogDensity => _fogOv != null ? _fogOv.density.value : -1f;
+
         float _t; bool _quakeStarted, _ashStarted; Vector3 _origPos; Quaternion _origRot; bool _haveOrig; vThirdPersonController _cc;
 
         void Awake() { Instance = this; if (playOnStart) ASHObjectiveTracker.HoldIntroMessage = true; }
@@ -62,7 +69,8 @@ namespace ASH.Opening
             ASHQuakeProp.ResetAll();
             if (quake) quake.Stop();
             if (objective) objective.End();
-            if (director) { director.SetScheduler(false); director.Snap(ASHWeatherKind.Clear); }
+            if (director) { director.SetScheduler(false); director.Snap(director.Profile(profile.startState) ? profile.startState : ASHWeatherKind.Clear); }
+            FogSet(profile.startFogDensity); FogWeight(1f, 0f);
             var acc = ASHAccumulationController.Instance;
             if (acc) { if (profile.groundAshAtStart >= 0f) acc.ashAmount = profile.groundAshAtStart; if (profile.groundSnowAtStart >= 0f) acc.snowAmount = profile.groundSnowAtStart; }
             if (clock && profile.startTimeOfDay >= 0f) clock.timeOfDay = profile.startTimeOfDay;
@@ -89,6 +97,8 @@ namespace ASH.Opening
                 if (s == Stage.Done) director.Snap(profile.afterState);
             }
             _quakeStarted = s > Stage.Quake; _ashStarted = s > Stage.FirstAsh;
+            if (s <= Stage.FirstAsh) FogSet(profile.startFogDensity); else if (s <= Stage.Easing) FogSet(profile.ashFogDensity); else FogSet(profile.easedFogDensity);
+            FogWeight(1f, 0f);
             Enter(s);
             if (s == Stage.Quake && quake) { quake.Begin(); _quakeStarted = true; }
         }
@@ -103,6 +113,7 @@ namespace ASH.Opening
             if (objective) objective.End();
             ASHQuakeProp.ResetAll();
             if (director) { director.SetScheduler(false); director.debugOverride = false; director.Snap(ASHWeatherKind.Clear); }
+            FogWeight(0f, 0f);
             var ash = FindAnyObjectByType<ASHAshFall>(); if (ash) ash.SetWeather(0f, Vector3.zero, 1f, true);
             if (_haveOrig) TeleportPlayer(_origPos, _origRot);
             var hud = FindAnyObjectByType<UI.ASHHud>(); if (hud) hud.ShowSubtitle(null, 0f);
@@ -140,10 +151,12 @@ namespace ASH.Opening
                 case Stage.Easing:
                     if (director) director.TransitionTo(profile.afterState, profile.easeSeconds / sp);
                     if (objective) objective.MarkEased();
+                    FogRamp(profile.easedFogDensity, profile.easeSeconds / sp, null);
                     break;
                 case Stage.Done:
                     if (objective) objective.End(objective.AllDone ? "The first wave has passed." : "The first wave has passed. Keep preparing - more will come.");
                     if (director && profile.startSchedulerAfter) director.SetScheduler(true);
+                    FogWeight(0f, profile.fogHandoffSeconds / sp);
                     var tr = FindAnyObjectByType<ASHObjectiveTracker>(); if (tr && ASHObjectiveTracker.HoldIntroMessage) tr.ReplayIntro();
                     ASHObjectiveTracker.HoldIntroMessage = false;
                     break;
@@ -153,8 +166,37 @@ namespace ASH.Opening
         bool _journalBroadcast;
         void JournalBroadcast() { if (_journalBroadcast) return; _journalBroadcast = true; ASHJournalLog.Add(profile.journalBroadcastTitle, profile.journalBroadcastBody); }
 
+        // ------------------------------------------------------------------ fog density
+        void EnsureFogVolume()
+        {
+            if (_fogVol) return;
+            var go = new GameObject("ASH_OpeningFogVolume") { hideFlags = HideFlags.DontSave }; go.transform.SetParent(transform, false);
+            _fogVol = go.AddComponent<Volume>(); _fogVol.isGlobal = true; _fogVol.priority = 60f; _fogVol.weight = 0f;
+            _fogProf = ScriptableObject.CreateInstance<VolumeProfile>(); _fogProf.name = "ASH_OpeningFog (runtime)"; _fogProf.hideFlags = HideFlags.DontSave;
+            _fogOv = _fogProf.Add<ASHVolumetricFog>(false); _fogVol.sharedProfile = _fogProf;
+        }
+        void FogSet(float d) { _fogFrom = _fogTo = d; _fogT = 1f; ApplyFog(); }
+        void FogRamp(float to, float seconds, AnimationCurve curve) { _fogFrom = CurrentFog(); _fogTo = to; _fogDur = Mathf.Max(0.05f, seconds); _fogT = 0f; _fogCurve = curve; }
+        void FogWeight(float w, float seconds) { _fogWTarget = w; if (seconds <= 0f) _fogW = w; else _fogWSpeed = Mathf.Abs(w - _fogW) / seconds; ApplyFog(); }
+        float CurrentFog() { float k = _fogCurve != null && _fogCurve.length > 1 ? Mathf.Clamp01(_fogCurve.Evaluate(_fogT)) : Mathf.SmoothStep(0f, 1f, _fogT); return Mathf.LerpUnclamped(_fogFrom, _fogTo, k); }
+        void ApplyFog()
+        {
+            if (!profile || !profile.driveFogDensity) { if (_fogVol) _fogVol.weight = 0f; return; }
+            EnsureFogVolume();
+            _fogOv.enabled.Override(true); _fogOv.density.Override(Mathf.Max(0f, CurrentFog())); _fogOv.densityMultiplier.Override(profile.fogDensityMultiplier);
+            _fogVol.weight = _fogW;
+        }
+        void TickFog(float dt)
+        {
+            if (_fogT < 1f) _fogT = Mathf.Min(1f, _fogT + dt / _fogDur);
+            if (_fogW != _fogWTarget) _fogW = Mathf.MoveTowards(_fogW, _fogWTarget, Mathf.Max(1e-4f, _fogWSpeed) * dt);
+            ApplyFog();
+        }
+        void OnDisable() { if (_fogVol) Destroy(_fogVol.gameObject); if (_fogProf) Destroy(_fogProf); _fogVol = null; _fogProf = null; _fogOv = null; }
+
         void Update()
         {
+            if (_fogVol) TickFog(Time.deltaTime);
             if (Suppressed || !profile || Current == Stage.Inactive || Current == Stage.Done) return;
             float sp = Mathf.Max(0.01f, debugSpeed);
             _t += Time.deltaTime * sp;
@@ -174,7 +216,7 @@ namespace ASH.Opening
                     if (_t >= profile.quietSeconds) Enter(Stage.FirstAsh);
                     break;
                 case Stage.FirstAsh:
-                    if (!_ashStarted && _t >= profile.ashOnsetSeconds) { _ashStarted = true; if (director) director.TransitionTo(ASHWeatherKind.LightAsh, profile.ashRampSeconds / sp); }
+                    if (!_ashStarted && _t >= profile.ashOnsetSeconds) { _ashStarted = true; if (director) director.TransitionTo(ASHWeatherKind.LightAsh, profile.ashRampSeconds / sp); FogRamp(profile.ashFogDensity, profile.fogRampSeconds / sp, profile.fogRampCurve); }
                     if (_t >= profile.ashOnsetSeconds + profile.ashRampSeconds) Enter(Stage.HeavyWave);
                     break;
                 case Stage.HeavyWave:

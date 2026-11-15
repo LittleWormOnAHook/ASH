@@ -124,7 +124,7 @@ namespace ASH.DebugTools
             // ---- replay restarts cleanly
             seq.debugSpeed = 1f; dir.debugOverride = false; seq.Replay(); yield return new WaitForSeconds(0.6f);
             int fallenAfter = 0; foreach (var p in ASHQuakeProp.All) if (p.Fallen) fallenAfter++;
-            Check("replay", seq.Current == ASHEruptionSequence.Stage.Morning && dir.CurrentKind == ASHWeatherKind.Clear && fallenAfter == 0 && !dir.schedulerEnabled, $"stage={seq.Current} weather={dir.CurrentKind} fallen={fallenAfter} scheduler={dir.schedulerEnabled}");
+            Check("replay", seq.Current == ASHEruptionSequence.Stage.Morning && dir.CurrentKind == seq.profile.startState && Mathf.Abs(seq.FogDensity - seq.profile.startFogDensity) < 0.001f && fallenAfter == 0 && !dir.schedulerEnabled, $"stage={seq.Current} weather={dir.CurrentKind} fallen={fallenAfter} scheduler={dir.schedulerEnabled}");
             Finish(seq);
         }
 

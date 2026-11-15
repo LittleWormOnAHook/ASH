@@ -2,7 +2,7 @@ using UnityEngine;
 
 namespace ASH.World.Weather
 {
-    public enum ASHWeatherKind { Clear, CalmHazy, LightAsh, HeavyAsh, RainAsh, Snowstorm, Thunderstorm }
+    public enum ASHWeatherKind { Clear, CalmHazy, LightAsh, HeavyAsh, RainAsh, Snowstorm, Thunderstorm, LightSnowMorning }
 
     /// <summary>
     /// One weather state as a set of TARGET values for systems that already exist: ASHAshFall (ash/rain/snow particle
@@ -32,6 +32,9 @@ namespace ASH.World.Weather
 
         [Header("Sky and light")]
         [Tooltip("0 = scene sun as tuned, 1 = sun almost gone.")] [Range(0f, 1f)] public float cloudDarkness;
+        [Tooltip("Cloud layer coverage (ASH/CloudLayer dome): 0 clear, 0.4 partly cloudy, 1 overcast.")] [Range(0f, 1f)] public float cloudCoverage = 0.15f;
+        [Header("Blowing snow / ash (ground drift near the player)")]
+        [Tooltip("Spindrift amount; scaled by wind, gusts and how much snow/ash lies on the ground.")] [Range(0f, 4f)] public float spindrift = 0.3f;
         [Range(0f, 2f)] public float ambientScale = 1f;
         [Range(0f, 2f)] public float skyExposureScale = 1f;
         [Tooltip("Sky tint toward grey/brown ash (0 = sky material as tuned).")] [Range(0f, 1f)] public float skyAshTint;
@@ -74,13 +77,37 @@ namespace ASH.World.Weather
         public Vector2 durationMinutes = new Vector2(3f, 6f);
 
         public ASHWeatherParams ToParams() => ASHWeatherParams.From(this);
+
+        [HideInInspector] public int dataVersion;
+        void OnEnable()
+        {
+            if (dataVersion >= 1) return; // v1: clouds + spindrift defaults for profiles made before those fields existed
+            ApplyKindDefaults();
+        }
+
+        /// <summary>Per-state cloud coverage + spindrift defaults (used by the v1 migration and the installer).</summary>
+        public void ApplyKindDefaults()
+        {
+            switch (kind)
+            {
+                case ASHWeatherKind.Clear: cloudCoverage = 0.15f; spindrift = 0.1f; break;
+                case ASHWeatherKind.LightSnowMorning: cloudCoverage = 0.45f; spindrift = 0.6f; break;
+                case ASHWeatherKind.CalmHazy: cloudCoverage = 0.6f; spindrift = 0.25f; break;
+                case ASHWeatherKind.LightAsh: cloudCoverage = 0.85f; spindrift = 0.4f; break;
+                case ASHWeatherKind.HeavyAsh: cloudCoverage = 1f; spindrift = 0.9f; break;
+                case ASHWeatherKind.RainAsh: cloudCoverage = 0.95f; spindrift = 0f; break;
+                case ASHWeatherKind.Snowstorm: cloudCoverage = 1f; spindrift = 1.6f; break;
+                case ASHWeatherKind.Thunderstorm: cloudCoverage = 1f; spindrift = 0.1f; break;
+            }
+            dataVersion = 1;
+        }
     }
 
     /// <summary>Blendable snapshot of a weather profile.</summary>
     [System.Serializable]
     public struct ASHWeatherParams
     {
-        public float ashfall, rain, snow, ashFlakeSize, wind, windSpeed, gustiness, cloudDarkness, ambientScale, skyExposureScale, skyAshTint, haze;
+        public float ashfall, rain, snow, ashFlakeSize, wind, windSpeed, gustiness, cloudDarkness, cloudCoverage, spindrift, ambientScale, skyExposureScale, skyAshTint, haze;
         public float visibility, volFogDensity, volFogNoise, volFogLight, atmosphereWeight, saturation, postExposure, vignette;
         public float windVolume, rainVolume, ambienceVolume, thunderPerMinute, temperatureC;
         public Color volFogAlbedo, colorFilter;
@@ -88,7 +115,7 @@ namespace ASH.World.Weather
         public static ASHWeatherParams From(ASHWeatherProfile p) => new ASHWeatherParams
         {
             ashfall = p.ashfall, rain = p.rain, snow = p.snow, ashFlakeSize = p.ashFlakeSize, wind = p.wind, windSpeed = p.windSpeed, gustiness = p.gustiness,
-            cloudDarkness = p.cloudDarkness, ambientScale = p.ambientScale, skyExposureScale = p.skyExposureScale, skyAshTint = p.skyAshTint, haze = p.haze,
+            cloudDarkness = p.cloudDarkness, cloudCoverage = p.cloudCoverage, spindrift = p.spindrift, ambientScale = p.ambientScale, skyExposureScale = p.skyExposureScale, skyAshTint = p.skyAshTint, haze = p.haze,
             visibility = p.visibilityMetres, volFogDensity = p.volFogDensity, volFogNoise = p.volFogNoise, volFogLight = p.volFogLight,
             atmosphereWeight = p.atmosphereWeight, saturation = p.saturation, postExposure = p.postExposure, vignette = p.vignette,
             windVolume = p.windVolume, rainVolume = p.rainVolume, ambienceVolume = p.ambienceVolume, thunderPerMinute = p.thunderPerMinute,
@@ -102,7 +129,7 @@ namespace ASH.World.Weather
             {
                 ashfall = L(a.ashfall, b.ashfall), rain = L(a.rain, b.rain), snow = L(a.snow, b.snow), ashFlakeSize = L(a.ashFlakeSize, b.ashFlakeSize),
                 wind = L(a.wind, b.wind), windSpeed = L(a.windSpeed, b.windSpeed), gustiness = L(a.gustiness, b.gustiness),
-                cloudDarkness = L(a.cloudDarkness, b.cloudDarkness), ambientScale = L(a.ambientScale, b.ambientScale), skyExposureScale = L(a.skyExposureScale, b.skyExposureScale),
+                cloudDarkness = L(a.cloudDarkness, b.cloudDarkness), cloudCoverage = L(a.cloudCoverage, b.cloudCoverage), spindrift = L(a.spindrift, b.spindrift), ambientScale = L(a.ambientScale, b.ambientScale), skyExposureScale = L(a.skyExposureScale, b.skyExposureScale),
                 skyAshTint = L(a.skyAshTint, b.skyAshTint), haze = L(a.haze, b.haze),
                 // visibility blends in log space so a clear-to-fog change reads evenly
                 visibility = Mathf.Exp(L(Mathf.Log(Mathf.Max(1f, a.visibility)), Mathf.Log(Mathf.Max(1f, b.visibility)))),

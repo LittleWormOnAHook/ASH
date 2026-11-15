@@ -68,6 +68,7 @@ namespace ASH.EditorTools
         [MenuItem("ASH/Phase 2A/Debug/Skip To/Heavy Wave", false, 25)] static void S5() => Skip(ASHEruptionSequence.Stage.HeavyWave);
         [MenuItem("ASH/Phase 2A/Debug/Skip To/Easing", false, 26)] static void S6() => Skip(ASHEruptionSequence.Stage.Easing);
         [MenuItem("ASH/Phase 2A/Debug/Skip To/Done (scheduler)", false, 27)] static void S7() => Skip(ASHEruptionSequence.Stage.Done);
+        [MenuItem("ASH/Phase 2A/Debug/Weather/Partly Cloudy, Light Snow", false, 39)] static void W7() => Wx(ASHWeatherKind.LightSnowMorning);
         [MenuItem("ASH/Phase 2A/Debug/Weather/Calm-Hazy", false, 40)] static void W1() => Wx(ASHWeatherKind.CalmHazy);
         [MenuItem("ASH/Phase 2A/Debug/Weather/Light Ash", false, 41)] static void W2() => Wx(ASHWeatherKind.LightAsh);
         [MenuItem("ASH/Phase 2A/Debug/Weather/Heavy Ash", false, 42)] static void W3() => Wx(ASHWeatherKind.HeavyAsh);
@@ -117,10 +118,13 @@ namespace ASH.EditorTools
             var list = new List<ASHWeatherProfile>();
             void P(ASHWeatherKind k, string name, System.Action<ASHWeatherProfile> f)
             {
-                var p = Ensure<ASHWeatherProfile>($"{DataDir}/ASH_Weather_{k}.asset", x => { x.kind = k; x.displayName = name; f(x); }, out bool c);
-                if (c) _log.Append($"created ASH_Weather_{k}\n"); list.Add(p);
+                var p = Ensure<ASHWeatherProfile>($"{DataDir}/ASH_Weather_{k}.asset", x => { x.kind = k; x.displayName = name; x.ApplyKindDefaults(); f(x); }, out bool c);
+                if (c) _log.Append($"created ASH_Weather_{k}\n");
+                else { if (p.dataVersion < 1) p.ApplyKindDefaults(); EditorUtility.SetDirty(p); AssetDatabase.SaveAssetIfDirty(p); } // persist the v1 migration
+                list.Add(p);
             }
             P(ASHWeatherKind.Clear, "Clear (scene as tuned)", x => { x.wind = 0.15f; x.windSpeed = 6f; x.gustiness = 0.25f; x.visibilityMetres = 8000f; x.atmosphereWeight = 0f; x.vignette = 0.15f; x.windVolume = 0.12f; x.ambienceVolume = 0.55f; x.temperatureC = 8f; x.probability = 0f; });
+            P(ASHWeatherKind.LightSnowMorning, "Partly Cloudy, Light Snow (opening)", x => { x.snow = 0.15f; x.ashFlakeSize = 1f; x.wind = 0.25f; x.windSpeed = 4f; x.gustiness = 0.45f; x.cloudDarkness = 0.22f; x.cloudCoverage = 0.45f; x.spindrift = 0.6f; x.ambientScale = 0.95f; x.skyExposureScale = 0.9f; x.skyAshTint = 0f; x.haze = 0.1f; x.visibilityMetres = 3000f; x.volFogDensity = 1f; x.volFogAlbedo = new Color(0.86f, 0.88f, 0.92f); x.atmosphereWeight = 0.25f; x.saturation = -5f; x.postExposure = 0f; x.colorFilter = new Color(0.96f, 0.98f, 1f); x.vignette = 0.15f; x.windVolume = 0.22f; x.ambienceVolume = 0.5f; x.temperatureC = -2f; x.probability = 0f; x.majorEvent = false; });
             P(ASHWeatherKind.CalmHazy, "Calm / Hazy", x => { x.ashfall = 0.04f; x.wind = 0.2f; x.cloudDarkness = 0.15f; x.ambientScale = 0.9f; x.skyExposureScale = 0.85f; x.skyAshTint = 0.25f; x.haze = 0.35f; x.visibilityMetres = 2500f; x.volFogDensity = 1.4f; x.volFogAlbedo = new Color(0.75f, 0.7f, 0.64f); x.atmosphereWeight = 0.45f; x.saturation = -12f; x.postExposure = -0.1f; x.colorFilter = new Color(1f, 0.95f, 0.88f); x.vignette = 0.2f; x.windVolume = 0.15f; x.ambienceVolume = 0.35f; x.temperatureC = 7f; x.probability = 1f; x.majorEvent = false; x.durationMinutes = new Vector2(4f, 9f); });
             P(ASHWeatherKind.LightAsh, "Light Ash", x => { x.ashfall = 0.35f; x.ashFlakeSize = 0.9f; x.wind = 0.3f; x.windSpeed = 7f; x.gustiness = 0.35f; x.cloudDarkness = 0.4f; x.ambientScale = 0.7f; x.skyExposureScale = 0.55f; x.skyAshTint = 0.55f; x.haze = 0.6f; x.visibilityMetres = 700f; x.volFogDensity = 2.5f; x.volFogAlbedo = new Color(0.66f, 0.62f, 0.58f); x.volFogNoise = 0.6f; x.atmosphereWeight = 0.75f; x.saturation = -28f; x.postExposure = -0.3f; x.colorFilter = new Color(0.95f, 0.9f, 0.82f); x.vignette = 0.25f; x.windVolume = 0.3f; x.ambienceVolume = 0.12f; x.temperatureC = 5f; x.probability = 1.2f; x.majorEvent = true; x.durationMinutes = new Vector2(6f, 12f); });
             P(ASHWeatherKind.HeavyAsh, "Heavy Ash", x => { x.ashfall = 1f; x.ashFlakeSize = 1.25f; x.wind = 0.7f; x.windSpeed = 12f; x.gustiness = 0.6f; x.cloudDarkness = 0.78f; x.ambientScale = 0.4f; x.skyExposureScale = 0.25f; x.skyAshTint = 0.85f; x.haze = 0.9f; x.visibilityMetres = 90f; x.volFogDensity = 6f; x.volFogAlbedo = new Color(0.55f, 0.52f, 0.5f); x.volFogNoise = 0.8f; x.atmosphereWeight = 1f; x.saturation = -45f; x.postExposure = -0.7f; x.colorFilter = new Color(0.9f, 0.84f, 0.76f); x.vignette = 0.35f; x.windVolume = 0.75f; x.ambienceVolume = 0f; x.temperatureC = 3f; x.probability = 1f; x.majorEvent = true; x.durationMinutes = new Vector2(5f, 10f); });
@@ -332,11 +336,15 @@ namespace ASH.EditorTools
             var outputs = director.GetComponent<ASHWeatherOutputs>(); if (!outputs) outputs = director.gameObject.AddComponent<ASHWeatherOutputs>();
             if (madeW) { director.profiles = profiles; director.initialState = ASHWeatherKind.Clear; director.accumulationRate = -1f; director.schedulerEnabled = false; }
             if (director.profiles == null || director.profiles.Length == 0) director.profiles = profiles;
+            else { var l = director.profiles.Where(x => x).ToList(); int n0 = l.Count; foreach (var p in profiles) if (!l.Any(x => x.kind == p.kind)) l.Add(p); if (l.Count != n0) { director.profiles = l.ToArray(); _log.Append($"added {l.Count - n0} weather profile(s) to the director\n"); } }
             if (!outputs.clock) outputs.clock = Object.FindAnyObjectByType<ASHDayNightClock>();
             if (!outputs.ashFall) outputs.ashFall = Object.FindAnyObjectByType<ASHAshFall>();
             if (!outputs.interior) outputs.interior = interiorCol;
             if (!outputs.audioBank) outputs.audioBank = audio;
             if (!outputs.lightningPrefab) outputs.lightningPrefab = boltPrefab;
+            if (!outputs.cloudShader) outputs.cloudShader = Shader.Find("ASH/CloudLayer");
+            var clouds = director.GetComponent<ASHCloudLayer>(); if (!clouds) clouds = director.gameObject.AddComponent<ASHCloudLayer>(); if (!clouds.shader) clouds.shader = outputs.cloudShader;
+            if (!director.GetComponent<ASHSpindrift>()) director.gameObject.AddComponent<ASHSpindrift>();
             var rigs = root.transform.Find("ASH_WeatherRigs"); if (!rigs) { rigs = new GameObject("ASH_WeatherRigs").transform; rigs.SetParent(root.transform, false); }
             if (!outputs.rainRig && rainPrefab) { var g = (GameObject)PrefabUtility.InstantiatePrefab(rainPrefab, rigs); g.name = "ASH_RainRig"; outputs.rainRig = g; }
             if (!outputs.snowRig && snowPrefab) { var g = (GameObject)PrefabUtility.InstantiatePrefab(snowPrefab, rigs); g.name = "ASH_SnowRig"; outputs.snowRig = g; }

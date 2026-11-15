@@ -22,7 +22,7 @@ namespace ASH.Rendering
         [Tooltip("Multiplies the in-scattered light (brightness of the fog).")] public ClampedFloatParameter brightness = new ClampedFloatParameter(1f, 0f, 10f);
 
         [Header("Height")]
-        [Tooltip("Extinction per metre at and below Base Height.")] public ClampedFloatParameter density = new ClampedFloatParameter(0.004f, 0f, 1f);
+        [Tooltip("Extinction per metre at and below Base Height.")] public ClampedFloatParameter density = new ClampedFloatParameter(0.004f, 0f, 5f);
         public ASHFogHeightModeParameter heightMode = new ASHFogHeightModeParameter(ASHFogHeightMode.World);
         [Tooltip("World Y (or offset from the camera in Relative mode) where the fog is densest; it thins out above.")] public FloatParameter baseHeight = new FloatParameter(0f);
         [Tooltip("How fast density falls off above Base Height (1/m). 0 = uniform.")] public ClampedFloatParameter heightFalloff = new ClampedFloatParameter(0.035f, 0f, 2f);

@@ -15,7 +15,9 @@ namespace ASH.Opening
         [Tooltip("Time of day the opening starts at (hours). < 0 keeps the clock's value.")] [Range(-1f, 24f)] public float startTimeOfDay = 7.6f;
         [Tooltip("Ground ash/snow at the start of the opening (runtime only). < 0 keeps the scene values.")]
         [Range(-1f, 1f)] public float groundAshAtStart = 0f;
-        [Range(-1f, 1f)] public float groundSnowAtStart = 0f;
+        [Range(-1f, 1f)] public float groundSnowAtStart = 0.25f;
+        [Tooltip("Weather the opening starts in: partly cloudy, light snow (ASH_Weather_LightSnowMorning).")]
+        public ASHWeatherKind startState = ASHWeatherKind.LightSnowMorning;
         [Range(0f, 1f)] public float musicVolume = 0.28f;
 
         [Header("Stage 2 - Emergency broadcast")]
@@ -60,6 +62,20 @@ namespace ASH.Opening
         [TextArea(3, 8)] public string journalBroadcastBody = "Radio: extraordinary seismic activity and a major eruption in the Yellowstone region. Ash may fall over the coming hours. Avoid travel, stay indoors, and store and cover clean drinking water - exposed water may be contaminated.";
         [TextArea(2, 6)] public string journalWaveTitle = "First fallout";
         [TextArea(3, 8)] public string journalWaveBody = "The sky went dark by mid-morning. Ash is coming down like dirty snow and the wind is picking it up off the ground. Stay in, collect water and food, wait for it to ease.";
+
+        [Header("ASH Volumetric Fog density (extinction per metre; 0.004 ~ 1 km visibility, 0.05 ~ 80 m, 0.9 ~ 4 m)")]
+        [Tooltip("The opening owns the fog Density through its own runtime volume (priority above the weather volume, weight 1), so nothing fights it. Off = weather/scene fog as usual.")]
+        public bool driveFogDensity = true;
+        [Tooltip("Density during the morning, before the ash.")] [Range(0f, 5f)] public float startFogDensity = 0.05f;
+        [Tooltip("Density reached once the ash has been falling for Fog Ramp Seconds.")] [Range(0f, 5f)] public float ashFogDensity = 0.9f;
+        [Tooltip("Ramp time from the first ash to Ash Fog Density (s).")] [Range(1f, 3600f)] public float fogRampSeconds = 330f;
+        public AnimationCurve fogRampCurve = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
+        [Tooltip("Density Multiplier while the opening drives the fog (scene profile uses its own).")] [Range(0f, 10f)] public float fogDensityMultiplier = 1f;
+        [Tooltip("Density the fog thins to while the first wave eases.")] [Range(0f, 5f)] public float easedFogDensity = 0.3f;
+        [Tooltip("After the opening, the fog is handed back to the weather/scene over this many seconds.")] [Range(0f, 600f)] public float fogHandoffSeconds = 30f;
+
+        [HideInInspector] public int configVersion;
+        void OnEnable() { if (configVersion < 2) { groundSnowAtStart = 0.25f; startState = ASHWeatherKind.LightSnowMorning; configVersion = 2; } }
 
         [Header("After the opening")]
         [Tooltip("Hand weather over to the scheduler (waves) once the first wave has eased.")] public bool startSchedulerAfter = true;

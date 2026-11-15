@@ -22,6 +22,8 @@ MonoBehaviour:
   windSpeed: 6
   gustiness: 0.25
   cloudDarkness: 0
+  cloudCoverage: 0.15
+  spindrift: 0.1
   ambientScale: 1
   skyExposureScale: 1
   skyAshTint: 0
@@ -44,3 +46,4 @@ MonoBehaviour:
   probability: 0
   majorEvent: 0
   durationMinutes: {x: 3, y: 6}
+  dataVersion: 1

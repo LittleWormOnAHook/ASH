@@ -47,6 +47,10 @@ namespace ASH.World.Weather
         [Range(-1f, 2f)] public float accumulationRate = 0.08f;
         [Tooltip("Wind lifting settled ash back into the air (extra airborne ash at full wind on a full layer; damped by wetness).")]
         [Range(0f, 1f)] public float windLift = 0.25f;
+        [Tooltip("Shapes the gust noise (x = raw 0-1 noise, y = gust 0-1). Default: mostly calm with occasional swells. Shared by wind audio, falling snow/ash drift, spindrift and fog wind.")]
+        public AnimationCurve gustCurve = new AnimationCurve(new Keyframe(0f, 0f), new Keyframe(0.55f, 0.15f), new Keyframe(0.8f, 0.55f), new Keyframe(1f, 1f));
+        [Tooltip("How fast gusts come and go (higher = more frequent).")] [Range(0.01f, 5f)] public float gustFrequency = 0.35f;
+        [Tooltip("Gust strength on top of the steady wind (x gustiness of the state).")] [Range(0f, 4f)] public float gustStrength = 1f;
 
         [Header("Debug")]
         [Tooltip("Force a state (testing). Overrides the scheduler and the opening sequence.")]
@@ -67,6 +71,8 @@ namespace ASH.World.Weather
         /// <summary>Airborne ash including wind-lifted ground ash (0-1+).</summary>
         public float AirborneAsh { get; private set; }
         public float Gust { get; private set; }
+        /// <summary>Shaped gust 0-1 (0 = lull, 1 = peak), for audio swells and spindrift bursts.</summary>
+        public float Gust01 { get; private set; }
         public Vector2 WindDir2 { get; private set; } = new Vector2(1f, 0f);
         public float WindMS => _cur.wind * _cur.windSpeed * windIntensity * (1f + Gust);
         public event Action<ASHWeatherKind> StateChanged;
@@ -116,8 +122,10 @@ namespace ASH.World.Weather
             _cur.visibility = Mathf.Clamp(_cur.visibility, visibilityLimits.x, visibilityLimits.y);
 
             // wind: slow direction wander + gusts
-            _gustPhase += dt * (0.15f + _cur.gustiness * 0.5f);
-            Gust = (Mathf.PerlinNoise(_gustPhase, 0.37f) - 0.5f) * 2f * _cur.gustiness * 0.6f;
+            _gustPhase += dt * gustFrequency * (0.4f + _cur.gustiness);
+            float raw = Mathf.Clamp01(Mathf.PerlinNoise(_gustPhase, 0.37f) * 0.75f + Mathf.PerlinNoise(_gustPhase * 2.7f, 5.1f) * 0.25f);
+            Gust01 = gustCurve != null && gustCurve.length > 1 ? Mathf.Clamp01(gustCurve.Evaluate(raw)) : raw;
+            Gust = Gust01 * _cur.gustiness * gustStrength;
             float dir = windDirection + (Mathf.PerlinNoise(Time.time * 0.01f, 7.1f) - 0.5f) * 2f * windWander;
             WindDir2 = new Vector2(Mathf.Sin(dir * Mathf.Deg2Rad), Mathf.Cos(dir * Mathf.Deg2Rad));
 

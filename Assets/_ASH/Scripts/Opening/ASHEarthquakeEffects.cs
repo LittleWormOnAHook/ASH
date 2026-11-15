@@ -50,7 +50,7 @@ namespace ASH.Opening
             if (audioBank) ASHSfx.Play("quakeSwell", audioBank.rumbleSwell, Area(), rumbleVolume * Sfx(), 0.9f, 0.05f, 0.3f, 60f);
         }
 
-        public void Stop() { _t = -1f; Intensity = 0f; ASHCameraKick.SetShake(Vector3.zero, Vector3.zero); _rumble.Stop(); foreach (var p in ASHQuakeProp.All) if (p) p.Drive(0f, 0f); }
+        public void Stop() { _t = -1f; Intensity = 0f; ASHCameraKick.ClearAll(); _rumble.Stop(); foreach (var p in ASHQuakeProp.All) if (p) p.Drive(0f, 0f); }
 
         float Sfx() => audioBank ? audioBank.sfxMaster : 1f;
 
@@ -59,7 +59,9 @@ namespace ASH.Opening
             if (_t < 0f) { if (_tail > 0f) { _tail -= Time.deltaTime; foreach (var p in ASHQuakeProp.All) if (p && p.kind == ASHQuakeProp.Kind.Swing) p.Drive(0f, Time.deltaTime); } return; }
             float dt = Time.deltaTime; _t += dt;
             float n = Mathf.Clamp01(_t / duration);
-            Intensity = Mathf.Max(0f, intensityCurve.Evaluate(n)) * maxIntensity; Peak = Mathf.Max(Peak, Intensity);
+            // curve x a short release envelope, so the shake always lands on exactly zero at the end even if the curve doesn't
+            float release = Mathf.Clamp01((duration - _t) / Mathf.Min(1.5f, duration * 0.2f));
+            Intensity = Mathf.Max(0f, intensityCurve.Evaluate(n)) * maxIntensity * release; Peak = Mathf.Max(Peak, Intensity);
             // camera: smooth noise, additive (ASHCameraKick applies and removes it every frame)
             float f = Time.time * shakeFrequency + _seed;
             var rot = new Vector3(Mathf.PerlinNoise(f, 0.1f) - 0.5f, Mathf.PerlinNoise(f, 0.7f) - 0.5f, (Mathf.PerlinNoise(f, 1.3f) - 0.5f) * 0.6f) * 2f * maxRotationDeg * Intensity;
@@ -74,7 +76,7 @@ namespace ASH.Opening
                 ASHSfx.Play(creak ? "quakeCreak" : "quakeRattle", creak ? audioBank.creaks : audioBank.rattles, Area(), (creak ? 0.6f : 0.45f) * Sfx() * Mathf.Clamp01(0.4f + Intensity), creak ? 0.8f : 1f, 0.12f, 1f, 25f);
             }
             if (radio) radio.Interrupt(Intensity);
-            if (_t >= duration) { Done = true; _t = -1f; Intensity = 0f; ASHCameraKick.SetShake(Vector3.zero, Vector3.zero); _rumble.Stop(); foreach (var p in ASHQuakeProp.All) if (p && p.kind != ASHQuakeProp.Kind.Swing) p.Drive(0f, dt); _tail = 12f; }
+            if (_t >= duration) { Done = true; _t = -1f; Intensity = 0f; ASHCameraKick.ClearAll(); _rumble.Stop(); foreach (var p in ASHQuakeProp.All) if (p && p.kind != ASHQuakeProp.Kind.Swing) p.Drive(0f, dt); _tail = 12f; }
         }
 
         Vector3 Area()

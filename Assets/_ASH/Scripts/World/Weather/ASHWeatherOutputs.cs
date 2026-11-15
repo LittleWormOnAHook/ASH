@@ -43,6 +43,15 @@ namespace ASH.World.Weather
         [Range(0f, 1f)] public float indoorVolume = 0.5f;
         [Tooltip("Weather Volume priority (scene volumes are 0, ASH post is 10).")]
         [Range(0f, 1000f)] public float volumePriority = 50f;
+        [Header("Wind (shared with the director's gusts)")]
+        [Tooltip("How much gusts swell the wind loops (0 = steady).")] [Range(0f, 2f)] public float gustSwell = 0.8f;
+        [Tooltip("Sideways push on falling snow per m/s of wind.")] [Range(0f, 10f)] public float snowWindFactor = 2f;
+        [Tooltip("Sideways push on rain per m/s of wind.")] [Range(0f, 10f)] public float rainWindFactor = 0.6f;
+        [Header("Clouds / blowing snow (added at runtime when missing)")]
+        public Shader cloudShader;
+        public bool cloudLayer = true;
+        public bool blowingSnow = true;
+
         [Header("Lightning")]
         public Vector2 strikeDistance = new Vector2(250f, 1200f);
         [Range(0f, 10f)] public float flashStrength = 3f;
@@ -54,6 +63,7 @@ namespace ASH.World.Weather
         readonly List<(ParticleSystem ps, float rate)> _rain = new List<(ParticleSystem, float)>(), _snow = new List<(ParticleSystem, float)>();
         AudioSource _windS, _windM, _windH, _rainS, _rainH, _amb; readonly List<AudioLowPassFilter> _lp = new List<AudioLowPassFilter>();
         readonly List<(Light l, float i)> _otherSuns = new List<(Light, float)>();
+        ASHCloudLayer _clouds;
         float _indoor, _nextParticleSync, _lastAshRate = -1f, _flash; Transform _player, _cam;
         public float Indoor01 => _indoor;
         public int Strikes { get; private set; }
@@ -73,6 +83,8 @@ namespace ASH.World.Weather
             var clockSun = RenderSettings.sun;
             foreach (var l in FindObjectsByType<Light>(FindObjectsInactive.Exclude)) if (l.type == LightType.Directional && l != clockSun && l.isActiveAndEnabled) _otherSuns.Add((l, l.intensity));
             BuildVolume(); CaptureFog(); CaptureSky(); BuildAudio();
+            if (cloudLayer) { _clouds = GetComponent<ASHCloudLayer>(); if (!_clouds) _clouds = gameObject.AddComponent<ASHCloudLayer>(); if (!_clouds.shader) _clouds.shader = cloudShader; }
+            if (blowingSnow && !GetComponent<ASHSpindrift>()) gameObject.AddComponent<ASHSpindrift>();
             Push(true);
         }
 
@@ -196,12 +208,14 @@ namespace ASH.World.Weather
                 var wind = new Vector3(_d.WindDir2.x, 0f, _d.WindDir2.y) * _d.WindMS * particleWindFactor;
                 float rate = ashParticlesAtFull * _d.AirborneAsh * inScale;
                 if (ashFall && (force || Mathf.Abs(rate - _lastAshRate) > 0.03f * Mathf.Max(50f, _lastAshRate) || _d.Transitioning)) { ashFall.SetWeather(rate, wind, w.ashFlakeSize, force && rate < 1f); _lastAshRate = rate; }
-                Rig(_rain, rainRig, w.rain * rainRateScale * inScale, wind);
-                Rig(_snow, snowRig, w.snow * snowRateScale * inScale, wind * 1.5f);
+                var windRaw = new Vector3(_d.WindDir2.x, 0f, _d.WindDir2.y) * _d.WindMS;
+                Rig(_rain, rainRig, w.rain * rainRateScale * inScale, windRaw * rainWindFactor);
+                Rig(_snow, snowRig, w.snow * snowRateScale * inScale, windRaw * snowWindFactor);
             }
             if (_cam) { if (rainRig) rainRig.transform.position = _cam.position + Vector3.up * 12f; if (snowRig) snowRig.transform.position = _cam.position + Vector3.up * 12f; }
             // audio
-            float wv = Mathf.Clamp01(w.wind * _d.windIntensity) , g = 1f + _d.Gust * 0.5f, amb = audioBank ? audioBank.ambienceMaster : 1f;
+            if (_clouds) _clouds.Drive(w.cloudCoverage, w.cloudDarkness, _d.WindDir2, _d.WindMS, Time.deltaTime);
+            float wv = Mathf.Clamp01(w.wind * _d.windIntensity * (1f + 0.3f * _d.Gust01)), g = Mathf.Lerp(1f, 0.55f + 1.1f * _d.Gust01, gustSwell), amb = audioBank ? audioBank.ambienceMaster : 1f;
             float ind = Mathf.Lerp(1f, indoorVolume, _indoor);
             Vol(_windS, w.windVolume * (1f - Smooth(0.35f, 0.7f, wv)) * g * amb * ind);
             Vol(_windM, w.windVolume * Smooth(0.25f, 0.6f, wv) * (1f - Smooth(0.75f, 1f, wv)) * g * amb * ind);
@@ -209,6 +223,7 @@ namespace ASH.World.Weather
             Vol(_rainS, w.rainVolume * (1f - Smooth(0.4f, 0.8f, w.rain)) * Mathf.Clamp01(w.rain * 4f) * amb * ind);
             Vol(_rainH, w.rainVolume * Smooth(0.4f, 0.8f, w.rain) * amb * ind);
             Vol(_amb, w.ambienceVolume * Mathf.Clamp01(1f - _d.AirborneAsh * 1.5f) * amb * Mathf.Lerp(1f, 0.6f, _indoor));
+            float wp = 0.94f + 0.14f * _d.Gust01; if (_windS) _windS.pitch = wp; if (_windM) _windM.pitch = wp; if (_windH) _windH.pitch = wp;
             float cut = Mathf.Lerp(22000f, indoorLowPassHz, _indoor); foreach (var lp in _lp) if (lp) lp.cutoffFrequency = cut;
         }
 
