@@ -33,5 +33,7 @@ namespace ASH.Inventory
         [Range(0f, 20f)] public float craftSeconds = 1.2f;
         public ASHToolType requiredTool = ASHToolType.None;
         public ASHCraftStation station = ASHCraftStation.Anywhere;
+        [Tooltip("Water drawn from the refillable bottle, in % of a full bottle (e.g. 10 for a wet rag). 0 = none.")]
+        [Range(0f, 100f)] public float waterPercent = 0f;
     }
 }

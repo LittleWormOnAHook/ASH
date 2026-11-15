@@ -32,6 +32,9 @@ namespace ASH.UI
         Button _dCraft, _iUse, _iBreak; RectTransform _dProg, _dProgFill;
         string _cat = "All"; ASHRecipe _selRecipe; ASHItemDefinition _selItem; Tab _tab;
         bool _dirty; float _objRefresh;
+        // Grandpa's Field Manual tree (replaces the category list when the manual exists)
+        RectTransform _legacyRoot, _treeRoot, _treeContent, _pageBoxes; Text _treeTitle, _pageLabel; ASHFieldManual _manualHooked;
+        const float NodeW = 128f, NodeH = 52f, ColStep = 142f, RowStep = 68f, TreePad = 14f;
 
         public Tab Current => _tab;
         public bool IsOpen => gameObject.activeSelf;
@@ -78,7 +81,7 @@ namespace ASH.UI
             {
                 var tab = t;
                 var b = K.At("Tab" + t, rt, new Vector2(0, 1), new Vector2(x, -20), new Vector2(140, 38)); x += 146;
-                K.Button(b, t.ToString().ToUpperInvariant(), 18, () => Show(tab), new Color(1, 1, 1, 0.12f));
+                K.Button(b, t == Tab.Crafting ? "MANUAL" : t.ToString().ToUpperInvariant(), 18, () => Show(tab), new Color(1, 1, 1, 0.12f));
                 _tabButtons[t] = b.GetComponent<Image>();
             }
             K.Text(K.At("Hint", rt, new Vector2(1, 1), new Vector2(-24, -26), new Vector2(360, 26)), "<color=#d9cbb4>J</color> close   <color=#d9cbb4>M</color> GPS map   <color=#d9cbb4>Tab</color> pack", 16, K.Dim, TextAnchor.MiddleRight);
@@ -140,7 +143,8 @@ namespace ASH.UI
         GameObject BuildCrafting(RectTransform body)
         {
             var root = K.Stretch("Crafting", body);
-            var cats = K.Stretch("Categories", root, 0, 0, 1000, 0);
+            _legacyRoot = K.Stretch("Legacy", root);
+            var cats = K.Stretch("Categories", _legacyRoot, 0, 0, 1000, 0);
             string[] names = { "All", "Fire", "Medical", "Food", "Tools", "Materials" };
             for (int i = 0; i < names.Length; i++)
             {
@@ -150,7 +154,8 @@ namespace ASH.UI
                 b.GetComponentInChildren<Text>().color = K.Ink;
                 _catButtons[n] = b.GetComponent<Image>();
             }
-            _recipeList = K.ScrollList(K.Stretch("Recipes", root, 170, 0, 560, 0));
+            _recipeList = K.ScrollList(K.Stretch("Recipes", _legacyRoot, 170, 0, 560, 0));
+            BuildTree(root);
 
             var det = K.Stretch("Detail", root, 610, 0, 0, 0);
             K.Image(det, new Color(1, 1, 1, 0.04f));
@@ -165,6 +170,121 @@ namespace ASH.UI
             _dProgFill = K.Stretch("Fill", _dProg); K.Image(_dProgFill, K.Accent); _dProgFill.pivot = new Vector2(0, 0.5f);
             _dCraft = K.Button(K.At("Craft", det, new Vector2(0, 0), new Vector2(24, 20), new Vector2(220, 48)), "CRAFT", 22, () => { if (_selRecipe && _craft) { _craft.TryCraft(_selRecipe); _dirty = true; } });
             return root.gameObject;
+        }
+
+        void BuildTree(RectTransform root)
+        {
+            _treeRoot = K.Stretch("ManualTree", root, 0, 0, 570, 0);
+            K.Image(_treeRoot, new Color(0.93f, 0.88f, 0.76f, 0.07f));
+            _treeTitle = K.Text(K.At("Title", _treeRoot, new Vector2(0, 1), new Vector2(12, -4), new Vector2(570, 30)), "", 19, K.Accent, TextAnchor.MiddleLeft, FontStyle.Bold);
+            _pageLabel = K.Text(K.At("Pages", _treeRoot, new Vector2(0, 1), new Vector2(12, -34), new Vector2(160, 24)), "", 16, K.Dim, TextAnchor.MiddleLeft);
+            _pageBoxes = K.At("PageBoxes", _treeRoot, new Vector2(0, 1), new Vector2(172, -36), new Vector2(400, 20));
+            var area = K.Stretch("Area", _treeRoot, 0, 0, 0, 66);
+            K.Image(area, new Color(0, 0, 0, 0.12f), true);
+            var vp = K.Stretch("Viewport", area); vp.gameObject.AddComponent<RectMask2D>();
+            _treeContent = K.Rect("Content", vp);
+            _treeContent.anchorMin = _treeContent.anchorMax = _treeContent.pivot = new Vector2(0, 1);
+            _treeContent.anchoredPosition = Vector2.zero;
+            var sr = area.gameObject.AddComponent<ScrollRect>();
+            sr.viewport = vp; sr.content = _treeContent; sr.horizontal = true; sr.vertical = true;
+            sr.movementType = ScrollRect.MovementType.Clamped; sr.scrollSensitivity = 30f; sr.inertia = false;
+        }
+
+        void HookManual()
+        {
+            var m = ASHFieldManual.Instance;
+            if (m == _manualHooked) return;
+            if (_manualHooked) _manualHooked.Changed -= MarkDirty;
+            _manualHooked = m;
+            if (m) m.Changed += MarkDirty;
+        }
+
+        static Vector2 NodePos(ASHFieldManualEntry e) => new Vector2(TreePad + e.column * ColStep, -(TreePad + e.row * RowStep));
+
+        void Line(Vector2 a, Vector2 b, Color c)
+        {
+            var rt = K.Rect("Line", _treeContent);
+            rt.anchorMin = rt.anchorMax = new Vector2(0, 1); rt.pivot = new Vector2(0, 1);
+            float x0 = Mathf.Min(a.x, b.x), x1 = Mathf.Max(a.x, b.x), y0 = Mathf.Max(a.y, b.y), y1 = Mathf.Min(a.y, b.y);
+            rt.anchoredPosition = new Vector2(x0 - 1.5f, y0 + 1.5f); rt.sizeDelta = new Vector2(x1 - x0 + 3f, y0 - y1 + 3f);
+            K.Image(rt, c);
+        }
+
+        void RebuildTree()
+        {
+            var m = ASHFieldManual.Instance; var d = m.Data;
+            _treeTitle.text = d.tabName;
+            // page strip: "Pages 4 of 12" + one box per page (gaps for missing ones)
+            int total = Mathf.Max(1, d.totalPages);
+            _pageLabel.text = $"Pages {m.PagesFound} of {total}";
+            K.Clear(_pageBoxes);
+            float bw = Mathf.Min(26f, 400f / total);
+            for (int i = 1; i <= total; i++)
+            {
+                var b = K.At("P" + i, _pageBoxes, new Vector2(0, 0.5f), new Vector2((i - 1) * bw, 0), new Vector2(bw - 4f, 18f));
+                bool has = m.HasPage(i);
+                K.Image(b, has ? K.Paper : new Color(1, 1, 1, 0.06f));
+                K.Text(K.Stretch("N", b), i.ToString(), 11, has ? K.PaperInk : new Color(1, 1, 1, 0.25f), TextAnchor.MiddleCenter);
+            }
+
+            K.Clear(_treeContent);
+            var entries = d.entries.Where(e => e != null && e.recipe).ToList();
+            if (_selRecipe == null || entries.Find(e => e.recipe == _selRecipe) == null) _selRecipe = entries.Count > 0 ? entries[0].recipe : null;
+            float w = 0, h = 0;
+            foreach (var e in entries) { var p = NodePos(e); w = Mathf.Max(w, p.x + NodeW + TreePad); h = Mathf.Max(h, -p.y + NodeH + TreePad); }
+            _treeContent.sizeDelta = new Vector2(w, h);
+            // branch lines first (under the nodes): L-shaped, accent when the child is unlocked, faded when locked
+            foreach (var e in entries)
+            {
+                if (e.parents == null) continue;
+                var cp = NodePos(e);
+                foreach (var pr in e.parents)
+                {
+                    var pe = d.Find(pr); if (pe == null) continue;
+                    var pp = NodePos(pe);
+                    var col = m.IsUnlocked(e.recipe) ? new Color(K.Accent.r, K.Accent.g, K.Accent.b, 0.85f) : new Color(0.85f, 0.8f, 0.7f, 0.18f);
+                    if (pe.column < e.column)
+                    {
+                        var a = new Vector2(pp.x + NodeW, pp.y - NodeH * 0.5f); var b = new Vector2(cp.x, cp.y - NodeH * 0.5f);
+                        float mx = (a.x + b.x) * 0.5f;
+                        Line(a, new Vector2(mx, a.y), col); Line(new Vector2(mx, a.y), new Vector2(mx, b.y), col); Line(new Vector2(mx, b.y), b, col);
+                    }
+                    else
+                    {
+                        var a = new Vector2(pp.x + 14f, pp.y - NodeH); var b = new Vector2(cp.x + 14f, cp.y);
+                        Line(a, new Vector2(a.x, b.y + (a.y > b.y ? 0 : 0)), col);
+                        if (Mathf.Abs(a.x - b.x) > 1f) Line(new Vector2(a.x, b.y), b, col);
+                    }
+                }
+            }
+            foreach (var e in entries) Node(m, e);
+            RefreshRecipeDetail();
+        }
+
+        void Node(ASHFieldManual m, ASHFieldManualEntry e)
+        {
+            var r = e.recipe; bool un = m.IsUnlocked(r); bool sel = r == _selRecipe;
+            var rt = K.Rect("Node_" + r.name, _treeContent);
+            rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(0, 1); rt.anchoredPosition = NodePos(e); rt.sizeDelta = new Vector2(NodeW, NodeH);
+            var img = K.Image(rt, sel ? K.RowSel : un ? K.Row : new Color(0.93f, 0.88f, 0.76f, 0.05f), true);
+            var ol = rt.gameObject.AddComponent<Outline>(); ol.effectDistance = new Vector2(1, -1);
+            ol.effectColor = sel ? K.Accent : un ? new Color(1, 1, 1, 0.12f) : new Color(0.85f, 0.8f, 0.7f, 0.22f);
+            var b = rt.gameObject.AddComponent<Button>(); b.targetGraphic = img; var nav = b.navigation; nav.mode = Navigation.Mode.None; b.navigation = nav;
+            var rec = r; b.onClick.AddListener(() => { SelectRecipe(rec); m.MarkSeen(rec); });
+            var ib = K.At("Icon", rt, new Vector2(0, 0.5f), new Vector2(4, 0), new Vector2(NodeH - 8, NodeH - 8)); K.Image(ib, new Color(0, 0, 0, un ? 0.3f : 0.12f));
+            var ii = K.Image(K.Stretch("I", ib, 3, 3, 3, 3), Color.white); ii.preserveAspect = true;
+            var ab = K.Text(K.Stretch("A", ib), "", 15, K.Ink, TextAnchor.MiddleCenter, FontStyle.Bold);
+            SetIcon(ii, ab, r.outputItem);
+            if (!un) { ii.color = new Color(0.8f, 0.75f, 0.65f, 0.3f); ab.color = new Color(0.8f, 0.75f, 0.65f, 0.35f); }
+            string why = un && _craft ? _craft.MissingReason(r) : "locked";
+            var t = K.Text(K.Stretch("Name", rt, NodeH, 2, 4, 2), r.displayName, 14, un ? K.Ink : new Color(0.85f, 0.8f, 0.7f, 0.4f), TextAnchor.MiddleLeft, un ? FontStyle.Normal : FontStyle.Italic);
+            t.horizontalOverflow = HorizontalWrapMode.Wrap;
+            if (un) K.Image(K.At("Ready", rt, new Vector2(1, 0), new Vector2(-6, 6), new Vector2(7, 7)), why == null ? new Color(0.62f, 0.83f, 0.6f) : new Color(0.85f, 0.55f, 0.47f, 0.7f));
+            if (m.IsNew(r))
+            {
+                var nb = K.At("New", rt, new Vector2(1, 1), new Vector2(-2, 8), new Vector2(40, 16)); K.Image(nb, K.Accent);
+                K.Text(K.Stretch("T", nb), "NEW", 11, Color.black, TextAnchor.MiddleCenter, FontStyle.Bold);
+            }
         }
 
         GameObject BuildItems(RectTransform body)
@@ -199,6 +319,8 @@ namespace ASH.UI
 
         public void Show(Tab tab)
         {
+            if (tab == Tab.Crafting && !ASHHud.CanCraftNow) { if (ASHHud.CraftingLockedMessage != null) FindAnyObjectByType<ASHHud>()?.Toast(ASHHud.CraftingLockedMessage); tab = Tab.Objectives; }
+            RefreshTabs();
             _tab = tab;
             foreach (var kv in _tabs) kv.Value.SetActive(kv.Key == tab);
             foreach (var kv in _tabButtons) kv.Value.color = kv.Key == tab ? new Color(0.95f, 0.62f, 0.28f, 0.9f) : new Color(1, 1, 1, 0.12f);
@@ -206,12 +328,25 @@ namespace ASH.UI
         }
 
         public void SelectRecipe(ASHRecipe r) { _selRecipe = r; _dirty = true; }
+
+        /// <summary>Crafting tab hidden until crafting is available (Grandpa's journal read); labelled with the manual's name.</summary>
+        void RefreshTabs()
+        {
+            if (!_tabButtons.TryGetValue(Tab.Crafting, out var cb)) return;
+            bool on = ASHHud.CanCraftNow;
+            if (cb.gameObject.activeSelf != on) cb.gameObject.SetActive(on);
+            var lbl = cb.GetComponentInChildren<Text>();
+            if (lbl) lbl.text = ASHHud.CraftTabName != null ? (ASHHud.CraftTabName.Length > 12 ? "MANUAL" : ASHHud.CraftTabName) : "CRAFTING";
+            var m = ASHFieldManual.Instance; int n = m ? m.NewCount : 0;
+            if (lbl && n > 0) lbl.text += $" <color=#000000><size=13>({n})</size></color>";
+        }
         public void SelectItem(ASHItemDefinition i) { _selItem = i; _dirty = true; }
 
         void Update()
         {
             if (_tab == Tab.Objectives && Time.unscaledTime >= _objRefresh) { _objRefresh = Time.unscaledTime + 0.5f; _dirty = true; } // live progress / distances
-            if (_dirty) { _dirty = false; Rebuild(); }
+            HookManual();
+            if (_dirty) { _dirty = false; RefreshTabs(); Rebuild(); }
             if (_tab == Tab.Crafting && _craft)
             {
                 float p = _craft.IsCrafting ? _craft.CraftProgress01 : 0f;
@@ -254,6 +389,9 @@ namespace ASH.UI
 
         void RebuildCrafting()
         {
+            bool tree = ASHFieldManual.Instance && ASHFieldManual.Instance.Data;
+            _treeRoot.gameObject.SetActive(tree); _legacyRoot.gameObject.SetActive(!tree);
+            if (tree) { RebuildTree(); return; }
             foreach (var kv in _catButtons) kv.Value.color = kv.Key == _cat ? K.RowSel : new Color(1, 1, 1, 0.08f);
             K.Clear(_recipeList);
             if (_craft == null) return;
@@ -276,6 +414,27 @@ namespace ASH.UI
             if (r == null) { _dName.text = "No recipes"; _dDesc.text = _dReq.text = _dStatus.text = ""; _dCraft.interactable = false; SetIcon(_dIcon, _dIconAbbr, null); return; }
             SetIcon(_dIcon, _dIconAbbr, r.outputItem);
             _dName.text = r.displayName + (r.outputAmount > 1 ? $"  <size=20>x{r.outputAmount}</size>" : "");
+            var man = ASHFieldManual.Instance;
+            if (man && man.Data && !man.IsUnlocked(r))
+            {
+                // locked: a faded sketch with a hint (what unlocks it)
+                _dIcon.color = new Color(1, 1, 1, 0.3f);
+                _dName.text = $"<color=#8c8579><i>{r.displayName}</i></color>";
+                _dDesc.text = "<i>A rough sketch, half the page is missing...</i>";
+                var e = man.Data.Find(r);
+                var hs = new System.Text.StringBuilder("<color=#c9a46a>NOT IN THE MANUAL YET</color>\n");
+                if (e != null)
+                {
+                    if (!string.IsNullOrEmpty(e.hint)) hs.AppendLine($"<i>{e.hint}</i>\n");
+                    hs.AppendLine(e.requireAll || e.conditions.Count < 2 ? "Unlocks when you:" : "Unlocks when you do any of:");
+                    foreach (var c in e.conditions) { bool ok = man.ConditionMet(c); hs.AppendLine($"<color=#{(ok ? "9fd39b" : "a59e93")}>{(ok ? "√" : "•")}</color>  {man.ConditionText(c)}"); }
+                }
+                _dReq.text = hs.ToString();
+                _dStatus.text = "<color=#a59e93>Locked</color>";
+                _dCraft.interactable = false;
+                return;
+            }
+            _dIcon.color = Color.white;
             _dDesc.text = string.IsNullOrEmpty(r.description) && r.outputItem ? r.outputItem.description : r.description;
             var sb = new System.Text.StringBuilder("<color=#c9a46a>REQUIRES</color>\n");
             foreach (var ing in r.ingredients)
@@ -293,6 +452,11 @@ namespace ASH.UI
             {
                 bool ok = _craft.NearStation(ASHCraftStation.Campfire);
                 sb.AppendLine($"<color=#{(ok ? "9fd39b" : "e08a78")}>{(ok ? "√" : "×")}</color>  At a lit campfire (within 4 m)");
+            }
+            if (r.waterPercent > 0f)
+            {
+                bool ok = ASHCrafting.HasWaterFor(r);
+                sb.AppendLine($"<color=#{(ok ? "9fd39b" : "e08a78")}>{(ok ? "√" : "×")}</color>  Water from your bottle   <color=#{(ok ? "cfc6b6" : "e08a78")}>{r.waterPercent:0}%</color>");
             }
             sb.AppendLine($"\n<color=#a59e93>Time: {r.craftSeconds:0.#} s   ·   Category: {r.category}</color>");
             _dReq.text = sb.ToString();

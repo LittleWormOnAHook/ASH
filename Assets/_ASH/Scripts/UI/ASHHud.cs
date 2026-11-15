@@ -67,6 +67,8 @@ namespace ASH.UI
         /// <summary>Tab label for the crafting tab (null = "CRAFTING").</summary>
         public static string CraftTabName;
         public static bool CanCraftNow => CraftingAvailable == null || CraftingAvailable();
+        /// <summary>Frame on which an overlay (cover view...) used Esc, so the pause menu doesn't open with the same press.</summary>
+        public static int EscConsumedFrame = -1;
         /// <summary>Use label from a registered handler (null when none handles the item).</summary>
         public static string HandlerLabel(ASHItemDefinition it) { var h = HandlerFor(it); return h != null ? h.UseLabel(it) : null; }
         /// <summary>The HUD canvas root, for systems that add their own HUD elements.</summary>
@@ -530,12 +532,12 @@ namespace ASH.UI
                 if (ctxEsc) CloseContext();
                 bool subEsc = !ctxEsc && input.PausePressed && PauseOpen && ((_settingsPanel && _settingsPanel.gameObject.activeSelf) || (_slotsPanel && _slotsPanel.gameObject.activeSelf));
                 if (subEsc) { ASH.Core.ASHGameSettings.Apply(false); _settingsPanel.gameObject.SetActive(false); _slotsPanel.gameObject.SetActive(false); _pauseMenu.gameObject.SetActive(true); }
-                if (!ctxEsc && !subEsc && input.PausePressed && !(placer && placer.LastCancelFrame == Time.frameCount) && !placing && !ASHDeathScreen.Active)
+                if (!ctxEsc && !subEsc && input.PausePressed && !(placer && placer.LastCancelFrame == Time.frameCount) && !placing && !ASHDeathScreen.Active && EscConsumedFrame != Time.frameCount && !ASHUIState.IsOpen("manualCover"))
                 {
                     if (AnyPanelOpen) { SetInv(false); SetCraft(false); SetMap(false); }
                     else SetPause(!ASHUIState.IsOpen(ASHPanels.Pause));
                 }
-                if (!ASHUIState.IsOpen(ASHPanels.Pause))
+                if (!ASHUIState.IsOpen(ASHPanels.Pause) && !ASHUIState.IsOpen("manualCover"))
                 {
                     if (input.InventoryPressed) { if (placing) placer.Cancel(); SetCraft(false); SetMap(false); SetInv(!ASHUIState.IsOpen(ASHPanels.Inventory)); }
                     if (input.CraftPressed)

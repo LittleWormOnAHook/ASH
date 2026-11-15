@@ -29,6 +29,16 @@ namespace ASH.Inventory
         [Range(1f, 10f)] [SerializeField] private float stationRange = 4f;
 
         public IReadOnlyList<ASHRecipe> Recipes => recipes;
+        /// <summary>Adds a recipe at runtime (Grandpa's Field Manual) when not already known.</summary>
+        public void AddRecipe(ASHRecipe r) { if (r && !recipes.Contains(r)) recipes.Add(r); }
+
+        /// <summary>Unlock gate (Grandpa's Field Manual): returns why a recipe is locked, or null.</summary>
+        public static Func<ASHRecipe, string> RecipeGate;
+        /// <summary>Water source for recipes with waterPercent (the refillable bottle): % available, and consume(%).</summary>
+        public static Func<float> WaterPercentAvailable;
+        public static Func<float, bool> ConsumeWater;
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)] static void ResetHooks() { RecipeGate = null; WaterPercentAvailable = null; ConsumeWater = null; }
+        public static bool HasWaterFor(ASHRecipe r) => r == null || r.waterPercent <= 0f || (WaterPercentAvailable != null && WaterPercentAvailable() + 0.01f >= r.waterPercent);
         public ASHInventory Inventory => inventory;
         public bool IsCrafting { get; private set; }
         public float CraftProgress01 { get; private set; }
@@ -60,10 +70,12 @@ namespace ASH.Inventory
         public string MissingReason(ASHRecipe r)
         {
             if (r == null || r.outputItem == null) return "Invalid recipe";
+            var gate = RecipeGate?.Invoke(r); if (gate != null) return gate;
             if (IsCrafting) return "Busy";
             if (!HasIngredients(r)) return "Missing materials";
             if (r.requiredTool != ASHToolType.None && !inventory.HasTool(r.requiredTool)) return "Needs " + ToolName(r.requiredTool);
             if (!NearStation(r.station)) return "Needs a lit campfire nearby";
+            if (!HasWaterFor(r)) return WaterPercentAvailable == null ? "Needs a water bottle" : $"Needs {r.waterPercent:0}% water in the bottle";
             if (!inventory.HasSpaceFor(r.outputItem, r.outputAmount)) return "No space in pack";
             return null;
         }
@@ -82,8 +94,9 @@ namespace ASH.Inventory
         {
             IsCrafting = true; CurrentRecipe = r; CraftProgress01 = 0f;
             yield return Progress(r.craftSeconds);
-            if (HasIngredients(r))
+            if (HasIngredients(r) && HasWaterFor(r))
             {
+                if (r.waterPercent > 0f) ConsumeWater?.Invoke(r.waterPercent);
                 foreach (var ing in r.ingredients) inventory.Remove(ing.item, ing.amount);
                 inventory.AddItem(r.outputItem, r.outputAmount);
                 Crafted?.Invoke(r);

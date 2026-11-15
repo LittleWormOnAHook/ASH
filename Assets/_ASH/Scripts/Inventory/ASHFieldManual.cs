@@ -1,0 +1,216 @@
+using System;
+using System.Collections.Generic;
+using ASH.Core;
+using UnityEngine;
+using UnityEngine.SceneManagement;
+
+namespace ASH.Inventory
+{
+    /// <summary>
+    /// Grandpa's Field Manual state on the player: no crafting at all until Grandpa's journal is picked up and its "Survival Guide"
+    /// cover read; then the manual tab appears in the journal. Recipes unlock from ASHFieldManualData (basics on read; first pickup
+    /// of an item, crafting an item N times, finding torn pages), with a toast and a "new" badge. Gates ASHCrafting and injects
+    /// the manual's recipes into it. Added automatically next to ASHCrafting when Resources/ASH_FieldManual exists. Saved.
+    /// </summary>
+    [DisallowMultipleComponent]
+    public sealed class ASHFieldManual : MonoBehaviour, IASHSaveable
+    {
+        public static ASHFieldManual Instance { get; private set; }
+        public ASHFieldManualData Data { get; private set; }
+        public bool IsRead { get; private set; }
+        public int PagesFound => _pages.Count;
+        public bool HasPage(int n) => _pages.Contains(n);
+        public bool IsUnlocked(ASHRecipe r) => r && (_unlocked.Contains(Key(r)) || (Data && Data.Find(r) == null && IsRead));
+        public bool IsNew(ASHRecipe r) => r && _unlocked.Contains(Key(r)) && !_seen.Contains(Key(r));
+        public int NewCount { get { int n = 0; foreach (var k in _unlocked) if (!_seen.Contains(k)) n++; return n; } }
+        public int CraftedCount(ASHItemDefinition it) => it && _crafted.TryGetValue(it.itemId, out var n) ? n : 0;
+        public bool PickedUpEver(ASHItemDefinition it) => it && _firstPickups.Contains(it.itemId);
+
+        /// <summary>(recipe) newly unlocked.</summary>
+        public event Action<ASHRecipe> Unlocked;
+        public event Action<int> PageFound;
+        public event Action ManualRead;
+        public event Action Changed;
+        /// <summary>Opens the cover view (set by the UI); the manual calls it when the journal is picked up.</summary>
+        public static Action<ASHFieldManual> ShowCover;
+
+        ASHCrafting _craft; ASHInventory _inv;
+        readonly HashSet<string> _firstPickups = new HashSet<string>(), _unlocked = new HashSet<string>(), _seen = new HashSet<string>();
+        readonly HashSet<int> _pages = new HashSet<int>();
+        readonly Dictionary<string, int> _crafted = new Dictionary<string, int>();
+
+        static string Key(ASHRecipe r) => string.IsNullOrEmpty(r.recipeId) ? r.name : r.recipeId;
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+        static void Hook() { SceneManager.sceneLoaded -= OnSceneLoaded; SceneManager.sceneLoaded += OnSceneLoaded; }
+        static void OnSceneLoaded(Scene s, LoadSceneMode m)
+        {
+            if (!ASHFieldManualData.I) return;
+            var c = FindAnyObjectByType<ASHCrafting>(); if (!c || c.GetComponent<ASHFieldManual>()) return;
+            c.gameObject.AddComponent<ASHFieldManual>();
+        }
+
+        void Awake()
+        {
+            Instance = this; Data = ASHFieldManualData.I;
+            _craft = GetComponent<ASHCrafting>(); _inv = _craft ? _craft.Inventory : GetComponent<ASHInventory>();
+            if (!_inv) _inv = FindAnyObjectByType<ASHInventory>();
+            if (_craft && Data) foreach (var e in Data.entries) if (e != null && e.recipe) _craft.AddRecipe(e.recipe);
+            // anything already in the pack at start counts as picked up (starting kit)
+            if (_inv) foreach (var sl in _inv.Slots) if (!sl.IsEmpty) _firstPickups.Add(sl.item.itemId);
+        }
+
+        void OnEnable()
+        {
+            ASHSaveSystem.Register(this);
+            ASHCrafting.RecipeGate = Gate;
+            UI.ASHHud.CraftingAvailable = () => IsRead;
+            UI.ASHHud.CraftingLockedMessage = Data ? Data.lockedMessage : null;
+            UI.ASHHud.CraftTabName = Data ? Data.tabName : null;
+            if (_inv) _inv.ItemAdded += OnItemAdded;
+            if (_craft) _craft.Crafted += OnCrafted;
+        }
+
+        void OnDisable()
+        {
+            ASHSaveSystem.Unregister(this);
+            if (ASHCrafting.RecipeGate == (Func<ASHRecipe, string>)Gate) ASHCrafting.RecipeGate = null;
+            UI.ASHHud.CraftingAvailable = null; UI.ASHHud.CraftingLockedMessage = null; UI.ASHHud.CraftTabName = null;
+            if (_inv) _inv.ItemAdded -= OnItemAdded;
+            if (_craft) _craft.Crafted -= OnCrafted;
+        }
+
+        void OnDestroy() { if (Instance == this) Instance = null; }
+
+        string Gate(ASHRecipe r)
+        {
+            if (!IsRead) return "No guide yet";
+            if (!IsUnlocked(r)) return "Not in the manual yet";
+            return null;
+        }
+
+        void OnItemAdded(ASHItemDefinition item, int n)
+        {
+            if (!item) return;
+            bool first = _firstPickups.Add(item.itemId);
+            if (Data && item == Data.journalItem && !IsRead) ShowCover?.Invoke(this);
+            if (first) Evaluate();
+        }
+
+        void OnCrafted(ASHRecipe r)
+        {
+            if (!r || !r.outputItem) return;
+            _crafted.TryGetValue(r.outputItem.itemId, out var n); _crafted[r.outputItem.itemId] = n + r.outputAmount;
+            Evaluate();
+        }
+
+        /// <summary>The cover was read: the manual opens, basics unlock.</summary>
+        public void Read()
+        {
+            if (IsRead) return;
+            IsRead = true;
+            Evaluate(true);
+            var hud = FindAnyObjectByType<UI.ASHHud>();
+            if (hud) hud.Toast($"{(Data ? Data.tabName : "Field manual")} added to your journal  [{"Q"}]");
+            ASH.Map.ASHJournalLog.Add("Grandpa's Field Manual", Data ? Data.coverNote : "Grandpa's survival notes.");
+            ManualRead?.Invoke(); Changed?.Invoke();
+        }
+
+        /// <summary>A torn page was found (page pickups). Counts even before the manual was read.</summary>
+        public bool FindPage(int n)
+        {
+            if (n < 1 || !_pages.Add(n)) return false;
+            var hud = FindAnyObjectByType<UI.ASHHud>();
+            int total = Data ? Data.totalPages : 12;
+            var pg = Data ? Data.Page(n) : null;
+            if (hud) hud.Toast($"Found a torn manual page: Page {n} of {total}" + (pg != null && !string.IsNullOrEmpty(pg.title) ? $" - {pg.title}" : ""));
+            if (pg != null && !string.IsNullOrEmpty(pg.text)) ASH.Map.ASHJournalLog.Add($"Manual page {n}: {pg.title}", pg.text);
+            PageFound?.Invoke(n);
+            Evaluate(); Changed?.Invoke();
+            return true;
+        }
+
+        public void MarkSeen(ASHRecipe r) { if (r && _seen.Add(Key(r))) Changed?.Invoke(); }
+
+        bool Met(ASHUnlockCondition c)
+        {
+            switch (c.kind)
+            {
+                case ASHUnlockKind.FirstPickup: return c.item && _firstPickups.Contains(c.item.itemId);
+                case ASHUnlockKind.Crafted: return c.item && CraftedCount(c.item) >= Mathf.Max(1, c.quantity);
+                case ASHUnlockKind.ManualPage: return _pages.Contains(c.page);
+            }
+            return false;
+        }
+
+        public bool ConditionMet(ASHUnlockCondition c) => c != null && Met(c);
+
+        public string ConditionText(ASHUnlockCondition c)
+        {
+            if (c == null) return "";
+            switch (c.kind)
+            {
+                case ASHUnlockKind.FirstPickup: return $"Find {(c.item ? c.item.displayName : "?")}";
+                case ASHUnlockKind.Crafted: return c.quantity > 1 ? $"Craft {c.quantity} {(c.item ? c.item.displayName : "?")}  ({Mathf.Min(CraftedCount(c.item), c.quantity)}/{c.quantity})" : $"Craft {(c.item ? c.item.displayName : "?")}";
+                case ASHUnlockKind.ManualPage: return $"Find manual page {c.page}";
+            }
+            return "";
+        }
+
+        public string Hint(ASHFieldManualEntry e)
+        {
+            if (e == null) return "";
+            if (!string.IsNullOrEmpty(e.hint)) return e.hint;
+            if (e.basic) return "Read the manual";
+            var parts = new List<string>(); foreach (var c in e.conditions) parts.Add(ConditionText(c));
+            return string.Join(e.requireAll ? " + " : " or ", parts);
+        }
+
+        void Evaluate(bool silent = false)
+        {
+            if (!IsRead || !Data) return;
+            foreach (var e in Data.entries)
+            {
+                if (e == null || !e.recipe || _unlocked.Contains(Key(e.recipe))) continue;
+                bool ok;
+                if (e.basic) ok = true;
+                else if (e.conditions.Count == 0) ok = false;
+                else if (e.requireAll) { ok = true; foreach (var c in e.conditions) if (!Met(c)) { ok = false; break; } }
+                else { ok = false; foreach (var c in e.conditions) if (Met(c)) { ok = true; break; } }
+                if (!ok) continue;
+                _unlocked.Add(Key(e.recipe));
+                if (e.basic && silent) continue; // the basics arrive with the manual (badged "new", no toast spam)
+                var hud = FindAnyObjectByType<UI.ASHHud>();
+                if (hud) hud.Toast($"New in Grandpa's manual: {e.recipe.displayName}");
+                Unlocked?.Invoke(e.recipe);
+            }
+            Changed?.Invoke();
+        }
+
+        // ------------------------------------------------------------------ save
+        [Serializable] sealed class Count { public string id; public int n; }
+        [Serializable] sealed class State { public bool read; public List<string> pickups = new List<string>(), unlocked = new List<string>(), seen = new List<string>(); public List<int> pages = new List<int>(); public List<Count> crafted = new List<Count>(); }
+        public string SaveKey => "fieldManual";
+        public int RestoreOrder => 20;
+        public string CaptureJson()
+        {
+            var s = new State { read = IsRead, pickups = new List<string>(_firstPickups), unlocked = new List<string>(_unlocked), seen = new List<string>(_seen), pages = new List<int>(_pages) };
+            foreach (var kv in _crafted) s.crafted.Add(new Count { id = kv.Key, n = kv.Value });
+            return JsonUtility.ToJson(s);
+        }
+        public void RestoreJson(string json)
+        {
+            var s = JsonUtility.FromJson<State>(json); if (s == null) return;
+            IsRead = s.read;
+            _firstPickups.Clear(); foreach (var x in s.pickups) _firstPickups.Add(x);
+            _unlocked.Clear(); foreach (var x in s.unlocked) _unlocked.Add(x);
+            _seen.Clear(); foreach (var x in s.seen) _seen.Add(x);
+            _pages.Clear(); foreach (var x in s.pages) _pages.Add(x);
+            _crafted.Clear(); foreach (var c in s.crafted) _crafted[c.id] = c.n;
+            // found pages are gone from the world
+            foreach (var p in FindObjectsByType<ASH.Interaction.ASHManualPagePickup>(FindObjectsSortMode.None)) if (_pages.Contains(p.pageNumber)) Destroy(p.gameObject);
+            Evaluate(true);
+            Changed?.Invoke();
+        }
+    }
+}
