@@ -262,7 +262,7 @@ namespace ASH.EditorTools.World
                 else
                 {
                     var holder = new GameObject("Model"); holder.transform.SetParent(root.transform, false);
-                    var inst = NestVendor(v, holder.transform, file == "WoodenBow" ? "WoodenArrow" : null); // the arrow rides the left hand
+                    var inst = NestVendor(v, holder.transform, file == "WoodenBow" ? "WoodenArrow" : null); // the arrow rides the right hand
                     AlignLong(inst, holder.transform, grip, gripAt, headHeavy);
                     var b = Bounds(holder);
                     if (file == "Torch")

@@ -9,10 +9,10 @@ namespace ASH.Gameplay
     /// <summary>
     /// Basic shooting (no damage, no combat systems), adapted from the Genesis/Invector shooter + bow flow:
     /// - Hold RMB with a rifle, pistol or bow: aim. The body faces the camera (Invector strafe, restored on release) and the
-    ///   ASH_Action layer plays the aim pose (Invector Aiming@Rifle / Aiming@Pistol / Bow_Aiming mirrored).
+    ///   ASH_Action layer plays the aim pose (Invector Aiming@Rifle / Aiming@Pistol / Bow_Aiming, unmirrored: bow in the left hand).
     /// - Rifle/pistol: LMB fires (hip fire optional): one round from the pack, camera ray hit (nudges rigidbodies),
     ///   muzzle flash, Shot_* pose, camera kick + weapon kick.
-    /// - Bow (right hand) + arrow (left hand): RMB brings the hands together (nock and draw); LMB releases once drawn past
+    /// - Bow (left hand) + arrow (right hand): RMB brings the hands together, the right hand nocks and draws back; LMB releases once drawn past
     ///   minDraw01. Launch speed scales with draw time; the arrow flies under gravity (ASHArrow), sticks and can be recovered.
     /// </summary>
     [DisallowMultipleComponent]
@@ -166,7 +166,7 @@ namespace ASH.Gameplay
             if (!HasArrows) { _eq.Say("No arrows"); return false; }
             if (Draw01 < minDraw01) return false;
             if (!_inv.Remove(ammo, 1)) return false;
-            var origin = _handArrow ? _handArrow.transform.position : _anim.GetBoneTransform(HumanBodyBones.LeftHand).position;
+            var origin = _handArrow ? _handArrow.transform.position : _anim.GetBoneTransform(HumanBodyBones.RightHand).position;
             var target = AimPoint(out var hit); LastHit = hit;
             var dir = (target - origin); if (dir.sqrMagnitude < 0.01f) dir = Cam ? Cam.transform.forward : Root.forward; dir.Normalize();
             float speed = Mathf.Lerp(arrowSpeedMin, arrowSpeedMax, Draw01);
@@ -196,7 +196,7 @@ namespace ASH.Gameplay
         void UpdateHandArrow()
         {
             bool show = Current == Kind.Bow && HasArrows && !(Time.time < _shotUntil && Current == Kind.Bow && Draw01 < 0.05f);
-            var lh = _anim ? _anim.GetBoneTransform(HumanBodyBones.LeftHand) : null;
+            var lh = _anim ? _anim.GetBoneTransform(HumanBodyBones.RightHand) : null;
             if (!show || !lh) { if (_handArrow) _handArrow.SetActive(false); return; }
             if (!_handArrow) { _handArrow = MakeArrowVisual("ASH_HandArrow"); _handArrow.transform.SetParent(lh, false); }
             _handArrow.SetActive(true);
@@ -225,7 +225,7 @@ namespace ASH.Gameplay
                 t.rotation = rot;
                 t.position = attachedPos - (rot * Vector3.forward) * (weaponKickBack * _kick);
             }
-            // arrow: idle on the left hand; while aiming the nock rides the left (string) hand and the tip points at the bow
+            // arrow: idle in the right hand; while aiming the nock rides the right (string) hand and the tip points at the bow
             if (_handArrow && _handArrow.activeSelf)
             {
                 var lh = _handArrow.transform.parent;

@@ -10,7 +10,7 @@ using UnityEngine;
 
 namespace ASH.DebugTools
 {
-    /// <summary>Pass C smoke test (Play Mode, exec ASH.DebugTools.ASHWeaponTest.Run): bow (right hand) + arrow (left hand),
+    /// <summary>Pass C smoke test (Play Mode, exec ASH.DebugTools.ASHWeaponTest.Run): bow (left hand) + arrow (right hand, draws),
     /// RMB nock/draw, release fires a gravity arrow (speed scales with draw), arrows stick + become pickups, rifle/pistol aim,
     /// fire, recoil and ammo, axe chop animation synced to the harvest hit. Logs "[ASH] WEAPON ..." + SUMMARY.</summary>
     public sealed class ASHWeaponTest : MonoBehaviour
@@ -44,13 +44,14 @@ namespace ASH.DebugTools
             bool ok = _in && _cc && _inv && _eq && _wa && _chop && _layer && bow && arrow && rifle && pistol;
             Check("setup", ok && _layer.Valid && _layer.Has("Chop") && _layer.Has("BowAim") && _layer.Has("RifleShot"), $"wa={(bool)_wa} chop={(bool)_chop} layer valid={(_layer && _layer.Valid)} states={(_layer && _layer.Has("Chop"))}/{(_layer && _layer.Has("BowAim"))} arrowPrefab={(_wa && _wa.arrowPrefab)}");
             if (!ok) { Finish(); yield break; }
-            var lh = _eq.Animator.GetBoneTransform(HumanBodyBones.LeftHand);
+            var lh = _eq.Animator.GetBoneTransform(HumanBodyBones.RightHand); // string/arrow hand
+            var bowHand = _eq.Animator.GetBoneTransform(HumanBodyBones.LeftHand);
 
-            // bow: right hand, arrow in the left; equipping it drops a hand light
+            // bow: left hand, arrow in the right; equipping it drops a hand light
             _inv.AddItem(torch, 1); _inv.AddItem(bow, 1); _inv.AddItem(arrow, 10);
             _eq.Equip(torch); _eq.Equip(bow); yield return null; yield return null;
             var ha = _wa.HandArrow;
-            Check("bow right hand, arrow left hand", _eq.Main == bow && _eq.Off == null && _eq.MainVisual && _eq.MainVisual.transform.IsChildOf(_eq.Animator.GetBoneTransform(HumanBodyBones.RightHand)) && ha && ha.activeSelf && ha.transform.IsChildOf(lh),
+            Check("bow left hand, arrow right hand", _eq.Main == bow && _eq.Off == null && _eq.MainVisual && _eq.MainVisual.transform.IsChildOf(bowHand) && ha && ha.activeSelf && ha.transform.IsChildOf(lh),
                 $"main={(_eq.Main ? _eq.Main.displayName : "-")} off={(_eq.Off ? _eq.Off.displayName : "-")} handArrow={(ha ? ha.transform.parent.name : "none")}");
 
             // RMB: nock + draw (strafe aim), hands together
@@ -58,8 +59,10 @@ namespace ASH.DebugTools
             _in.SimSecondaryHeld = true; yield return new WaitForSeconds(1.1f);
             var bowPos = _eq.MainVisual.transform.position; float handsGap = Vector3.Distance(lh.position, bowPos);
             Vector3 arrowDir = ha ? ha.transform.forward : Vector3.zero; float alignDot = Vector3.Dot(arrowDir, (bowPos - lh.position).normalized);
-            Check("RMB nock + full draw", _wa.Aiming && _cc.isStrafing && _wa.Draw01 >= 0.99f && _layer.State == "BowAim" && _layer.Weight > 0.5f && alignDot > 0.9f,
-                $"aim={_wa.Aiming} strafe={_cc.isStrafing} draw={_wa.Draw01:F2} layer={_layer.State} w={_layer.Weight:F2} hands gap {handsGap:F2} m arrow->bow dot {alignDot:F2}");
+            var aimFwd = Camera.main ? Camera.main.transform.forward : _cc.transform.forward; aimFwd.y = 0f; aimFwd.Normalize();
+            float drawBack = Vector3.Dot(bowPos - lh.position, aimFwd); // right hand sits behind the bow along the aim
+            Check("RMB nock + full draw (right hand draws)", _wa.Aiming && _cc.isStrafing && _wa.Draw01 >= 0.99f && _layer.State == "BowAim" && _layer.Weight > 0.5f && alignDot > 0.9f && drawBack > 0.15f && handsGap < 1.0f,
+                $"aim={_wa.Aiming} strafe={_cc.isStrafing} draw={_wa.Draw01:F2} layer={_layer.State} w={_layer.Weight:F2} hands gap {handsGap:F2} m draw-back {drawBack:F2} m arrow->bow dot {alignDot:F2}");
 
             // release: full-draw arrow
             int a0 = _inv.Count(arrow); _in.SimPrimary = true; yield return null; yield return null;
@@ -74,7 +77,8 @@ namespace ASH.DebugTools
             Check("gravity arc, faces velocity", g && g.Velocity.y < -2.5f && facing && g.transform.position.y < g.LaunchPosition.y - 0.3f, $"vy {(g ? g.Velocity.y : 0f):F2} drop {(g ? g.LaunchPosition.y - g.transform.position.y : 0f):F2} m faces={facing}");
             if (g) Destroy(g.gameObject);
             // short draw = slower
-            yield return new WaitForSeconds(0.35f); // re-nock while RMB stays held
+            _in.SimSecondaryHeld = false; yield return null; yield return null; // let go, then a fresh short draw
+            _in.SimSecondaryHeld = true; yield return new WaitForSeconds(0.35f);
             _in.SimPrimary = true; yield return null; yield return null;
             var weak = ASHArrow.Last; float weakSpeed = weak && weak != full ? weak.LaunchVelocity.magnitude : 0f;
             Check("launch speed scales with draw", weak && weak != full && weakSpeed > 0f && weakSpeed < fullSpeed - 5f, $"full {fullSpeed:F1} vs short draw {weakSpeed:F1} m/s");

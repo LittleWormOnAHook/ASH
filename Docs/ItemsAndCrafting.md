@@ -62,7 +62,7 @@ _2026-11-14 (ET). All data are ScriptableObjects built by `ASH/Build/6. Item Cat
 |---|---|---|
 | Hunting Rifle | Main | RMB aim, LMB fire: one .30-06 round, camera ray hit, recoil (no damage) |
 | Pistol | Main | Same, faster cooldown, lighter kick |
-| Wooden Bow | Main (right hand) | Arrow in the left hand. RMB nock + draw, LMB release: physical arrow |
+| Wooden Bow | Main (held in the LEFT hand) | Arrow in the right hand. RMB: hands come together, right hand nocks and draws back; LMB release: physical arrow |
 | Hatchet | Main | Shown in hand automatically while chopping |
 | .30-06 Rounds / 9mm Rounds / Wooden Arrows | — | Ammo (stacks 20/30/20) |
 | Torch | Off | Crafted. Lit when equipped; burns 300 s then is used up (stack 3). Held raised by left-arm IK |
@@ -76,10 +76,10 @@ _2026-11-14 (ET). All data are ScriptableObjects built by `ASH/Build/6. Item Cat
 ## Shooting, bow and chopping (Pass C, `Assets/_ASH/Scripts/Gameplay`)
 Basic only: no damage, enemies or combat systems.
 - **Animations:** copied from Genesis into `Assets/_ASH/Animation/Imported`. They are the Villager Axe-Chopping01 clip and the Invector Shooter archery, aim-pose and shot clips, with new GUIDs and humanoid avatars generated from each file.
-- **`ASH/Build/Action Animations`** (`ASHActionAnimSetup`) adds the **ASH_Action** upper-body layer to `ASH_BasicLocomotion.controller`, using the UpperBody mask. Its states are Empty, Chop, BowAim, BowShot, RifleAim, RifleShot, PistolAim and PistolShot. Bow states are mirrored so the bow sits in the right hand. The tool is safe to re-run.
+- **`ASH/Build/Action Animations`** (`ASHActionAnimSetup`) adds the **ASH_Action** upper-body layer to `ASH_BasicLocomotion.controller`, using the UpperBody mask. Its states are Empty, Chop, BowAim, BowShot, RifleAim, RifleShot, PistolAim and PistolShot. Bow states use the original Invector archery clips unmirrored: bow in the left hand, right hand draws. The tool is safe to re-run.
 - **Aiming (`ASHWeaponAim`):** hold RMB/LT with a rifle, pistol or bow. The body turns to face the camera (Invector strafe, restored on release) and the aim pose plays. The held weapon lines up on the crosshair.
 - **Rifle and pistol:** LMB fires (hip fire optional). Each shot spends one round from the pack (empty = "Click"), raycasts from the camera (nudging rigidbodies), shows a muzzle flash, plays the shot pose, kicks the camera (`ASHCameraKick`, cosmetic) and kicks the weapon.
-- **Bow:** RMB brings the hands together: the arrow nock rides the left hand and its tip points at the bow. The draw fills over `drawSeconds`. LMB releases once the draw passes `minDraw01`. Launch speed runs from `arrowSpeedMin` to `arrowSpeedMax` with the draw.
+- **Bow:** held in the left hand (it still uses the weapon slot), arrow in the right. RMB brings the hands together: the right hand nocks the arrow and draws it back, the tip pointing at the bow. The draw fills over `drawSeconds`. LMB releases once the draw passes `minDraw01`. Launch speed runs from `arrowSpeedMin` to `arrowSpeedMax` with the draw.
 - **Arrows (`ASHArrow`):** gravity × `arrowGravityScale`, drag, nose follows the velocity, swept raycast. They stick into what they hit (parenting to moving objects) and become a Wooden Arrow pickup (`recoverArrows`, `arrowRecoverChance`). They are removed after `arrowStuckLifeSeconds`, capped at `maxStuckArrows`. Equipping the bow drops a hand light (it needs both hands).
 - **Chopping (`ASHChopAnimator`):** holding Interact on a tree, log or stump plays the axe swing, time-locked to the hold, so the axe lands on the hit (`impactNormalized`) and the chop sound plays there. The player faces the target, movement is locked during the swing, and the hatchet appears in the right hand (the previous item comes back afterwards). `swingSpeed` scales the hold per hit.
 - Tunables live on `ASH_Player`, on `ASHWeaponAim`, `ASHChopAnimator` and `ASHActionLayer`.

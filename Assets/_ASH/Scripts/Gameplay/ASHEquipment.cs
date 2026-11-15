@@ -84,7 +84,7 @@ namespace ASH.Gameplay
         {
             if (item == null || !item.IsEquippable || inventory == null || inventory.Count(item) <= 0) return false;
             Unequip(item.equipSlot);
-            // bow takes both hands: bow in the right hand, arrow in the left
+            // bow takes both hands: bow in the LEFT hand, arrow in the RIGHT (the bow still lives in the main/weapon slot)
             if (item.equipSlot == ASHEquipSlot.MainHand && IsBow(item) && Off) Unequip(ASHEquipSlot.OffHand);
             if (item.equipSlot == ASHEquipSlot.OffHand && IsBow(Main)) Unequip(ASHEquipSlot.MainHand);
             switch (item.equipSlot)
@@ -114,7 +114,7 @@ namespace ASH.Gameplay
         {
             if (!item.heldPrefab) return null;
             Transform bone = null;
-            if (animator && animator.isHuman) bone = animator.GetBoneTransform(item.equipSlot == ASHEquipSlot.OffHand ? HumanBodyBones.LeftHand : HumanBodyBones.RightHand);
+            if (animator && animator.isHuman) bone = animator.GetBoneTransform(InLeftHand(item) ? HumanBodyBones.LeftHand : HumanBodyBones.RightHand);
             if (!bone) bone = transform;
             var go = Instantiate(item.heldPrefab);
             go.name = "Held_" + item.itemId;
@@ -187,7 +187,7 @@ namespace ASH.Gameplay
         {
             pos = default; rot = Quaternion.identity;
             if (!animator || !animator.isHuman) return false;
-            bool left = item.equipSlot == ASHEquipSlot.OffHand;
+            bool left = InLeftHand(item);
             var hand = animator.GetBoneTransform(left ? HumanBodyBones.LeftHand : HumanBodyBones.RightHand);
             var index = animator.GetBoneTransform(left ? HumanBodyBones.LeftIndexProximal : HumanBodyBones.RightIndexProximal);
             var little = animator.GetBoneTransform(left ? HumanBodyBones.LeftLittleProximal : HumanBodyBones.RightLittleProximal);
@@ -313,5 +313,7 @@ namespace ASH.Gameplay
         public void Say(string m) => Message?.Invoke(m);
         ASHWeaponAim _weaponAim;
         public static bool IsBow(ASHItemDefinition it) => ASHWeaponAim.KindOf(it) == ASHWeaponAim.Kind.Bow;
+        /// <summary>Off-hand items and the bow are held in the left hand; everything else in the right.</summary>
+        public static bool InLeftHand(ASHItemDefinition it) => it != null && (it.equipSlot == ASHEquipSlot.OffHand || IsBow(it));
     }
 }
