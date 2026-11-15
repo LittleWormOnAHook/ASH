@@ -37,6 +37,9 @@ namespace ASH.Survival
             SceneManager.sceneLoaded -= OnSceneLoaded; SceneManager.sceneLoaded += OnSceneLoaded;
             ASHCampfire.Placed -= AddToFire; ASHCampfire.Placed += AddToFire;
         }
+        /// <summary>Also attach after the first scene loads: with Enter Play Mode Options (no scene reload) sceneLoaded never fires on Play.</summary>
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+        static void AttachAfterLoad() => OnSceneLoaded(SceneManager.GetActiveScene(), LoadSceneMode.Single);
         static void AddToFire(ASHCampfire f) { if (f && !f.GetComponent<ASHHeatSource>()) f.gameObject.AddComponent<ASHHeatSource>().ApplyPreset(ASHHeatSource.Preset.Campfire); }
         static void OnSceneLoaded(Scene s, LoadSceneMode m)
         {

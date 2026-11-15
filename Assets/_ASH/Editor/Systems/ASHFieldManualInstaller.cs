@@ -54,6 +54,7 @@ namespace ASH.EditorTools.Systems
         {
             var tan = new Color(0.62f, 0.46f, 0.3f);
             var journal = NewItem("GrandpasJournal", "grandpas_journal", "Grandpa's Journal", "Worn leather journal. \"SURVIVAL GUIDE\" scratched into the cover. Grandpa's handwriting inside.", ASHItemCategory.Key, 1, tan, "Read");
+            if (!journal.keyItem) { journal.keyItem = true; EditorUtility.SetDirty(journal); } // stays in the pack: move only
             var wet = NewItem("WetRag", "wet_rag", "Wet Rag", "A damp rag to tie over your mouth and nose. Filters the worst of the ash for several hours before it dries out.", ASHItemCategory.Medical, 1, new Color(0.55f, 0.7f, 0.78f), "Wear");
             var dry = NewItem("DryRag", "dry_rag", "Dry Rag", "Dried out and caked with ash. Wet it again with a little water.", ASHItemCategory.Resource, 5, new Color(0.6f, 0.58f, 0.52f));
             NewItem("WaterBottle", "water_bottle", "Water Bottle", "Grandpa's dented steel canteen. Refill it at water sources. Each drink uses a tenth of it.", ASHItemCategory.Tool, 1, new Color(0.45f, 0.62f, 0.72f), "Drink");
@@ -120,6 +121,7 @@ namespace ASH.EditorTools.Systems
                 if (!r || d.Find(r) != null) continue;
                 E(r, 4, extraRow++, true, null, true);
             }
+            if (string.IsNullOrEmpty(d.tabName) || d.tabName == "GRANDPA'S FIELD MANUAL") d.tabName = "SURVIVAL GUIDE";
             EditorUtility.SetDirty(d);
             ASHMenuInstaller.RefreshRegistry();
             AssetDatabase.SaveAssets();

@@ -66,7 +66,17 @@ namespace ASH.UI
         public static string CraftingLockedMessage;
         /// <summary>Tab label for the crafting tab (null = "CRAFTING").</summary>
         public static string CraftTabName;
-        public static bool CanCraftNow => CraftingAvailable == null || CraftingAvailable();
+        /// <summary>Crafting is open only once Grandpa's journal is read when the Survival Guide (Resources/ASH_FieldManual) is installed,
+        /// even if the manual component isn't on the player yet.</summary>
+        public static bool CanCraftNow
+        {
+            get
+            {
+                if (ASHFieldManualData.I) { var m = ASHFieldManual.Instance; return m && m.IsRead; }
+                return CraftingAvailable == null || CraftingAvailable();
+            }
+        }
+        public static string CraftLockedText => CraftingLockedMessage ?? (ASHFieldManualData.I ? ASHFieldManualData.I.lockedMessage : null);
         /// <summary>Frame on which an overlay (cover view...) used Esc, so the pause menu doesn't open with the same press.</summary>
         public static int EscConsumedFrame = -1;
         /// <summary>Use label from a registered handler (null when none handles the item).</summary>
@@ -393,9 +403,9 @@ namespace ASH.UI
                 switch (e.id)
                 {
                     case "use": label = UseLabel(it); enabled = CanUse(it); break;
-                    case "drop1": label = s.amount > 1 ? "Drop 1" : "Drop"; break;
-                    case "dropall": show = s.amount > 1; label = $"Drop all  <color=#a59e93>x{s.amount}</color>"; break;
-                    case "split": show = s.amount > 1; label = "Split stack"; break;
+                    case "drop1": show = !ASHInventory.IsKeyItem(it); label = s.amount > 1 ? "Drop 1" : "Drop"; break;
+                    case "dropall": show = s.amount > 1 && !ASHInventory.IsKeyItem(it); label = $"Drop all  <color=#a59e93>x{s.amount}</color>"; break;
+                    case "split": show = s.amount > 1 && !ASHInventory.IsKeyItem(it); label = "Split stack"; break;
                 }
                 e.bg.gameObject.SetActive(show);
                 if (!show) continue;
@@ -482,6 +492,7 @@ namespace ASH.UI
         public ASHItemPickup DropSlot(int i, int amount)
         {
             if (inventory == null || i < 0 || i >= inventory.Slots.Count || inventory.Slots[i].IsEmpty) return null;
+            if (ASHInventory.IsKeyItem(inventory.Slots[i].item)) { Toast($"{inventory.Slots[i].item.displayName} stays with you."); return null; }
             var who = _equip && _equip.Animator ? _equip.Animator.transform : inventory.transform;
             int n = inventory.TakeFromSlot(i, amount, out var item);
             if (n <= 0) return null;
@@ -542,7 +553,7 @@ namespace ASH.UI
                     if (input.InventoryPressed) { if (placing) placer.Cancel(); SetCraft(false); SetMap(false); SetInv(!ASHUIState.IsOpen(ASHPanels.Inventory)); }
                     if (input.CraftPressed)
                     {
-                        if (!CanCraftNow) Toast(CraftingLockedMessage ?? "You have nothing to craft from yet.");
+                        if (!CanCraftNow) Toast(CraftLockedText ?? "You have nothing to craft from yet.");
                         else { if (placing) placer.Cancel(); SetInv(false); SetMap(false); bool open = !(_journal.IsOpen && _journal.Current == ASHJournalUI.Tab.Crafting); SetJournal(open, ASHJournalUI.Tab.Crafting); }
                     }
                     if (input.JournalPressed) { if (placing) placer.Cancel(); SetInv(false); SetMap(false); SetJournal(!_journal.IsOpen, _journal.Current); }

@@ -41,6 +41,8 @@ namespace ASH.Inventory
         [Min(1)] public int number = 1;
         public string title = "Torn page";
         [TextArea(2, 6)] public string text;
+        [Tooltip("Optional sketch shown on the page in the journal's page reader.")]
+        public Sprite sketch;
     }
 
     /// <summary>
@@ -55,7 +57,7 @@ namespace ASH.Inventory
         public string coverTitle = "SURVIVAL GUIDE";
         public string coverSubtitle = "Field notes - property of W. Black";
         [TextArea(2, 5)] public string coverNote = "If you're reading this, the world went sideways. Read it all. Keep it dry. - Grandpa";
-        public string tabName = "GRANDPA'S FIELD MANUAL";
+        public string tabName = "SURVIVAL GUIDE";
         [Tooltip("The journal item picked up in Grandpa's cabin (opens the cover view).")]
         public ASHItemDefinition journalItem;
         [Tooltip("Toast when Q is pressed before the manual was read.")]

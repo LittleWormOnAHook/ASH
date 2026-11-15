@@ -20,7 +20,13 @@ namespace ASH.Inventory
         public bool IsRead { get; private set; }
         public int PagesFound => _pages.Count;
         public bool HasPage(int n) => _pages.Contains(n);
-        public bool IsUnlocked(ASHRecipe r) => r && (_unlocked.Contains(Key(r)) || (Data && Data.Find(r) == null && IsRead));
+        /// <summary>Found torn pages in order (the page reader flips through these).</summary>
+        public List<int> FoundPages { get { var l = new List<int>(_pages); l.Sort(); return l; } }
+        public bool IsPageUnread(int n) => _pages.Contains(n) && !_pagesRead.Contains(n);
+        public int UnreadPages { get { int c = 0; foreach (var p in _pages) if (!_pagesRead.Contains(p)) c++; return c; } }
+        public void MarkPageRead(int n) { if (_pages.Contains(n) && _pagesRead.Add(n)) Changed?.Invoke(); }
+        /// <summary>Only recipes in the Survival Guide tree can unlock; anything else stays hidden and uncraftable.</summary>
+        public bool IsUnlocked(ASHRecipe r) => r && IsRead && _unlocked.Contains(Key(r));
         public bool IsNew(ASHRecipe r) => r && _unlocked.Contains(Key(r)) && !_seen.Contains(Key(r));
         public int NewCount { get { int n = 0; foreach (var k in _unlocked) if (!_seen.Contains(k)) n++; return n; } }
         public int CraftedCount(ASHItemDefinition it) => it && _crafted.TryGetValue(it.itemId, out var n) ? n : 0;
@@ -37,12 +43,17 @@ namespace ASH.Inventory
         ASHCrafting _craft; ASHInventory _inv;
         readonly HashSet<string> _firstPickups = new HashSet<string>(), _unlocked = new HashSet<string>(), _seen = new HashSet<string>();
         readonly HashSet<int> _pages = new HashSet<int>();
+        readonly HashSet<int> _pagesRead = new HashSet<int>();
         readonly Dictionary<string, int> _crafted = new Dictionary<string, int>();
 
         static string Key(ASHRecipe r) => string.IsNullOrEmpty(r.recipeId) ? r.name : r.recipeId;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         static void Hook() { SceneManager.sceneLoaded -= OnSceneLoaded; SceneManager.sceneLoaded += OnSceneLoaded; }
+
+        /// <summary>Also attach after the first scene loads: with Enter Play Mode Options (no scene reload) sceneLoaded never fires on Play.</summary>
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+        static void AttachAfterLoad() => OnSceneLoaded(SceneManager.GetActiveScene(), LoadSceneMode.Single);
         static void OnSceneLoaded(Scene s, LoadSceneMode m)
         {
             if (!ASHFieldManualData.I) return;
@@ -123,7 +134,7 @@ namespace ASH.Inventory
             var hud = FindAnyObjectByType<UI.ASHHud>();
             int total = Data ? Data.totalPages : 12;
             var pg = Data ? Data.Page(n) : null;
-            if (hud) hud.Toast($"Found a torn manual page: Page {n} of {total}" + (pg != null && !string.IsNullOrEmpty(pg.title) ? $" - {pg.title}" : ""));
+            if (hud) hud.Toast($"Found a torn page: Page {n} of {total}" + (pg != null && !string.IsNullOrEmpty(pg.title) ? $" - {pg.title}" : "") + (IsRead ? "  (added to the Survival Guide)" : "  (tucked into the journal)"));
             if (pg != null && !string.IsNullOrEmpty(pg.text)) ASH.Map.ASHJournalLog.Add($"Manual page {n}: {pg.title}", pg.text);
             PageFound?.Invoke(n);
             Evaluate(); Changed?.Invoke();
@@ -189,12 +200,12 @@ namespace ASH.Inventory
 
         // ------------------------------------------------------------------ save
         [Serializable] sealed class Count { public string id; public int n; }
-        [Serializable] sealed class State { public bool read; public List<string> pickups = new List<string>(), unlocked = new List<string>(), seen = new List<string>(); public List<int> pages = new List<int>(); public List<Count> crafted = new List<Count>(); }
+        [Serializable] sealed class State { public bool read; public List<string> pickups = new List<string>(), unlocked = new List<string>(), seen = new List<string>(); public List<int> pages = new List<int>(), pagesRead = new List<int>(); public List<Count> crafted = new List<Count>(); }
         public string SaveKey => "fieldManual";
         public int RestoreOrder => 20;
         public string CaptureJson()
         {
-            var s = new State { read = IsRead, pickups = new List<string>(_firstPickups), unlocked = new List<string>(_unlocked), seen = new List<string>(_seen), pages = new List<int>(_pages) };
+            var s = new State { read = IsRead, pickups = new List<string>(_firstPickups), unlocked = new List<string>(_unlocked), seen = new List<string>(_seen), pages = new List<int>(_pages), pagesRead = new List<int>(_pagesRead) };
             foreach (var kv in _crafted) s.crafted.Add(new Count { id = kv.Key, n = kv.Value });
             return JsonUtility.ToJson(s);
         }
@@ -206,6 +217,7 @@ namespace ASH.Inventory
             _unlocked.Clear(); foreach (var x in s.unlocked) _unlocked.Add(x);
             _seen.Clear(); foreach (var x in s.seen) _seen.Add(x);
             _pages.Clear(); foreach (var x in s.pages) _pages.Add(x);
+            _pagesRead.Clear(); if (s.pagesRead != null) foreach (var x in s.pagesRead) _pagesRead.Add(x);
             _crafted.Clear(); foreach (var c in s.crafted) _crafted[c.id] = c.n;
             // found pages are gone from the world
             foreach (var p in FindObjectsByType<ASH.Interaction.ASHManualPagePickup>(FindObjectsSortMode.None)) if (_pages.Contains(p.pageNumber)) Destroy(p.gameObject);

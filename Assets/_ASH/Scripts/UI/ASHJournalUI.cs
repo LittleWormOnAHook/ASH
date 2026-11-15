@@ -30,10 +30,12 @@ namespace ASH.UI
         public ASH.Gameplay.ASHObjectiveTracker Objectives { get => _objectives; set { if (_objectives && isActiveAndEnabled) _objectives.Changed -= MarkDirty; _objectives = value; if (_objectives && isActiveAndEnabled) _objectives.Changed += MarkDirty; } }
         Image _dIcon, _iIcon; Text _dIconAbbr, _iIconAbbr, _dName, _dDesc, _dReq, _dStatus, _iName, _iDesc, _iInfo, _iUseLabel, _iBreakLabel;
         Button _dCraft, _iUse, _iBreak; RectTransform _dProg, _dProgFill;
-        string _cat = "All"; ASHRecipe _selRecipe; ASHItemDefinition _selItem; Tab _tab;
+        string _cat = "All"; ASHRecipe _selRecipe; ASHItemDefinition _selItem; Tab _tab = Tab.Items;
         bool _dirty; float _objRefresh;
         // Grandpa's Field Manual tree (replaces the category list when the manual exists)
         RectTransform _legacyRoot, _treeRoot, _treeContent, _pageBoxes; Text _treeTitle, _pageLabel; ASHFieldManual _manualHooked;
+        // torn-page reader (a book over the Survival Guide tab): found pages only, prev/next flips
+        RectTransform _book; Text _bookTitle, _bookText, _bookNum, _readLbl; Image _bookSketch; Button _bookPrev, _bookNext, _readBtn; int _bookPage = -1;
         const float NodeW = 128f, NodeH = 52f, ColStep = 142f, RowStep = 68f, TreePad = 14f;
 
         public Tab Current => _tab;
@@ -75,13 +77,13 @@ namespace ASH.UI
         void Build(RectTransform rt)
         {
             var accent = K.At("Accent", rt, new Vector2(0.5f, 1), Vector2.zero, new Vector2(1200, 3)); K.Image(accent, K.Accent);
-            K.Text(K.At("Title", rt, new Vector2(0, 1), new Vector2(28, -18), new Vector2(400, 40)), "FIELD JOURNAL", 30, K.Accent, TextAnchor.MiddleLeft, FontStyle.Bold);
-            float x = 330;
-            foreach (Tab t in Enum.GetValues(typeof(Tab)))
+            K.Text(K.At("Title", rt, new Vector2(0, 1), new Vector2(28, -18), new Vector2(400, 40)), "JOURNAL", 30, K.Accent, TextAnchor.MiddleLeft, FontStyle.Bold);
+            float x = 210;
+            foreach (Tab t in new[] { Tab.Items, Tab.Notes, Tab.Objectives, Tab.Crafting }) // the Survival Guide tab comes last (hidden until unlocked)
             {
                 var tab = t;
-                var b = K.At("Tab" + t, rt, new Vector2(0, 1), new Vector2(x, -20), new Vector2(140, 38)); x += 146;
-                K.Button(b, t == Tab.Crafting ? "MANUAL" : t.ToString().ToUpperInvariant(), 18, () => Show(tab), new Color(1, 1, 1, 0.12f));
+                var b = K.At("Tab" + t, rt, new Vector2(0, 1), new Vector2(x, -20), new Vector2(130, 38)); x += 136;
+                K.Button(b, t == Tab.Crafting ? "SURVIVAL GUIDE" : t.ToString().ToUpperInvariant(), 18, () => Show(tab), new Color(1, 1, 1, 0.12f));
                 _tabButtons[t] = b.GetComponent<Image>();
             }
             K.Text(K.At("Hint", rt, new Vector2(1, 1), new Vector2(-24, -26), new Vector2(360, 26)), "<color=#d9cbb4>J</color> close   <color=#d9cbb4>M</color> GPS map   <color=#d9cbb4>Tab</color> pack", 16, K.Dim, TextAnchor.MiddleRight);
@@ -169,6 +171,7 @@ namespace ASH.UI
             _dProg = K.At("Progress", det, new Vector2(0, 0), new Vector2(24, 80), new Vector2(520, 8)); K.Image(_dProg, new Color(0, 0, 0, 0.5f));
             _dProgFill = K.Stretch("Fill", _dProg); K.Image(_dProgFill, K.Accent); _dProgFill.pivot = new Vector2(0, 0.5f);
             _dCraft = K.Button(K.At("Craft", det, new Vector2(0, 0), new Vector2(24, 20), new Vector2(220, 48)), "CRAFT", 22, () => { if (_selRecipe && _craft) { _craft.TryCraft(_selRecipe); _dirty = true; } });
+            BuildBook(root);
             return root.gameObject;
         }
 
@@ -179,6 +182,8 @@ namespace ASH.UI
             _treeTitle = K.Text(K.At("Title", _treeRoot, new Vector2(0, 1), new Vector2(12, -4), new Vector2(570, 30)), "", 19, K.Accent, TextAnchor.MiddleLeft, FontStyle.Bold);
             _pageLabel = K.Text(K.At("Pages", _treeRoot, new Vector2(0, 1), new Vector2(12, -34), new Vector2(160, 24)), "", 16, K.Dim, TextAnchor.MiddleLeft);
             _pageBoxes = K.At("PageBoxes", _treeRoot, new Vector2(0, 1), new Vector2(172, -36), new Vector2(400, 20));
+            _readBtn = K.Button(K.At("ReadPages", _treeRoot, new Vector2(1, 1), new Vector2(-8, -4), new Vector2(160, 28)), "READ PAGES", 15, () => OpenBook(-1), new Color(1, 1, 1, 0.12f));
+            _readLbl = _readBtn.GetComponentInChildren<Text>(); _readLbl.color = K.Ink;
             var area = K.Stretch("Area", _treeRoot, 0, 0, 0, 66);
             K.Image(area, new Color(0, 0, 0, 0.12f), true);
             var vp = K.Stretch("Viewport", area); vp.gameObject.AddComponent<RectMask2D>();
@@ -189,6 +194,54 @@ namespace ASH.UI
             sr.viewport = vp; sr.content = _treeContent; sr.horizontal = true; sr.vertical = true;
             sr.movementType = ScrollRect.MovementType.Clamped; sr.scrollSensitivity = 30f; sr.inertia = false;
         }
+
+        void BuildBook(RectTransform root)
+        {
+            _book = K.Stretch("PageReader", root);
+            K.Image(_book, new Color(0, 0, 0, 0.82f), true); // blocks the tree underneath
+            var page = K.At("Page", _book, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(760, 600));
+            K.Image(page, K.Paper, true);
+            _bookNum = K.Text(K.At("Num", page, new Vector2(0, 1), new Vector2(30, -18), new Vector2(300, 24)), "", 16, new Color(K.PaperInk.r, K.PaperInk.g, K.PaperInk.b, 0.6f), TextAnchor.MiddleLeft);
+            _bookTitle = K.Text(K.At("Title", page, new Vector2(0, 1), new Vector2(30, -44), new Vector2(700, 40)), "", 28, K.PaperInk, TextAnchor.MiddleLeft, FontStyle.Bold);
+            _bookSketch = K.Image(K.At("Sketch", page, new Vector2(1, 1), new Vector2(-30, -96), new Vector2(260, 260)), new Color(1, 1, 1, 0.9f));
+            _bookSketch.preserveAspect = true;
+            _bookText = K.Text(K.At("Text", page, new Vector2(0, 1), new Vector2(30, -96), new Vector2(700, 400)), "", 20, K.PaperInk, TextAnchor.UpperLeft, FontStyle.Italic);
+            _bookPrev = K.Button(K.At("Prev", page, new Vector2(0, 0), new Vector2(24, 18), new Vector2(150, 42)), "< PREV", 18, () => FlipBook(-1));
+            _bookNext = K.Button(K.At("Next", page, new Vector2(1, 0), new Vector2(-24, 18), new Vector2(150, 42)), "NEXT >", 18, () => FlipBook(1));
+            K.Button(K.At("Close", page, new Vector2(0.5f, 0), new Vector2(0, 18), new Vector2(150, 42)), "CLOSE", 18, CloseBook, new Color(0.22f, 0.18f, 0.14f, 0.25f));
+            _book.gameObject.SetActive(false);
+        }
+
+        /// <summary>Opens the page reader at page n (or the first unread / first found page when n &lt; 1).</summary>
+        public void OpenBook(int n)
+        {
+            var m = ASHFieldManual.Instance; if (!m || !_book) return;
+            var found = m.FoundPages; if (found.Count == 0) return;
+            if (n < 1 || !found.Contains(n)) { n = found[0]; foreach (var p in found) if (m.IsPageUnread(p)) { n = p; break; } }
+            _bookPage = n; _book.gameObject.SetActive(true); _book.SetAsLastSibling();
+            ShowBookPage();
+        }
+        void FlipBook(int dir)
+        {
+            var m = ASHFieldManual.Instance; if (!m) return;
+            var found = m.FoundPages; int i = found.IndexOf(_bookPage); if (i < 0) return;
+            i = Mathf.Clamp(i + dir, 0, found.Count - 1); _bookPage = found[i]; ShowBookPage();
+        }
+        void ShowBookPage()
+        {
+            var m = ASHFieldManual.Instance; if (!m || _bookPage < 1) { CloseBook(); return; }
+            var found = m.FoundPages; int i = found.IndexOf(_bookPage); if (i < 0) { CloseBook(); return; }
+            var d = m.Data; var pg = d ? d.Page(_bookPage) : null;
+            _bookNum.text = $"Page {_bookPage} of {(d ? d.totalPages : 12)}      ({i + 1}/{found.Count} found)";
+            _bookTitle.text = pg != null ? pg.title : "Torn page";
+            bool sk = pg != null && pg.sketch;
+            _bookSketch.gameObject.SetActive(sk); if (sk) _bookSketch.sprite = pg.sketch;
+            _bookText.rectTransform.sizeDelta = new Vector2(sk ? 420 : 700, 400);
+            _bookText.text = pg != null && !string.IsNullOrEmpty(pg.text) ? pg.text : "<color=#00000080>The ink has run. Only a few words are left.</color>";
+            _bookPrev.interactable = i > 0; _bookNext.interactable = i < found.Count - 1;
+            m.MarkPageRead(_bookPage); // raises Changed: the strip's unread dot and the tab count update
+        }
+        void CloseBook() { if (_book) _book.gameObject.SetActive(false); _bookPage = -1; }
 
         void HookManual()
         {
@@ -223,12 +276,18 @@ namespace ASH.UI
             {
                 var b = K.At("P" + i, _pageBoxes, new Vector2(0, 0.5f), new Vector2((i - 1) * bw, 0), new Vector2(bw - 4f, 18f));
                 bool has = m.HasPage(i);
-                K.Image(b, has ? K.Paper : new Color(1, 1, 1, 0.06f));
+                if (has) { int pn = i; K.Button(b, "", 11, () => OpenBook(pn), K.Paper); } else K.Image(b, new Color(1, 1, 1, 0.06f));
                 K.Text(K.Stretch("N", b), i.ToString(), 11, has ? K.PaperInk : new Color(1, 1, 1, 0.25f), TextAnchor.MiddleCenter);
+                if (m.IsPageUnread(i)) K.Image(K.At("New", b, new Vector2(1, 1), new Vector2(2, 2), new Vector2(7, 7)), K.Bad); // unread
             }
+            int unread = m.UnreadPages;
+            _readBtn.interactable = m.PagesFound > 0;
+            _readLbl.text = unread > 0 ? $"READ PAGES <color=#f08a6b>({unread} new)</color>" : "READ PAGES";
+            if (_book && _book.gameObject.activeSelf) ShowBookPage();
 
             K.Clear(_treeContent);
-            var entries = d.entries.Where(e => e != null && e.recipe).ToList();
+            // unlocked recipes, plus faded sketches only for the next step (a parent is unlocked); deeper ones stay hidden
+            var entries = d.entries.Where(e => e != null && e.recipe && (m.IsUnlocked(e.recipe) || (e.parents != null && e.parents.Any(p => p && m.IsUnlocked(p))))).ToList();
             if (_selRecipe == null || entries.Find(e => e.recipe == _selRecipe) == null) _selRecipe = entries.Count > 0 ? entries[0].recipe : null;
             float w = 0, h = 0;
             foreach (var e in entries) { var p = NodePos(e); w = Mathf.Max(w, p.x + NodeW + TreePad); h = Mathf.Max(h, -p.y + NodeH + TreePad); }
@@ -240,7 +299,7 @@ namespace ASH.UI
                 var cp = NodePos(e);
                 foreach (var pr in e.parents)
                 {
-                    var pe = d.Find(pr); if (pe == null) continue;
+                    var pe = d.Find(pr); if (pe == null || !entries.Contains(pe)) continue;
                     var pp = NodePos(pe);
                     var col = m.IsUnlocked(e.recipe) ? new Color(K.Accent.r, K.Accent.g, K.Accent.b, 0.85f) : new Color(0.85f, 0.8f, 0.7f, 0.18f);
                     if (pe.column < e.column)
@@ -319,7 +378,8 @@ namespace ASH.UI
 
         public void Show(Tab tab)
         {
-            if (tab == Tab.Crafting && !ASHHud.CanCraftNow) { if (ASHHud.CraftingLockedMessage != null) FindAnyObjectByType<ASHHud>()?.Toast(ASHHud.CraftingLockedMessage); tab = Tab.Objectives; }
+            if (tab == Tab.Crafting && !ASHHud.CanCraftNow) tab = Tab.Items; // no Survival Guide yet: the tab doesn't exist
+            CloseBook();
             RefreshTabs();
             _tab = tab;
             foreach (var kv in _tabs) kv.Value.SetActive(kv.Key == tab);
@@ -336,8 +396,9 @@ namespace ASH.UI
             bool on = ASHHud.CanCraftNow;
             if (cb.gameObject.activeSelf != on) cb.gameObject.SetActive(on);
             var lbl = cb.GetComponentInChildren<Text>();
-            if (lbl) lbl.text = ASHHud.CraftTabName != null ? (ASHHud.CraftTabName.Length > 12 ? "MANUAL" : ASHHud.CraftTabName) : "CRAFTING";
-            var m = ASHFieldManual.Instance; int n = m ? m.NewCount : 0;
+            if (lbl) lbl.text = ASHFieldManualData.I ? "SURVIVAL GUIDE" : "CRAFTING";
+            cb.rectTransform.sizeDelta = new Vector2(ASHFieldManualData.I ? 176f : 130f, cb.rectTransform.sizeDelta.y);
+            var m = ASHFieldManual.Instance; int n = m ? m.NewCount + m.UnreadPages : 0;
             if (lbl && n > 0) lbl.text += $" <color=#000000><size=13>({n})</size></color>";
         }
         public void SelectItem(ASHItemDefinition i) { _selItem = i; _dirty = true; }
@@ -389,7 +450,8 @@ namespace ASH.UI
 
         void RebuildCrafting()
         {
-            bool tree = ASHFieldManual.Instance && ASHFieldManual.Instance.Data;
+            bool tree = ASHFieldManualData.I;
+            if (tree && !ASHFieldManual.Instance) { _treeRoot.gameObject.SetActive(false); _legacyRoot.gameObject.SetActive(false); return; }
             _treeRoot.gameObject.SetActive(tree); _legacyRoot.gameObject.SetActive(!tree);
             if (tree) { RebuildTree(); return; }
             foreach (var kv in _catButtons) kv.Value.color = kv.Key == _cat ? K.RowSel : new Color(1, 1, 1, 0.08f);

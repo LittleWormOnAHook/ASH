@@ -33,6 +33,8 @@ namespace ASH.Inventory
         [Min(1)] public int maxStack = 20;
         [Tooltip("Verb shown when used, e.g. Eat, Drink, Apply.")]
         public string useVerb = "Use";
+        [Tooltip("Key item (Grandpa's journal): stays in the pack. It can only be moved between slots, never dropped, consumed, split or destroyed.")]
+        public bool keyItem;
 
         [Header("Consumable restores (absolute points)")]
         public float restoreHunger;

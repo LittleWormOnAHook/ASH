@@ -66,12 +66,16 @@ namespace ASH.Inventory
             slots.Clear(); slots.AddRange(pack); slots.AddRange(cross);
         }
 
+        /// <summary>Key items stay in the pack (only Move works on them): the keyItem flag, or the Survival Guide's journal item.</summary>
+        public static bool IsKeyItem(ASHItemDefinition it) => it && (it.keyItem || (ASHFieldManualData.I && ASHFieldManualData.I.journalItem == it));
+
         // ---------------------------------------------------------------- drop
         /// <summary>Takes up to amount from slot i out of the inventory (for dropping). Returns the item and how many were taken.</summary>
         public int TakeFromSlot(int i, int amount, out ASHItemDefinition item)
         {
             EnsureSlots(); item = null;
             if (i < 0 || i >= slots.Count || slots[i].IsEmpty || amount <= 0) return 0;
+            if (IsKeyItem(slots[i].item)) return 0;
             item = slots[i].item; LastTakenCondition = slots[i].condition; int take = Mathf.Min(amount, slots[i].amount);
             slots[i].amount -= take; if (slots[i].amount <= 0) slots[i].Clear();
             Changed?.Invoke();
@@ -104,7 +108,7 @@ namespace ASH.Inventory
         /// <summary>Removes one item from a specific slot (keeps the other stacks). Raises Changed.</summary>
         public bool RemoveFromSlot(int i, int amount = 1)
         {
-            EnsureSlots(); if (i < 0 || i >= slots.Count || slots[i].IsEmpty || slots[i].amount < amount) return false;
+            EnsureSlots(); if (i < 0 || i >= slots.Count || slots[i].IsEmpty || slots[i].amount < amount || IsKeyItem(slots[i].item)) return false;
             slots[i].amount -= amount; if (slots[i].amount <= 0) slots[i].Clear(); Changed?.Invoke(); return true;
         }
 
@@ -195,7 +199,7 @@ namespace ASH.Inventory
 
         public bool Remove(ASHItemDefinition item, int amount = 1)
         {
-            if (item == null || amount <= 0 || Count(item) < amount) return false;
+            if (item == null || amount <= 0 || Count(item) < amount || IsKeyItem(item)) return false;
             int remaining = amount;
             for (int i = slots.Count - 1; i >= 0 && remaining > 0; i--)
             {
@@ -239,7 +243,7 @@ namespace ASH.Inventory
         public bool Split(int i)
         {
             EnsureSlots();
-            if (i < 0 || i >= slots.Count || slots[i].IsEmpty || slots[i].amount < 2) return false;
+            if (i < 0 || i >= slots.Count || slots[i].IsEmpty || slots[i].amount < 2 || IsKeyItem(slots[i].item)) return false;
             int empty = -1; for (int k = 0; k < Pack; k++) if (slots[k].IsEmpty) { empty = k; break; } if (empty < 0) return false;
             int half = slots[i].amount / 2;
             slots[empty].item = slots[i].item; slots[empty].amount = half; slots[i].amount -= half;
