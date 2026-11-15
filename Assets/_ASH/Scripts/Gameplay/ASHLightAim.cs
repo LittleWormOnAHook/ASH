@@ -11,7 +11,8 @@ namespace ASH.Gameplay
     /// - Torch: held raised in the air (left-arm IK), RMB raises it further toward the aim direction.
     /// - Flashlight: carried at the side; hold RMB to aim: the arm points the beam where the camera looks.
     /// While aiming the body faces the camera like Invector strafe/weapon aiming (FreeWithStrafe + rotate with camera,
-    /// restored on release). All poses blend with ikBlendSpeed.
+    /// restored on release). All poses blend with ikBlendSpeed. The hand-placed light (Held_Torch / Held_Flashlight) is never moved:
+    /// the upright/aim alignment turns the left hand BONE after animation (re-posed by the Animator each frame).
     /// </summary>
     [DisallowMultipleComponent]
     [DefaultExecutionOrder(1700)]
@@ -36,7 +37,7 @@ namespace ASH.Gameplay
         public Vector3 elbowHintOffset = new Vector3(-0.35f, -0.2f, -0.15f);
         [Tooltip("How far a torch tilts toward the aim direction (0 = straight up).")]
         [Range(0f, 1f)] public float torchAimTilt = 0.35f;
-        [Tooltip("How fully the held light turns to the pose (torch upright / beam on the aim line).")]
+        [Tooltip("How fully the held light turns to the pose (torch upright / beam on the aim line) by turning the hand. 0 = exactly your hand placement.")]
         [Range(0f, 1f)] public float itemAlignWeight = 1f;
 
         public bool Aiming { get; private set; }
@@ -46,7 +47,6 @@ namespace ASH.Gameplay
 
         Animator _anim; ASHEquipment _eq; ASHInput _in; vThirdPersonController _cc; Camera _cam;
         float _w; bool _torch, _flash;
-        GameObject _visual; Quaternion _visualLocal;
         vThirdPersonMotor.LocomotionType _sLoco; bool _sStrafe, _sRotCam; float _sRotSpeed; bool _saved;
 
         void Awake()
@@ -105,15 +105,14 @@ namespace ASH.Gameplay
         void LateUpdate()
         {
             var v = _eq ? _eq.OffVisual : null;
-            if (v != _visual) { _visual = v; if (v) _visualLocal = v.transform.localRotation; }
-            if (!v || !v.transform.parent) return;
-            var attached = v.transform.parent.rotation * _visualLocal;
+            var hand = _anim && _anim.isHuman ? _anim.GetBoneTransform(HumanBodyBones.LeftHand) : null;
+            if (!v || !v.activeInHierarchy || !hand || !v.transform.IsChildOf(hand)) return;
             float k = Mathf.Clamp01(_w) * itemAlignWeight;
-            if (k <= 0.001f) { v.transform.rotation = attached; return; }
+            if (k <= 0.001f) return;
             Vector3 aim = AimDir, up = Vector3.up, fwd = Vector3.ProjectOnPlane(Root.forward, up).normalized;
             Quaternion desired = _flash ? Quaternion.LookRotation(aim, up)
                 : Quaternion.LookRotation(Vector3.Slerp(up, aim, Aiming ? torchAimTilt : 0f).normalized, fwd);
-            v.transform.rotation = Quaternion.Slerp(attached, desired, k);
+            hand.rotation = Quaternion.Slerp(Quaternion.identity, desired * Quaternion.Inverse(v.transform.rotation), k) * hand.rotation;
         }
     }
 }

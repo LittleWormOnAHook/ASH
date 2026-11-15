@@ -111,6 +111,7 @@ namespace ASH.EditorTools.World
             log.Append($"held {h}/{Held.Length}; ");
             WireItems();
             AddEquipmentToPlayer(log);
+            log.Append("held items: ").Append(ASH.EditorTools.Build.ASHHeldItemsSetup.Build()).Append("; ");
             ASHBuildUtil.SaveOwn();
             if (full) BakeIcons(log);
             AssetDatabase.SaveAssets();

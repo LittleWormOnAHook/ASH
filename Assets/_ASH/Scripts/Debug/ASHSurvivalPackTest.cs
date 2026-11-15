@@ -140,6 +140,7 @@ namespace ASH.DebugTools
                 _inv.AddItem(flashlight, 1); _eq.Equip(flashlight); yield return null;
                 bool lit = _eq.HandLightOn;
                 _in.SimSecondaryHeld = true; yield return new WaitForSeconds(0.6f);
+                yield return new WaitForEndOfFrame(); // the aim turns the hand bone in LateUpdate (Invector animates in physics time)
                 var beam = _eq.OffVisual ? _eq.OffVisual.GetComponentInChildren<Light>() : null;
                 var cam = Camera.main; float dot = beam && cam ? Vector3.Dot(beam.transform.forward, cam.transform.forward) : -2f;
                 bool aiming = aim.Aiming, strafing = cc.isStrafing;

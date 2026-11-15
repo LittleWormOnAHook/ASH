@@ -44,6 +44,15 @@ namespace ASH.DebugTools
             bool ok = _in && _cc && _inv && _eq && _wa && _chop && _layer && bow && arrow && rifle && pistol;
             Check("setup", ok && _layer.Valid && _layer.Has("Chop") && _layer.Has("BowAim") && _layer.Has("RifleShot"), $"wa={(bool)_wa} chop={(bool)_chop} layer valid={(_layer && _layer.Valid)} states={(_layer && _layer.Has("Chop"))}/{(_layer && _layer.Has("BowAim"))} arrowPrefab={(_wa && _wa.arrowPrefab)}");
             if (!ok) { Finish(); yield break; }
+
+            // edit-mode placement: every held item is a pre-placed child, hidden until equipped, never moved at runtime
+            var heldItems = Resources.FindObjectsOfTypeAll<ASHItemDefinition>().Where(i => i && i.IsEquippable && i.heldPrefab).ToList();
+            var missing = heldItems.Where(i => !_eq.Placed(i)).Select(i => ASHEquipment.HeldName(i)).ToList();
+            if (!_eq.Placed(ASHEquipment.HandArrowName)) missing.Add(ASHEquipment.HandArrowName);
+            var placedAll = _eq.AllPlaced.Where(g => g).ToList();
+            int visibleIdle = placedAll.Count(g => g.activeSelf && g != _eq.MainVisual && g != _eq.OffVisual && g != _eq.HipVisual && g != _wa.HandArrow);
+            var authored = placedAll.ToDictionary(g => g, g => (g.transform.parent, g.transform.localPosition, g.transform.localRotation, g.transform.localScale));
+            Check("held items pre-placed, hidden", missing.Count == 0 && visibleIdle == 0, $"placed {placedAll.Count} missing [{string.Join(",", missing)}] visible-unequipped {visibleIdle}");
             var lh = _eq.Animator.GetBoneTransform(HumanBodyBones.RightHand); // string/arrow hand
             var bowHand = _eq.Animator.GetBoneTransform(HumanBodyBones.LeftHand);
 
@@ -51,19 +60,24 @@ namespace ASH.DebugTools
             _inv.AddItem(torch, 1); _inv.AddItem(bow, 1); _inv.AddItem(arrow, 10);
             _eq.Equip(torch); _eq.Equip(bow); yield return null; yield return null;
             var ha = _wa.HandArrow;
-            Check("bow left hand, arrow right hand", _eq.Main == bow && _eq.Off == null && _eq.MainVisual && _eq.MainVisual.transform.IsChildOf(bowHand) && ha && ha.activeSelf && ha.transform.IsChildOf(lh),
+            Check("bow left hand, arrow right hand", _eq.Main == bow && _eq.Off == null && _eq.MainVisual && _eq.MainVisual == _eq.Placed(bow) && _eq.MainVisual.transform.IsChildOf(bowHand) && ha && ha == _eq.Placed(ASHEquipment.HandArrowName) && ha.activeSelf && ha.transform.IsChildOf(lh),
                 $"main={(_eq.Main ? _eq.Main.displayName : "-")} off={(_eq.Off ? _eq.Off.displayName : "-")} handArrow={(ha ? ha.transform.parent.name : "none")}");
 
             // RMB: nock + draw (strafe aim), hands together
             bool strafe0 = _cc.isStrafing;
             _in.SimSecondaryHeld = true; yield return new WaitForSeconds(1.1f);
             var bowPos = _eq.MainVisual.transform.position; float handsGap = Vector3.Distance(lh.position, bowPos);
-            Vector3 arrowDir = ha ? ha.transform.forward : Vector3.zero; float alignDot = Vector3.Dot(arrowDir, (bowPos - lh.position).normalized);
+            ha = _wa.HandArrow; Vector3 arrowDir = ha ? ha.transform.forward : Vector3.zero; float alignDot = Vector3.Dot(arrowDir, (bowPos - lh.position).normalized);
             var aimFwd = Camera.main ? Camera.main.transform.forward : _cc.transform.forward; aimFwd.y = 0f; aimFwd.Normalize();
             float drawBack = Vector3.Dot(bowPos - lh.position, aimFwd); // right hand sits behind the bow along the aim
-            Check("RMB nock + full draw (right hand draws)", _wa.Aiming && _cc.isStrafing && _wa.Draw01 >= 0.99f && _layer.State == "BowAim" && _layer.Weight > 0.5f && alignDot > 0.9f && drawBack > 0.15f && handsGap < 1.0f,
+            Check("RMB nock + full draw (right hand draws)", _wa.Aiming && _cc.isStrafing && _wa.Draw01 >= 0.99f && _layer.State == "BowAim" && _layer.Weight > 0.5f && alignDot > 0.9f && drawBack > 0.45f && handsGap < 1.1f,
                 $"aim={_wa.Aiming} strafe={_cc.isStrafing} draw={_wa.Draw01:F2} layer={_layer.State} w={_layer.Weight:F2} hands gap {handsGap:F2} m draw-back {drawBack:F2} m arrow->bow dot {alignDot:F2}");
 
+            // holds full draw while RMB stays down
+            yield return new WaitForSeconds(2f);
+            float nt = _layer.NormalizedTime;
+            Check("bow holds full draw until RMB release", _wa.Aiming && _wa.Draw01 >= 0.99f && _layer.State == "BowAim" && _layer.Weight > 0.9f && nt >= _wa.bowAimHoldNormalized - 0.05f && nt <= _wa.bowAimHoldNormalized + 0.05f,
+                $"aim={_wa.Aiming} draw={_wa.Draw01:F2} state={_layer.State} w={_layer.Weight:F2} clip t {nt:F2} (hold {_wa.bowAimHoldNormalized:F2})");
             // release: full-draw arrow
             int a0 = _inv.Count(arrow); _in.SimPrimary = true; yield return null; yield return null;
             var full = ASHArrow.Last; float fullSpeed = full ? full.LaunchVelocity.magnitude : 0f;
@@ -135,7 +149,11 @@ namespace ASH.DebugTools
                 Check("chop releases", !_chop.Chopping && !_chop.MovementLocked && _eq.Main == mainBefore, $"chopping={_chop.Chopping} locked={_chop.MovementLocked} main={(_eq.Main ? _eq.Main.displayName : "-")} (before {(mainBefore ? mainBefore.displayName : "-")})");
             }
             else Check("chop target", false, "no choppable found");
-            _eq.Unequip(ASHEquipSlot.MainHand);
+            _eq.Unequip(ASHEquipSlot.MainHand); _eq.Unequip(ASHEquipSlot.OffHand); yield return null; yield return null;
+            int moved = authored.Count(kv => kv.Key && (kv.Key.transform.parent != kv.Value.Item1 || (kv.Key.transform.localPosition - kv.Value.Item2).sqrMagnitude > 1e-10f
+                || Quaternion.Angle(kv.Key.transform.localRotation, kv.Value.Item3) > 0.01f || (kv.Key.transform.localScale - kv.Value.Item4).sqrMagnitude > 1e-10f));
+            int leftOn = placedAll.Count(g => g && g.activeSelf && g != _eq.HipVisual);
+            Check("hand placements untouched after aim/fire/chop", moved == 0 && leftOn == 0, $"moved {moved}/{authored.Count} still visible {leftOn}");
             Finish();
         }
 

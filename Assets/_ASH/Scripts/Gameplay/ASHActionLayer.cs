@@ -4,7 +4,7 @@ namespace ASH.Gameplay
 {
     /// <summary>
     /// Drives the "ASH_Action" upper-body override layer on the ASH animator (built by ASH/Build/Action Animations):
-    /// axe chop, bow aim/shot (mirrored so the bow sits in the right hand), rifle and pistol aim/shot.
+    /// axe chop, bow aim/shot (bow in the left hand), rifle and pistol aim/shot.
     /// One owner at a time; weight blends in/out.
     /// </summary>
     [DisallowMultipleComponent]

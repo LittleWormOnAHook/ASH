@@ -10,7 +10,7 @@ namespace ASH.EditorTools.Build
     /// ASH/Build/Action Animations: (re)builds the "ASH_Action" upper-body override layer on ASH_BasicLocomotion with
     /// clips copied from Genesis into Assets/_ASH/Animation/Imported (Villager Axe-Chopping01; Invector Shooter archery,
     /// upper-body aim poses and shots). Bow states use the original (unmirrored) Invector clips: bow in the left hand, right hand draws. Safe to re-run.
-    /// States: Empty, Chop (speed 0, driven by ASHChopAnimator), BowAim, BowShot, RifleAim, RifleShot, PistolAim, PistolShot.
+    /// States: Empty, Chop (speed 0, driven by ASHChopAnimator), BowAim (speed 0, driven by the draw), BowShot, RifleAim, RifleShot, PistolAim, PistolShot.
     /// </summary>
     public static class ASHActionAnimSetup
     {
@@ -52,7 +52,7 @@ namespace ASH.EditorTools.Build
             }
             var empty = S("Empty", null, false, 1f, new Vector3(250, 0)); sm.defaultState = empty;
             S("Chop", chop, false, 0f, new Vector3(250, 80));
-            var ba = S("BowAim", bowAim, false, 1f, new Vector3(500, 0)); var bs = S("BowShot", bowShot, false, 1f, new Vector3(750, 0));
+            var ba = S("BowAim", bowAim, false, 0f, new Vector3(500, 0)); /* speed 0: driven by the draw, holds full draw */ var bs = S("BowShot", bowShot, false, 1f, new Vector3(750, 0));
             var ra = S("RifleAim", rAim, false, 1f, new Vector3(500, 120)); var rs = S("RifleShot", rShot, false, 1f, new Vector3(750, 120));
             var pa = S("PistolAim", pAim, false, 1f, new Vector3(500, 240)); var ps = S("PistolShot", pShot, false, 1f, new Vector3(750, 240));
             void Back(AnimatorState from, AnimatorState to) { var t = from.AddTransition(to); t.hasExitTime = true; t.exitTime = 0.95f; t.duration = 0.1f; }

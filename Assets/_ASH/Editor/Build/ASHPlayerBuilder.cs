@@ -5,6 +5,7 @@ using ASH.Player;
 using ASH.Survival;
 using Invector.vCamera;
 using Invector.vCharacterController;
+using System.Linq;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -32,6 +33,13 @@ namespace ASH.EditorTools.Build
         [MenuItem("ASH/Build/2. Player Prefab (Invector + rugged male)")]
         public static GameObject Build()
         {
+            // Never wipe hand placements: a full rebuild would erase the pre-placed Held_* weapons/items (and Holder_Hip).
+            var existing = AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath);
+            if (existing && existing.GetComponentsInChildren<Transform>(true).Any(t => t.name.StartsWith(ASHEquipment.HeldPrefix) || t.name == ASHEquipment.HipHolderName))
+            {
+                Debug.LogError("[ASH] Player Prefab rebuild refused: ASH_Player.prefab has hand-placed held items (Held_*). A rebuild would erase them. Edit the prefab directly, or move/rename it first if you really want a fresh build.");
+                return existing;
+            }
             var templateAsset = AssetDatabase.LoadAssetAtPath<GameObject>(TemplatePath);
             var modelAsset = AssetDatabase.LoadAssetAtPath<GameObject>(ModelPath);
             if (!templateAsset || !modelAsset) throw new System.Exception("Missing Invector template or rugged male model.");

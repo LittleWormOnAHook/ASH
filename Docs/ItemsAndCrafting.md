@@ -79,10 +79,27 @@ Basic only: no damage, enemies or combat systems.
 - **`ASH/Build/Action Animations`** (`ASHActionAnimSetup`) adds the **ASH_Action** upper-body layer to `ASH_BasicLocomotion.controller`, using the UpperBody mask. Its states are Empty, Chop, BowAim, BowShot, RifleAim, RifleShot, PistolAim and PistolShot. Bow states use the original Invector archery clips unmirrored: bow in the left hand, right hand draws. The tool is safe to re-run.
 - **Aiming (`ASHWeaponAim`):** hold RMB/LT with a rifle, pistol or bow. The body turns to face the camera (Invector strafe, restored on release) and the aim pose plays. The held weapon lines up on the crosshair.
 - **Rifle and pistol:** LMB fires (hip fire optional). Each shot spends one round from the pack (empty = "Click"), raycasts from the camera (nudging rigidbodies), shows a muzzle flash, plays the shot pose, kicks the camera (`ASHCameraKick`, cosmetic) and kicks the weapon.
-- **Bow:** held in the left hand (it still uses the weapon slot), arrow in the right. RMB brings the hands together: the right hand nocks the arrow and draws it back, the tip pointing at the bow. The draw fills over `drawSeconds`. LMB releases once the draw passes `minDraw01`. Launch speed runs from `arrowSpeedMin` to `arrowSpeedMax` with the draw.
+- **Bow:** held in the left hand (it still uses the weapon slot), arrow in the right. RMB brings the hands together: the right hand nocks the arrow and draws it back, the tip pointing at the bow. The right arm pulls back by `bowDrawLength` (right-arm IK, `bowDrawIKWeight`, `bowDrawElbowHint`) as the draw fills over `drawSeconds`, and holds full draw (`bowAimHoldNormalized`) until RMB is released. After a shot it re-draws while RMB stays down. LMB releases once the draw passes `minDraw01`. Launch speed runs from `arrowSpeedMin` to `arrowSpeedMax` with the draw.
 - **Arrows (`ASHArrow`):** gravity × `arrowGravityScale`, drag, nose follows the velocity, swept raycast. They stick into what they hit (parenting to moving objects) and become a Wooden Arrow pickup (`recoverArrows`, `arrowRecoverChance`). They are removed after `arrowStuckLifeSeconds`, capped at `maxStuckArrows`. Equipping the bow drops a hand light (it needs both hands).
 - **Chopping (`ASHChopAnimator`):** holding Interact on a tree, log or stump plays the axe swing, time-locked to the hold, so the axe lands on the hit (`impactNormalized`) and the chop sound plays there. The player faces the target, movement is locked during the swing, and the hatchet appears in the right hand (the previous item comes back afterwards). `swingSpeed` scales the hold per hit.
 - Tunables live on `ASH_Player`, on `ASHWeaponAim`, `ASHChopAnimator` and `ASHActionLayer`.
+
+## Held items are placed by hand on the player (edit mode)
+Like the Genesis Drawn_ slots, every held weapon and item is a child of `ASH_Player.prefab`, inactive by default:
+
+| Child | Bone path (under the rig) |
+|---|---|
+| Held_HuntingRifle, Held_Pistol, Held_Hatchet, Held_HandArrow | `…/mixamorig:Spine2/mixamorig:RightShoulder/mixamorig:RightArm/mixamorig:RightForeArm/mixamorig:RightHand` |
+| Held_WoodenBow, Held_Torch, Held_Flashlight | `…/mixamorig:Spine2/mixamorig:LeftShoulder/mixamorig:LeftArm/mixamorig:LeftForeArm/mixamorig:LeftHand` |
+| Holder_Hip / Held_Lantern | `…/Armature/mixamorig:Hips/Holder_Hip` |
+
+All under `ASH_Player/3D Model/rugged_male_character_3d_model/Armature/mixamorig:Hips/mixamorig:Spine/mixamorig:Spine1/` (the hip holder sits directly under `mixamorig:Hips`).
+
+- **To adjust:** open the prefab, enable a child, move, rotate and scale it, then disable it again (leaving it enabled is fine: the game hides everything at Start), and save the prefab. What you set is what the game shows. Edit mode shows the rig's rest pose, so check in Play.
+- **At runtime:** items are only switched on and off on equip. Their transforms are never written. Aim alignment, recoil and the torch-upright pose turn the hand/forearm **bones** after animation instead (`itemAlignWeight` 0 on `ASHWeaponAim`/`ASHLightAim` shows exactly your placement). The drawn arrow is a runtime copy: `Held_HandArrow` is the rest pose. The lantern swing rotates `Holder_Hip` around its authored pose (`hipSwing` off = rigid).
+- **`ASH/Build/Held Items On Player`** (also run by Survival Pack build 1) only ADDS missing children. It never moves, re-scales, re-parents or replaces existing ones. New children start at the runtime grip captured by `ASHHeldCapture` (`Library/ASH_HeldCapture.txt`), else the item's grip fields. They are unpacked copies, so rebuilding the Held/ prefabs never moves them.
+- `ASH/Build/2. Player Prefab` refuses to rebuild while hand-placed held items exist.
+- An item with no pre-placed child still works (spawned at its item grip) and logs a warning.
 
 ## Hotbar and cross bar (`ASHHud`, `ASHInventory`)
 - **Hotbar** (bottom centre, keys 1–6): the pack's top row; holds anything (pickups, tools, weapons).

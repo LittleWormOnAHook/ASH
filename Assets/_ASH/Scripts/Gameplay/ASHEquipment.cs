@@ -8,8 +8,12 @@ using UnityEngine;
 namespace ASH.Gameplay
 {
     /// <summary>
-    /// What the player carries ready: a main-hand item (rifle, pistol, bow, hatchet), an off-hand light in the LEFT hand
-    /// (torch, flashlight) and a lantern hung from the LEFT HIP (smaller, spring swing). Spawns held prefabs, runs light
+    /// What the player carries ready: a main-hand item (rifle, pistol, hatchet; the bow sits in the LEFT hand), an off-hand light
+    /// in the LEFT hand (torch, flashlight) and a lantern hung from the LEFT HIP.
+    /// Held visuals are PRE-PLACED on ASH_Player in edit mode (like Genesis Drawn_ slots): "Held_&lt;Item&gt;" children under the hand
+    /// bones and "Holder_Hip/Held_Lantern" under Hips (ASH/Build/Held Items On Player adds missing ones, never moves placed ones).
+    /// At runtime they are only switched on/off (all forced off at Start); their transforms are never written. An item with no
+    /// pre-placed child falls back to spawning at its item grip (with a warning). Runs light
     /// fuel/burn time and a stub weapon use (Primary spends one round/arrow; no combat system). Fuel is remembered per
     /// item type across unequips. Light key (L): toggles the hand light, else the hip lantern, else readies the first carried light.
     /// Arm raise/aim (RMB) for hand lights: ASHLightAim.
@@ -24,7 +28,9 @@ namespace ASH.Gameplay
         [Tooltip("Muzzle flash light length for the stub weapon use (seconds).")]
         [Range(0f, 0.3f)] public float muzzleFlashSeconds = 0.06f;
 
-        [Header("Lantern on the left hip")]
+        [Header("Lantern on the left hip (fallback spawn uses hipOffset/hipScale; pre-placed Holder_Hip is authored by hand)")]
+        [Tooltip("Pre-placed lantern: swing by rotating Holder_Hip around its authored pose (the lantern itself is never moved).")]
+        public bool hipSwing = true;
         [Tooltip("Hook position from the hips bone in character space (x right, y up, z forward; metres).")]
         public Vector3 hipOffset = new Vector3(-0.19f, -0.06f, 0.03f);
         [Range(0.2f, 1.5f)] public float hipScale = 0.6f;
@@ -50,6 +56,16 @@ namespace ASH.Gameplay
         public event Action<string> Message;
         public event Action Changed;
 
+        public const string HeldPrefix = "Held_", HipHolderName = "Holder_Hip", HandArrowName = "Held_HandArrow";
+        /// <summary>Name of an item's pre-placed child: Held_ + item asset name without "ASH_Item_" (Held_WoodenBow, Held_Hatchet...).</summary>
+        public static string HeldName(ASHItemDefinition item) => item == null ? "" : HeldPrefix + (item.name.StartsWith("ASH_Item_") ? item.name.Substring(9) : item.name);
+        readonly Dictionary<string, GameObject> _placedByName = new Dictionary<string, GameObject>();
+        Transform _hipHolder; Quaternion _hipHolderRot; bool _mainPlaced, _offPlaced, _hipPlaced;
+        /// <summary>Pre-placed held child by name (e.g. Held_HandArrow), or null.</summary>
+        public GameObject Placed(string name) => name != null && _placedByName.TryGetValue(name.ToLowerInvariant(), out var g) && g ? g : null;
+        public GameObject Placed(ASHItemDefinition item) => Placed(HeldName(item)) ?? (item ? Placed(HeldPrefix + item.itemId) : null);
+        public int PlacedCount => _placedByName.Count;
+        public IEnumerable<GameObject> AllPlaced => _placedByName.Values;
         GameObject _mainGo, _offGo, _hipGo; Transform _hipPivot; ASHLightSource _offLight, _hipLight; ASHPlacer _placer;
         Light _flash; float _flashUntil;
         Vector3 _hipLastPos, _hipVel, _hipDown = Vector3.down, _hipAngVel; bool _hipInit;
@@ -67,6 +83,25 @@ namespace ASH.Gameplay
             if (animator && !animator.GetComponent<ASHWeaponAim>()) animator.gameObject.AddComponent<ASHWeaponAim>();
             if (animator && !animator.GetComponent<ASHChopAnimator>()) animator.gameObject.AddComponent<ASHChopAnimator>();
             _weaponAim = animator ? animator.GetComponent<ASHWeaponAim>() : null;
+            IndexPlaced();
+        }
+
+        void IndexPlaced()
+        {
+            _placedByName.Clear();
+            foreach (var t in GetComponentsInChildren<Transform>(true))
+            {
+                if (t.name == HipHolderName) { _hipHolder = t; _hipHolderRot = t.localRotation; continue; }
+                if (!t.name.StartsWith(HeldPrefix)) continue;
+                _placedByName[t.name.ToLowerInvariant()] = t.gameObject;
+                foreach (var c in t.GetComponentsInChildren<Collider>(true)) c.enabled = false;
+            }
+        }
+
+        /// <summary>Everything pre-placed starts hidden, even if left enabled in the saved prefab; equipped ones stay on.</summary>
+        void Start()
+        {
+            foreach (var g in _placedByName.Values) if (g && g != _mainGo && g != _offGo && g != _hipGo && !(_weaponAim && g == _weaponAim.HandArrow)) g.SetActive(false);
         }
         void OnEnable() { if (inventory) inventory.Changed += Validate; }
         void OnDisable() { if (inventory) inventory.Changed -= Validate; }
@@ -89,9 +124,9 @@ namespace ASH.Gameplay
             if (item.equipSlot == ASHEquipSlot.OffHand && IsBow(Main)) Unequip(ASHEquipSlot.MainHand);
             switch (item.equipSlot)
             {
-                case ASHEquipSlot.MainHand: Main = item; _mainGo = SpawnInHand(item); break;
-                case ASHEquipSlot.OffHand: Off = item; _offGo = SpawnInHand(item); _offLight = _offGo ? _offGo.GetComponentInChildren<ASHLightSource>(true) : null; break;
-                case ASHEquipSlot.Hip: Hip = item; _hipGo = SpawnOnHip(item); _hipLight = _hipGo ? _hipGo.GetComponentInChildren<ASHLightSource>(true) : null; break;
+                case ASHEquipSlot.MainHand: Main = item; _mainGo = Show(item, out _mainPlaced); break;
+                case ASHEquipSlot.OffHand: Off = item; _offGo = Show(item, out _offPlaced); _offLight = _offGo ? _offGo.GetComponentInChildren<ASHLightSource>(true) : null; break;
+                case ASHEquipSlot.Hip: Hip = item; _hipGo = ShowHip(item); _hipLight = _hipGo ? _hipGo.GetComponentInChildren<ASHLightSource>(true) : null; break;
             }
             Say((item.equipSlot == ASHEquipSlot.Hip ? "Hung " : "Holding ") + item.displayName);
             if (item.IsLightSource) SetLight(item, true);
@@ -103,12 +138,34 @@ namespace ASH.Gameplay
         {
             switch (slot)
             {
-                case ASHEquipSlot.MainHand: if (_mainGo) Destroy(_mainGo); _mainGo = null; Main = null; break;
-                case ASHEquipSlot.OffHand: if (_offGo) Destroy(_offGo); _offGo = null; _offLight = null; Off = null; break;
-                case ASHEquipSlot.Hip: if (_hipPivot) Destroy(_hipPivot.gameObject); _hipPivot = null; _hipGo = null; _hipLight = null; Hip = null; break;
+                case ASHEquipSlot.MainHand: Hide(_mainGo, _mainPlaced); _mainGo = null; _mainPlaced = false; Main = null; break;
+                case ASHEquipSlot.OffHand: if (_offLight && _offPlaced) _offLight.SetOn(false); Hide(_offGo, _offPlaced); _offGo = null; _offPlaced = false; _offLight = null; Off = null; break;
+                case ASHEquipSlot.Hip:
+                    if (_hipPlaced) { if (_hipLight) _hipLight.SetOn(false); Hide(_hipGo, true); if (_hipHolder) _hipHolder.localRotation = _hipHolderRot; }
+                    else if (_hipPivot) Destroy(_hipPivot.gameObject);
+                    _hipPivot = null; _hipGo = null; _hipPlaced = false; _hipLight = null; Hip = null; break;
             }
             Changed?.Invoke();
         }
+
+        GameObject Show(ASHItemDefinition item, out bool placed)
+        {
+            var g = Placed(item); placed = g != null;
+            if (g) { g.SetActive(true); return g; }
+            Debug.LogWarning($"[ASH] Equipment: no pre-placed {HeldName(item)} on the player; spawning {item.displayName} at its item grip. Run ASH/Build/Held Items On Player to add it, then place it by hand.");
+            return SpawnInHand(item);
+        }
+
+        GameObject ShowHip(ASHItemDefinition item)
+        {
+            var g = Placed(item);
+            if (g) { _hipPlaced = true; g.SetActive(true); _hipInit = false; return g; }
+            _hipPlaced = false;
+            Debug.LogWarning($"[ASH] Equipment: no pre-placed {HeldName(item)} on the player; spawning {item.displayName} on the hip. Run ASH/Build/Held Items On Player to add it, then place it by hand.");
+            return SpawnOnHip(item);
+        }
+
+        static void Hide(GameObject g, bool placed) { if (!g) return; if (placed) g.SetActive(false); else Destroy(g); }
 
         GameObject SpawnInHand(ASHItemDefinition item)
         {
@@ -162,8 +219,9 @@ namespace ASH.Gameplay
         /// <summary>Hook follows the hip; the lantern hangs world-down on a damped spring pushed by the hip's acceleration.</summary>
         void HipUpdate(float dt)
         {
-            if (!_hipPivot) return;
-            var p = HipAnchor();
+            bool placedSwing = _hipPlaced && hipSwing && _hipHolder && _hipHolder.parent && _hipGo && _hipGo.transform.IsChildOf(_hipHolder);
+            if (!_hipPivot && !placedSwing) return;
+            var p = placedSwing ? _hipHolder.position : HipAnchor();
             if (!_hipInit || dt <= 0f) { _hipLastPos = p; _hipVel = Vector3.zero; _hipDown = Vector3.down; _hipAngVel = Vector3.zero; _hipInit = true; }
             else
             {
@@ -175,6 +233,7 @@ namespace ASH.Gameplay
                 float ang = Vector3.Angle(Vector3.down, _hipDown);
                 if (ang > swingMaxAngle) _hipDown = Vector3.Slerp(Vector3.down, _hipDown, swingMaxAngle / ang).normalized;
             }
+            if (placedSwing) { _hipHolder.rotation = Quaternion.FromToRotation(Vector3.down, _hipDown) * (_hipHolder.parent.rotation * _hipHolderRot); return; }
             var fwd = Vector3.ProjectOnPlane(transform.forward, Vector3.up).normalized;
             _hipPivot.SetPositionAndRotation(p, Quaternion.FromToRotation(Vector3.down, _hipDown) * Quaternion.LookRotation(fwd, Vector3.up));
         }

@@ -12,8 +12,11 @@ namespace ASH.Gameplay
     ///   ASH_Action layer plays the aim pose (Invector Aiming@Rifle / Aiming@Pistol / Bow_Aiming, unmirrored: bow in the left hand).
     /// - Rifle/pistol: LMB fires (hip fire optional): one round from the pack, camera ray hit (nudges rigidbodies),
     ///   muzzle flash, Shot_* pose, camera kick + weapon kick.
-    /// - Bow (left hand) + arrow (right hand): RMB brings the hands together, the right hand nocks and draws back; LMB releases once drawn past
-    ///   minDraw01. Launch speed scales with draw time; the arrow flies under gravity (ASHArrow), sticks and can be recovered.
+    /// - Bow (left hand) + arrow (right hand): RMB brings the hands together, the right hand nocks and draws back (right-arm IK,
+    ///   bowDrawLength) and HOLDS full draw until RMB is released; LMB releases once drawn past minDraw01. Launch speed scales with draw time; the arrow flies under gravity (ASHArrow), sticks and can be recovered.
+    /// Held visuals are hand-placed on the player prefab and never moved: aim alignment and recoil rotate the hand/forearm BONES
+    /// after animation (re-posed by the Animator every frame, so nothing accumulates); the drawn arrow is a separate runtime copy
+    /// (the authored Held_HandArrow is only shown/hidden).
     /// </summary>
     [DisallowMultipleComponent]
     [DefaultExecutionOrder(1650)]
@@ -37,12 +40,24 @@ namespace ASH.Gameplay
         [Range(0f, 10f)] public float rifleCameraKick = 2.4f;
         [Range(0f, 10f)] public float pistolCameraKick = 1.3f;
         [Range(0f, 3f)] public float cameraKickYawJitter = 0.5f;
-        [Range(0f, 0.3f)] public float weaponKickBack = 0.06f;
+        [Tooltip("Recoil: hand pitch in degrees (applied to the hand bone, the weapon follows).")]
         [Range(0f, 30f)] public float weaponKickPitch = 9f;
+        [Tooltip("Recoil share applied to the forearm bone (lifts the hand back).")]
+        [Range(0f, 1f)] public float forearmKick = 0.4f;
         [Range(1f, 40f)] public float weaponKickRecover = 12f;
 
         [Header("Bow")]
         [Range(0.1f, 4f)] public float drawSeconds = 0.9f;
+        [Tooltip("How far the right (string) hand pulls back from the bow hand at full draw, metres along the aim.")]
+        [Range(0.1f, 1f)] public float bowDrawLength = 0.62f;
+        [Tooltip("Right-arm draw IK weight (0 = clip only).")]
+        [Range(0f, 1f)] public float bowDrawIKWeight = 1f;
+        [Range(-0.3f, 0.3f)] public float bowDrawRaise = 0.04f;
+        [Tooltip("Right elbow hint from the right shoulder, character space (x right, y up, z forward).")]
+        public Vector3 bowDrawElbowHint = new Vector3(0.45f, 0.05f, -0.4f);
+        [Tooltip("BowAim clip time at no draw / at full draw (held there until RMB is released).")]
+        [Range(0f, 1f)] public float bowAimStartNormalized = 0f;
+        [Range(0f, 1f)] public float bowAimHoldNormalized = 0.95f;
         [Range(0f, 1f)] public float minDraw01 = 0.2f;
         [Range(1f, 120f)] public float arrowSpeedMin = 16f;
         [Range(1f, 150f)] public float arrowSpeedMax = 55f;
@@ -55,7 +70,7 @@ namespace ASH.Gameplay
         [Tooltip("Arrow visual: nock at the origin, tip along +Z (built by Survival Pack tools).")]
         public GameObject arrowPrefab;
         public bool flipArrowVisual;
-        [Tooltip("Arrow in the left hand while not aiming, relative to the hand bone.")]
+        [Tooltip("Fallback only (no pre-placed Held_HandArrow): arrow rest pose relative to the right hand bone.")]
         public Vector3 arrowIdleOffset = new Vector3(0f, 0.02f, 0.03f);
         public Vector3 arrowIdleEuler = new Vector3(0f, 0f, 0f);
         [Range(0f, 1f)] public float bowShotHoldSeconds = 0.35f;
@@ -65,11 +80,14 @@ namespace ASH.Gameplay
         public Kind Current { get; private set; }
         public int Shots { get; private set; }
         public RaycastHit? LastHit { get; private set; }
-        public GameObject HandArrow => _handArrow;
+        /// <summary>The arrow currently shown in the right hand: the runtime nock arrow while drawing, else the authored rest arrow.</summary>
+        public GameObject HandArrow => _nockArrow && _nockArrow.activeSelf ? _nockArrow : _restArrow;
+        public GameObject RestArrow => _restArrow;
+        public bool RestArrowPlaced => _restPlaced;
         public float KickAmount => _kick;
 
         Animator _anim; ASHEquipment _eq; ASHInput _in; ASHInventory _inv; vThirdPersonController _cc; ASHActionLayer _layer; Camera _cam;
-        GameObject _handArrow; GameObject _mainVisual; Quaternion _mainLocalRot; Vector3 _mainLocalPos;
+        GameObject _restArrow, _nockArrow; bool _restPlaced, _arrowShown, _warnedArrow; Vector3 _aimDir = Vector3.forward;
         float _kick, _nextFire, _shotUntil;
         vThirdPersonMotor.LocomotionType _sLoco; bool _sStrafe, _sRotCam; float _sRotSpeed; bool _saved;
 
@@ -100,7 +118,8 @@ namespace ASH.Gameplay
             Draw01 = Aiming && Current == Kind.Bow && HasArrows ? Mathf.Min(1f, Draw01 + Time.deltaTime / Mathf.Max(0.05f, drawSeconds)) : 0f;
 
             if (Time.time < _shotUntil) { }
-            else if (Aiming) _layer.Play(Current == Kind.Bow ? "BowAim" : Current == Kind.Pistol ? "PistolAim" : "RifleAim", 0.2f);
+            else if (Aiming && Current == Kind.Bow) _layer.PlayAt("BowAim", Mathf.Lerp(bowAimStartNormalized, bowAimHoldNormalized, Draw01)); // holds full draw
+            else if (Aiming) _layer.Play(Current == Kind.Pistol ? "PistolAim" : "RifleAim", 0.2f);
             else if (_layer.State == "BowAim" || _layer.State == "RifleAim" || _layer.State == "PistolAim" || _layer.State == "BowShot" || _layer.State == "RifleShot" || _layer.State == "PistolShot") _layer.Release();
 
             _kick = Mathf.Lerp(_kick, 0f, 1f - Mathf.Exp(-weaponKickRecover * Time.deltaTime));
@@ -125,7 +144,13 @@ namespace ASH.Gameplay
             }
         }
 
-        void OnDisable() { if (Aiming) SetAim(false); if (_handArrow) Destroy(_handArrow); }
+        void OnDisable()
+        {
+            if (Aiming) SetAim(false);
+            if (_nockArrow) Destroy(_nockArrow);
+            if (_restArrow) { if (_restPlaced) _restArrow.SetActive(false); else Destroy(_restArrow); }
+            _restArrow = null; _restPlaced = false;
+        }
 
         /// <summary>Crosshair target: camera ray against the world (player ignored).</summary>
         public Vector3 AimPoint(out RaycastHit? hit)
@@ -166,7 +191,7 @@ namespace ASH.Gameplay
             if (!HasArrows) { _eq.Say("No arrows"); return false; }
             if (Draw01 < minDraw01) return false;
             if (!_inv.Remove(ammo, 1)) return false;
-            var origin = _handArrow ? _handArrow.transform.position : _anim.GetBoneTransform(HumanBodyBones.RightHand).position;
+            var ha = HandArrow; var origin = ha ? ha.transform.position : _anim.GetBoneTransform(HumanBodyBones.RightHand).position;
             var target = AimPoint(out var hit); LastHit = hit;
             var dir = (target - origin); if (dir.sqrMagnitude < 0.01f) dir = Cam ? Cam.transform.forward : Root.forward; dir.Normalize();
             float speed = Mathf.Lerp(arrowSpeedMin, arrowSpeedMax, Draw01);
@@ -195,49 +220,84 @@ namespace ASH.Gameplay
 
         void UpdateHandArrow()
         {
-            bool show = Current == Kind.Bow && HasArrows && !(Time.time < _shotUntil && Current == Kind.Bow && Draw01 < 0.05f);
-            var lh = _anim ? _anim.GetBoneTransform(HumanBodyBones.RightHand) : null;
-            if (!show || !lh) { if (_handArrow) _handArrow.SetActive(false); return; }
-            if (!_handArrow) { _handArrow = MakeArrowVisual("ASH_HandArrow"); _handArrow.transform.SetParent(lh, false); }
-            _handArrow.SetActive(true);
+            _arrowShown = Current == Kind.Bow && HasArrows && !(Time.time < _shotUntil && Draw01 < 0.05f);
+            var rh = _anim ? _anim.GetBoneTransform(HumanBodyBones.RightHand) : null;
+            if (!_restArrow && _eq) { var placed = _eq.Placed(ASHEquipment.HandArrowName); if (placed) { _restArrow = placed; _restPlaced = true; } }
+            if (_arrowShown && !_restArrow && rh)
+            {
+                if (!_warnedArrow) { _warnedArrow = true; Debug.LogWarning("[ASH] WeaponAim: no pre-placed Held_HandArrow on the player; spawning one. Run ASH/Build/Held Items On Player, then place it by hand."); }
+                _restArrow = MakeArrowVisual("ASH_HandArrow"); _restArrow.transform.SetParent(rh, false);
+                _restArrow.transform.localPosition = arrowIdleOffset; _restArrow.transform.localRotation = Quaternion.Euler(arrowIdleEuler); _restPlaced = false;
+            }
+            if (!_arrowShown) { if (_restArrow && _restArrow.activeSelf) _restArrow.SetActive(false); if (_nockArrow) _nockArrow.SetActive(false); }
+        }
+
+        /// <summary>Right arm draws the string: hand goes from the bow hand back along the aim by bowDrawLength x draw.</summary>
+        void OnAnimatorIK(int layerIndex)
+        {
+            if (layerIndex != 0 || !_anim || !_anim.isHuman || !Aiming || Current != Kind.Bow) return;
+            float w = (_layer && _layer.Valid ? _layer.Weight : 1f) * bowDrawIKWeight;
+            if (w <= 0.001f) return;
+            var bowHand = _anim.GetBoneTransform(HumanBodyBones.LeftHand); var sh = _anim.GetBoneTransform(HumanBodyBones.RightUpperArm);
+            if (!bowHand || !sh) return;
+            var aim = Cam ? Cam.transform.forward : Root.forward;
+            var goal = bowHand.position - aim * (bowDrawLength * Mathf.Lerp(0.15f, 1f, Draw01)) + Vector3.up * bowDrawRaise;
+            _anim.SetIKPositionWeight(AvatarIKGoal.RightHand, w); _anim.SetIKPosition(AvatarIKGoal.RightHand, goal);
+            _anim.SetIKHintPositionWeight(AvatarIKHint.RightElbow, w); _anim.SetIKHintPosition(AvatarIKHint.RightElbow, sh.position + Root.TransformDirection(bowDrawElbowHint));
         }
 
         void LateUpdate()
         {
             var v = _eq ? _eq.MainVisual : null;
-            if (v != _mainVisual) { _mainVisual = v; if (v) { _mainLocalRot = v.transform.localRotation; _mainLocalPos = v.transform.localPosition; } }
             float w = _layer && _layer.Valid ? _layer.Weight : (Aiming ? 1f : 0f);
-            if (v && v.transform.parent)
+            if (v && v.activeInHierarchy && _anim && _anim.isHuman)
             {
-                var t = v.transform; var p = t.parent;
-                Quaternion attached = p.rotation * _mainLocalRot; Vector3 attachedPos = p.TransformPoint(_mainLocalPos);
-                Quaternion rot = attached;
-                float k = (Aiming ? w : 0f) * itemAlignWeight;
-                if (k > 0.001f)
+                bool left = ASHEquipment.InLeftHand(_eq.Main);
+                var hand = _anim.GetBoneTransform(left ? HumanBodyBones.LeftHand : HumanBodyBones.RightHand);
+                var fore = _anim.GetBoneTransform(left ? HumanBodyBones.LeftLowerArm : HumanBodyBones.RightLowerArm);
+                if (hand && v.transform.IsChildOf(hand))
                 {
-                    var aim = (AimPoint(out _) - attachedPos).normalized;
-                    Quaternion desired = Current == Kind.Bow
-                        ? Quaternion.LookRotation(Quaternion.AngleAxis(-bowTiltDeg, Vector3.Cross(Vector3.up, aim).normalized) * Vector3.up, aim) * Quaternion.Euler(bowAimEuler)
-                        : Quaternion.LookRotation(aim, Vector3.up) * Quaternion.Euler(gunAimEuler);
-                    rot = Quaternion.Slerp(attached, desired, k);
+                    // recoil: forearm then hand pitch (bones only; the Animator re-poses them next frame)
+                    if (_kick > 0.001f)
+                    {
+                        var axis = Root.right;
+                        if (fore && forearmKick > 0f) fore.rotation = Quaternion.AngleAxis(-weaponKickPitch * forearmKick * _kick, axis) * fore.rotation;
+                        hand.rotation = Quaternion.AngleAxis(-weaponKickPitch * _kick, axis) * hand.rotation;
+                    }
+                    // aim alignment: turn the hand so the hand-placed weapon lines up on the crosshair (delta on the authored pose)
+                    float k = (Aiming ? w : 0f) * itemAlignWeight;
+                    if (k > 0.001f)
+                    {
+                        var cur = v.transform.rotation; var pos = v.transform.position;
+                        _aimDir = (AimPoint(out _) - pos).normalized;
+                        Quaternion desired = Current == Kind.Bow
+                            ? Quaternion.LookRotation(Quaternion.AngleAxis(-bowTiltDeg, Vector3.Cross(Vector3.up, _aimDir).normalized) * Vector3.up, _aimDir) * Quaternion.Euler(bowAimEuler)
+                            : Quaternion.LookRotation(_aimDir, Vector3.up) * Quaternion.Euler(gunAimEuler);
+                        hand.rotation = Quaternion.Slerp(Quaternion.identity, desired * Quaternion.Inverse(cur), k) * hand.rotation;
+                    }
                 }
-                if (_kick > 0.001f) rot = rot * Quaternion.Euler(-weaponKickPitch * _kick, 0f, 0f);
-                t.rotation = rot;
-                t.position = attachedPos - (rot * Vector3.forward) * (weaponKickBack * _kick);
             }
-            // arrow: idle in the right hand; while aiming the nock rides the right (string) hand and the tip points at the bow
-            if (_handArrow && _handArrow.activeSelf)
+            // arrow: authored rest arrow while idle; while drawing a runtime copy rides the right (string) hand, tip at the bow
+            if (_arrowShown && _restArrow)
             {
-                var lh = _handArrow.transform.parent;
-                if (Aiming && v)
+                float n = Aiming && v ? Mathf.Clamp01(w) : 0f;
+                var rh = _anim ? _anim.GetBoneTransform(HumanBodyBones.RightHand) : null;
+                if (n > 0.01f && rh)
                 {
+                    if (!_nockArrow) _nockArrow = MakeArrowVisual("ASH_NockArrow");
+                    var rest = _restArrow.transform;
+                    if (_restArrow.activeSelf) _restArrow.SetActive(false);
+                    _nockArrow.SetActive(true);
                     var bow = v.transform.position;
-                    float n = Mathf.Clamp01(w);
-                    var idleRot = lh.rotation * Quaternion.Euler(arrowIdleEuler); var idlePos = lh.TransformPoint(arrowIdleOffset);
-                    var nockRot = Quaternion.LookRotation((bow - lh.position).sqrMagnitude > 1e-4f ? bow - lh.position : Root.forward, Vector3.up);
-                    _handArrow.transform.SetPositionAndRotation(Vector3.Lerp(idlePos, lh.position, n), Quaternion.Slerp(idleRot, nockRot, n));
+                    var nockRot = Quaternion.LookRotation((bow - rh.position).sqrMagnitude > 1e-4f ? bow - rh.position : Root.forward, Vector3.up);
+                    _nockArrow.transform.localScale = rest.lossyScale;
+                    _nockArrow.transform.SetPositionAndRotation(Vector3.Lerp(rest.position, rh.position, n), Quaternion.Slerp(rest.rotation, nockRot, n));
                 }
-                else { _handArrow.transform.localPosition = arrowIdleOffset; _handArrow.transform.localRotation = Quaternion.Euler(arrowIdleEuler); }
+                else
+                {
+                    if (_nockArrow && _nockArrow.activeSelf) _nockArrow.SetActive(false);
+                    if (!_restArrow.activeSelf) _restArrow.SetActive(true);
+                }
             }
         }
     }
