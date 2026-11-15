@@ -14,6 +14,22 @@ namespace ASH.EditorTools
     {
         const string ShaderPath = "Assets/_ASH/Shaders/Rendering/ASH_VolumetricFog.shader";
 
+        [MenuItem("GameObject/ASH/Volumetric Fog Area", false, 10)]
+        static void CreateArea(MenuCommand cmd)
+        {
+            var go = new GameObject("ASH Fog Area");
+            var box = go.AddComponent<BoxCollider>(); box.isTrigger = true; box.size = new Vector3(20f, 6f, 20f); box.center = new Vector3(0f, 3f, 0f);
+            go.AddComponent<ASHFogArea>();
+            GameObjectUtility.SetParentAndAlign(go, cmd.context as GameObject);
+            if (!(cmd.context is GameObject) && SceneView.lastActiveSceneView)
+            {
+                var piv = SceneView.lastActiveSceneView.pivot; var t = Terrain.activeTerrain;
+                if (t) piv.y = t.SampleHeight(piv) + t.GetPosition().y;
+                go.transform.position = piv;
+            }
+            Undo.RegisterCreatedObjectUndo(go, "Create ASH Fog Area"); Selection.activeObject = go;
+        }
+
         [MenuItem("ASH/Rendering/Install Volumetric Fog")]
         public static void Install()
         {

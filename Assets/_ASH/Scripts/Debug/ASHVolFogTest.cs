@@ -18,6 +18,11 @@ namespace ASH.DebugTools
             var v = VolumeManager.instance.stack.GetComponent<ASHVolumetricFog>();
             bool active = v != null && v.IsActive();
             var rm = Recorder.Get("ASH VolFog March"); var rc = Recorder.Get("ASH VolFog Composite"); rm.enabled = true; rc.enabled = true;
+            // one temporary local fog area 8 m ahead of the camera (removed at the end)
+            var cam = Camera.main; var areaGo = new GameObject("ASH_TestFogArea");
+            if (cam) areaGo.transform.position = cam.transform.position + cam.transform.forward * 8f;
+            var bc = areaGo.AddComponent<BoxCollider>(); bc.isTrigger = true; bc.size = new Vector3(6f, 4f, 6f);
+            var area = areaGo.AddComponent<ASHFogArea>(); area.localDensity = 0.15f; area.edgeFalloff = 1f;
             yield return new WaitForSeconds(2f);
             float gm = 0, gc = 0, ft = 0; int n = 0;
             for (int i = 0; i < 90; i++) { yield return null; if (i < 10) continue; gm += rm.gpuElapsedNanoseconds / 1e6f; gc += rc.gpuElapsedNanoseconds / 1e6f; ft += Time.unscaledDeltaTime * 1000f; n++; }
@@ -36,8 +41,8 @@ namespace ASH.DebugTools
             File.WriteAllBytes(Path.Combine(dir, "volfog_on.png"), on.EncodeToPNG()); File.WriteAllBytes(Path.Combine(dir, "volfog_off.png"), off.EncodeToPNG());
             v.Resolve(out int steps, out bool half);
             bool renders = active && diff > 0.004; bool cheap = gm + gc < 3.0f || (gm + gc == 0 && ft - ft2 < 3f);
-            Debug.Log($"[ASH] VOLFOG SUMMARY {(renders && nan == 0 ? "PASS" : "FAIL")} active={active} meanDiff={diff:F4} nan={nan} gpu march={gm:F2}ms composite={gc:F2}ms frame on={ft:F1}ms off={ft2:F1}ms steps={steps} half={half} cost={(cheap ? "ok" : "HIGH")} res={on.width}x{on.height}");
-            Destroy(on); Destroy(off); rm.enabled = false; rc.enabled = false; Destroy(gameObject);
+            Debug.Log($"[ASH] VOLFOG SUMMARY {(renders && nan == 0 ? "PASS" : "FAIL")} active={active} meanDiff={diff:F4} nan={nan} gpu march={gm:F2}ms composite={gc:F2}ms frame on={ft:F1}ms off={ft2:F1}ms steps={steps} half={half} areas={ASHFogArea.Active.Count} cost={(cheap ? "ok" : "HIGH")} res={on.width}x{on.height}");
+            Destroy(areaGo); Destroy(on); Destroy(off); rm.enabled = false; rc.enabled = false; Destroy(gameObject);
         }
     }
 }
