@@ -55,7 +55,7 @@ namespace ASH.Gameplay
         readonly List<Objective> _objectives = new List<Objective>(); int _order; Objective _slice;
         /// <summary>All objectives: active (newest first), then completed (newest first).</summary>
         public IEnumerable<Objective> Objectives { get { foreach (var o in Sorted()) yield return o; } }
-        List<Objective> Sorted() { EnsureSlice(); var l = new List<Objective>(_objectives); l.Sort((x, y) => x.Completed != y.Completed ? (x.Completed ? 1 : -1) : y.Order.CompareTo(x.Order)); return l; }
+        List<Objective> Sorted() { EnsureSlice(); var l = new List<Objective>(_objectives); if (SliceHeld) l.Remove(_slice); l.Sort((x, y) => x.Completed != y.Completed ? (x.Completed ? 1 : -1) : y.Order.CompareTo(x.Order)); return l; }
         /// <summary>Id of the objective the player picked in the journal (null = automatic: newest active).</summary>
         public string TrackedId { get; private set; }
         public bool PlayerPicked { get; private set; }
@@ -78,9 +78,9 @@ namespace ASH.Gameplay
                 EnsureSlice(); _slice.Title = SliceTitle(); _slice.Completed = Current == Stage.Complete;
                 var t = TrackedId != null ? Find(TrackedId) : null;
                 if (t != null && !t.Completed) return t;
-                Objective best = null; foreach (var o in _objectives) if (!o.Completed && (best == null || o.Order > best.Order)) best = o;
-                if (best == null) best = t ?? _slice;
-                if (t != null && t.Completed && best != t) { TrackedId = best.Id; TrackedChanged?.Invoke(TrackedId); } // tracked one finished: follow the next active one
+                Objective best = null; foreach (var o in _objectives) if (!o.Completed && !(SliceHeld && o == _slice) && (best == null || o.Order > best.Order)) best = o;
+                if (best == null) best = t ?? (SliceHeld ? _none : _slice);
+                if (t != null && t.Completed && best != t && best != _none) { TrackedId = best.Id; TrackedChanged?.Invoke(TrackedId); } // tracked one finished: follow the next active one
                 return best;
             }
         }
@@ -112,6 +112,21 @@ namespace ASH.Gameplay
         // ---- priority objective (story beats such as the Phase 2A opening take the HUD focus while active)
         /// <summary>Set before Start (e.g. by the opening sequence) to hold back the intro toast; ReplayIntro() shows it later.</summary>
         public static bool HoldIntroMessage;
+        /// <summary>The slice chain ("Get your bearings" ...) has not started yet: set by the Phase 2A opening (ASHEruptionSequence)
+        /// until it reaches Done, which is also when "Secure the cabin" ends. While held the slice is hidden from the HUD and the
+        /// journal and does not progress. StartSlice() releases it (and the intro toast) and gives it the HUD focus.</summary>
+        public static bool HoldSlice;
+        static bool SliceHeld => HoldSlice;
+        readonly Objective _none = new Objective { Id = "none", Title = "" };
+        public bool SliceStarted => !HoldSlice;
+        public void StartSlice()
+        {
+            bool was = HoldSlice; HoldSlice = false;
+            EnsureSlice();
+            if (was) { _slice.Order = _order++; TrackedId = null; PlayerPicked = false; TrackedChanged?.Invoke(null); ASHLog.Info("Objective -> slice started"); }
+            if (HoldIntroMessage || was) { HoldIntroMessage = false; Message?.Invoke(IntroText()); }
+            Evaluate();
+        }
         Objective ActivePriority() { foreach (var o in _objectives) if (o.Priority && !o.Completed) return o; return null; }
         public bool HasPriority => ActivePriority() != null;
         public string PriorityTitle => ActivePriority()?.Title;
@@ -134,7 +149,7 @@ namespace ASH.Gameplay
             var o = ActivePriority(); if (o == null) return;
             Complete(o.Id, message);
         }
-        public void ReplayIntro() { HoldIntroMessage = false; Message?.Invoke(IntroText()); Changed?.Invoke(); }
+        public void ReplayIntro() { if (HoldSlice) { StartSlice(); return; } HoldIntroMessage = false; Message?.Invoke(IntroText()); Changed?.Invoke(); }
         string IntroText() => Current == Stage.Survey ? "The GPS is damaged. Climb the Redstone Camp lookout and log the viewpoint." : "Find deadwood, stones and something to eat before dark.";
 
         private void OnEnable()
@@ -156,6 +171,7 @@ namespace ASH.Gameplay
 
         private void OnSurvey(ASHSurveyPointDef d)
         {
+            if (SliceHeld) return;
             if (Current == Stage.Survey && d == firstSurvey)
             {
                 Advance(Stage.Gather, "Viewpoint logged. Now find deadwood, stones and something to eat before dark.");
@@ -165,7 +181,7 @@ namespace ASH.Gameplay
 
         private void Start()
         {
-            if (!HoldIntroMessage) Message?.Invoke(IntroText());
+            if (!HoldIntroMessage && !HoldSlice) Message?.Invoke(IntroText());
             Changed?.Invoke();
         }
 
@@ -189,6 +205,7 @@ namespace ASH.Gameplay
 
         private void Update()
         {
+            if (SliceHeld) return;
             if (Current == Stage.Travel && player && overlook && Flat(player.position, overlook.position) <= overlookRadius)
             {
                 _reached = true; Evaluate();
@@ -197,6 +214,7 @@ namespace ASH.Gameplay
 
         private void Evaluate()
         {
+            if (SliceHeld) { Changed?.Invoke(); return; }
             var before = Current;
             if (Current == Stage.Survey) { if (before == Current) Changed?.Invoke(); return; }
             bool gathered = true; foreach (var g in gatherGoals) if (g.collected < g.required) gathered = false;
@@ -216,7 +234,7 @@ namespace ASH.Gameplay
         /// <summary>Lines of the tracked objective (HUD).</summary>
         public IEnumerable<(string text, bool done)> Lines() => Tracked.GetLines();
         /// <summary>Number of active objectives other than the tracked one.</summary>
-        public int OtherActiveCount { get { var t = Tracked; int n = 0; foreach (var o in _objectives) if (!o.Completed && o != t) n++; return n; } }
+        public int OtherActiveCount { get { var t = Tracked; int n = 0; foreach (var o in _objectives) if (!o.Completed && o != t && !(SliceHeld && o == _slice)) n++; return n; } }
 
         string SliceTitle()
         {

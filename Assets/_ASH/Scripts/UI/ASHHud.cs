@@ -42,6 +42,7 @@ namespace ASH.UI
         Canvas _canvas;
         RectTransform _root;
         Bar _health, _stamina, _hunger, _thirst;
+        float _objRefreshAt;
         Text _prompt, _objTitle, _objLines, _clock, _placeHint, _deathText, _invDesc;
         RectTransform _holdBar, _holdFill, _reticle;
         RectTransform _toastRoot;
@@ -79,7 +80,7 @@ namespace ASH.UI
             if (inventory) { inventory.Changed += RefreshInventory; inventory.ItemAdded += OnItemAdded; }
             if (crafting) { crafting.Crafted += OnCrafted; crafting.CraftFailed += OnCraftFailed; crafting.BrokeDown += OnBrokeDown; crafting.BreakdownFailed += OnBreakFailed; }
             if (gps) gps.SurveyLogged += OnSurvey;
-            if (objective) { objective.Message += Toast; }
+            if (objective) { objective.Message += Toast; objective.Changed += ObjDirty; }
             if (stats) { stats.Died += OnDied; stats.Consumed += OnConsumed; }
             if (_equip) _equip.Message += Toast;
         }
@@ -89,11 +90,12 @@ namespace ASH.UI
             if (inventory) { inventory.Changed -= RefreshInventory; inventory.ItemAdded -= OnItemAdded; }
             if (crafting) { crafting.Crafted -= OnCrafted; crafting.CraftFailed -= OnCraftFailed; crafting.BrokeDown -= OnBrokeDown; crafting.BreakdownFailed -= OnBreakFailed; }
             if (gps) gps.SurveyLogged -= OnSurvey;
-            if (objective) { objective.Message -= Toast; }
+            if (objective) { objective.Message -= Toast; objective.Changed -= ObjDirty; }
             if (stats) { stats.Died -= OnDied; stats.Consumed -= OnConsumed; }
             if (_equip) _equip.Message -= Toast;
         }
 
+        void ObjDirty() => _objRefreshAt = 0f;
         void OnItemAdded(ASHItemDefinition i, int n) { Toast($"+{n} {i.displayName}"); PulseItem(i); }
         void OnCrafted(ASHRecipe r) { Toast("Crafted " + r.displayName + (r.outputAmount > 1 ? $" x{r.outputAmount}" : "")); }
         void OnBrokeDown(ASHItemDefinition i, string res) => Toast($"Broke down {i.displayName}: {res}");
@@ -542,9 +544,12 @@ namespace ASH.UI
             _reticle.localScale = Vector3.one * (showPrompt ? 1.6f : 1f);
 
             // objective
-            if (objective)
+            if (objective && Time.unscaledTime >= _objRefreshAt) // 5 Hz: the objective text allocates strings (was a per-frame GC source)
             {
-                _objTitle.text = objective.Title();
+                _objRefreshAt = Time.unscaledTime + 0.2f;
+                string ot = objective.Title();
+                _objTitle.transform.parent.gameObject.SetActive(!string.IsNullOrEmpty(ot)); // nothing active yet (slice waits for the opening)
+                _objTitle.text = ot;
                 var sb = new System.Text.StringBuilder();
                 foreach (var (text, done) in objective.Lines()) sb.AppendLine((done ? "<color=#9fd39b>√ " : "• ") + text + (done ? "</color>" : ""));
                 int others = objective.OtherActiveCount;

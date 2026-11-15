@@ -21,6 +21,9 @@ namespace ASH.World
         [Range(0f, 50000f)] public float particlesPerSecond = 1350f;
         [Range(100, 200000)] public int maxParticles = 30000;
         [Range(1f, 60f)] public float lifetime = 18f;
+        [Tooltip("Hard cap on live ash particles from the weather drive: the emission rate is limited to budget / lifetime (4000/s x 18 s would be 72k alive). Lower for more FPS in heavy ash.")]
+        [Range(1000, 200000)] public int weatherParticleBudget = 45000;
+        Transform _embers; bool _embersLooked;
         [Tooltip("Minimum on-screen size as a fraction of screen height, so distant flakes stay visible (0.0008 ~ 0.9 px at 1080p).")]
         [Range(0f, 0.01f)] public float minScreenSize = 0.0008f;
         [HideInInspector] public int configVersion = 0;
@@ -94,7 +97,7 @@ namespace ASH.World
 
         private void ConfigureEmbers()
         {
-            var t = transform.Find("Embers");
+            if (!_embersLooked) { _embers = transform.Find("Embers"); _embersLooked = true; } var t = _embers;
             if (emberShare <= 0f) { if (t) t.gameObject.SetActive(false); return; }
             if (t == null) return; // editor builder creates the child
             t.gameObject.SetActive(true);
@@ -131,6 +134,7 @@ namespace ASH.World
         {
             if (!_ps) _ps = GetComponent<ParticleSystem>(); if (!_ps) return;
             var main = _ps.main;
+            rate = Mathf.Min(rate, weatherParticleBudget / (Mathf.Max(1f, lifetime) * 1.1f));
             int need = Mathf.Clamp(Mathf.CeilToInt(rate * lifetime * 1.1f), 100, 200000); if (main.maxParticles < need) main.maxParticles = need;
             sizeMul = Mathf.Max(0.05f, sizeMul);
             main.startSize = new ParticleSystem.MinMaxCurve(sizeRange.x * sizeMul, sizeRange.y * sizeMul);
@@ -138,7 +142,7 @@ namespace ASH.World
             var vel = _ps.velocityOverLifetime;
             vel.x = new ParticleSystem.MinMaxCurve(windVelocity.x * 0.7f, windVelocity.x * 1.3f);
             vel.z = new ParticleSystem.MinMaxCurve(windVelocity.z * 0.7f, windVelocity.z * 1.3f);
-            var t = transform.Find("Embers");
+            if (!_embersLooked) { _embers = transform.Find("Embers"); _embersLooked = true; } var t = _embers;
             if (t && t.TryGetComponent<ParticleSystem>(out var eps)) { var e = eps.emission; e.rateOverTime = rate * emberShare; var v = eps.velocityOverLifetime; v.x = vel.x; v.z = vel.z; if (clear) eps.Clear(); }
             if (clear) _ps.Clear();
             if (rate > 0f && !_ps.isPlaying) _ps.Play(true);

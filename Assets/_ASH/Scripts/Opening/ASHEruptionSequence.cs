@@ -53,8 +53,15 @@ namespace ASH.Opening
         float _unlockTimer = -1f; public bool CabinLocked { get; private set; }
         float _t; bool _quakeStarted, _ashStarted; Vector3 _origPos; Quaternion _origRot; bool _haveOrig; vThirdPersonController _cc;
 
-        void Awake() { Instance = this; if (playOnStart) ASHObjectiveTracker.HoldIntroMessage = true; }
-        void OnDestroy() { if (Instance == this) Instance = null; ASHObjectiveTracker.HoldIntroMessage = false; }
+        void Awake() { Instance = this; if (playOnStart) { ASHObjectiveTracker.HoldIntroMessage = true; ASHObjectiveTracker.HoldSlice = true; } } // the slice ("Get your bearings") waits for the opening
+        void OnDestroy() { if (Instance == this) Instance = null; ASHObjectiveTracker.HoldIntroMessage = false; ASHObjectiveTracker.HoldSlice = false; }
+
+        /// <summary>Start the slice objectives ("Get your bearings" ...) now: opening Done (Secure the cabin has ended), suppressed, or not running.</summary>
+        void ReleaseSlice()
+        {
+            var tr = FindAnyObjectByType<ASHObjectiveTracker>();
+            if (tr) tr.StartSlice(); else { ASHObjectiveTracker.HoldSlice = false; ASHObjectiveTracker.HoldIntroMessage = false; }
+        }
 
         void Start()
         {
@@ -62,13 +69,14 @@ namespace ASH.Opening
             if (!clock) clock = FindAnyObjectByType<ASHDayNightClock>();
             _cc = FindAnyObjectByType<vThirdPersonController>();
             if (_cc) { _origPos = _cc.transform.position; _origRot = _cc.transform.rotation; _haveOrig = true; }
-            if (playOnStart && profile) Begin();
+            if (playOnStart && profile) Begin(); else ReleaseSlice();
         }
 
         // ------------------------------------------------------------------ control
         public void Begin()
         {
-            if (!profile) { Debug.LogWarning("[ASH] Opening: no profile"); return; }
+            if (!profile) { Debug.LogWarning("[ASH] Opening: no profile"); ReleaseSlice(); return; }
+            ASHObjectiveTracker.HoldSlice = true; // (re)running the opening: the slice waits for Done again
             Suppressed = false; _journalBroadcast = false; _quakeStarted = false; _ashStarted = false;
             ASHQuakeProp.ResetAll();
             if (quake) quake.Stop();
@@ -90,6 +98,7 @@ namespace ASH.Opening
         public void SkipTo(Stage s)
         {
             if (Current == Stage.Inactive || s <= Stage.Morning) { Begin(); if (s <= Stage.Morning) return; }
+            if (s < Stage.Done) ASHObjectiveTracker.HoldSlice = true; // skipping back before Done: the slice waits again (Enter(Done) releases it)
             // bring the world into the state the skipped stages would have produced
             if (s >= Stage.Broadcast && radio && s == Stage.Broadcast) radio.StartBroadcast();
             if (s > Stage.Broadcast) { JournalBroadcast(); if (radio) radio.StaticFragments(); }
@@ -150,7 +159,7 @@ namespace ASH.Opening
             var ash = FindAnyObjectByType<ASHAshFall>(); if (ash) ash.SetWeather(0f, Vector3.zero, 1f, true);
             if (_haveOrig) TeleportPlayer(_origPos, _origRot);
             var hud = FindAnyObjectByType<UI.ASHHud>(); if (hud) hud.ShowSubtitle(null, 0f);
-            ASHObjectiveTracker.HoldIntroMessage = false;
+            ReleaseSlice();
             Current = Stage.Inactive; StageChanged?.Invoke(Current);
             Debug.Log("[ASH] Opening suppressed for tests");
         }
@@ -190,8 +199,7 @@ namespace ASH.Opening
                     if (objective) objective.End(objective.AllDone ? "The first wave has passed." : "The first wave has passed. Keep preparing - more will come.");
                     if (director && profile.startSchedulerAfter) director.SetScheduler(true);
                     FogWeight(0f, profile.fogHandoffSeconds / sp);
-                    var tr = FindAnyObjectByType<ASHObjectiveTracker>(); if (tr && ASHObjectiveTracker.HoldIntroMessage) tr.ReplayIntro();
-                    ASHObjectiveTracker.HoldIntroMessage = false;
+                    ReleaseSlice(); // after objective.End above: "Secure the cabin" is over, the slice begins
                     break;
             }
         }

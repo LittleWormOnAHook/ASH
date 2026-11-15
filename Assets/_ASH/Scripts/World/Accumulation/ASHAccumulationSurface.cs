@@ -116,7 +116,7 @@ namespace ASH.World.Accumulation
             ReleaseMask(); if (_maskMat) Destroy(_maskMat); _maskMat = null; _cb?.Release(); _cb = null;
             Shader.SetGlobalVector(ID_CMR, Vector4.zero); Shader.SetGlobalVector(ID_Bank, Vector4.zero); Shader.SetGlobalVector(ID_Dust, Vector4.zero);
         }
-        void ReleaseMask() { foreach (var r in new[] { _maskRaw, _maskRow, _mask }) if (r) { r.Release(); Destroy(r); } _maskRaw = _maskRow = _mask = null; _maskRes = 0; }
+        void ReleaseMask() { foreach (var r in new[] { _maskRaw, _maskRow, _mask }) if (r) { r.Release(); Destroy(r); } _maskRaw = _maskRow = _mask = null; _maskRes = 0; _maskValid = false; _colsPending = false; }
 
         void LateUpdate()
         {
@@ -145,6 +145,7 @@ namespace ASH.World.Accumulation
             Shader.SetGlobalVector(ID_Bank2, new Vector4(bankNoiseScale, bankNoiseStrength, bankFullAtDepth, mtx));
             Shader.SetGlobalVector(ID_Dust, new Vector4(dustHeight, dustFade, dustStrength, BankOn && baseDusting ? 1f : 0f));
             if (BankOn != _builtBank) _nextBlock = 0f; // rebuild the mask when banking is toggled
+            if (_colsPending) { FinishMask(); return; } // second half of a rebuild (spread over two frames)
             if (Time.unscaledTime >= _nextBlock || MaskNeedsMove(centre)) { _nextBlock = Time.unscaledTime + blockerRefresh; RefreshBlockers(centre, t); }
         }
 
@@ -156,13 +157,26 @@ namespace ASH.World.Accumulation
 
         Mesh Prim(PrimitiveType t) { var g = GameObject.CreatePrimitive(t); var m = g.GetComponent<MeshFilter>().sharedMesh; Destroy(g); return m; }
 
+        // static part of the Clears test, cached per collider (GetComponentInParent x3 per collider every rebuild was a CPU spike)
+        struct ColInfo { public bool ok; public ASHChoppable ch; }
+        readonly Dictionary<Collider, ColInfo> _colInfo = new Dictionary<Collider, ColInfo>();
+        ColInfo Info(Collider col)
+        {
+            if (_colInfo.TryGetValue(col, out var i)) return i;
+            i.ok = !(col is TerrainCollider || col is WheelCollider || col is CharacterController);
+            if (i.ok && col.isTrigger && !(pickupTriggersClear && col.GetComponentInParent<ASHItemPickup>())) i.ok = false;
+            if (i.ok) { var an = col.GetComponentInParent<Animator>(); if (an && an.isHuman) i.ok = false; }   // characters / animals
+            if (i.ok) i.ch = col.GetComponentInParent<ASHChoppable>();
+            if (_colInfo.Count > 8192) _colInfo.Clear();
+            _colInfo[col] = i; return i;
+        }
+
         bool Clears(Collider col, Transform player, Terrain t)
         {
-            if (!col || !col.enabled || col is TerrainCollider || col is WheelCollider || col is CharacterController) return false;
+            if (!col || !col.enabled) return false;
+            var info = Info(col); if (!info.ok) return false;
             if (player && col.transform.IsChildOf(player)) return false;
-            if (col.isTrigger && !(pickupTriggersClear && col.GetComponentInParent<ASHItemPickup>())) return false;
-            var an = col.GetComponentInParent<Animator>(); if (an && an.isHuman) return false;            // characters / animals
-            var ch = col.GetComponentInParent<ASHChoppable>(); if (ch && !ch.BlocksSurface) return false;  // standing trees stay as before
+            if (info.ch && !info.ch.BlocksSurface) return false;  // standing trees stay as before
             var b = col.bounds; if (b.size.x > _maskSize || b.size.z > _maskSize) return false;           // world volumes
             float g = t.SampleHeight(b.center) + t.GetPosition().y;
             return b.min.y <= g + blockerGroundTolerance;
@@ -194,13 +208,32 @@ namespace ASH.World.Accumulation
             for (int i = 0; i < n; i++) if (Clears(_hits[i], player, t) && (!playerTag || !_hits[i].transform.IsChildOf(playerTag))) _cols.Add(_hits[i]);
             ColliderFadeCount = _cols.Count;
 
+            // only redraw when something changed (collider set, their poses, settings or the mask window)
+            bool bank = BankOn;
+            int sig = 17;
+            unchecked
+            {
+                sig = sig * 31 + _maskMin.GetHashCode(); sig = sig * 31 + res; sig = sig * 31 + (bank ? 1 : 0);
+                sig = sig * 31 + colliderFadePadding.GetHashCode(); sig = sig * 31 + colliderFadeSoftness.GetHashCode(); sig = sig * 31 + colliderFootprintHeight.GetHashCode();
+                sig = sig * 31 + bankReach.GetHashCode(); sig = sig * 31 + bankNoiseStrength.GetHashCode(); sig = sig * 31 + bankMinColliderSize.GetHashCode();
+                foreach (var col in _cols) { var b = col.bounds; sig = sig * 31 + col.GetInstanceID(); sig = sig * 31 + Vector3Int.RoundToInt(b.center * 50f).GetHashCode(); sig = sig * 31 + Vector3Int.RoundToInt(b.size * 50f).GetHashCode(); }
+            }
+            if (sig == _maskSig && _maskValid) return;
+            _maskSig = sig; _maskValid = true;
+
             if (_cb == null) _cb = new CommandBuffer { name = "ASH Collider Fade Mask" };
             _cb.Clear();
             _cb.SetGlobalVector("_ASH_CFM_Rect", new Vector4(_maskMin.x, _maskMin.y, 1f / _maskSize, colliderFootprintHeight));
-            bool bank = BankOn; _builtBank = bank;
-            float reach = Mathf.Max(colliderFadePadding + colliderFadeSoftness, bank ? bankReach * (1f + 0.4f * bankNoiseStrength) : 0f) + tx; int st = Mathf.Max(1, Mathf.CeilToInt(reach / tx / 64f)); int taps = Mathf.Min(64, Mathf.CeilToInt(reach / tx / st));
+            _builtBank = bank;
+            // two-tier distance search: exact 1-texel steps through padding + softness (the clearing edge), then coarser steps
+            // out to the bank reach (the bank profile is smooth, so a 2-3 texel step there is invisible) - ~half the taps
+            float fineReach = colliderFadePadding + colliderFadeSoftness + tx;
+            int nf = Mathf.Clamp(Mathf.CeilToInt(fineReach / tx), 1, 48);
+            float reach = Mathf.Max(fineReach, bank ? bankReach * (1f + 0.4f * bankNoiseStrength) + tx : 0f);
+            int st = Mathf.Max(1, Mathf.CeilToInt(Mathf.Max(0f, reach - nf * tx) / tx / 24f));
+            int nc = Mathf.Clamp(Mathf.CeilToInt(Mathf.Max(0f, reach - nf * tx) / tx / st), 0, 64 - nf);
             _cb.SetGlobalVector("_ASH_CFM_Params", new Vector4(tx, colliderFadePadding, colliderFadeSoftness, st));
-            _cb.SetGlobalFloat("_ASH_CFM_Taps", taps); _cb.SetGlobalFloat("_ASH_CFM_Res", res);
+            _cb.SetGlobalFloat("_ASH_CFM_Taps", nf + nc); _cb.SetGlobalFloat("_ASH_CFM_Fine", nf); _cb.SetGlobalFloat("_ASH_CFM_Res", res);
             _cb.SetRenderTarget(_maskRaw); _cb.ClearRenderTarget(false, true, Color.clear);
             foreach (var col in _cols)
             {
@@ -209,11 +242,21 @@ namespace ASH.World.Accumulation
                 DrawCollider(col);
             }
             _cb.SetGlobalTexture("_ASH_CFM_Src", _maskRaw); _cb.SetRenderTarget(_maskRow); _cb.DrawProcedural(Matrix4x4.identity, _maskMat, 1, MeshTopology.Triangles, 3);
+            Graphics.ExecuteCommandBuffer(_cb);
+            _colsPending = true; // columns pass + publish next frame (halves the GPU spike; the old mask stays live until then)
+        }
+
+        void FinishMask()
+        {
+            _colsPending = false;
+            if (!_mask || !_maskRow || !_maskMat) return;
+            _cb.Clear();
             _cb.SetGlobalTexture("_ASH_CFM_Src", _maskRow); _cb.SetRenderTarget(_mask); _cb.DrawProcedural(Matrix4x4.identity, _maskMat, 2, MeshTopology.Triangles, 3);
             Graphics.ExecuteCommandBuffer(_cb);
             Shader.SetGlobalTexture(ID_CM, _mask);
             Shader.SetGlobalVector(ID_CMR, new Vector4(_maskMin.x, _maskMin.y, 1f / _maskSize, 1f));
         }
+        bool _colsPending, _maskValid; int _maskSig;
         Vector3 _maskCentre; bool _builtBank;
         readonly Dictionary<Collider, bool> _bankable = new Dictionary<Collider, bool>();
 

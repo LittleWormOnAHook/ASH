@@ -100,9 +100,10 @@ namespace ASH.World.Weather
             var c = Color.Lerp(snowColor, ashColor, ashShare); c.a = alpha;
             var m = _ps.main; m.startColor = c; m.maxParticles = maxParticles;
             var sh = _ps.shape; sh.scale = new Vector3(radius * 2f, layerHeight, radius * 2f); sh.position = new Vector3(0f, layerHeight * 0.5f, 0f);
-            var r = _ps.GetComponent<ParticleSystemRenderer>(); r.velocityScale = streak;
+            if (!_psr) _psr = _ps.GetComponent<ParticleSystemRenderer>(); if (_psr) _psr.velocityScale = streak;
         }
 
+        ParticleSystemRenderer _psr;
         void OnDestroy() { if (_ps) Destroy(_ps.gameObject); }
     }
 }

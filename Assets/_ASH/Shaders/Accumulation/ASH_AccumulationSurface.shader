@@ -55,6 +55,17 @@ Shader "Hidden/ASH/Accumulation Surface"
         }
 
         // layer depth at xz before the lift: drift/deform depth (cleared near small colliders) + banks against big ones
+        // cheap version for the normal's slope differences (4 calls per pixel): one bilinear drift tap and one mask tap instead of
+        // bicubic drift + the 3x3 cell-min block (those only matter for the visible silhouette, not for the lighting slope)
+        float ASH_LayerDepthFast(float2 xz)
+        {
+            float3 p = float3(xz.x, 0, xz.y);
+            half4 drift = ASH_DriftAtFast(p); half deform = ASH_DeformAt(p);
+            float2 m = ASH_ColliderMaskAt(xz);
+            float bank = ASH_BankAt(xz, drift, deform, m.y);
+            return ASH_LiftDepth((ASH_DepthMetres(drift, deform) * (1.0 - m.x) + bank) * ASH_SurfaceEdge(xz));
+        }
+
         float ASH_LayerDepth(float2 xz, out half4 drift, out half deform)
         {
             float3 p = float3(xz.x, 0, xz.y);
@@ -108,8 +119,8 @@ Shader "Hidden/ASH/Accumulation Surface"
             if (k > 0.001)
             {
                 float ds = max(_ASH_SurfNormal.z * sm, 0.05);
-                gx += k * (ASH_SurfaceDepth(xz + float2(ds, 0)) - ASH_SurfaceDepth(xz - float2(ds, 0))) / (2.0 * ds);
-                gz += k * (ASH_SurfaceDepth(xz + float2(0, ds)) - ASH_SurfaceDepth(xz - float2(0, ds))) / (2.0 * ds);
+                gx += k * (ASH_LayerDepthFast(xz + float2(ds, 0)) - ASH_LayerDepthFast(xz - float2(ds, 0))) / (2.0 * ds);
+                gz += k * (ASH_LayerDepthFast(xz + float2(0, ds)) - ASH_LayerDepthFast(xz - float2(0, ds))) / (2.0 * ds);
             }
             return normalize(float3(-gx, 1.0, -gz));
         }

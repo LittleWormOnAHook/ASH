@@ -19,7 +19,9 @@ Shader "Hidden/ASH/Collider Fade Mask"
         float4 _ASH_HeightParams;  // x heightmap res, y height scale, z terrain y
         float4 _ASH_CFM_Rect;      // x minX, y minZ, z 1/size (square), w footprint height above ground (m)
         float4 _ASH_CFM_Params;    // x texel m, y padding m, z softness m, w search step (texels)
-        float  _ASH_CFM_Taps;      // search half-width in steps
+        float  _ASH_CFM_Taps;      // search half-width in steps (fine + coarse)
+        float  _ASH_CFM_Fine;      // first N steps are 1 texel (exact clearing edge), the rest Params.w texels (bank reach)
+        int CFM_Off(int k) { int a = abs(k), nf = (int)_ASH_CFM_Fine; int o = a <= nf ? a : nf + (a - nf) * (int)_ASH_CFM_Params.w; return k < 0 ? -o : o; }
         float  _ASH_CFM_Res;
         float  _ASH_CFM_Bank;      // pass 0: 1 = this collider banks (G), 0 = it clears (R)
         TEXTURE2D(_ASH_CFM_Src);
@@ -78,12 +80,12 @@ Shader "Hidden/ASH/Collider Fade Mask"
             #pragma fragment Frag
             float2 Frag(FsOut i) : SV_Target
             {
-                int2 p = int2(i.positionCS.xy); int res = (int)_ASH_CFM_Res; int st = (int)_ASH_CFM_Params.w; int n = min((int)_ASH_CFM_Taps, 64);
+                int2 p = int2(i.positionCS.xy); int res = (int)_ASH_CFM_Res; int n = min((int)_ASH_CFM_Taps, 64);
                 float2 best = float2(1e4, 1e4);
                 for (int k = -n; k <= n; k++)
                 {
-                    int x = p.x + k * st; if (x < 0 || x >= res) continue;
-                    float2 m = LOAD_TEXTURE2D(_ASH_CFM_Src, int2(x, p.y)).rg; float d = abs(k * st) * _ASH_CFM_Params.x;
+                    int o = CFM_Off(k); int x = p.x + o; if (x < 0 || x >= res) continue;
+                    float2 m = LOAD_TEXTURE2D(_ASH_CFM_Src, int2(x, p.y)).rg; float d = abs(o) * _ASH_CFM_Params.x;
                     if (m.r > 0.5) best.x = min(best.x, d);
                     if (m.g > 0.5) best.y = min(best.y, d);
                 }
@@ -100,12 +102,12 @@ Shader "Hidden/ASH/Collider Fade Mask"
             #pragma fragment Frag
             float2 Frag(FsOut i) : SV_Target
             {
-                int2 p = int2(i.positionCS.xy); int res = (int)_ASH_CFM_Res; int st = (int)_ASH_CFM_Params.w; int n = min((int)_ASH_CFM_Taps, 64);
+                int2 p = int2(i.positionCS.xy); int res = (int)_ASH_CFM_Res; int n = min((int)_ASH_CFM_Taps, 64);
                 float2 best2 = float2(1e8, 1e8);
                 for (int k = -n; k <= n; k++)
                 {
-                    int y = p.y + k * st; if (y < 0 || y >= res) continue;
-                    float2 dx = LOAD_TEXTURE2D(_ASH_CFM_Src, int2(p.x, y)).rg; float dy = abs(k * st) * _ASH_CFM_Params.x;
+                    int o = CFM_Off(k); int y = p.y + o; if (y < 0 || y >= res) continue;
+                    float2 dx = LOAD_TEXTURE2D(_ASH_CFM_Src, int2(p.x, y)).rg; float dy = abs(o) * _ASH_CFM_Params.x;
                     best2 = min(best2, dx * dx + dy * dy);
                 }
                 // distance to the footprint EDGE (texel centres are half a texel inside the edge)

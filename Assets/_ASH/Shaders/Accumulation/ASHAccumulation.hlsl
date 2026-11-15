@@ -63,8 +63,9 @@ half4 ASH_DriftBicubic(float2 uv)
 
 half4 ASH_DriftUV(float2 uv)
 {
-    half4 r = SAMPLE_TEXTURE2D_LOD(_ASH_DriftMask, sampler_ASH_DriftMask, uv, 0);
-    if (_ASH_Edge.w > 0.5 && _ASH_DriftTexel.z > 2.0) r = ASH_DriftBicubic(uv);
+    half4 r = half4(0, 0, 0, 0);
+    UNITY_BRANCH if (_ASH_Edge.w > 0.5 && _ASH_DriftTexel.z > 2.0) r = ASH_DriftBicubic(uv); // 4 taps
+    else r = SAMPLE_TEXTURE2D_LOD(_ASH_DriftMask, sampler_ASH_DriftMask, uv, 0);
     return r;
 }
 
@@ -74,6 +75,13 @@ half4 ASH_DriftAt(float3 positionWS)
     float2 uv = (positionWS.xz - _ASH_TerrainRect.xy) * _ASH_TerrainRect.zw;
     if (any(uv < 0) || any(uv > 1)) return half4(0.35, 0.5, 1, 0);
     return ASH_DriftUV(uv);
+}
+// Single bilinear tap (used for lighting-normal slope differences, where bicubic smoothing is not visible)
+half4 ASH_DriftAtFast(float3 positionWS)
+{
+    float2 uv = (positionWS.xz - _ASH_TerrainRect.xy) * _ASH_TerrainRect.zw;
+    if (any(uv < 0) || any(uv > 1)) return half4(0.35, 0.5, 1, 0);
+    return SAMPLE_TEXTURE2D_LOD(_ASH_DriftMask, sampler_ASH_DriftMask, uv, 0);
 }
 
 // Soft coverage ramp: smoothstep centred on c over the edge softness width (replaces the old linear x2 gain).
@@ -136,9 +144,9 @@ float ASH_SurfaceEdge(float2 xz)
 // object (piled against it), < 1 = broad gentle swell. World-space noise varies both height and reach (natural, uneven).
 float ASH_BankProfile(float2 xz, float dist)
 {
-    if (_ASH_Bank.w < 0.5 || dist > 1e3) return 0;
-    float n = ASH_Fbm(xz * max(_ASH_Bank2.x, 1e-4) + 7.7);
     float k = saturate(_ASH_Bank2.y);
+    if (_ASH_Bank.w < 0.5 || dist >= _ASH_Bank.y * (1.0 + 0.4 * k)) return 0; // beyond the longest (noisy) reach: skip the noise
+    float n = ASH_Fbm(xz * max(_ASH_Bank2.x, 1e-4) + 7.7);
     float reach = max(_ASH_Bank.y * lerp(1.0, 0.6 + 0.8 * n, k), 0.01);
     float t = saturate(1.0 - dist / reach);
     t = t * t * (3.0 - 2.0 * t);
@@ -161,10 +169,12 @@ void ASH_BaseDust(float3 positionWS, inout half3 albedo, inout half3 normalWS, i
     if (_ASH_Dust.w < 0.5 || _ASH_Layers.w < 0.5 || _ASH_HeightParams.x < 1.0) return;
     float2 xz = positionWS.xz;
     float edge = ASH_SurfaceEdge(xz); if (edge <= 0.0) return;
+    float ground = ASH_TerrainHeight(xz);
+    if (positionWS.y - ground > 2.0 * _ASH_Depth.x + _ASH_Bank.x * 1.5 + _ASH_Dust.x * 1.6 + _ASH_Dust.y) return; // above any possible dust line (most object pixels): one tap
     half4 drift = ASH_DriftAt(positionWS); half deform = ASH_DeformAt(positionWS);
     float base = ASH_DepthMetres(drift, 0); if (base <= 0.001) return;
     float2 cm = ASH_ColliderMaskAt(xz);
-    float top = ASH_TerrainHeight(xz) + (ASH_DepthMetres(drift, deform) + ASH_BankAt(xz, drift, deform, cm.y)) * edge;
+    float top = ground + (ASH_DepthMetres(drift, deform) + ASH_BankAt(xz, drift, deform, cm.y)) * edge;
     float n = ASH_Fbm(xz * 4.3 + positionWS.y * 3.1);
     float h0 = _ASH_Dust.x * (0.4 + 1.2 * n);
     half k = (half)((1.0 - smoothstep(h0, h0 + max(_ASH_Dust.y, 0.005), positionWS.y - top)) * saturate(_ASH_Dust.z) * edge * saturate(base / max(_ASH_Bank2.z, 0.005)));
