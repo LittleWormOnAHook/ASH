@@ -210,7 +210,7 @@ namespace ASH.Gameplay
         float _bodyW, _bladeW, _lookW; bool _faceAxisOk; Vector3 _faceLocal; GameObject _buttFor; Vector3 _buttLocal;
         float _kick, _nextFire, _shotUntil, _aimReleasedAt = -10f, _bowBlend, _gunIK;
         Vector3 _restRootLocal, _nockHandLocal; bool _restValid;
-        vThirdPersonInput _tpIn; vThirdPersonCameraState _aimCamState; bool _camAiming; float _savedCamSmooth = -1f, _restoreCamSmoothAt; ASHLightAim _lightAim;
+        vThirdPersonInput _tpIn; vThirdPersonCameraState _aimCamState; ASHItemDefinition _camLastMain; bool _camAiming; float _savedCamSmooth = -1f, _restoreCamSmoothAt; ASHLightAim _lightAim;
 
         // bow mesh analysis, in the held bow's local space (done once per bow visual)
         struct BowGeo
@@ -283,12 +283,19 @@ namespace ASH.Gameplay
                 var def = list.tpCameraStates.Find(st => st.Name == "Default") ?? list.tpCameraStates[0];
                 _aimCamState = new vThirdPersonCameraState(AimCameraState); JsonUtility.FromJsonOverwrite(JsonUtility.ToJson(def), _aimCamState); _aimCamState.Name = AimCameraState;
                 list.tpCameraStates.RemoveAll(st => st.Name == AimCameraState); list.tpCameraStates.Add(_aimCamState);
+                // ASH has one base locomotion camera: Invector's "Strafing" state (higher than Default) must never change the
+                // framing, so in our runtime copy it is a clone of Default (Crouch keeps its own values)
+                var strafe = list.tpCameraStates.Find(st => st.Name == "Strafing");
+                if (strafe != null && strafe != def) { JsonUtility.FromJsonOverwrite(JsonUtility.ToJson(def), strafe); strafe.Name = "Strafing"; }
                 cam.ChangeStateList(list);
             }
             _aimCamState.right = aimCameraRight; _aimCamState.height = aimCameraHeight; _aimCamState.defaultDistance = aimCameraDistance;
             _aimCamState.maxDistance = Mathf.Max(aimCameraDistance + 0.5f, _aimCamState.maxDistance); _aimCamState.minDistance = Mathf.Min(0.3f, aimCameraDistance); _aimCamState.fov = aimCameraFov;
             if (!_lightAim) _lightAim = _cc ? _cc.GetComponentInChildren<ASHLightAim>() : GetComponentInParent<ASHLightAim>();
             bool want = aimCamera && (Aiming || (_lightAim && _lightAim.Aiming)) && !ASHUIState.BlocksGameplay;
+            var mainNow = _eq ? _eq.Main : null;
+            bool switched = mainNow != _camLastMain; _camLastMain = mainNow;
+            if ((switched || (!want && _camAiming)) && !want) ResetToBaseCamera(cam);
             if (want != _camAiming)
             {
                 _camAiming = want;
@@ -300,7 +307,20 @@ namespace ASH.Gameplay
             // never left on the aim state once nothing aims (absolute states only: Invector's own Default/Strafing/Crouch)
             if (!_camAiming && !_tpIn.changeCameraState && cam.lerpState != null && cam.lerpState.Name == AimCameraState)
                 cam.ChangeState(_cc && _cc.isCrouching ? "Crouch" : _cc && _cc.isStrafing ? "Strafing" : "Default", true);
+            // not aiming: the target is always the base state (never Strafing / Aim), whatever Invector's input picked
+            if (!_camAiming && !_tpIn.changeCameraState && cam.lerpState != null && cam.lerpState.Name != BaseCameraState) cam.ChangeState(BaseCameraState, true);
             CameraStateNow = cam.lerpState != null ? cam.lerpState.Name : ""; CameraHeightNow = cam.currentState != null ? cam.currentState.height : 0f;
+        }
+
+        string BaseCameraState => _cc && _cc.isCrouching ? "Crouch" : "Default";
+
+        /// <summary>Item switched or aim ended: drop any custom camera state, clear a strafe nobody owns (a stuck strafe is what kept
+        /// Invector on its higher Strafing camera) and blend back to the base locomotion camera state. Absolute, so nothing accumulates.</summary>
+        void ResetToBaseCamera(Invector.vCamera.vThirdPersonCamera cam)
+        {
+            _tpIn.ResetCameraState();
+            if (_cc && ASHStrafeLock.Owners(_cc) == 0 && _cc.isStrafing && !(_lightAim && _lightAim.Aiming)) _cc.isStrafing = false;
+            if (cam.lerpState == null || cam.lerpState.Name != BaseCameraState) cam.ChangeState(BaseCameraState, true);
         }
 
         bool HasArrows => _inv && _eq && _eq.Main && _eq.Main.ammoItem && _inv.Count(_eq.Main.ammoItem) > 0;
