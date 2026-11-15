@@ -354,9 +354,10 @@ namespace ASH.UI
                 _iBreak.interactable = why == null;
             }
             _iInfo.text = sb.ToString();
-            bool usable = it.IsConsumable || it.IsPlaceable || it.toolType == ASHToolType.GPS;
+            string hl = ASHHud.HandlerLabel(it);
+            bool usable = hl != null || it.IsConsumable || it.IsPlaceable || it.toolType == ASHToolType.GPS;
             _iUse.interactable = usable;
-            _iUseLabel.text = it.IsPlaceable ? "PLACE" : it.toolType == ASHToolType.GPS ? "OPEN MAP" : it.IsConsumable ? it.useVerb.ToUpperInvariant() : "USE";
+            _iUseLabel.text = hl != null ? hl.ToUpperInvariant() : it.IsPlaceable ? "PLACE" : it.toolType == ASHToolType.GPS ? "OPEN MAP" : it.IsConsumable ? it.useVerb.ToUpperInvariant() : "USE";
         }
 
         void RebuildNotes()

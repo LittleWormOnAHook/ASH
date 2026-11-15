@@ -228,7 +228,7 @@ namespace ASH.World.Weather
         }
 
         static float Smooth(float a, float b, float x) => Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(a, b, x));
-        static void Vol(AudioSource s, float v) { if (!s) return; s.volume = Mathf.MoveTowards(s.volume, Mathf.Clamp01(v), Time.deltaTime * 0.5f); }
+        static void Vol(AudioSource s, float v) { if (!s) return; s.volume = Mathf.MoveTowards(s.volume, Mathf.Clamp01(v * ASH.Core.ASHGameSettings.CachedAmbience), Time.deltaTime * 0.5f); }
 
         static void Rig(List<(ParticleSystem ps, float rate)> list, GameObject root, float k, Vector3 wind)
         {

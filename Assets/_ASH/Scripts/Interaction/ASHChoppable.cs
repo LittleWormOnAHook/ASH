@@ -77,6 +77,17 @@ namespace ASH.Interaction
             if (has) { _height = Mathf.Max(0.5f, b.max.y - transform.position.y); _span = Mathf.Max(b.size.x, b.size.z); }
         }
 
+        /// <summary>Save restore: already chopped / felled. Hides the visual, disables colliders; standing trees leave their stump
+        /// (the split logs are not restored).</summary>
+        public void RestoreFelled()
+        {
+            if (_done) return;
+            StopAllCoroutines(); _done = true; _busy = false; _left = 0;
+            if (_cols != null) foreach (var col in _cols) if (col) col.enabled = false;
+            if (kind == ASHChopKind.StandingTree && stumpPrefab) Spawned.Add(Instantiate(stumpPrefab, transform.position, Quaternion.Euler(0f, Random.Range(0f, 360f), 0f), transform.parent));
+            if (visualRoot) visualRoot.SetActive(false);
+        }
+
         bool HasTool(in ASHUseContext c) => requiredTool == ASHToolType.None || (c.Inventory != null && c.Inventory.HasTool(requiredTool));
 
         public float GetUsePriority(in ASHUseContext c) => _done || _busy ? -1f : 45f;
@@ -132,7 +143,7 @@ namespace ASH.Interaction
         static void Play(AudioClip clip, Vector3 pos, float vol, float pitch)
         {
             var go = new GameObject("ASH_ChopAudio"); go.transform.position = pos;
-            var a = go.AddComponent<AudioSource>(); a.clip = clip; a.volume = vol; a.pitch = pitch; a.spatialBlend = 1f; a.minDistance = 3f; a.maxDistance = 60f; a.Play();
+            var a = go.AddComponent<AudioSource>(); a.clip = clip; a.volume = vol * ASH.Core.ASHGameSettings.CachedSfx; a.pitch = pitch; a.spatialBlend = 1f; a.minDistance = 3f; a.maxDistance = 60f; a.Play();
             Destroy(go, clip.length / Mathf.Max(0.1f, pitch) + 0.1f);
         }
 

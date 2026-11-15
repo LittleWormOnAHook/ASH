@@ -22,7 +22,13 @@ namespace ASH.Player
         private void OnEnable() { if (stats != null) stats.Died += HandleDied; }
         private void OnDisable() { if (stats != null) stats.Died -= HandleDied; }
 
-        private void HandleDied() => StartCoroutine(Respawn());
+        private void HandleDied()
+        {
+            if (controller != null) { controller.input = Vector3.zero; controller.isSprinting = false; }
+            // with the save system: fade + "You didn't make it" + Load Last Save / Main Menu (respawn = newest save)
+            if (ASHSaveSystem.Instance != null) { ASH.UI.ASHDeathScreen.Show(); return; }
+            StartCoroutine(Respawn());
+        }
 
         private IEnumerator Respawn()
         {

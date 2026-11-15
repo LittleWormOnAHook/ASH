@@ -16,6 +16,13 @@ namespace ASH.Interaction
             var fwd = Vector3.ProjectOnPlane(who.forward, Vector3.up); if (fwd.sqrMagnitude < 1e-4f) fwd = Vector3.forward; fwd.Normalize();
             var pos = GroundPoint(who.position + fwd * DropDistance, who);
             var rot = Quaternion.LookRotation(fwd, Vector3.up) * Quaternion.Euler(0f, Random.Range(-35f, 35f), 0f);
+            return SpawnAt(item, amount, pos, rot);
+        }
+
+        /// <summary>Spawns a pickup at an exact pose (save restore of dropped items).</summary>
+        public static ASHItemPickup SpawnAt(ASHItemDefinition item, int amount, Vector3 pos, Quaternion rot)
+        {
+            if (item == null || amount <= 0) return null;
             GameObject go;
             if (item.worldPickupPrefab) go = Object.Instantiate(item.worldPickupPrefab, pos, rot);
             else go = BuildFallback(item, pos, rot);

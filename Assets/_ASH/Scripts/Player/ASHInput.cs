@@ -103,7 +103,8 @@ namespace ASH.Player
                 Vector2 v = _look.ReadValue<Vector2>();
                 bool pointer = _look.activeControl != null && _look.activeControl.device is Pointer;
                 v = pointer ? v * mouseLookScale : v * gamepadLookSpeed * (Time.unscaledDeltaTime * 60f);
-                if (invertY) v.y = -v.y;
+                v *= ASH.Core.ASHGameSettings.CachedSensitivity;
+                if (invertY != ASH.Core.ASHGameSettings.CachedInvertY) v.y = -v.y;
                 return v;
             }
         }

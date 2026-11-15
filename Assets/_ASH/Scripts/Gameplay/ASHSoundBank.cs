@@ -48,7 +48,7 @@ namespace ASH.Gameplay
             var clip = Pick(clips); if (!clip) return false;
             var s = Source(); s.transform.position = pos; s.spatialBlend = spatial; s.maxDistance = maxDistance;
             s.pitch = pitch * (1f + Random.Range(-pitchJitter, pitchJitter));
-            s.PlayOneShot(clip, Mathf.Clamp01(vol));
+            s.PlayOneShot(clip, Mathf.Clamp01(vol * ASH.Core.ASHGameSettings.CachedSfx));
             LastKey = key; LastClip = clip.name; LastByKey[key] = clip.name; Played++;
             return true;
         }

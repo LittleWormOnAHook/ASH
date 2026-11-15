@@ -42,6 +42,53 @@ namespace ASH.Gameplay
         public Transform Campsite => campsite;
         private bool _crafted, _reached;
 
+        // ---- save / load (ASHCoreSave)
+        [Serializable] sealed class SavedLine { public string text; public bool done; }
+        [Serializable] sealed class SavedObjective { public string id, title; public bool priority; public List<SavedLine> lines = new List<SavedLine>(); }
+        [Serializable] sealed class SavedState
+        {
+            public int stage; public List<int> gathered = new List<int>(); public bool crafted, reached, sliceHeld;
+            public string trackedId; public bool playerPicked;
+            public List<SavedObjective> completed = new List<SavedObjective>();
+        }
+
+        public string CaptureJson()
+        {
+            var s = new SavedState { stage = (int)Current, crafted = _crafted, reached = _reached, sliceHeld = HoldSlice, trackedId = TrackedId, playerPicked = PlayerPicked };
+            foreach (var g in gatherGoals) s.gathered.Add(g.collected);
+            foreach (var o in _objectives)
+            {
+                if (o == _slice || !o.Completed) continue;
+                var so = new SavedObjective { id = o.Id, title = o.Title, priority = o.Priority };
+                foreach (var (text, done) in o.GetLines()) so.lines.Add(new SavedLine { text = text, done = done });
+                s.completed.Add(so);
+            }
+            return JsonUtility.ToJson(s);
+        }
+
+        /// <summary>Restores the slice chain, completed objectives (greyed in the journal) and the tracked pick. An objective that is
+        /// active right now (e.g. "Secure the cabin" restarted by the opening restore) is kept.</summary>
+        public void RestoreJson(string json)
+        {
+            var s = JsonUtility.FromJson<SavedState>(json); if (s == null) return;
+            EnsureSlice();
+            Current = (Stage)Mathf.Clamp(s.stage, 0, (int)Stage.Complete);
+            for (int i = 0; i < gatherGoals.Count && i < s.gathered.Count; i++) gatherGoals[i].collected = s.gathered[i];
+            _crafted = s.crafted; _reached = s.reached;
+            HoldSlice = s.sliceHeld; if (!s.sliceHeld) HoldIntroMessage = false;
+            foreach (var so in s.completed)
+            {
+                if (Find(so.id) != null || _objectives.Exists(x => x.Completed && x.Priority && so.priority && x.Title == so.title)) continue;
+                var o = new Objective { Id = so.id, Title = so.title, Priority = so.priority, Completed = true, Order = _order++, Frozen = new List<(string, bool)>() };
+                foreach (var l in so.lines) o.Frozen.Add((l.text, l.done));
+                _objectives.Add(o);
+            }
+            _slice.Order = _order++;
+            if (!string.IsNullOrEmpty(s.trackedId) && Find(s.trackedId) != null && !Find(s.trackedId).Completed) { TrackedId = s.trackedId; PlayerPicked = s.playerPicked; }
+            TrackedChanged?.Invoke(TrackedId);
+            Changed?.Invoke();
+        }
+
         // ---- objective list (journal Objectives tab + HUD focus). The slice chain is one entry ("slice"); story beats such as
         // the Phase 2A opening come in through SetPriority (they take the HUD focus when they start, like before) and stay
         // in the list greyed out once cleared. Other systems can add their own with Register/Complete.

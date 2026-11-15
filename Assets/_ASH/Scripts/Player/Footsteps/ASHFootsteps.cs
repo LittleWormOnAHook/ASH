@@ -110,7 +110,7 @@ namespace ASH.Player
         {
             if (!clip || _src.Count == 0) return;
             var s = _src[_next]; _next = (_next + 1) % _src.Count;
-            s.transform.position = pos; s.pitch = pitch; s.maxDistance = maxDistance; s.PlayOneShot(clip, Mathf.Clamp01(vol));
+            s.transform.position = pos; s.pitch = pitch; s.maxDistance = maxDistance; s.PlayOneShot(clip, Mathf.Clamp01(vol * ASH.Core.ASHGameSettings.CachedSfx));
         }
 
         /// <summary>Surface at a world position: terrain (depth -> snow, else dominant layer rule) or mesh rules.</summary>

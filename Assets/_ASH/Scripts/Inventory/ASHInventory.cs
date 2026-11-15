@@ -17,8 +17,10 @@ namespace ASH.Inventory
         {
             public ASHItemDefinition item;
             public int amount;
+            [Tooltip("Condition 0-1 for single (maxStack 1) items such as filter cartridges. 1 = new.")]
+            public float condition = 1f;
             public bool IsEmpty => item == null || amount <= 0;
-            public void Clear() { item = null; amount = 0; }
+            public void Clear() { item = null; amount = 0; condition = 1f; }
         }
 
         [Tooltip("Pack slots. Never fewer than MinPackSlots at runtime (older scenes/prefabs saved 12).")]
@@ -70,10 +72,40 @@ namespace ASH.Inventory
         {
             EnsureSlots(); item = null;
             if (i < 0 || i >= slots.Count || slots[i].IsEmpty || amount <= 0) return 0;
-            item = slots[i].item; int take = Mathf.Min(amount, slots[i].amount);
+            item = slots[i].item; LastTakenCondition = slots[i].condition; int take = Mathf.Min(amount, slots[i].amount);
             slots[i].amount -= take; if (slots[i].amount <= 0) slots[i].Clear();
             Changed?.Invoke();
             return take;
+        }
+
+        /// <summary>Condition of the slot last emptied by TakeFromSlot (drops keep a filter's condition).</summary>
+        public float LastTakenCondition { get; private set; } = 1f;
+
+        /// <summary>Adds single (maxStack 1) items that carry a condition (0-1) into empty pack slots. Returns how many were added.</summary>
+        public int AddItemWithCondition(ASHItemDefinition item, int amount, float condition)
+        {
+            if (item == null || amount <= 0) return 0;
+            if (item.maxStack > 1) return AddItem(item, amount);
+            EnsureSlots(); int added = 0;
+            for (int i = 0; i < Pack && added < amount; i++)
+                if (slots[i].IsEmpty) { slots[i].item = item; slots[i].amount = 1; slots[i].condition = Mathf.Clamp01(condition); added++; }
+            if (added > 0) { Changed?.Invoke(); ItemAdded?.Invoke(item, added); }
+            return added;
+        }
+
+        /// <summary>Save restore: writes a slot directly (no events; call NotifyChanged after).</summary>
+        public void RestoreSlot(int i, ASHItemDefinition item, int amount, float condition)
+        {
+            EnsureSlots(); if (i < 0 || i >= slots.Count) return;
+            if (item == null || amount <= 0) { slots[i].Clear(); return; }
+            slots[i].item = item; slots[i].amount = amount; slots[i].condition = Mathf.Clamp01(condition);
+        }
+        public void NotifyChanged() => Changed?.Invoke();
+        /// <summary>Removes one item from a specific slot (keeps the other stacks). Raises Changed.</summary>
+        public bool RemoveFromSlot(int i, int amount = 1)
+        {
+            EnsureSlots(); if (i < 0 || i >= slots.Count || slots[i].IsEmpty || slots[i].amount < amount) return false;
+            slots[i].amount -= amount; if (slots[i].amount <= 0) slots[i].Clear(); Changed?.Invoke(); return true;
         }
 
         // ---------------------------------------------------------------- cross bar (Genesis Hot Cross, adapted)

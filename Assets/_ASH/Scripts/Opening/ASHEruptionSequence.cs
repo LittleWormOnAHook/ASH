@@ -69,7 +69,38 @@ namespace ASH.Opening
             if (!clock) clock = FindAnyObjectByType<ASHDayNightClock>();
             _cc = FindAnyObjectByType<vThirdPersonController>();
             if (_cc) { _origPos = _cc.transform.position; _origRot = _cc.transform.rotation; _haveOrig = true; }
+            if (ASH.Core.ASHSaveSystem.PendingLoad != null) return; // loading a save: RestoreFromSave sets the stage (no replay / skip)
             if (playOnStart && profile) Begin(); else ReleaseSlice();
+        }
+
+        /// <summary>True when "Secure the cabin" was finished early (the stage timers still run until Done).</summary>
+        public bool ObjectiveFinishedEarly => Current >= Stage.Quiet && Current < Stage.Done && objective && !objective.Active;
+
+        /// <summary>Save restore. Done/Inactive: the world is left as after the opening (doors unlocked, no objective, aftershock
+        /// state kept). Earlier stages restart at the start of the saved stage (same as Debug > Skip To), so loading can neither
+        /// replay nor skip the opening.</summary>
+        public void RestoreFromSave(Stage s, bool aftershocksOver, bool suppressed, bool objectiveFinished = false)
+        {
+            if (!profile) return;
+            _aftershocksOver = aftershocksOver; _nextAftershock = -1f;
+            if (suppressed || s == Stage.Inactive || s == Stage.Done)
+            {
+                if (quake) quake.Stop();
+                if (radio) radio.Stop();
+                EndObjective(); ASHQuakeProp.ResetAll();
+                UnlockCabin(false);
+                _journalBroadcast = true; _quakeStarted = true; _ashStarted = true;
+                FogSet(profile.ashFogMultiplier); FogWeight(0f, 0f);
+                Suppressed = suppressed;
+                Current = suppressed ? Stage.Inactive : s; _t = 0f;
+                StageChanged?.Invoke(Current);
+                if (logStages) Debug.Log($"[ASH] Opening restored at {Current}");
+                return;
+            }
+            SkipTo(s); // from Inactive this runs Begin() first (doors, spawn, start state); the core save then restores pose/time/weather
+            if (objectiveFinished && objective && objective.Active) { objective.Completed -= OnObjectiveComplete; objective.End(); }
+            _aftershocksOver = aftershocksOver;
+            if (logStages) Debug.Log($"[ASH] Opening restored at {s}");
         }
 
         // ------------------------------------------------------------------ control

@@ -17,6 +17,9 @@ namespace ASH.Map
         private void Awake() { Instance = this; }
         private void OnDestroy() { if (Instance == this) Instance = null; }
 
+        /// <summary>Save restore: replaces all entries.</summary>
+        public void RestoreEntries(List<Entry> list) { entries.Clear(); if (list != null) entries.AddRange(list); }
+
         public static void Add(string title, string body)
         {
             var log = Instance != null ? Instance : FindAnyObjectByType<ASHJournalLog>();

@@ -42,7 +42,7 @@ namespace ASH.Opening
         AudioSource Src(string n)
         {
             var go = new GameObject(n); go.transform.SetParent(transform, false);
-            var s = go.AddComponent<AudioSource>(); s.spatialBlend = 1f; s.rolloffMode = AudioRolloffMode.Logarithmic; s.minDistance = minDistance; s.maxDistance = maxDistance; s.dopplerLevel = 0f; s.playOnAwake = false;
+            var s = go.AddComponent<AudioSource>(); go.AddComponent<ASH.Core.ASHAudioGain>().category = ASH.Core.ASHAudioGain.Category.Music; s.spatialBlend = 1f; s.rolloffMode = AudioRolloffMode.Logarithmic; s.minDistance = minDistance; s.maxDistance = maxDistance; s.dopplerLevel = 0f; s.playOnAwake = false;
             return s;
         }
 

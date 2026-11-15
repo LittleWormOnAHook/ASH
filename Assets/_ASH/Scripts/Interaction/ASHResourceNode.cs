@@ -39,6 +39,19 @@ namespace ASH.Interaction
         public ASHItemDefinition Item => item;
         public Transform UseTransform => transform;
         public bool Depleted => _remaining <= 0;
+        public int Remaining => _remaining;
+        public int MaxGathers => gathers;
+
+        /// <summary>Save restore: remaining gathers (0 = depleted, hidden at once).</summary>
+        public void RestoreRemaining(int n)
+        {
+            StopAllCoroutines();
+            _remaining = Mathf.Clamp(n, 0, gathers);
+            if (_remaining > 0) return;
+            if (_colliders == null) _colliders = GetComponentsInChildren<Collider>();
+            foreach (var col in _colliders) if (col != null) col.enabled = false;
+            if (visualRoot) visualRoot.SetActive(false);
+        }
 
         public void Configure(ASHItemDefinition def, string verbText, int minYield, int maxYield, int gatherCount, float hold)
         {
