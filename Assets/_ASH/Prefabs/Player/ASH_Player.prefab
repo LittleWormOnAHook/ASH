@@ -1137,8 +1137,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2916476026743258253}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.709069, y: -0.09714183, z: 0.10874938, w: 0.68989724}
-  m_LocalPosition: {x: 0.031169996, y: 0.08174832, z: -0.003543567}
+  m_LocalRotation: {x: -0.08055665, y: -0.15576476, z: -0.9841855, w: 0.02503871}
+  m_LocalPosition: {x: 0.03393285, y: 0.03847712, z: 0.0062381956}
   m_LocalScale: {x: 1.1114372, y: 1.1114374, z: 1.1114364}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -1971,7 +1971,7 @@ Transform:
   m_GameObject: {fileID: 5195798018617803048}
   serializedVersion: 2
   m_LocalRotation: {x: 0.6189933, y: -0.36714754, z: 0.37620333, w: 0.58354187}
-  m_LocalPosition: {x: -0.0046680663, y: 0.07679999, z: -0.030583378}
+  m_LocalPosition: {x: 0.07526823, y: 0.06322792, z: 0.12803835}
   m_LocalScale: {x: 1.1114368, y: 1.1114372, z: 1.1114374}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -2002,8 +2002,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 5244018001361201629}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.02, z: 0.03}
+  m_LocalRotation: {x: -0.5141848, y: 0.06524365, z: 0.05347513, w: 0.8535208}
+  m_LocalPosition: {x: 0.023933072, y: -0.047836106, z: -0.06556382}
   m_LocalScale: {x: 0.9999998, y: 1.0000004, z: 0.99999887}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -2647,7 +2647,7 @@ Transform:
   m_GameObject: {fileID: 6854766959671131538}
   serializedVersion: 2
   m_LocalRotation: {x: 0.00085935026, y: -0.7237707, z: -0.02459919, w: 0.6896015}
-  m_LocalPosition: {x: -0.025182825, y: -0.058016967, z: -0.21477085}
+  m_LocalPosition: {x: 0.1526473, y: -0.05801642, z: -0.27590016}
   m_LocalScale: {x: 1.1114367, y: 1.1114372, z: 1.1114368}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -2805,8 +2805,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7213300197643123682}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.709089, y: -0.09674192, z: 0.108529285, w: 0.6899676}
-  m_LocalPosition: {x: 0.031161271, y: 0.081705995, z: -0.0035893964}
+  m_LocalRotation: {x: -0.06713549, y: -0.0511113, z: -0.7124519, w: -0.6966296}
+  m_LocalPosition: {x: 0.11366665, y: 0.12090116, z: 0.4906703}
   m_LocalScale: {x: 0.8891498, y: 0.88915, z: 0.88914883}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -4201,7 +4201,7 @@ MonoBehaviour:
   aimRotationSpeed: 18
   itemAlignWeight: 1
   gunAimEuler: {x: 0, y: 0, z: 0}
-  bowAimEuler: {x: 0, y: 0, z: 0}
+  bowAimEuler: {x: 0, y: 0, z: -90}
   bowTiltDeg: 8
   allowHipFire: 1
   range: 150
