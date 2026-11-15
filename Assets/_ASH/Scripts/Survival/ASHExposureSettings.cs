@@ -44,9 +44,9 @@ namespace ASH.Survival
 
         [Header("Wet rag (UI only, no screen overlay)")]
         [Range(0f, 1f)] public float ragProtection = 0.6f;
-        [Range(0.1f, 72f)] public float ragHours = 12f;
+        [Range(0.1f, 72f)] public float ragHours = 7f;
         [Tooltip("Drying-out window: full protection until this many game hours remain, then it fades to zero (\"Your rag is drying out\" warning, amber timer).")]
-        [Range(0f, 24f)] public float ragDegradeHours = 3f;
+        [Range(0f, 24f)] public float ragDegradeHours = 1.75f;
         [Tooltip("Wet rag + 10% bottle water.")]
         [Range(0f, 100f)] public float rewetWaterPercent = 10f;
 
@@ -55,13 +55,13 @@ namespace ASH.Survival
         [Tooltip("Mask worn with no usable filter.")]
         [Range(0f, 1f)] public float maskNoFilterProtection = 0.15f;
         [Tooltip("Life of a new filter (game hours). Found filters roll a condition = fraction of this.")]
-        [Range(0.1f, 144f)] public float filterHours = 24f;
+        [Range(0.1f, 144f)] public float filterHours = 14f;
         [Tooltip("Protection fades over the last game hours of a filter.")]
-        [Range(0f, 24f)] public float filterDegradeHours = 1.5f;
+        [Range(0f, 24f)] public float filterDegradeHours = 0.875f;
         [Tooltip("Filters wear only outside / in leaky shelters (sealed shelters don't use them).")]
         public bool filterWearsOnlyWhenExposed = true;
         [Tooltip("Low-filter warning + amber timer (game hours left).")]
-        [Range(0f, 48f)] public float filterLowHours = 4.5f;
+        [Range(0f, 48f)] public float filterLowHours = 3.5f;
         [Tooltip("Filters below this condition are clogged: can't be fitted.")]
         [Range(0f, 0.5f)] public float filterUnusableBelow = 0.03f;
         [Tooltip("Found filter cartridges roll a condition from these bands (weighted).")]
