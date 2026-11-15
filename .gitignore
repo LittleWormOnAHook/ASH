@@ -88,3 +88,7 @@ desktop.ini
 # Vendor: HQ Survival Pack - stays out of git
 /Assets/HQ Survival Pack/
 /Assets/HQ Survival Pack.meta
+
+# Vendor: Woodland vegetation pack - stays out of git
+/Assets/Woodland/
+/Assets/Woodland.meta
