@@ -25,6 +25,9 @@ namespace ASH.Opening
         public bool FoodDone => _food >= foodNeeded;
         public bool JournalRead => _journalRead;
         public bool AllDone => WaterDone && FoodDone && _journalRead;
+        /// <summary>Every step done while active (the sequence ends the objective and starts the next one).</summary>
+        public event System.Action Completed;
+        void CheckDone(bool before) { if (_active && !before && AllDone) Completed?.Invoke(); }
 
         public void Begin(string title, string message)
         {
@@ -35,7 +38,7 @@ namespace ASH.Opening
             if (_tracker) _tracker.SetPriority(title, Lines, message);
         }
 
-        public void MarkEased() { _eased = true; if (_tracker) _tracker.SetPriority(_tracker.PriorityTitle, Lines, "The fallout is easing. Finish preparing."); }
+        public void MarkEased() { if (!_active) return; _eased = true; if (_tracker) _tracker.SetPriority(_tracker.PriorityTitle, Lines, "The fallout is easing. Finish preparing."); }
 
         public void End(string message = null)
         {
@@ -59,7 +62,7 @@ namespace ASH.Opening
             bool before = AllDone;
             if (item.restoreThirst > 0f) { _water += amount; if (_water - amount < waterNeeded && WaterDone) Toast("Drinking water stored."); }
             if (item.restoreHunger > 0f) { _food += amount; if (_food - amount < foodNeeded && FoodDone) Toast("Food set aside."); }
-            if (!before && AllDone) Toast("The cabin is as ready as it can be.");
+            CheckDone(before);
         }
 
         void Toast(string m) { if (_hud) _hud.Toast(m); }
@@ -67,7 +70,7 @@ namespace ASH.Opening
         void Update()
         {
             if (!_active) return;
-            if (!_journalRead && _hud && _hud.Journal && _hud.Journal.IsOpen) { _journalRead = true; Toast("Journal checked."); }
+            if (!_journalRead && _hud && _hud.Journal && _hud.Journal.IsOpen) { _journalRead = true; Toast("Journal checked."); CheckDone(false); }
         }
 
         public bool PlayerInside => interior && _player && interior.bounds.Contains(_player.position + Vector3.up * 0.5f);

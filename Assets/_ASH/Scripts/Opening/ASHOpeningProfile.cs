@@ -5,7 +5,7 @@ using ASH.World.Weather;
 
 namespace ASH.Opening
 {
-    public enum DoorUnlockAt { Never, QuakeStart, QuakeEnd, FirstAsh, OpeningDone }
+    public enum DoorUnlockAt { Never, QuakeStart, QuakeEnd, FirstAsh, OpeningDone, AfterObjective } // AfterObjective: the quake ends, "Secure the cabin" pops up, then the door gives
 
     /// <summary>All timings and texts of the Phase 2A opening ("The Last Normal Morning"). One asset, wide ranges.</summary>
     [CreateAssetMenu(menuName = "ASH/Opening Profile", fileName = "ASH_OpeningProfile")]
@@ -61,6 +61,7 @@ namespace ASH.Opening
         [Tooltip("Easing back to Calm/Hazy (s).")] [Range(5f, 900f)] public float easeSeconds = 120f;
         public string objectiveTitle = "Secure the cabin";
         public string objectiveMessage = "Secure the cabin and prepare for worsening conditions.";
+        [Tooltip("Shown when every 'Secure the cabin' step is done early; the next objective follows straight away.")] public string objectiveCompleteMessage = "The cabin is as ready as it can be.";
         [TextArea(2, 6)] public string journalBroadcastTitle = "Emergency broadcast";
         [TextArea(3, 8)] public string journalBroadcastBody = "Radio: extraordinary seismic activity and a major eruption in the Yellowstone region. Ash may fall over the coming hours. Avoid travel, stay indoors, and store and cover clean drinking water - exposed water may be contaminated.";
         [TextArea(2, 6)] public string journalWaveTitle = "First fallout";
@@ -68,11 +69,22 @@ namespace ASH.Opening
 
         [Header("Keep the player in the cabin")]
         [Tooltip("Cabin door(s) start shut and locked (and other exits blocked) until this moment. Never = doors work from the start.")]
-        public DoorUnlockAt lockDoorsUntil = DoorUnlockAt.QuakeStart;
+        public DoorUnlockAt lockDoorsUntil = DoorUnlockAt.AfterObjective;
         [Tooltip("Message shown when the player tries the locked door.")] public string lockedDoorMessage = "It's stuck.";
-        [Tooltip("Seconds after the unlock moment before the door gives (lets the shaking build first).")] [Range(0f, 60f)] public float doorUnlockDelay = 2f;
+        [Tooltip("Seconds after the unlock moment before the door gives (AfterObjective: after the objective pops up).")] [Range(0f, 60f)] public float doorUnlockDelay = 2f;
         [Tooltip("The shaking knocks the door ajar when it unlocks.")] public bool doorAjarOnUnlock = true;
         [Range(0f, 120f)] public float doorAjarAngle = 14f;
+
+        [Header("Aftershocks")]
+        [Tooltip("Occasional weaker quakes after the main one (once the door has unlocked), until the player reaches the 'Get your bearings' area (Redstone Camp lookout).")]
+        public bool aftershocks = true;
+        [Tooltip("Quiet gap between aftershocks (s), random in this range. Measured from the end of the previous one.")] [Range(10f, 900f)] public float aftershockMinInterval = 60f;
+        [Range(10f, 900f)] public float aftershockMaxInterval = 120f;
+        [Tooltip("Aftershock length (s), random in this range (main quake: 24 s).")] [Range(2f, 60f)] public float aftershockMinDuration = 4f;
+        [Range(2f, 60f)] public float aftershockMaxDuration = 9f;
+        [Tooltip("Aftershock strength vs the main quake (1 = same), random in this range.")] [Range(0.05f, 1.5f)] public float aftershockMinIntensity = 0.25f;
+        [Range(0.05f, 1.5f)] public float aftershockMaxIntensity = 0.5f;
+        [Tooltip("Aftershocks stop for good once the player is this close (m, flat) to the 'Get your bearings' target, or logs that survey.")] [Range(2f, 200f)] public float aftershockStopRadius = 25f;
 
         [Header("ASH Volumetric Fog - Density Multiplier only (base density and all other fog settings stay at your volume profile)")]
         [Tooltip("The opening drives ONLY the ASH Volumetric Fog Density Multiplier, through its own runtime volume (priority above the weather volume). Off = weather/scene fog as usual.")]

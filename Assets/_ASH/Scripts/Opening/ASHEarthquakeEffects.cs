@@ -29,7 +29,8 @@ namespace ASH.Opening
         public BoxCollider soundArea;
         public ASHRadioController radio;
 
-        AudioSource _rumble; float _t = -1f, _seed, _tail;
+        AudioSource _rumble; float _t = -1f, _seed, _tail, _baseDuration = -1f, _baseMax; bool _after;
+        public bool IsAftershock => _after && Running;
         public float Intensity { get; private set; }
         public float Peak { get; private set; }
         public bool Running => _t >= 0f && _t < duration;
@@ -45,12 +46,25 @@ namespace ASH.Opening
 
         public void Begin()
         {
+            RestoreBase();
             _t = 0f; Done = false; Peak = 0f;
             if (audioBank && audioBank.rumbleLoop) { _rumble.clip = audioBank.rumbleLoop; _rumble.Play(); }
             if (audioBank) ASHSfx.Play("quakeSwell", audioBank.rumbleSwell, Area(), rumbleVolume * Sfx(), 0.9f, 0.05f, 0.3f, 60f);
         }
 
-        public void Stop() { _t = -1f; Intensity = 0f; ASHCameraKick.ClearAll(); _rumble.Stop(); foreach (var p in ASHQuakeProp.All) if (p) p.Drive(0f, 0f); }
+        /// <summary>A shorter, weaker run of the same quake (same curve, sounds, props and camera shake, which resets to zero at
+        /// the end exactly like the main quake). Creaks/rattles come from around the listener, since the player may be outside.</summary>
+        public void BeginAftershock(float seconds, float intensityScale)
+        {
+            RestoreBase(); _baseDuration = duration; _baseMax = maxIntensity;
+            duration = Mathf.Max(2f, seconds); maxIntensity = _baseMax * Mathf.Max(0f, intensityScale);
+            _t = 0f; Done = false; Peak = 0f; _after = true;
+            if (audioBank && audioBank.rumbleLoop) { _rumble.clip = audioBank.rumbleLoop; _rumble.Play(); }
+            if (audioBank) ASHSfx.Play("quakeSwell", audioBank.rumbleSwell, Area(), rumbleVolume * Sfx() * Mathf.Clamp01(intensityScale + 0.2f), 0.9f, 0.05f, 0.3f, 60f);
+        }
+        void RestoreBase() { if (_baseDuration > 0f) { duration = _baseDuration; maxIntensity = _baseMax; } _baseDuration = -1f; _after = false; }
+
+        public void Stop() { RestoreBase(); _t = -1f; Intensity = 0f; ASHCameraKick.ClearAll(); _rumble.Stop(); foreach (var p in ASHQuakeProp.All) if (p) p.Drive(0f, 0f); }
 
         float Sfx() => audioBank ? audioBank.sfxMaster : 1f;
 
@@ -76,11 +90,12 @@ namespace ASH.Opening
                 ASHSfx.Play(creak ? "quakeCreak" : "quakeRattle", creak ? audioBank.creaks : audioBank.rattles, Area(), (creak ? 0.6f : 0.45f) * Sfx() * Mathf.Clamp01(0.4f + Intensity), creak ? 0.8f : 1f, 0.12f, 1f, 25f);
             }
             if (radio) radio.Interrupt(Intensity);
-            if (_t >= duration) { Done = true; _t = -1f; Intensity = 0f; ASHCameraKick.ClearAll(); _rumble.Stop(); foreach (var p in ASHQuakeProp.All) if (p && p.kind != ASHQuakeProp.Kind.Swing) p.Drive(0f, dt); _tail = 12f; }
+            if (_t >= duration) { Done = true; _t = -1f; Intensity = 0f; ASHCameraKick.ClearAll(); _rumble.Stop(); foreach (var p in ASHQuakeProp.All) if (p && p.kind != ASHQuakeProp.Kind.Swing) p.Drive(0f, dt); _tail = 12f; RestoreBase(); }
         }
 
         Vector3 Area()
         {
+            if (_after) { var l = Camera.main ? Camera.main.transform.position : transform.position; var r = Random.insideUnitSphere * 6f; r.y = Mathf.Abs(r.y) * 0.3f; return l + r; }
             if (!soundArea) return transform.position;
             var b = soundArea.bounds; return new Vector3(Random.Range(b.min.x, b.max.x), Random.Range(b.min.y + 0.5f, b.max.y), Random.Range(b.min.z, b.max.z));
         }

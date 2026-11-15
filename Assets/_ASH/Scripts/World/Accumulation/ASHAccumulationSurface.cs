@@ -41,6 +41,10 @@ namespace ASH.World.Accumulation
         [Tooltip("Collider geometry higher than this above the ground is ignored (so overhangs/roofs don't widen the footprint).")] [Range(0.05f, 10f)] public float colliderFootprintHeight = 1.5f;
         [Tooltip("Only colliders whose bottom is within this height of the terrain clear the surface.")] [Range(0.1f, 5f)] public float blockerGroundTolerance = 1f;
         [Tooltip("Seconds between mask rebuilds (also rebuilt when the area moves).")] [Range(0.1f, 5f)] public float blockerRefresh = 1f;
+        [Tooltip("Mask Max Resolution: caps the collider mask (the measured walking cost: at 4096 every rebuild was ~17M pixels x ~50 taps, twice). 2048 over the ~120 m mask = ~6 cm texels; banks look the same, the thin clear edge is slightly softer. 4096 = old look, ~8x the cost.")]
+        [Range(512, 4096)] public int maskMaxResolution = 2048;
+        [Tooltip("Mask Move Margin: metres of mask beyond the surface on each side. The mask is redrawn only after the player walks ~75% of this (was 3 m, i.e. a full redraw every 3 m of walking).")]
+        [Range(4f, 40f)] public float maskMoveMargin = 12f;
         [Tooltip("Include trigger colliders of pickups (other triggers, e.g. interaction zones, never clear the ash).")] public bool pickupTriggersClear = true;
 
         [Header("Banking (ash/snow piles up softly against objects instead of clearing around them)")]
@@ -146,7 +150,8 @@ namespace ASH.World.Accumulation
             Shader.SetGlobalVector(ID_Dust, new Vector4(dustHeight, dustFade, dustStrength, BankOn && baseDusting ? 1f : 0f));
             if (BankOn != _builtBank) _nextBlock = 0f; // rebuild the mask when banking is toggled
             if (_colsPending) { FinishMask(); return; } // second half of a rebuild (spread over two frames)
-            if (Time.unscaledTime >= _nextBlock || MaskNeedsMove(centre)) { _nextBlock = Time.unscaledTime + blockerRefresh; RefreshBlockers(centre, t); }
+            bool move = MaskNeedsMove(centre);
+            if (Time.unscaledTime >= _nextBlock || move) { _nextBlock = Time.unscaledTime + blockerRefresh; RefreshBlockers(move || _maskRes == 0 ? centre : _maskCentre, t); } // timed refreshes keep the window (no redraw just for walking)
         }
 
         // ---- collider fade mask -------------------------------------------------------------------------------------------
@@ -190,7 +195,8 @@ namespace ASH.World.Accumulation
             if (!_cube) { _cube = Prim(PrimitiveType.Cube); _sphere = Prim(PrimitiveType.Sphere); _capsule = Prim(PrimitiveType.Capsule); }
 
             // texel-aligned square covering the surface plus a margin (rebuilt before the area walks off it)
-            float tx = colliderMaskTexel; int res = Mathf.Clamp(Mathf.CeilToInt((size + 8f) / tx), 64, 4096); tx = Mathf.Max(tx, (size + 8f) / res);
+            float span = size + 2f * Mathf.Max(4f, maskMoveMargin);
+            float tx = colliderMaskTexel; int res = Mathf.Clamp(Mathf.CeilToInt(span / tx), 64, Mathf.Clamp(Mathf.ClosestPowerOfTwo(maskMaxResolution), 512, 4096)); tx = Mathf.Max(tx, span / res);
             if (_maskRes != res) { ReleaseMask(); _maskRes = res;
                 _maskRaw = NewRT(res, RenderTextureFormat.RG16, FilterMode.Point, "ASH_ColliderFootprint");   // R clearing, G banking collider
                 _maskRow = NewRT(res, RenderTextureFormat.RGHalf, FilterMode.Point, "ASH_ColliderFadeRows");
@@ -270,7 +276,7 @@ namespace ASH.World.Accumulation
             if (_bankable.Count > 4096) _bankable.Clear();
             _bankable[col] = ok; return ok;
         }
-        public bool MaskNeedsMove(Vector3 centre) => _maskRes > 0 && (Mathf.Abs(centre.x - _maskCentre.x) > 3f || Mathf.Abs(centre.z - _maskCentre.z) > 3f);
+        public bool MaskNeedsMove(Vector3 centre) { float m = Mathf.Max(3f, Mathf.Max(4f, maskMoveMargin) * 0.75f); return _maskRes > 0 && (Mathf.Abs(centre.x - _maskCentre.x) > m || Mathf.Abs(centre.z - _maskCentre.z) > m); }
 
         static RenderTexture NewRT(int res, RenderTextureFormat f, FilterMode fm, string name)
         {

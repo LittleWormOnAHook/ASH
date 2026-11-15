@@ -77,10 +77,11 @@ namespace ASH.Opening
         {
             if (!profile) { Debug.LogWarning("[ASH] Opening: no profile"); ReleaseSlice(); return; }
             ASHObjectiveTracker.HoldSlice = true; // (re)running the opening: the slice waits for Done again
+            _aftershocksOver = false; _nextAftershock = -1f;
             Suppressed = false; _journalBroadcast = false; _quakeStarted = false; _ashStarted = false;
             ASHQuakeProp.ResetAll();
             if (quake) quake.Stop();
-            if (objective) objective.End();
+            EndObjective();
             if (director) { director.SetScheduler(false); director.Snap(director.Profile(profile.startState) ? profile.startState : ASHWeatherKind.Clear); }
             FogSet(profile.startFogMultiplier); FogWeight(1f, 0f);
             var acc = ASHAccumulationController.Instance;
@@ -98,7 +99,7 @@ namespace ASH.Opening
         public void SkipTo(Stage s)
         {
             if (Current == Stage.Inactive || s <= Stage.Morning) { Begin(); if (s <= Stage.Morning) return; }
-            if (s < Stage.Done) ASHObjectiveTracker.HoldSlice = true; // skipping back before Done: the slice waits again (Enter(Done) releases it)
+            if (s < Stage.Done) { ASHObjectiveTracker.HoldSlice = true; EndObjective(); } // skipping before Done: "Secure the cabin" restarts at Quiet and the slice waits for it again
             // bring the world into the state the skipped stages would have produced
             if (s >= Stage.Broadcast && radio && s == Stage.Broadcast) radio.StartBroadcast();
             if (s > Stage.Broadcast) { JournalBroadcast(); if (radio) radio.StaticFragments(); }
@@ -123,7 +124,7 @@ namespace ASH.Opening
         Stage UnlockStage => profile.lockDoorsUntil switch
         {
             DoorUnlockAt.QuakeStart => Stage.Quake, DoorUnlockAt.QuakeEnd => Stage.Quiet,
-            DoorUnlockAt.FirstAsh => Stage.FirstAsh, DoorUnlockAt.OpeningDone => Stage.Done, _ => Stage.Inactive
+            DoorUnlockAt.FirstAsh => Stage.FirstAsh, DoorUnlockAt.OpeningDone => Stage.Done, DoorUnlockAt.AfterObjective => Stage.Quiet, _ => Stage.Inactive
         };
 
         void LockCabin()
@@ -151,7 +152,7 @@ namespace ASH.Opening
             Suppressed = true;
             if (quake) quake.Stop();
             if (radio) radio.Stop();
-            if (objective) objective.End();
+            EndObjective();
             ASHQuakeProp.ResetAll();
             if (director) { director.SetScheduler(false); director.debugOverride = false; director.Snap(ASHWeatherKind.Clear); }
             FogWeight(0f, 0f);
@@ -184,11 +185,10 @@ namespace ASH.Opening
             switch (s)
             {
                 case Stage.Broadcast: if (radio) radio.StartBroadcast(); break;
-                case Stage.Quiet: if (director) director.TransitionTo(ASHWeatherKind.CalmHazy, profile.hazeSeconds / sp); break;
+                case Stage.Quiet: if (director) director.TransitionTo(ASHWeatherKind.CalmHazy, profile.hazeSeconds / sp); break; // objective pops up below, the door unlocks doorUnlockDelay later
                 case Stage.FirstAsh: break; // ramp starts after ashOnset (see Tick)
                 case Stage.HeavyWave:
                     if (director) director.TransitionTo(ASHWeatherKind.HeavyAsh, profile.heavyRampSeconds / sp);
-                    if (objective) objective.Begin(profile.objectiveTitle, profile.objectiveMessage);
                     ASHJournalLog.Add(profile.journalWaveTitle, profile.journalWaveBody);
                     break;
                 case Stage.Easing:
@@ -196,12 +196,78 @@ namespace ASH.Opening
                     if (objective) objective.MarkEased();
                     break;
                 case Stage.Done:
-                    if (objective) objective.End(objective.AllDone ? "The first wave has passed." : "The first wave has passed. Keep preparing - more will come.");
+                    if (objective && objective.Active) objective.End(objective.AllDone ? "The first wave has passed." : "The first wave has passed. Keep preparing - more will come.");
                     if (director && profile.startSchedulerAfter) director.SetScheduler(true);
                     FogWeight(0f, profile.fogHandoffSeconds / sp);
                     ReleaseSlice(); // after objective.End above: "Secure the cabin" is over, the slice begins
                     break;
             }
+            if (s >= Stage.Quiet && s < Stage.Done) StartObjective(); // also covers SkipTo past Quiet
+        }
+
+        // ------------------------------------------------------------------ "Secure the cabin"
+        bool _objStarted;
+        /// <summary>Right after the quake (start of Quiet, before the door unlocks): pop up "Secure the cabin". Completing every
+        /// step ends it at once and starts the slice ("Get your bearings"); otherwise it runs until Done as before.</summary>
+        void StartObjective()
+        {
+            if (_objStarted || !objective || !profile) return; _objStarted = true;
+            objective.Completed -= OnObjectiveComplete; objective.Completed += OnObjectiveComplete;
+            objective.Begin(profile.objectiveTitle, profile.objectiveMessage);
+            if (logStages) Debug.Log("[ASH] Opening objective -> Secure the cabin");
+        }
+        void EndObjective() { _objStarted = false; if (objective) { objective.Completed -= OnObjectiveComplete; objective.End(); } }
+        void OnObjectiveComplete()
+        {
+            if (!objective || !objective.Active || Suppressed) return;
+            objective.Completed -= OnObjectiveComplete;
+            objective.End(profile ? profile.objectiveCompleteMessage : null);
+            if (logStages) Debug.Log("[ASH] Opening objective complete -> next objective");
+            ReleaseSlice(); // next objective now, not when the opening timers reach Done
+        }
+
+        // ------------------------------------------------------------------ aftershocks
+        float _nextAftershock = -1f; bool _aftershocksOver; ASHObjectiveTracker _tracker;
+        public bool AftershocksOver => _aftershocksOver;
+        public float NextAftershockIn => _nextAftershock;
+        /// <summary>Every aftershockMin-MaxInterval s (after the main quake, once the door has unlocked; never overlapping) until the
+        /// player reaches the "Get your bearings" area, then never again. Keeps running after Done.</summary>
+        void TickAftershocks()
+        {
+            if (!profile || !profile.aftershocks || _aftershocksOver || Suppressed || !quake || Current == Stage.Inactive) return;
+            if (Current <= Stage.Quake || CabinLocked || _unlockTimer >= 0f) { _nextAftershock = -1f; return; }
+            if (ReachedBearingsArea())
+            {
+                _aftershocksOver = true;
+                if (logStages) Debug.Log("[ASH] Aftershocks over (player reached the 'Get your bearings' area)");
+                return; // a running aftershock just finishes (its shake fades to zero and clears itself)
+            }
+            if (quake.Running) return; // no overlap; the gap is counted from the end
+            if (_nextAftershock < 0f) { _nextAftershock = Random.Range(Mathf.Min(profile.aftershockMinInterval, profile.aftershockMaxInterval), Mathf.Max(profile.aftershockMinInterval, profile.aftershockMaxInterval)); return; }
+            _nextAftershock -= Time.deltaTime * Mathf.Max(0.01f, debugSpeed);
+            if (_nextAftershock <= 0f) ForceAftershock();
+        }
+
+        /// <summary>Start one aftershock now (also Debug > Force Aftershock). False while a quake is already shaking.</summary>
+        public bool ForceAftershock()
+        {
+            if (!quake || !profile || quake.Running) return false;
+            float d = Random.Range(Mathf.Min(profile.aftershockMinDuration, profile.aftershockMaxDuration), Mathf.Max(profile.aftershockMinDuration, profile.aftershockMaxDuration));
+            float k = Random.Range(Mathf.Min(profile.aftershockMinIntensity, profile.aftershockMaxIntensity), Mathf.Max(profile.aftershockMinIntensity, profile.aftershockMaxIntensity));
+            quake.BeginAftershock(d / Mathf.Max(0.01f, debugSpeed), k);
+            _nextAftershock = -1f; // next gap is rolled once this one ends
+            Debug.Log($"[ASH] Aftershock {d:F1} s at {k:F2}x");
+            return true;
+        }
+
+        bool ReachedBearingsArea()
+        {
+            if (!_tracker) _tracker = FindAnyObjectByType<ASHObjectiveTracker>(); if (!_tracker) return false;
+            if (_tracker.SliceStarted && _tracker.Current != ASHObjectiveTracker.Stage.Survey) return true; // lookout survey logged
+            var pt = _tracker.FirstSurveyPoint; if (!pt) return false;
+            if (!_cc) _cc = FindAnyObjectByType<vThirdPersonController>(); if (!_cc) return false;
+            var a = _cc.transform.position; var b = pt.position; a.y = b.y = 0f;
+            return (a - b).sqrMagnitude <= profile.aftershockStopRadius * profile.aftershockStopRadius;
         }
 
         bool _journalBroadcast;
@@ -239,6 +305,7 @@ namespace ASH.Opening
         {
             if (_fogVol) TickFog(Time.deltaTime);
             if (_unlockTimer >= 0f && !Suppressed) { _unlockTimer -= Time.deltaTime * Mathf.Max(0.01f, debugSpeed); if (_unlockTimer < 0f) UnlockCabin(true); }
+            TickAftershocks();
             if (Suppressed || !profile || Current == Stage.Inactive || Current == Stage.Done) return;
             float sp = Mathf.Max(0.01f, debugSpeed);
             _t += Time.deltaTime * sp;

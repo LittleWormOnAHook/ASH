@@ -25,8 +25,8 @@ namespace ASH.Player
         [Range(1, 30)] [SerializeField] private int zoomClicksAcrossRange = 6;
         [Tooltip("Closest follow distance (m). The free-look camera state floors this at 1.5 m.")]
         [Range(0.5f, 10f)] [SerializeField] private float zoomMinDistance = 1.5f;
-        [Tooltip("Farthest follow distance (m).")]
-        [Range(2f, 40f)] [SerializeField] private float zoomMaxDistance = 12f;
+        [Tooltip("Farthest follow distance (m). 6 m matches Invector's own default max (its Default state is 3.5 m, Crouch 6.55 m).")]
+        [Range(2f, 40f)] [SerializeField] private float zoomFarDistance = 6f; // was zoomMaxDistance (12 m was too far) so old values reset
         [Tooltip("Seconds to ease to the next click's distance (smaller = snappier).")]
         [Range(0.01f, 1.5f)] [SerializeField] private float zoomSmoothTime = 0.18f;
         [Tooltip("Raw scroll units per wheel click (Windows mice report 120; 0 = auto-detect 120 or 1).")]
@@ -107,7 +107,7 @@ namespace ASH.Player
                        (st.Name.IndexOf("Aim", System.StringComparison.OrdinalIgnoreCase) >= 0 || st.Name.IndexOf("Scope", System.StringComparison.OrdinalIgnoreCase) >= 0);
             if (aim) { _zInit = false; return; }
             tpCamera.Zoom(0f); // lets Invector set up the free-look zoom range on this state (no movement)
-            float min = Mathf.Min(zoomMinDistance, zoomMaxDistance - 0.1f), max = Mathf.Max(zoomMaxDistance, min + 0.1f);
+            float min = Mathf.Min(zoomMinDistance, zoomFarDistance - 0.1f), max = Mathf.Max(zoomFarDistance, min + 0.1f);
             if (st != null && (min < st.minDistance || max > st.maxDistance)) { st.minDistance = Mathf.Min(st.minDistance, min); st.maxDistance = Mathf.Max(st.maxDistance, max); } // only when widened past Invector's 1.5-12 m
             float cur = tpCamera.CurrentZoom;
             if (!_zInit || Mathf.Abs(cur - _zLastSet) > 0.05f) { _zTarget = _zEased = Mathf.Clamp(cur, min, max); _zVel = 0f; _zInit = true; }
