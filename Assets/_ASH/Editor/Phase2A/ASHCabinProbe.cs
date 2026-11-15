@@ -56,7 +56,7 @@ namespace ASH.EditorTools
             public static void Shaders()
         {
             var sb = new StringBuilder("[ASH] SHADER CHECK: ");
-            foreach (var n in new[] { "Hidden/ASH/Accumulation Surface", "ASH/CloudLayer", "ASH/Accumulation Lit", "ASH/Terrain Lit Accum" })
+            foreach (var n in new[] { "Hidden/ASH/Accumulation Surface", "ASH/CloudLayer", "ASH/Accumulation Lit", "ASH/Terrain Lit Accum", "Hidden/ASH/Collider Fade Mask" })
             {
                 var s = Shader.Find(n); if (!s) { sb.Append($"{n}: MISSING; "); continue; }
                 var msgs = UnityEditor.ShaderUtil.GetShaderMessages(s); sb.Append($"{n}: {(UnityEditor.ShaderUtil.ShaderHasError(s) ? "ERROR" : "ok")} ({msgs.Length}); ");

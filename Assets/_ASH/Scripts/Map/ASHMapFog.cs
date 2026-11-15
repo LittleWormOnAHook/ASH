@@ -15,6 +15,10 @@ namespace ASH.Map
         readonly Color32[] _pattern, _pixels;
         int _dx0, _dy0, _dx1, _dy1; bool _dirty;
         readonly Vector2 _worldMin, _worldSize;
+        /// <summary>Soft explored edge as a fraction of the reveal radius (region fogEdgeSoftness).</summary>
+        public float EdgeSoftness = 0.35f;
+        /// <summary>Minimum soft edge width in metres (region fogEdgeMinMetres).</summary>
+        public float EdgeMinMetres = 8f;
 
         public ASHMapFog(int resolution, Vector2 worldMin, Vector2 worldSize)
         {
@@ -55,7 +59,7 @@ namespace ASH.Map
         /// <summary>Reveals a capsule between two world points (radius = half width).</summary>
         public void RevealSegment(Vector2 aWorld, Vector2 bWorld, float radius, float soft = -1f)
         {
-            if (soft < 0f) soft = Mathf.Max(8f, radius * 0.35f);
+            if (soft < 0f) soft = Mathf.Min(radius, Mathf.Max(EdgeMinMetres, radius * EdgeSoftness));
             Vector2 a = ToTex(aWorld), b = ToTex(bWorld);
             float r = MetresToTex(radius), s = Mathf.Max(0.5f, MetresToTex(soft));
             int x0 = Mathf.Max(0, Mathf.FloorToInt(Mathf.Min(a.x, b.x) - r - 1)), x1 = Mathf.Min(Resolution - 1, Mathf.CeilToInt(Mathf.Max(a.x, b.x) + r + 1));

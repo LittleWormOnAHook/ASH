@@ -26,6 +26,15 @@ float4 _ASH_TerrainRect;  // x minX, y minZ, z 1/sizeX, w 1/sizeZ
 float4 _ASH_DeformRect;   // phase 2: x minX, y minZ, z 1/size, w enabled
 float4 _ASH_Edge;         // x coverage edge softness, y patch noise scale (1/m), z patch noise strength, w smooth (bicubic) drift sampling 0/1
 float4 _ASH_DriftTexel;   // x 1/width, y 1/height, z width, w height (drift mask)
+// Deformable surface + banking (set by ASHAccumulationSurface while the visible-depth surface runs)
+TEXTURE2D(_ASH_Heightmap);
+float4 _ASH_HeightParams;   // x heightmap res, y height scale (size.y / kMaxHeight), z terrain y, w unused
+float4 _ASH_SurfaceRect;    // x centre x, y centre z, z half size, w edge fade width
+TEXTURE2D(_ASH_ColliderMask); // R collider fade (1 = cleared; small / non-banking colliders), G distance m to the nearest banking collider footprint
+float4 _ASH_ColliderMaskRect; // x minX, y minZ, z 1/size (square), w enabled
+float4 _ASH_Bank;           // x bank height m, y bank reach m, z curve exponent, w enabled
+float4 _ASH_Bank2;          // x noise scale 1/m, y noise strength 0..1, z layer depth (m) for a full-height bank, w mask texel m
+float4 _ASH_Dust;           // x dusting height above the bank/layer top m, y fade m, z strength 0..1, w enabled
 
 float ASH_Hash(float2 p) { p = frac(p * float2(123.34, 456.21)); p += dot(p, p + 45.32); return frac(p.x * p.y); }
 float ASH_Noise(float2 p)
@@ -95,6 +104,79 @@ float ASH_DepthMetres(half4 drift, half deform)
     float d = r <= 0.35 ? _ASH_Depth.z * r / 0.35 : lerp(_ASH_Depth.z, _ASH_Depth.x, smoothstep(0.35, 1.0, r));
     float t = saturate(_ASH_Layers.x + _ASH_Layers.y * (1.0 - _ASH_Weather.y)) * (1.0 - _ASH_TexNorm.y * saturate(drift.a)) * _ASH_Surface.x;
     return t * d * (1.0 - saturate(deform));
+}
+
+// ---- terrain height / collider mask / banks ---------------------------------------------------------------------------
+float ASH_TerrainHeight(float2 xz)
+{
+    float2 uv01 = saturate((xz - _ASH_TerrainRect.xy) * _ASH_TerrainRect.zw);
+    float res = _ASH_HeightParams.x;
+    float2 uv = (uv01 * (res - 1.0) + 0.5) / res;
+    float h = SAMPLE_TEXTURE2D_LOD(_ASH_Heightmap, sampler_LinearClamp, uv, 0).r; // always bilinear (the terrain heightmap RT may be point-filtered)
+    return h * _ASH_HeightParams.y + _ASH_HeightParams.z;
+}
+
+// collider mask at xz: R fade (0 outside), G distance to a banking collider's footprint edge (large = none)
+float2 ASH_ColliderMaskAt(float2 xz)
+{
+    if (_ASH_ColliderMaskRect.w < 0.5) return float2(0, 1e4);
+    float2 uv = (xz - _ASH_ColliderMaskRect.xy) * _ASH_ColliderMaskRect.z;
+    if (any(uv < 0.0) || any(uv > 1.0)) return float2(0, 1e4);
+    return SAMPLE_TEXTURE2D_LOD(_ASH_ColliderMask, sampler_LinearClamp, uv, 0).rg;
+}
+
+// surface-area edge fade (1 inside the displaced area, 0 at its border)
+float ASH_SurfaceEdge(float2 xz)
+{
+    float2 dd = abs(xz - _ASH_SurfaceRect.xy);
+    return saturate((_ASH_SurfaceRect.z - max(dd.x, dd.y)) / max(_ASH_SurfaceRect.w, 0.01));
+}
+
+// Bank shape: rises from 0 at Reach to full Height at the collider's real footprint edge. Curve > 1 = steeper close to the
+// object (piled against it), < 1 = broad gentle swell. World-space noise varies both height and reach (natural, uneven).
+float ASH_BankProfile(float2 xz, float dist)
+{
+    if (_ASH_Bank.w < 0.5 || dist > 1e3) return 0;
+    float n = ASH_Fbm(xz * max(_ASH_Bank2.x, 1e-4) + 7.7);
+    float k = saturate(_ASH_Bank2.y);
+    float reach = max(_ASH_Bank.y * lerp(1.0, 0.6 + 0.8 * n, k), 0.01);
+    float t = saturate(1.0 - dist / reach);
+    t = t * t * (3.0 - 2.0 * t);
+    return _ASH_Bank.x * pow(t, max(_ASH_Bank.z, 0.05)) * lerp(1.0, 0.5 + n, k);
+}
+
+// Bank height (m) added on top of the layer: grows with the material lying there (full at Bank2.z depth) and is pressed
+// down by footprints / trails exactly like the layer (deform), so the player still digs through banks.
+float ASH_BankAt(float2 xz, half4 drift, half deform, float dist)
+{
+    float b = ASH_BankProfile(xz, dist);
+    if (b <= 0.0) return 0;
+    return b * saturate(ASH_DepthMetres(drift, 0) / max(_ASH_Bank2.z, 0.005)) * (1.0 - saturate(deform));
+}
+
+// Light dusting on the bottom few cm of objects standing in the layer (ASH/Accumulation Lit): from the bank / layer top up
+// Dust.x metres (noisy line), fading over Dust.y. Only inside the visible-depth surface area, so it matches the banks.
+void ASH_BaseDust(float3 positionWS, inout half3 albedo, inout half3 normalWS, inout half smoothness, inout half metallic)
+{
+    if (_ASH_Dust.w < 0.5 || _ASH_Layers.w < 0.5 || _ASH_HeightParams.x < 1.0) return;
+    float2 xz = positionWS.xz;
+    float edge = ASH_SurfaceEdge(xz); if (edge <= 0.0) return;
+    half4 drift = ASH_DriftAt(positionWS); half deform = ASH_DeformAt(positionWS);
+    float base = ASH_DepthMetres(drift, 0); if (base <= 0.001) return;
+    float2 cm = ASH_ColliderMaskAt(xz);
+    float top = ASH_TerrainHeight(xz) + (ASH_DepthMetres(drift, deform) + ASH_BankAt(xz, drift, deform, cm.y)) * edge;
+    float n = ASH_Fbm(xz * 4.3 + positionWS.y * 3.1);
+    float h0 = _ASH_Dust.x * (0.4 + 1.2 * n);
+    half k = (half)((1.0 - smoothstep(h0, h0 + max(_ASH_Dust.y, 0.005), positionWS.y - top)) * saturate(_ASH_Dust.z) * edge * saturate(base / max(_ASH_Bank2.z, 0.005)));
+    if (k <= 0.001) return;
+    float2 uvS = xz / max(_ASH_Noise.w, 0.01);
+    half3 snowAlb = SAMPLE_TEXTURE2D_LOD(_ASH_SnowTex, sampler_ASH_SnowTex, uvS, 0).rgb * _ASH_SnowColor.rgb;
+    half ashF = saturate(_ASH_Layers.x / max(_ASH_Layers.x + _ASH_Layers.y * (1.0 - _ASH_Weather.y), 1e-3));
+    half3 col = lerp(snowAlb, _ASH_AccumColor.rgb * lerp(1.0, _ASH_AccumColor.a, _ASH_Weather.x), ashF);
+    albedo = lerp(albedo, col, k);
+    smoothness = lerp(smoothness, lerp(0.3, 0.12, ashF), k);
+    metallic = lerp(metallic, 0, k);
+    normalWS = normalize(lerp(normalWS, half3(0, 1, 0), k * 0.35));
 }
 
 // Core. drift = mask sample (R depth01, G exposure). geomNormalWS = un-mapped surface normal.

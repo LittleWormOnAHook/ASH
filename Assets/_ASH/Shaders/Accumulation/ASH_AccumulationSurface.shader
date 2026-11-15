@@ -12,13 +12,9 @@ Shader "Hidden/ASH/Accumulation Surface"
         #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
         #include "ASHAccumulation.hlsl"
 
-        TEXTURE2D(_ASH_Heightmap); SAMPLER(sampler_ASH_Heightmap);
-        float4 _ASH_HeightParams;   // x heightmap res, y height scale (size.y / kMaxHeight), z terrain y, w unused
-        float4 _ASH_SurfaceRect;    // x centre x, y centre z, z half size, w edge fade width
-        TEXTURE2D(_ASH_ColliderMask); // collider fade (1 = cleared): real collider footprints + padding + softness, texel-aligned
-        float4 _ASH_ColliderMaskRect; // x minX, y minZ, z 1/size (square), w enabled
         float  _ASH_GridStep;
         float4 _ASH_Thin;           // x thin fade start depth m, y thin fade end depth m, z lift above terrain m, w enabled
+        // (_ASH_Heightmap, _ASH_HeightParams, _ASH_SurfaceRect, _ASH_ColliderMask(Rect), _ASH_Bank* live in ASHAccumulation.hlsl)
 
         // Height of the real-depth surface over the terrain. Where the layer is thinner than the fade start it sinks under the
         // terrain (those pixels are clipped anyway); elsewhere it stays at least Lift above it, so the 0.2 m grid never
@@ -31,23 +27,8 @@ Shader "Hidden/ASH/Accumulation Surface"
         float4 _ASH_SurfNormal;     // x normal smoothing (heightmap texels), y deform normal strength, z deform texel size m
         float4 _ASH_SurfQuality;    // x normal step multiplier (vertex normals), y per-pixel footprint normal detail 0..1, z deform texel size m
 
-        float ASH_TerrainHeight(float2 xz)
-        {
-            float2 uv01 = saturate((xz - _ASH_TerrainRect.xy) * _ASH_TerrainRect.zw);
-            float res = _ASH_HeightParams.x;
-            float2 uv = (uv01 * (res - 1.0) + 0.5) / res;
-            float h = SAMPLE_TEXTURE2D_LOD(_ASH_Heightmap, sampler_LinearClamp, uv, 0).r; // always bilinear (the terrain heightmap RT may be point-filtered)
-            return h * _ASH_HeightParams.y + _ASH_HeightParams.z;
-        }
-
-        // per-pixel collider fade at xz (bilinear on the texel-aligned mask; 0 outside it)
-        float ASH_ColliderFade(float2 xz)
-        {
-            if (_ASH_ColliderMaskRect.w < 0.5) return 0;
-            float2 uv = (xz - _ASH_ColliderMaskRect.xy) * _ASH_ColliderMaskRect.z;
-            if (any(uv < 0.0) || any(uv > 1.0)) return 0;
-            return SAMPLE_TEXTURE2D_LOD(_ASH_ColliderMask, sampler_LinearClamp, uv, 0).r;
-        }
+        // per-pixel collider fade at xz (R: small / non-banking colliders; bilinear on the texel-aligned mask; 0 outside it)
+        float ASH_ColliderFade(float2 xz) { return ASH_ColliderMaskAt(xz).r; }
 
         // geometry fade: the grid only sinks where its whole cell is cleared (min over the cell), so a 0.2 m grid never
         // drags the ash down outside a collider; the exact edge is cut per pixel by ASH_ColliderClip
@@ -61,46 +42,50 @@ Shader "Hidden/ASH/Accumulation Surface"
             return b;
         }
 
-        // per-pixel edge: cut the surface where the collider fade wins (dithered over the soft band); terrain shows beneath
+        // per-pixel edge: cut the surface where the collider fade wins (dithered over the soft band), and inside a banking
+        // collider's real footprint (the bank runs up to it and continues under the object, hidden by it)
         void ASH_ColliderClip(float2 xz, float4 positionCS)
         {
-            float b = ASH_ColliderFade(xz);
+            float2 m = ASH_ColliderMaskAt(xz);
+            if (_ASH_Bank.w > 0.5) clip(m.y - 0.25 * _ASH_Bank2.w);
+            float b = m.r;
             if (b <= 0.0) return;
             float n = frac(52.9829189 * frac(dot(floor(positionCS.xy), float2(0.06711056, 0.00583715))));
             clip(n * 0.998 + 0.001 - b);
         }
 
-        // world height of the ash/snow surface (sinks just under the terrain where there is no material)
-        float ASH_SurfaceHeight(float2 xz, out float depth, out half4 drift, out half deform)
+        // layer depth at xz before the lift: drift/deform depth (cleared near small colliders) + banks against big ones
+        float ASH_LayerDepth(float2 xz, out half4 drift, out half deform)
         {
             float3 p = float3(xz.x, 0, xz.y);
             drift = ASH_DriftAt(p); deform = ASH_DeformAt(p);
-            float2 dd = abs(xz - _ASH_SurfaceRect.xy);
-            float edge = saturate((_ASH_SurfaceRect.z - max(dd.x, dd.y)) / max(_ASH_SurfaceRect.w, 0.01));
-            depth = ASH_DepthMetres(drift, deform) * edge * (1.0 - ASH_BlockAt(xz));
+            float bank = ASH_BankAt(xz, drift, deform, ASH_ColliderMaskAt(xz).g);
+            return (ASH_DepthMetres(drift, deform) * (1.0 - ASH_BlockAt(xz)) + bank) * ASH_SurfaceEdge(xz);
+        }
+
+        // world height of the ash/snow surface (sinks just under the terrain where there is no material)
+        float ASH_SurfaceHeight(float2 xz, out float depth, out half4 drift, out half deform)
+        {
+            depth = ASH_LayerDepth(xz, drift, deform);
             return ASH_TerrainHeight(xz) + ASH_LiftDepth(depth);
         }
 
         // ash/snow depth above the terrain at xz (same terms as ASH_SurfaceHeight, without the terrain height)
         float ASH_SurfaceDepth(float2 xz)
         {
-            float3 p = float3(xz.x, 0, xz.y);
-            half4 drift = ASH_DriftAt(p); half deform = ASH_DeformAt(p);
-            float2 dd = abs(xz - _ASH_SurfaceRect.xy);
-            float edge = saturate((_ASH_SurfaceRect.z - max(dd.x, dd.y)) / max(_ASH_SurfaceRect.w, 0.01));
-            float depth = ASH_DepthMetres(drift, deform) * edge * (1.0 - ASH_BlockAt(xz));
-            return ASH_LiftDepth(depth);
+            half4 drift; half deform;
+            return ASH_LiftDepth(ASH_LayerDepth(xz, drift, deform));
         }
 
         // Per-pixel thin-layer fade: where the layer is thinner than Thin Fade End the real-depth surface dissolves with a
         // world-space noise threshold (patchy, stable, no screen dither) and the terrain's own soft coverage shows instead.
+        // Banks count as depth, so a bank in a thin morning dusting stays solid.
         void ASH_ThinClip(float3 positionWS)
         {
             if (_ASH_Thin.w < 0.5) return;
             float2 xz = positionWS.xz;
-            float2 dd = abs(xz - _ASH_SurfaceRect.xy);
-            float edge = saturate((_ASH_SurfaceRect.z - max(dd.x, dd.y)) / max(_ASH_SurfaceRect.w, 0.01));
-            float depth = ASH_DepthMetres(ASH_DriftAt(positionWS), ASH_DeformAt(positionWS)) * edge;
+            half4 drift = ASH_DriftAt(positionWS); half deform = ASH_DeformAt(positionWS);
+            float depth = (ASH_DepthMetres(drift, deform) + ASH_BankAt(xz, drift, deform, ASH_ColliderMaskAt(xz).g)) * ASH_SurfaceEdge(xz);
             float f = smoothstep(_ASH_Thin.x, max(_ASH_Thin.y, _ASH_Thin.x + 1e-4), depth);
             float n = ASH_Fbm(xz * max(_ASH_Edge.y, 1e-4) * 4.0 + 11.3) * 0.96 + 0.02;
             clip(f - n);

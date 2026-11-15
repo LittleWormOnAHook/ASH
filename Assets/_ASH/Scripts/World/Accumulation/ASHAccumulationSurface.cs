@@ -43,11 +43,27 @@ namespace ASH.World.Accumulation
         [Tooltip("Seconds between mask rebuilds (also rebuilt when the area moves).")] [Range(0.1f, 5f)] public float blockerRefresh = 1f;
         [Tooltip("Include trigger colliders of pickups (other triggers, e.g. interaction zones, never clear the ash).")] public bool pickupTriggersClear = true;
 
+        [Header("Banking (ash/snow piles up softly against objects instead of clearing around them)")]
+        [Tooltip("Raise the layer into a soft bank against every collider at least Bank Min Collider Size big (smaller ones keep the collider fade).")] public bool banking = true;
+        [Tooltip("Bank height at the collider's footprint edge, metres (on top of the layer, at full layer depth).")] [Range(0f, 2f)] public float bankHeight = 0.12f;
+        [Tooltip("How far out from the collider the bank reaches, metres.")] [Range(0.05f, 4f)] public float bankReach = 0.7f;
+        [Tooltip("Bank curve: 1 = smooth S ramp, >1 = piled steeply against the object, <1 = broad gentle swell.")] [Range(0.2f, 6f)] public float bankCurve = 1.6f;
+        [Tooltip("Noise breakup scale (1/m): higher = smaller lumps along the bank.")] [Range(0.05f, 10f)] public float bankNoiseScale = 1.3f;
+        [Tooltip("Noise breakup strength: varies bank height and reach (0 = perfectly even).")] [Range(0f, 1f)] public float bankNoiseStrength = 0.45f;
+        [Tooltip("Layer depth (m) at which banks reach full height; thinner layers get proportionally smaller banks.")] [Range(0.005f, 1f)] public float bankFullAtDepth = 0.06f;
+        [Tooltip("Colliders smaller than this (largest bounds side, metres) don't bank: grass, small props, pickups keep the collider fade.")] [Range(0f, 10f)] public float bankMinColliderSize = 0.6f;
+        [Tooltip("Light dusting on the bottom of objects standing in the layer (ASH Accumulation Lit materials).")] public bool baseDusting = true;
+        [Tooltip("Dusting height above the bank / layer top, metres (varies with noise).")] [Range(0f, 0.5f)] public float dustHeight = 0.04f;
+        [Tooltip("Dusting fade width, metres.")] [Range(0.005f, 0.5f)] public float dustFade = 0.04f;
+        [Tooltip("Dusting strength.")] [Range(0f, 1f)] public float dustStrength = 0.75f;
+
         GameObject _go; Mesh _mesh; Material _mat; MeshRenderer _mr; float _builtSize, _builtStep; float _nextBlock;
         RenderTexture _maskRaw, _maskRow, _mask; Material _maskMat; CommandBuffer _cb; Vector2 _maskMin; float _maskSize; int _maskRes;
         Mesh _cube, _sphere, _capsule;
         static readonly int ID_HM = Shader.PropertyToID("_ASH_Heightmap"), ID_HP = Shader.PropertyToID("_ASH_HeightParams"), ID_SR = Shader.PropertyToID("_ASH_SurfaceRect"),
-            ID_CM = Shader.PropertyToID("_ASH_ColliderMask"), ID_CMR = Shader.PropertyToID("_ASH_ColliderMaskRect"), ID_GS = Shader.PropertyToID("_ASH_GridStep"), ID_SQ = Shader.PropertyToID("_ASH_SurfQuality"), ID_SN = Shader.PropertyToID("_ASH_SurfNormal"), ID_Thin = Shader.PropertyToID("_ASH_Thin");
+            ID_CM = Shader.PropertyToID("_ASH_ColliderMask"), ID_CMR = Shader.PropertyToID("_ASH_ColliderMaskRect"), ID_GS = Shader.PropertyToID("_ASH_GridStep"), ID_SQ = Shader.PropertyToID("_ASH_SurfQuality"), ID_SN = Shader.PropertyToID("_ASH_SurfNormal"), ID_Thin = Shader.PropertyToID("_ASH_Thin"),
+            ID_Bank = Shader.PropertyToID("_ASH_Bank"), ID_Bank2 = Shader.PropertyToID("_ASH_Bank2"), ID_Dust = Shader.PropertyToID("_ASH_Dust"), ID_CFMBank = Shader.PropertyToID("_ASH_CFM_Bank");
+        bool BankOn => banking && bankHeight > 0f && colliderFade;
 
         public void ApplyPreset(Preset p)
         {
@@ -98,7 +114,7 @@ namespace ASH.World.Accumulation
         {
             if (_go) Destroy(_go); if (_mesh) Destroy(_mesh); if (_mat) Destroy(_mat); _go = null; _mesh = null; _mat = null;
             ReleaseMask(); if (_maskMat) Destroy(_maskMat); _maskMat = null; _cb?.Release(); _cb = null;
-            Shader.SetGlobalVector(ID_CMR, Vector4.zero);
+            Shader.SetGlobalVector(ID_CMR, Vector4.zero); Shader.SetGlobalVector(ID_Bank, Vector4.zero); Shader.SetGlobalVector(ID_Dust, Vector4.zero);
         }
         void ReleaseMask() { foreach (var r in new[] { _maskRaw, _maskRow, _mask }) if (r) { r.Release(); Destroy(r); } _maskRaw = _maskRow = _mask = null; _maskRes = 0; }
 
@@ -124,6 +140,11 @@ namespace ASH.World.Accumulation
             var fld = c.Field; float texel = fld && fld.Active ? fld.sizeMetres / fld.resolution : 0.125f;
             Shader.SetGlobalVector(ID_SN, new Vector4(normalSmoothing, deformNormalStrength, texel, 0f));
             Shader.SetGlobalVector(ID_SQ, new Vector4(normalQuality == 0 ? 2f : 1f, normalQuality >= 2 ? 0.6f : 0f, texel, 0f));
+            float mtx = _maskRes > 0 ? _maskSize / _maskRes : colliderMaskTexel;
+            Shader.SetGlobalVector(ID_Bank, new Vector4(bankHeight, bankReach, bankCurve, BankOn ? 1f : 0f));
+            Shader.SetGlobalVector(ID_Bank2, new Vector4(bankNoiseScale, bankNoiseStrength, bankFullAtDepth, mtx));
+            Shader.SetGlobalVector(ID_Dust, new Vector4(dustHeight, dustFade, dustStrength, BankOn && baseDusting ? 1f : 0f));
+            if (BankOn != _builtBank) _nextBlock = 0f; // rebuild the mask when banking is toggled
             if (Time.unscaledTime >= _nextBlock || MaskNeedsMove(centre)) { _nextBlock = Time.unscaledTime + blockerRefresh; RefreshBlockers(centre, t); }
         }
 
@@ -157,9 +178,9 @@ namespace ASH.World.Accumulation
             // texel-aligned square covering the surface plus a margin (rebuilt before the area walks off it)
             float tx = colliderMaskTexel; int res = Mathf.Clamp(Mathf.CeilToInt((size + 8f) / tx), 64, 4096); tx = Mathf.Max(tx, (size + 8f) / res);
             if (_maskRes != res) { ReleaseMask(); _maskRes = res;
-                _maskRaw = NewRT(res, RenderTextureFormat.R8, FilterMode.Point, "ASH_ColliderFootprint");
-                _maskRow = NewRT(res, RenderTextureFormat.RHalf, FilterMode.Point, "ASH_ColliderFadeRows");
-                _mask = NewRT(res, RenderTextureFormat.RHalf, FilterMode.Bilinear, "ASH_ColliderFade"); }
+                _maskRaw = NewRT(res, RenderTextureFormat.RG16, FilterMode.Point, "ASH_ColliderFootprint");   // R clearing, G banking collider
+                _maskRow = NewRT(res, RenderTextureFormat.RGHalf, FilterMode.Point, "ASH_ColliderFadeRows");
+                _mask = NewRT(res, RenderTextureFormat.RGHalf, FilterMode.Bilinear, "ASH_ColliderFade"); }        // R fade, G bank distance m
             _maskSize = res * tx;
             _maskMin = new Vector2(Mathf.Floor((centre.x - _maskSize * 0.5f) / tx) * tx, Mathf.Floor((centre.z - _maskSize * 0.5f) / tx) * tx);
             _maskCentre = centre;
@@ -176,18 +197,36 @@ namespace ASH.World.Accumulation
             if (_cb == null) _cb = new CommandBuffer { name = "ASH Collider Fade Mask" };
             _cb.Clear();
             _cb.SetGlobalVector("_ASH_CFM_Rect", new Vector4(_maskMin.x, _maskMin.y, 1f / _maskSize, colliderFootprintHeight));
-            float reach = colliderFadePadding + colliderFadeSoftness + tx; int st = Mathf.Max(1, Mathf.CeilToInt(reach / tx / 64f)); int taps = Mathf.Min(64, Mathf.CeilToInt(reach / tx / st));
+            bool bank = BankOn; _builtBank = bank;
+            float reach = Mathf.Max(colliderFadePadding + colliderFadeSoftness, bank ? bankReach * (1f + 0.4f * bankNoiseStrength) : 0f) + tx; int st = Mathf.Max(1, Mathf.CeilToInt(reach / tx / 64f)); int taps = Mathf.Min(64, Mathf.CeilToInt(reach / tx / st));
             _cb.SetGlobalVector("_ASH_CFM_Params", new Vector4(tx, colliderFadePadding, colliderFadeSoftness, st));
             _cb.SetGlobalFloat("_ASH_CFM_Taps", taps); _cb.SetGlobalFloat("_ASH_CFM_Res", res);
             _cb.SetRenderTarget(_maskRaw); _cb.ClearRenderTarget(false, true, Color.clear);
-            foreach (var col in _cols) DrawCollider(col);
+            foreach (var col in _cols)
+            {
+                var cb = col.bounds; bool banks = bank && Mathf.Max(cb.size.x, cb.size.y, cb.size.z) >= bankMinColliderSize && CanBank(col);
+                _cb.SetGlobalFloat(ID_CFMBank, banks ? 1f : 0f);
+                DrawCollider(col);
+            }
             _cb.SetGlobalTexture("_ASH_CFM_Src", _maskRaw); _cb.SetRenderTarget(_maskRow); _cb.DrawProcedural(Matrix4x4.identity, _maskMat, 1, MeshTopology.Triangles, 3);
             _cb.SetGlobalTexture("_ASH_CFM_Src", _maskRow); _cb.SetRenderTarget(_mask); _cb.DrawProcedural(Matrix4x4.identity, _maskMat, 2, MeshTopology.Triangles, 3);
             Graphics.ExecuteCommandBuffer(_cb);
             Shader.SetGlobalTexture(ID_CM, _mask);
             Shader.SetGlobalVector(ID_CMR, new Vector4(_maskMin.x, _maskMin.y, 1f / _maskSize, 1f));
         }
-        Vector3 _maskCentre;
+        Vector3 _maskCentre; bool _builtBank;
+        readonly Dictionary<Collider, bool> _bankable = new Dictionary<Collider, bool>();
+
+        // Banks only form against visible, static-ish things: not invisible helpers (no renderer / Ignore Raycast layer, e.g.
+        // the opening's exit blockers), not swinging doors, not pickups. Cached per collider.
+        bool CanBank(Collider col)
+        {
+            if (_bankable.TryGetValue(col, out var ok)) return ok;
+            ok = !col.isTrigger && col.gameObject.layer != 2 && !col.GetComponentInParent<ASHDoor>() && !col.GetComponentInParent<ASHItemPickup>()
+                 && (col.GetComponent<Renderer>() || col.GetComponentInParent<Renderer>() || col.GetComponentInChildren<Renderer>());
+            if (_bankable.Count > 4096) _bankable.Clear();
+            _bankable[col] = ok; return ok;
+        }
         public bool MaskNeedsMove(Vector3 centre) => _maskRes > 0 && (Mathf.Abs(centre.x - _maskCentre.x) > 3f || Mathf.Abs(centre.z - _maskCentre.z) > 3f);
 
         static RenderTexture NewRT(int res, RenderTextureFormat f, FilterMode fm, string name)

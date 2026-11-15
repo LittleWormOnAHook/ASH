@@ -36,7 +36,7 @@ namespace ASH.Map
         {
             Instance = this;
             if (region == null) { enabled = false; return; }
-            Fog = new ASHMapFog(region.fogResolution, region.worldMin, region.worldSize);
+            Fog = new ASHMapFog(region.fogResolution, region.worldMin, region.worldSize) { EdgeSoftness = region.fogEdgeSoftness, EdgeMinMetres = region.fogEdgeMinMetres };
         }
         private void OnDestroy() { if (Instance == this) Instance = null; }
 

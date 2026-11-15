@@ -281,6 +281,7 @@ void LitPassFragment(
         half ashWindward = saturate(-dot(ashGeomN.xz, _ASH_Weather.zw));
         ASH_ApplyAccumulation(inputData.positionWS, ashGeomN, ASH_DriftAt(inputData.positionWS), ashWindward,
             surfaceData.albedo, inputData.normalWS, surfaceData.smoothness, surfaceData.metallic, surfaceData.occlusion);
+        ASH_BaseDust(inputData.positionWS, surfaceData.albedo, inputData.normalWS, surfaceData.smoothness, surfaceData.metallic); // light dusting where the object stands in the layer / bank
     }
     SETUP_DEBUG_TEXTURE_DATA(inputData, UNDO_TRANSFORM_TEX(input.uv, _BaseMap));
 

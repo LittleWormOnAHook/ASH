@@ -183,8 +183,10 @@ namespace ASH.UI
             }
 
             // fog flicker + scanline crawl
+            // flicker only the brightness: unexplored fog stays solid at the region's fogOpacity (default 1)
             float fl = Mathf.PerlinNoise(Time.unscaledTime * 2.3f, 0.7f);
-            _fogImg.color = new Color(1, 1, 1, 0.9f + 0.1f * fl);
+            var reg = _gps.Region; float flick = reg ? reg.fogFlicker : 0.1f, b = 1f - flick + flick * fl;
+            _fogImg.color = new Color(b, b, b, reg ? reg.fogOpacity : 1f);
             float lines = _viewport.rect.height / 3f;
             _scan.uvRect = new Rect(0, Time.unscaledTime * 0.6f % 1f, 1, lines / 4f);
 

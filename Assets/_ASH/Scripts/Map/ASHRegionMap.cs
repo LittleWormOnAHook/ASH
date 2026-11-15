@@ -33,6 +33,15 @@ namespace ASH.Map
         [Range(5f, 300f)] public float gpsUncertainty = 70f;
         [Range(0f, 100f)] public float gpsDrift = 25f;
         [Range(64, 2048)] public int fogResolution = 512;
+        [Header("Fog of war look")]
+        [Tooltip("Opacity of the fog over unexplored ground. 1 = fully solid (nothing of the map shows through).")]
+        [Range(0f, 1f)] public float fogOpacity = 1f;
+        [Tooltip("Width of the soft edge between explored and unexplored, as a fraction of each reveal radius (0 = hard edge, 1 = fades over the whole radius).")]
+        [Range(0f, 1f)] public float fogEdgeSoftness = 0.35f;
+        [Tooltip("Minimum soft-edge width in metres (keeps small walk reveals from getting a hard rim).")]
+        [Range(0f, 200f)] public float fogEdgeMinMetres = 8f;
+        [Tooltip("Brightness flicker of the fog pattern (damaged GPS feel). Only affects brightness, never opacity.")]
+        [Range(0f, 0.5f)] public float fogFlicker = 0.1f;
         public List<ASHPoi> pois = new List<ASHPoi>();
         public List<ASHSurveyPointDef> surveys = new List<ASHSurveyPointDef>();
 

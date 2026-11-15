@@ -134,3 +134,8 @@ Wind: one shared wind on the director (direction, `WindMS`, `gustCurve`/`gustFre
 2. Inventory polish: drop or discard items to the world, gamepad slot navigation, torch. (Items and recipes: see `Docs/ItemsAndCrafting.md`. The truck is undecided/optional; default play is on foot only.)
 3. Vendor art pass: animal and human vendor packs (Anthony), real deadwood, berry and campfire meshes, and cabin interior dressing.
 5. Audio: wind, fire crackle, footsteps on ash.
+
+### Batch: map FOW, snow/ash banking, step zoom (compile-only)
+- **Map fog of war**: unexplored areas are solid (`ASH_RegionMap`: `fogOpacity` 1, `fogEdgeSoftness` 0.35 of reveal radius, `fogEdgeMinMetres` 8, `fogFlicker` brightness-only).
+- **Banking**: `ASHAccumulationSurface` > Banking. The collider mask is now RG: R = fade for small/non-banking colliders (old behaviour), G = distance to banking colliders' real footprints. The layer rises into a bank (`bankHeight`, `bankReach`, `bankCurve`, `bankNoiseScale/Strength`, `bankFullAtDepth`, `bankMinColliderSize`), pressed down by footprints (deform). Invisible helpers (no renderer / Ignore Raycast layer), doors and pickups never bank. ASH Accumulation Lit objects get a light dusting on their bottom few cm (`baseDusting`, `dustHeight`, `dustFade`, `dustStrength`).
+- **Zoom**: `ASHInvectorInput` > ASH Zoom: `zoomClicksAcrossRange` 6, `zoomMinDistance` 1.5, `zoomMaxDistance` 12, `zoomSmoothTime` 0.18, `scrollPerClick` (0 = auto). Aim/Scope states untouched; external zoom changes are adopted.
