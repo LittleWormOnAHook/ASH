@@ -44,9 +44,9 @@ namespace ASH.Survival
 
         [Header("Wet rag (UI only, no screen overlay)")]
         [Range(0f, 1f)] public float ragProtection = 0.6f;
-        [Range(0.1f, 24f)] public float ragHours = 2f;
-        [Tooltip("Full protection until this many game hours remain, then it fades to zero (with a warning).")]
-        [Range(0f, 12f)] public float ragDegradeHours = 0.5f;
+        [Range(0.1f, 72f)] public float ragHours = 12f;
+        [Tooltip("Drying-out window: full protection until this many game hours remain, then it fades to zero (\"Your rag is drying out\" warning, amber timer).")]
+        [Range(0f, 24f)] public float ragDegradeHours = 3f;
         [Tooltip("Wet rag + 10% bottle water.")]
         [Range(0f, 100f)] public float rewetWaterPercent = 10f;
 
@@ -54,13 +54,14 @@ namespace ASH.Survival
         [Range(0f, 1f)] public float maskProtection = 0.9f;
         [Tooltip("Mask worn with no usable filter.")]
         [Range(0f, 1f)] public float maskNoFilterProtection = 0.15f;
-        [Range(0.1f, 48f)] public float filterHours = 4f;
+        [Tooltip("Life of a new filter (game hours). Found filters roll a condition = fraction of this.")]
+        [Range(0.1f, 144f)] public float filterHours = 24f;
         [Tooltip("Protection fades over the last game hours of a filter.")]
-        [Range(0f, 12f)] public float filterDegradeHours = 0.25f;
+        [Range(0f, 24f)] public float filterDegradeHours = 1.5f;
         [Tooltip("Filters wear only outside / in leaky shelters (sealed shelters don't use them).")]
         public bool filterWearsOnlyWhenExposed = true;
-        [Tooltip("Low-filter warning (game hours left).")]
-        [Range(0f, 12f)] public float filterLowHours = 0.75f;
+        [Tooltip("Low-filter warning + amber timer (game hours left).")]
+        [Range(0f, 48f)] public float filterLowHours = 4.5f;
         [Tooltip("Filters below this condition are clogged: can't be fitted.")]
         [Range(0f, 0.5f)] public float filterUnusableBelow = 0.03f;
         [Tooltip("Found filter cartridges roll a condition from these bands (weighted).")]
