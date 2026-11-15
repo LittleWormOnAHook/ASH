@@ -121,10 +121,11 @@ namespace ASH.Interaction
         bool CanTakeYield(ASHInventory inv) { foreach (var y in finalYield) if (y.item && !inv.HasSpaceFor(y.item, 1)) return false; return true; }
         void GiveYield(ASHInventory inv) { foreach (var y in finalYield) if (y.item) inv.AddItem(y.item, y.amount); }
 
+        AudioClip[] ChopSet { get { if (chopClips != null && System.Array.Exists(chopClips, c => c)) return chopClips; var b = ASH.Gameplay.ASHSoundBank.Instance; return b ? b.axeChop : null; } }
+
         void PlayChop(bool last)
         {
-            if (chopClips == null || chopClips.Length == 0) return;
-            var clip = chopClips[Random.Range(0, chopClips.Length)]; if (!clip) return;
+            var clip = ASH.Gameplay.ASHSfx.Pick(ChopSet); if (!clip) return;
             Play(clip, transform.position + Vector3.up * Mathf.Min(1.2f, _height * 0.5f), volume, last ? 0.8f : Random.Range(0.92f, 1.08f));
         }
 
@@ -156,7 +157,10 @@ namespace ASH.Interaction
         {
             _busy = true;
             foreach (var col in _cols) if (col) col.enabled = false; // don't shove the player while it falls
-            if (fallClip) Play(fallClip, transform.position + Vector3.up * 2f, volume, Random.Range(0.95f, 1.05f));
+            var bank = ASH.Gameplay.ASHSoundBank.Instance;
+            var crack = bank ? ASH.Gameplay.ASHSfx.Pick(bank.treeCrack) : null; if (crack) Play(crack, transform.position + Vector3.up * 1.2f, volume, Random.Range(0.95f, 1.05f)); // trunk splits
+            var fall = fallClip ? fallClip : bank ? ASH.Gameplay.ASHSfx.Pick(bank.treeFall) : null;
+            if (fall) Play(fall, transform.position + Vector3.up * 2f, volume, Random.Range(0.95f, 1.05f));
             var t = visualRoot.transform; var pivot = transform.position; var axis = Vector3.Cross(Vector3.up, dir).normalized;
             Vector3 p0 = t.position; Quaternion r0 = t.rotation; float angle = 0f;
             for (float k = 0f; k < 1f; k += Time.deltaTime / fallSeconds)
@@ -167,7 +171,7 @@ namespace ASH.Interaction
                 yield return null;
             }
             var qf = Quaternion.AngleAxis(88f, axis); t.SetPositionAndRotation(pivot + qf * (p0 - pivot), qf * r0);
-            if (chopClips != null && chopClips.Length > 0 && chopClips[0]) Play(chopClips[0], pivot + dir * _height * 0.5f, volume, 0.55f); // thud
+            var thud = ChopSet != null && ChopSet.Length > 0 ? ChopSet[0] : null; if (thud) Play(thud, pivot + dir * _height * 0.5f, volume, 0.55f); // thud
             yield return new WaitForSeconds(0.35f);
             SpawnLogs(pivot + dir * 0.8f, dir);
             if (stumpPrefab) Spawned.Add(Instantiate(stumpPrefab, pivot, Quaternion.Euler(0f, Random.Range(0f, 360f), 0f), transform.parent));

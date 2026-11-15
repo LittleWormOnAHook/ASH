@@ -17,6 +17,20 @@ namespace ASH.Gameplay
         public bool Stuck { get; private set; }
         public Collider StuckIn { get; private set; }
         public float FlightTime { get; private set; }
+        /// <summary>Wood / Snow / Rock (impact sound set).</summary>
+        public string ImpactSurface { get; private set; } = "";
+
+        /// <summary>Impact surface from the hit collider: terrain = snow; rock/stone/cliff/boulder names or materials = rock; snow names = snow; else wood.</summary>
+        public static string Surface(Collider c)
+        {
+            if (!c) return "Wood";
+            if (c is TerrainCollider) return "Snow";
+            string n = (c.name + " " + (c.transform.parent ? c.transform.parent.name : "") + " " + c.transform.root.name + " " + (c.sharedMaterial ? c.sharedMaterial.name : "")).ToLowerInvariant();
+            var r = c.GetComponentInParent<Renderer>(); if (r && r.sharedMaterial) n += " " + r.sharedMaterial.name.ToLowerInvariant();
+            if (n.Contains("rock") || n.Contains("stone") || n.Contains("cliff") || n.Contains("boulder") || n.Contains("concrete")) return "Rock";
+            if (n.Contains("snow") || n.Contains("ground") || n.Contains("terrain")) return "Snow";
+            return "Wood";
+        }
         public float MaxHeight { get; private set; }
         public Vector3 LaunchPosition { get; private set; }
         public Vector3 LaunchVelocity { get; private set; }
@@ -72,6 +86,10 @@ namespace ASH.Gameplay
             var rb = h.collider.attachedRigidbody;
             if (rb && !rb.isKinematic) rb.AddForceAtPosition(Velocity * 0.02f, h.point, ForceMode.Impulse);
             if (rb || !h.collider.gameObject.isStatic) transform.SetParent(h.collider.transform, true);
+            ImpactSurface = Surface(h.collider);
+            var bank = ASHSoundBank.Instance;
+            if (bank) ASHSfx.Play("arrowImpact" + ImpactSurface, ImpactSurface == "Rock" ? bank.arrowImpactRock : ImpactSurface == "Snow" ? bank.arrowImpactSnow : bank.arrowImpactWood,
+                h.point, bank.impactVolume * bank.volume * Mathf.Clamp01(0.4f + Velocity.magnitude / 60f), 1f, 0.08f, 1f, 60f);
             Velocity = Vector3.zero;
             if (_recover && _item && Random.value <= _recoverChance)
             {

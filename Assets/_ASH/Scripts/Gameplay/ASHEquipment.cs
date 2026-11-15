@@ -27,6 +27,8 @@ namespace ASH.Gameplay
         [SerializeField] private Animator animator;
         [Tooltip("Muzzle flash light length for the stub weapon use (seconds).")]
         [Range(0f, 0.3f)] public float muzzleFlashSeconds = 0.06f;
+        [Tooltip("Muzzle flash light intensity (kept low so bloom doesn't blow out).")]
+        [Range(0f, 8f)] public float muzzleFlashIntensity = 1.2f;
 
         [Header("Lantern on the left hip (fallback spawn uses hipOffset/hipScale; pre-placed Holder_Hip is authored by hand)")]
         [Tooltip("Pre-placed lantern: swing by rotating Holder_Hip around its authored pose (the lantern itself is never moved).")]
@@ -353,9 +355,9 @@ namespace ASH.Gameplay
             ShotsFired++;
             if (_mainGo && muzzleFlashSeconds > 0f && !arrow)
             {
-                if (!_flash) { var g = new GameObject("MuzzleFlash"); _flash = g.AddComponent<Light>(); _flash.type = LightType.Point; _flash.range = 6f; _flash.intensity = 4f; _flash.color = new Color(1f, 0.8f, 0.5f); }
+                if (!_flash) { var g = new GameObject("MuzzleFlash"); _flash = g.AddComponent<Light>(); _flash.type = LightType.Point; _flash.range = 5f; _flash.color = new Color(1f, 0.8f, 0.5f); }
                 _flash.transform.SetParent(_mainGo.transform, false); _flash.transform.localPosition = Vector3.forward * 0.5f;
-                _flash.enabled = true; _flashUntil = Time.time + muzzleFlashSeconds;
+                _flash.intensity = muzzleFlashIntensity; _flash.enabled = true; _flashUntil = Time.time + muzzleFlashSeconds;
             }
             Say($"{Main.displayName}: {inventory.Count(Main.ammoItem)} {Main.ammoItem.displayName} left");
             return true;

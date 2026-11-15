@@ -27,7 +27,9 @@ namespace ASH.Player
         public Vector2? SimMove; public bool? SimSprint; public bool SimJump; public bool SimCrouch; public bool? SimInteractHeld; public bool SimInteractPressed; public bool SimPrimary; public bool SimSecondary; public bool SimInventory; public bool SimCraft; public int SimHotbar = -1;
 
         public InputActionAsset Actions => actions;
-        public bool GameplayBlocked => ASHUIState.BlocksGameplay;
+        /// <summary>Test harness: ignore the real keyboard/mouse for gameplay input (Sim* values still apply).</summary>
+        public static bool IgnoreDevices;
+        public bool GameplayBlocked => ASHUIState.BlocksGameplay || IgnoreDevices;
 
         private void Awake()
         {
@@ -119,8 +121,8 @@ namespace ASH.Player
         /// <summary>Test hook: Esc counts as pressed on this frame number (every reader sees it that frame).</summary>
         public int SimPauseFrame = -1;
         public bool PausePressed => SimPauseFrame == Time.frameCount || _pause.WasPressedThisFrame();
-        public bool PrimaryPressed => Consume(ref SimPrimary) || _primary.WasPressedThisFrame();
-        public bool SecondaryPressed => Consume(ref SimSecondary) || _secondary.WasPressedThisFrame();
+        public bool PrimaryPressed => Consume(ref SimPrimary) || (!IgnoreDevices && _primary.WasPressedThisFrame());
+        public bool SecondaryPressed => Consume(ref SimSecondary) || (!IgnoreDevices && _secondary.WasPressedThisFrame());
         public bool? SimSecondaryHeld;
         /// <summary>Held Secondary (RMB): aim a torch/flashlight.</summary>
         public bool SecondaryHeld => SimSecondaryHeld ?? (!GameplayBlocked && (_secondary.IsPressed() || (_aimAlt != null && _aimAlt.IsPressed())));

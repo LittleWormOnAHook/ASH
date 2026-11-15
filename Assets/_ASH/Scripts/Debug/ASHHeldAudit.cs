@@ -33,6 +33,10 @@ namespace ASH.DebugTools
 
         static ASHItemDefinition Item(string f) => Resources.FindObjectsOfTypeAll<ASHItemDefinition>().FirstOrDefault(i => i && i.name == "ASH_Item_" + f);
 
+        /// <summary>Audit pacing: states are held long enough (with their normal blends) that a screen recording of the run looks like real play.</summary>
+        public static float Pace = 1.5f, MinStateSeconds = 0.8f;
+        static WaitForSeconds Wait(float s) => new WaitForSeconds(s >= 0.3f ? Mathf.Max(s * Pace, MinStateSeconds) : s * Pace);
+
         IEnumerator Start()
         {
             _eq = FindAnyObjectByType<ASHEquipment>(); _inv = FindAnyObjectByType<ASHInventory>(); _in = FindAnyObjectByType<ASHInput>();
@@ -50,7 +54,7 @@ namespace ASH.DebugTools
             _l2 = new GameObject("AuditLight2").AddComponent<Light>(); _l2.type = LightType.Point; _l2.range = 5f; _l2.intensity = 1.5f; _l2.shadows = LightShadows.None;
             _l1.transform.SetParent(transform); _l2.transform.SetParent(transform);
             _eq.Unequip(ASHEquipSlot.MainHand); _eq.Unequip(ASHEquipSlot.OffHand); _eq.Unequip(ASHEquipSlot.Hip);
-            yield return new WaitForSeconds(0.3f);
+            yield return Wait(0.3f);
             if (_axesOnly) { yield return Axes(); File.WriteAllText(Path.Combine(_dir, "log.txt"), _log.ToString()); Debug.Log("[ASH] AUDIT wrote " + _dir); Destroy(gameObject); yield break; }
 
             // bow + arrow
@@ -59,53 +63,57 @@ namespace ASH.DebugTools
             {
                 var wa = _anim.GetComponent<ASHWeaponAim>();
                 Give(bow); if (arrow && _inv.Count(arrow) < 5) _inv.AddItem(arrow, 5); _eq.Equip(bow); _left = true; _focus = _eq.MainVisual;
-                yield return new WaitForSeconds(0.6f); yield return Shot("rest");
-                _in.SimSecondaryHeld = true; yield return new WaitForSeconds(0.15f); yield return Shot("nocked"); BowLog("nocked", wa);
-                yield return new WaitForSeconds(0.3f); yield return Shot("halfdraw"); BowLog("halfdraw", wa);
-                yield return new WaitForSeconds(1.2f); yield return Shot("fulldraw"); BowLog("fulldraw", wa);
-                int a0 = _inv.Count(arrow); _in.SimSecondaryHeld = false; yield return new WaitForSeconds(0.08f); yield return Shot("rmb-up-no-shot");
-                yield return new WaitForSeconds(0.5f); _log.Append($"rmb-up: arrows {a0}->{_inv.Count(arrow)} shots {wa.Shots}\n");
-                _in.SimSecondaryHeld = true; yield return new WaitForSeconds(1.4f);
+                yield return Wait(0.6f); yield return Shot("rest");
+                _in.SimSecondaryHeld = true; yield return Wait(0.15f); yield return Shot("nocked"); BowLog("nocked", wa);
+                yield return Wait(0.3f); yield return Shot("halfdraw"); BowLog("halfdraw", wa);
+                yield return Wait(1.2f); yield return Shot("fulldraw"); BowLog("fulldraw", wa);
+                int a0 = _inv.Count(arrow); _in.SimSecondaryHeld = false; yield return Wait(0.08f); yield return Shot("rmb-up-no-shot");
+                yield return Wait(0.5f); _log.Append($"rmb-up: arrows {a0}->{_inv.Count(arrow)} shots {wa.Shots}\n");
+                _in.SimSecondaryHeld = true; yield return Wait(1.4f);
                 _in.SimPrimary = true; yield return null; yield return null; yield return Shot("lmb-loose"); _log.Append($"loose: spawn {wa.LastArrowSpawn:F2} rest {wa.ArrowRestWorld:F2}\n");
-                _in.SimSecondaryHeld = null; yield return new WaitForSeconds(0.4f); Sheet("WoodenBow"); _eq.Unequip(ASHEquipSlot.MainHand);
+                _in.SimSecondaryHeld = null; yield return Wait(0.4f); Sheet("WoodenBow"); _eq.Unequip(ASHEquipSlot.MainHand);
                 File.WriteAllText(Path.Combine(_dir, "log.txt"), _log.ToString()); Debug.Log("[ASH] AUDIT wrote " + _dir);
                 foreach (var r in _rts) if (r) r.Release(); Destroy(gameObject); yield break;
             }
             if (bow) { Give(bow); if (arrow && _inv.Count(arrow) < 5) _inv.AddItem(arrow, 5); _eq.Equip(bow); _left = true; _focus = _eq.MainVisual;
-                yield return new WaitForSeconds(0.6f); yield return Shot("rest");
-                _in.SimSecondaryHeld = true; yield return new WaitForSeconds(0.15f); yield return Shot("nocked");
-                yield return new WaitForSeconds(1.2f); yield return Shot("fulldraw");
+                yield return Wait(0.6f); yield return Shot("rest");
+                _in.SimSecondaryHeld = true; yield return Wait(0.15f); yield return Shot("nocked");
+                yield return Wait(1.2f); yield return Shot("fulldraw");
                 _in.SimPrimary = true; yield return null; yield return null; yield return Shot("release");
-                _in.SimSecondaryHeld = null; yield return new WaitForSeconds(0.4f); Sheet("WoodenBow"); _eq.Unequip(ASHEquipSlot.MainHand); }
+                _in.SimSecondaryHeld = null; yield return Wait(0.4f); Sheet("WoodenBow"); _eq.Unequip(ASHEquipSlot.MainHand); }
             foreach (var gun in new[] { "HuntingRifle", "Pistol" })
             {
                 var it = Item(gun); if (!it) continue;
                 Give(it); if (it.ammoItem && _inv.Count(it.ammoItem) < 3) _inv.AddItem(it.ammoItem, 3);
                 _eq.Equip(it); _left = false; _focus = _eq.MainVisual;
-                yield return new WaitForSeconds(0.6f); yield return Shot("idle");
-                _in.SimSecondaryHeld = true; yield return new WaitForSeconds(0.7f); yield return Shot("aim");
-                _in.SimSecondaryHeld = null; yield return new WaitForSeconds(0.4f); Sheet(gun); _eq.Unequip(ASHEquipSlot.MainHand);
+                yield return Wait(0.6f); yield return Shot("idle");
+                _in.SimSecondaryHeld = true; yield return Wait(0.7f); yield return Shot("aim");
+                _in.SimSecondaryHeld = null; yield return Wait(0.4f); Sheet(gun); _eq.Unequip(ASHEquipSlot.MainHand);
             }
             var axe = Item("Hatchet");
             if (axe) { Give(axe); _eq.Equip(axe); _left = false; _focus = _eq.MainVisual;
-                yield return new WaitForSeconds(0.6f); yield return Shot("held");
-                foreach (var t in new[] { 0.15f, 0.42f, 0.7f })
+                yield return Wait(0.6f); yield return Shot("held");
+                foreach (var (stn, t) in new[] { ("Chop", 0.3f), ("Chop", 0.44f), ("Chop", 0.51f), ("ChopHigh", 0.3f), ("ChopHigh", 0.45f) })
                 {
-                    float until = Time.time + 0.35f; while (Time.time < until) { _layer.PlayAt("Chop", t); yield return null; }
-                    _layer.PlayAt("Chop", t); yield return Shot("chop" + t.ToString("F2"));
+                    if (!_layer.Has(stn)) continue;
+                    float until = Time.time + 0.35f; while (Time.time < until) { _layer.PlayAt(stn, t); yield return null; }
+                    _layer.PlayAt(stn, t);
+                    var rh = _anim.GetBoneTransform(HumanBodyBones.RightHand); var hp = _anim.GetBoneTransform(HumanBodyBones.Hips);
+                    Debug.Log($"[ASH] AUDIT chop {stn}@{t:F2} layer={_layer.State} w={_layer.Weight:F2} nt={_layer.NormalizedTime:F2} hand y vs hips {(rh.position.y - hp.position.y):F2}");
+                    yield return Shot(stn.ToLowerInvariant() + t.ToString("F2"));
                 }
-                _layer.Release(); yield return new WaitForSeconds(0.4f); Sheet("Hatchet"); _eq.Unequip(ASHEquipSlot.MainHand); }
+                _layer.Release(); yield return Wait(0.4f); Sheet("Hatchet"); _eq.Unequip(ASHEquipSlot.MainHand); }
             foreach (var lt in new[] { "Torch", "Flashlight" })
             {
                 var it = Item(lt); if (!it) continue;
                 Give(it); _eq.Equip(it); _left = true; _focus = _eq.OffVisual;
-                yield return new WaitForSeconds(0.9f); yield return Shot(lt == "Torch" ? "raised" : "idle");
-                _in.SimSecondaryHeld = true; yield return new WaitForSeconds(0.8f); yield return Shot("aim");
-                _in.SimSecondaryHeld = null; yield return new WaitForSeconds(0.4f); Sheet(lt); _eq.Unequip(ASHEquipSlot.OffHand);
+                yield return Wait(0.9f); yield return Shot(lt == "Torch" ? "raised" : "idle");
+                _in.SimSecondaryHeld = true; yield return Wait(0.8f); yield return Shot("aim");
+                _in.SimSecondaryHeld = null; yield return Wait(0.4f); Sheet(lt); _eq.Unequip(ASHEquipSlot.OffHand);
             }
             var lan = Item("Lantern");
             if (lan) { Give(lan); _eq.Equip(lan); _left = true; _focus = _eq.HipVisual;
-                yield return new WaitForSeconds(0.8f); yield return Shot("hip"); yield return new WaitForSeconds(0.5f); yield return Shot("hip2");
+                yield return Wait(0.8f); yield return Shot("hip"); yield return Wait(0.5f); yield return Shot("hip2");
                 Sheet("Lantern"); _eq.Unequip(ASHEquipSlot.Hip); }
 
             File.WriteAllText(Path.Combine(_dir, "log.txt"), _log.ToString());

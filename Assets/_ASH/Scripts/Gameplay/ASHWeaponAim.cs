@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using ASH.Core;
 using ASH.Inventory;
 using ASH.Player;
@@ -10,11 +11,11 @@ namespace ASH.Gameplay
     /// <summary>
     /// Basic shooting (no damage, no combat systems), adapted from the Genesis/Invector shooter + bow flow:
     /// - Hold RMB with a rifle, pistol or bow: aim. The body faces the camera (Invector strafe, restored on release) and the
-    ///   ASH_Action layer plays the aim pose (Invector Aiming@Rifle / Aiming@Pistol / Bow_Aiming, unmirrored: bow in the left hand).
+    ///   ASH_Action layer plays the aim pose (Invector Aiming@Rifle / Aiming@Pistol; bow: Mixamo longbow draw / aim-idle / recoil from Genesis).
     /// - Rifle/pistol: LMB fires (hip fire optional): one round from the pack, camera ray hit (nudges rigidbodies),
     ///   muzzle flash, Shot_* pose, camera kick + weapon kick.
-    /// - Bow (left hand) + arrow (right hand): RMB brings the hands together, the right hand nocks and draws back (right-arm IK,
-    ///   bowDrawLength) and HOLDS full draw until RMB is released. ONLY an LMB click while aiming looses the arrow (once drawn past
+    /// - Bow (left hand) + arrow (right hand): RMB plays the archery draw (clip scrubbed by the draw: left arm out, right hand
+    ///   to the cheek), then the aim-idle clip loops at full draw until RMB is released (no arm IK). ONLY an LMB click while aiming looses the arrow (once drawn past
     ///   minDraw01); letting go of RMB just lowers the bow, never fires. While drawing, the bow is turned string-toward-the-archer
     ///   (side found from the bow mesh), the runtime nock arrow sits nock-on-string at the right hand and rests on the riser pointing
     ///   along the aim, the bow string is pulled back to the right hand (mesh deform of the string vertices on a runtime mesh copy),
@@ -37,16 +38,38 @@ namespace ASH.Gameplay
         public Vector3 bowAimTrimEuler = Vector3.zero;
         [Range(-30f, 30f)] public float bowTiltDeg = 8f;
 
-        [Header("Bow arm (left-arm IK while aiming)")]
-        [Tooltip("0 = animation only. Pulls the bow hand in toward the chest centre line, in front of the chest, on the aim line.")]
-        [Range(0f, 1f)] public float bowArmIKWeight = 1f;
-        [Tooltip("Bow hand distance in front of the shoulders' midpoint along the aim (smaller = more elbow bend).")]
-        [Range(0.2f, 0.8f)] public float bowArmReach = 0.5f;
-        [Tooltip("Bow hand sideways from the chest centre line, metres (negative = left).")]
-        [Range(-0.4f, 0.4f)] public float bowArmLateral = -0.06f;
-        [Range(-0.3f, 0.3f)] public float bowArmHeight = 0.1f;
-        [Tooltip("Left elbow pole from the left shoulder, character space (x right, y up, z forward): out and down gives a natural bend.")]
-        public Vector3 bowArmElbowHint = new Vector3(-0.5f, -0.4f, 0.05f);
+        [Header("Bow body aim (the archery clip aims to the archer's side: turn the body so its arrow line meets the crosshair)")]
+        public bool bowBodyAim = true;
+        [Tooltip("Share of the residual pitch put on the spine (0 = arms level, 1 = full pitch to the aim point).")]
+        [Range(0f, 1f)] public float bowSpinePitch = 1f;
+        [Range(0f, 150f)] public float bowMaxBodyYaw = 120f;
+        [Header("Bow arm while aiming (aim-only delta; rest placement untouched)")]
+        [Tooltip("Turns the bow arm (shoulder) to the right while aiming (deg): rotates the bow right and moves it right.")]
+        [Range(-30f, 30f)] public float bowArmYaw = 6f;
+        [Tooltip("Extra turn of the bow hand only (deg, + = right): rotates the bow without moving the arm.")]
+        [Range(-30f, 30f)] public float bowHandYaw = 4f;
+        [Tooltip("Extra shift of the bow hand to the right (metres), done by the shoulder turn.")]
+        [Range(-0.2f, 0.2f)] public float bowArmShiftRight = 0.04f;
+        [Range(1f, 20f)] public float bowBodyBlendSpeed = 6f;
+
+        [Header("Head look at the crosshair while aiming (bow, rifle, pistol)")]
+        public bool headLookAtAim = true;
+        [Tooltip("How much of the turn toward the crosshair is applied (1 = full).")]
+        [Range(0f, 1f)] public float headLookWeight = 0.6f;
+        [Tooltip("Yaw offset of the look target (deg, + = right, - = left).")]
+        [Range(-30f, 30f)] public float headLookYawOffset = 4f;
+        [Tooltip("Largest total turn toward the aim point (deg), shared over spine, chest, neck and head.")]
+        [Range(0f, 90f)] public float headLookClamp = 35f;
+        [Tooltip("Largest up/down part of the turn (deg).")]
+        [Range(0f, 60f)] public float headLookPitchClamp = 15f;
+        [Tooltip("Shares of the turn done by the spine / chest / neck (the head does the rest). Small spine and chest shares spread the twist so the neck and shoulder skin does not crease.")]
+        [Range(0f, 0.5f)] public float spineLookShare = 0.08f;
+        [Range(0f, 0.5f)] public float chestLookShare = 0.17f;
+        [Range(0f, 0.6f)] public float neckLookShare = 0.3f;
+        [Range(1f, 20f)] public float headLookBlendSpeed = 6f;
+        public bool headLookOnGuns = true;
+
+        [Header("Arm IK (rifle/pistol support hand)")]
         [Range(1f, 30f)] public float armIKBlendSpeed = 8f;
 
         [Header("Guns: support hand (LeftHandIK child on each held gun, placed in edit mode)")]
@@ -61,6 +84,17 @@ namespace ASH.Gameplay
         [Tooltip("Right elbow direction (root space) while the gun is pulled back.")]
         public Vector3 gunRightElbowHint = new Vector3(0.4f, -0.5f, -0.1f);
 
+        [Header("Rifle: butt seated in the right shoulder pocket while aiming (delta on the edit-mode Held_Rifle placement)")]
+        public bool rifleSeatInShoulder = true;
+        [Tooltip("Shoulder pocket from the right shoulder joint, character space (x right, y up, z forward; metres). The rifle butt is moved here.")]
+        public Vector3 rifleShoulderPocket = new Vector3(-0.05f, -0.03f, 0.05f);
+        [Tooltip("Chest turn (deg) toward the right while aiming the rifle (bladed stance) so the support hand reaches the forend.")]
+        [Range(0f, 60f)] public float rifleBladeYaw = 35f;
+        [Tooltip("Most the rifle may slide back off the shoulder to let the support hand reach (metres).")]
+        [Range(0f, 0.2f)] public float rifleMaxPull = 0.05f;
+        [Tooltip("If the support hand can't reach LeftHandIK, it grips further back along the forend by up to this much (metres) instead of pulling the rifle off the shoulder.")]
+        [Range(0f, 0.4f)] public float rifleGripSlideMax = 0.3f;
+
         [Header("Aim camera (over the right shoulder while aiming a weapon or a light, like Genesis Aiming)")]
         public bool aimCamera = true;
         [Tooltip("Camera offset to the right of the player while aiming, metres (Genesis Aiming state uses ~0.3-0.4).")]
@@ -69,7 +103,7 @@ namespace ASH.Gameplay
         [Range(0.4f, 6f)] public float aimCameraDistance = 1.6f;
         [Range(20f, 90f)] public float aimCameraFov = 52f;
         [Tooltip("Blend speed into and out of the aim camera (higher = faster).")]
-        [Range(0.5f, 30f)] public float aimCameraBlendSpeed = 8f;
+        [Range(0.5f, 30f)] public float aimCameraBlendSpeed = 4f;
         public const string AimCameraState = "ASH_Aim";
 
         [Header("Guns")]
@@ -89,16 +123,11 @@ namespace ASH.Gameplay
 
         [Header("Bow")]
         [Range(0.1f, 4f)] public float drawSeconds = 0.9f;
-        [Tooltip("How far the right (string) hand pulls back from the bow hand at full draw, metres along the aim.")]
-        [Range(0.1f, 1f)] public float bowDrawLength = 0.62f;
-        [Tooltip("Right-arm draw IK weight (0 = clip only).")]
-        [Range(0f, 1f)] public float bowDrawIKWeight = 1f;
-        [Range(-0.3f, 0.3f)] public float bowDrawRaise = 0.04f;
-        [Tooltip("Right elbow hint from the right shoulder, character space (x right, y up, z forward).")]
-        public Vector3 bowDrawElbowHint = new Vector3(0.45f, 0.25f, -0.4f);
-        [Tooltip("BowAim clip time at no draw / at full draw (held there until RMB is released).")]
+        [Tooltip("BowDraw clip time at no draw / at full draw; at full draw the BowHold (aim idle) clip loops until RMB is released.")]
         [Range(0f, 1f)] public float bowAimStartNormalized = 0f;
-        [Range(0f, 1f)] public float bowAimHoldNormalized = 0.95f;
+        [Range(0f, 1f)] public float bowAimHoldNormalized = 1f;
+        [Tooltip("Cross-fade from the end of the draw into the looping hold, seconds.")]
+        [Range(0f, 0.5f)] public float bowHoldBlend = 0.15f;
         [Range(0f, 1f)] public float minDraw01 = 0.2f;
         [Range(1f, 120f)] public float arrowSpeedMin = 16f;
         [Range(1f, 150f)] public float arrowSpeedMax = 55f;
@@ -126,6 +155,16 @@ namespace ASH.Gameplay
 
         public bool Aiming { get; private set; }
         public float Draw01 { get; private set; }
+        /// <summary>Body yaw (deg) applied this frame so the archery pose's arrow line points at the aim point.</summary>
+        public float BowBodyYaw { get; private set; }
+        /// <summary>Angle (deg) between the face direction and the line from the head to the aim point (-1 when not looking).</summary>
+        public float HeadLookError { get; private set; } = -1f;
+        public float HeadLookBlend => _lookW;
+        /// <summary>Face-to-target angle before / turn applied this frame (deg).</summary>
+        public float HeadLookRaw { get; private set; } = -1f;
+        public float HeadLookTurn { get; private set; }
+        /// <summary>Angle (deg) between the pose's arrow line (draw hand to bow hand) and the line to the aim point, after body aim.</summary>
+        public float BowArrowLineError { get; private set; } = -1f;
         public Kind Current { get; private set; }
         public int Shots { get; private set; }
         public RaycastHit? LastHit { get; private set; }
@@ -142,8 +181,15 @@ namespace ASH.Gameplay
         public Vector3 NockWorld { get; private set; }
         public Vector3 FingerWorld { get; private set; }
         public float GunLeftReach { get; private set; }
+        /// <summary>Invector camera target state and current (blended) height, for tests.</summary>
+        public string CameraStateNow { get; private set; } = "";
+        public float CameraHeightNow { get; private set; }
         /// <summary>How far the gun was pulled back toward the shoulder this frame (m).</summary>
         public float GunPull { get; private set; }
+        /// <summary>Rifle aim: distance (m) from the rifle butt to the shoulder pocket after seating (-1 when not aiming the rifle).</summary>
+        public float RifleButtToPocket { get; private set; } = -1f;
+        /// <summary>Rifle aim: how far (m) the support grip slid back along the forend from LeftHandIK so the hand reaches.</summary>
+        public float GunGripSlide { get; private set; }
         public float GunLeftArmLength { get; private set; }
         /// <summary>Left hand to its gun LeftHandIK target after the IK this frame (metres; -1 = no target / not applied).</summary>
         public float GunLeftHandError { get; private set; } = -1f;
@@ -160,7 +206,9 @@ namespace ASH.Gameplay
 
         Animator _anim; ASHEquipment _eq; ASHInput _in; ASHInventory _inv; vThirdPersonController _cc; ASHActionLayer _layer; Camera _cam;
         GameObject _restArrow, _nockArrow; bool _restPlaced, _arrowShown, _warnedArrow; Vector3 _aimDir = Vector3.forward;
-        float _kick, _nextFire, _shotUntil, _aimReleasedAt = -10f, _bowBlend, _bowArm, _gunIK;
+        GameObject _restEndsFor; bool _restEndsOk; Vector3 _restTipL, _restTailL;
+        float _bodyW, _bladeW, _lookW; bool _faceAxisOk; Vector3 _faceLocal; GameObject _buttFor; Vector3 _buttLocal;
+        float _kick, _nextFire, _shotUntil, _aimReleasedAt = -10f, _bowBlend, _gunIK;
         Vector3 _restRootLocal, _nockHandLocal; bool _restValid;
         vThirdPersonInput _tpIn; vThirdPersonCameraState _aimCamState; bool _camAiming; float _savedCamSmooth = -1f, _restoreCamSmoothAt; ASHLightAim _lightAim;
 
@@ -173,13 +221,15 @@ namespace ASH.Gameplay
         }
         sealed class StringMesh { public MeshFilter mf; public Mesh orig, work; public Vector3[] baseV, curV; public int[] idx; public float[] zs; }
         BowGeo _bg;
-        vThirdPersonMotor.LocomotionType _sLoco; bool _sStrafe, _sRotCam; float _sRotSpeed; bool _saved;
 
         void Awake()
         {
             _anim = GetComponent<Animator>(); _eq = GetComponentInParent<ASHEquipment>(); _in = GetComponentInParent<ASHInput>();
             _inv = GetComponentInParent<ASHInventory>(); _cc = GetComponentInParent<vThirdPersonController>();
             _layer = GetComponent<ASHActionLayer>(); if (!_layer) _layer = gameObject.AddComponent<ASHActionLayer>();
+            if (!GetComponent<ASHPoseGuard>()) gameObject.AddComponent<ASHPoseGuard>();
+            if (!GetComponent<ASHHeldRig>()) gameObject.AddComponent<ASHHeldRig>();
+            _wakeFrame = Time.frameCount;
         }
 
         Transform Root => _cc ? _cc.transform : transform;
@@ -192,6 +242,8 @@ namespace ASH.Gameplay
             return it.gripStyle == ASHGripStyle.PistolGrip ? Kind.Pistol : Kind.Rifle;
         }
 
+        static bool IsBowState(string s) => s == "BowDraw" || s == "BowHold" || s == "BowShot";
+
         void Update()
         {
             var kindNow = _eq ? KindOf(_eq.Main) : Kind.None;
@@ -200,11 +252,18 @@ namespace ASH.Gameplay
             bool want = Current != Kind.None && _in && _in.SecondaryHeld && !ASHUIState.BlocksGameplay;
             if (want != Aiming) { SetAim(want); if (!want) _aimReleasedAt = Time.time; }
             Draw01 = Aiming && Current == Kind.Bow && HasArrows ? Mathf.Min(1f, Draw01 + Time.deltaTime / Mathf.Max(0.05f, drawSeconds)) : 0f;
+            if (Draw01 > 0f && !_drawSfx) { _drawSfx = true; var sb = ASHSoundBank.Instance; if (sb) ASHSfx.Play("bowDraw", sb.bowDraw, Root.position + Vector3.up * 1.4f, sb.bowVolume * sb.volume, 1f, 0.04f, 0.6f); }
+            else if (Draw01 <= 0f) _drawSfx = false;
 
             if (Time.time < _shotUntil) { }
-            else if (Aiming && Current == Kind.Bow) _layer.PlayAt("BowAim", Mathf.Lerp(bowAimStartNormalized, bowAimHoldNormalized, Draw01)); // holds full draw
+            else if (Aiming && Current == Kind.Bow)
+            {
+                // archery animation: the draw clip is scrubbed by the draw, then the aim-idle clip loops at full draw until RMB is released
+                if (Draw01 < 1f || !_layer.Has("BowHold")) _layer.PlayAt("BowDraw", Mathf.Lerp(bowAimStartNormalized, bowAimHoldNormalized, Draw01));
+                else _layer.Play("BowHold", bowHoldBlend);
+            }
             else if (Aiming) _layer.Play(Current == Kind.Pistol ? "PistolAim" : "RifleAim", 0.2f);
-            else if (_layer.State == "BowAim" || _layer.State == "RifleAim" || _layer.State == "PistolAim" || _layer.State == "BowShot" || _layer.State == "RifleShot" || _layer.State == "PistolShot") _layer.Release();
+            else if (IsBowState(_layer.State) || _layer.State == "RifleAim" || _layer.State == "PistolAim" || _layer.State == "BowShot" || _layer.State == "RifleShot" || _layer.State == "PistolShot") _layer.Release();
 
             _kick = Mathf.Lerp(_kick, 0f, 1f - Mathf.Exp(-weaponKickRecover * Time.deltaTime));
             UpdateHandArrow();
@@ -238,6 +297,10 @@ namespace ASH.Gameplay
                 if (want) _tpIn.ChangeCameraState(AimCameraState, true); else _tpIn.ResetCameraState();
             }
             if (!_camAiming && _savedCamSmooth >= 0f && Time.time >= _restoreCamSmoothAt) { cam.smoothBetweenState = _savedCamSmooth; _savedCamSmooth = -1f; }
+            // never left on the aim state once nothing aims (absolute states only: Invector's own Default/Strafing/Crouch)
+            if (!_camAiming && !_tpIn.changeCameraState && cam.lerpState != null && cam.lerpState.Name == AimCameraState)
+                cam.ChangeState(_cc && _cc.isCrouching ? "Crouch" : _cc && _cc.isStrafing ? "Strafing" : "Default", true);
+            CameraStateNow = cam.lerpState != null ? cam.lerpState.Name : ""; CameraHeightNow = cam.currentState != null ? cam.currentState.height : 0f;
         }
 
         bool HasArrows => _inv && _eq && _eq.Main && _eq.Main.ammoItem && _inv.Count(_eq.Main.ammoItem) > 0;
@@ -246,16 +309,7 @@ namespace ASH.Gameplay
         {
             Aiming = on;
             if (!_cc) return;
-            if (on)
-            {
-                _sLoco = _cc.locomotionType; _sStrafe = _cc.isStrafing; _sRotCam = _cc.strafeSpeed.rotateWithCamera; _sRotSpeed = _cc.strafeSpeed.rotationSpeed; _saved = true;
-                _cc.locomotionType = vThirdPersonMotor.LocomotionType.FreeWithStrafe; _cc.isStrafing = true;
-                _cc.strafeSpeed.rotateWithCamera = true; _cc.strafeSpeed.rotationSpeed = aimRotationSpeed;
-            }
-            else if (_saved)
-            {
-                _cc.locomotionType = _sLoco; _cc.isStrafing = _sStrafe; _cc.strafeSpeed.rotateWithCamera = _sRotCam; _cc.strafeSpeed.rotationSpeed = _sRotSpeed; _saved = false;
-            }
+            if (on) ASHStrafeLock.Acquire(_cc, this, aimRotationSpeed); else ASHStrafeLock.Release(_cc, this);
         }
 
         void OnDisable()
@@ -287,7 +341,14 @@ namespace ASH.Gameplay
             if (kind == Kind.Bow) return ReleaseArrow();
             if (Time.time < _nextFire) return false;
             if (!allowHipFire && !Aiming) { _eq.Say("Hold RMB to aim"); return false; }
-            if (!_eq.UseMain()) return false; // spends one round, muzzle flash; "Click" when empty
+            var bank = ASHSoundBank.Instance; var muzzle = _eq.MainVisual ? _eq.MainVisual.transform.position : Root.position + Vector3.up * 1.4f;
+            bool empty = _eq.Main.ammoItem && _inv && _inv.Count(_eq.Main.ammoItem) <= 0;
+            if (!_eq.UseMain()) { if (empty && bank) { ASHSfx.Play("dryFire", bank.dryFire, muzzle, bank.gunVolume * bank.volume, 1f, 0.05f, 0.6f); _nextFire = Time.time + 0.25f; } return false; } // spends one round, muzzle flash; "Click" when empty
+            if (bank)
+            {
+                if (kind == Kind.Pistol) ASHSfx.Play("pistolShot", bank.pistolShot, muzzle, bank.gunVolume * bank.volume, bank.pistolPitch, 0.04f, 0.6f, 250f);
+                else { ASHSfx.Play("rifleShot", bank.rifleShot, muzzle, bank.gunVolume * bank.volume, 1f, 0.03f, 0.6f, 400f); if (bank.rifleBolt != null && bank.rifleBolt.Length > 0) StartCoroutine(Bolt(bank, rifleCooldown)); }
+            }
             _nextFire = Time.time + (kind == Kind.Pistol ? pistolCooldown : rifleCooldown);
             var target = AimPoint(out var hit); LastHit = hit; Shots++;
             if (hit.HasValue && hit.Value.rigidbody && !hit.Value.rigidbody.isKinematic)
@@ -297,6 +358,13 @@ namespace ASH.Gameplay
             _kick = 1f;
             _layer.Restart(kind == Kind.Pistol ? "PistolShot" : "RifleShot"); _shotUntil = Time.time + 0.18f;
             return true;
+        }
+
+        bool _drawSfx; int _wakeFrame;
+        System.Collections.IEnumerator Bolt(ASHSoundBank bank, float cooldown)
+        {
+            yield return new WaitForSeconds(Mathf.Clamp(cooldown * 0.45f, 0.25f, 0.8f));
+            if (Current == Kind.Rifle) ASHSfx.Play("rifleBolt", bank.rifleBolt, _eq.MainVisual ? _eq.MainVisual.transform.position : Root.position + Vector3.up * 1.4f, bank.gunVolume * bank.volume * 0.7f, 1f, 0.03f, 0.6f);
         }
 
         bool ReleaseArrow()
@@ -317,11 +385,19 @@ namespace ASH.Gameplay
             go.transform.position = origin; go.transform.rotation = Quaternion.LookRotation(dir); LastArrowSpawn = origin;
             go.AddComponent<ASHArrow>().Launch(dir * speed, Root, arrowGravityScale, arrowDrag, arrowStuckLifeSeconds, ammo, recoverArrows, arrowRecoverChance, maxStuckArrows);
             Shots++; Draw01 = 0f; _kick = 0.5f;
+            var bk = ASHSoundBank.Instance;
+            if (bk) { ASHSfx.Play("bowRelease", bk.bowRelease, origin, bk.bowVolume * bk.volume, 1f, 0.05f, 0.6f); ASHSfx.Play("arrowFlight", bk.arrowFlight, origin + dir * 1.5f, bk.bowVolume * bk.volume * 0.45f, 1.1f, 0.08f, 0.8f); }
             _layer.Restart("BowShot"); _shotUntil = Time.time + bowShotHoldSeconds;
             return true;
         }
 
-        GameObject MakeArrowVisual(string name)
+        [Tooltip("Fired arrow: how far ahead of the arrow's origin the tip sits (matches ASHArrow.tipLength, used for hits and sticking).")]
+        public float arrowTipAhead = 0.35f;
+
+        /// <summary>Runtime arrow visual with the TIP on local +Z (the mesh's pointed end is detected; flipArrowVisual is the
+        /// fallback for unreadable meshes). originAtNock: origin at the nock (nocked arrow); otherwise the tip sits arrowTipAhead in
+        /// front of the origin (fired arrow, matches ASHArrow's hit/stick maths).</summary>
+        GameObject MakeArrowVisual(string name, bool originAtNock = false)
         {
             GameObject go;
             if (arrowPrefab) { go = Instantiate(arrowPrefab); }
@@ -332,8 +408,47 @@ namespace ASH.Gameplay
             }
             go.name = name;
             foreach (var c in go.GetComponentsInChildren<Collider>(true)) Destroy(c);
-            if (flipArrowVisual && go.transform.childCount > 0) { var ch = go.transform.GetChild(0); ch.localRotation = Quaternion.Euler(0, 180f, 0) * ch.localRotation; ch.localPosition = Quaternion.Euler(0, 180f, 0) * ch.localPosition; }
+            go.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
+            var pivot = new GameObject("ArrowPivot").transform; pivot.SetParent(go.transform, false);
+            for (int i = go.transform.childCount - 1; i >= 0; i--) { var ch = go.transform.GetChild(i); if (ch != pivot) ch.SetParent(pivot, false); }
+            Vector3 tip, tail;
+            if (!ArrowEndsLocal(go, out tip, out tail)) { tip = new Vector3(0, 0, flipArrowVisual ? -0.8f : 0.8f); tail = Vector3.zero; }
+            var rot = Quaternion.FromToRotation(tip - tail, Vector3.forward);
+            pivot.localRotation = rot; tip = rot * tip; tail = rot * tail;
+            pivot.localPosition = originAtNock ? -tail : Vector3.forward * arrowTipAhead - tip;
             return go;
+        }
+
+        /// <summary>World tip and tail of an arrow visual (pointed end = tip). False if no readable mesh.</summary>
+        public static bool ArrowEndsWorld(GameObject arrow, out Vector3 tip, out Vector3 tail)
+        {
+            tip = tail = Vector3.zero; if (!arrow) return false;
+            if (!ArrowEndsLocal(arrow, out var t, out var b)) return false;
+            tip = arrow.transform.TransformPoint(t); tail = arrow.transform.TransformPoint(b); return true;
+        }
+
+        /// <summary>Arrow ends in the root's local space: long axis of the mesh vertices; the pointed end (narrower at the very end) is the tip.</summary>
+        static bool ArrowEndsLocal(GameObject root, out Vector3 tip, out Vector3 tail)
+        {
+            tip = tail = Vector3.zero; var pts = new List<Vector3>();
+            foreach (var mf in root.GetComponentsInChildren<MeshFilter>(true))
+            {
+                var m = mf.sharedMesh; if (!m || !m.isReadable) continue;
+                foreach (var v in m.vertices) pts.Add(root.transform.InverseTransformPoint(mf.transform.TransformPoint(v)));
+            }
+            if (pts.Count < 8) return false;
+            Vector3 mn = pts[0], mx = pts[0]; foreach (var p in pts) { mn = Vector3.Min(mn, p); mx = Vector3.Max(mx, p); }
+            var ext = mx - mn; int ax = ext.x >= ext.y && ext.x >= ext.z ? 0 : ext.y >= ext.z ? 1 : 2; float len = ext[ax]; if (len < 1e-4f) return false;
+            float Width(float lo, float hi)
+            {
+                Vector3 a = Vector3.positiveInfinity, b = Vector3.negativeInfinity; int n = 0;
+                foreach (var p in pts) if (p[ax] >= lo && p[ax] <= hi) { a = Vector3.Min(a, p); b = Vector3.Max(b, p); n++; }
+                if (n == 0) return 0f; var e = b - a; e[ax] = 0f; return Mathf.Max(e.x, e.y, e.z);
+            }
+            float wMin = Width(mn[ax], mn[ax] + len * 0.025f), wMax = Width(mx[ax] - len * 0.025f, mx[ax]);
+            var centre = (mn + mx) * 0.5f; Vector3 lowEnd = centre, highEnd = centre; lowEnd[ax] = mn[ax]; highEnd[ax] = mx[ax];
+            if (wMin <= wMax) { tip = lowEnd; tail = highEnd; } else { tip = highEnd; tail = lowEnd; }
+            return true;
         }
 
         void UpdateHandArrow()
@@ -350,23 +465,6 @@ namespace ASH.Gameplay
             if (!_arrowShown) { if (_restArrow && _restArrow.activeSelf) _restArrow.SetActive(false); if (_nockArrow) _nockArrow.SetActive(false); }
         }
 
-        /// <summary>Right arm draws the string: hand goes from the bow hand back along the aim by bowDrawLength x draw.</summary>
-        void OnAnimatorIK(int layerIndex)
-        {
-            if (layerIndex != 0 || !_anim || !_anim.isHuman || Current != Kind.Bow || !(Aiming || _bowBlend > 0.01f)) return;
-            float w = (_layer && _layer.Valid ? _layer.Weight : 1f) * bowDrawIKWeight;
-            if (w <= 0.001f) return;
-            var bowHand = _anim.GetBoneTransform(HumanBodyBones.LeftHand); var sh = _anim.GetBoneTransform(HumanBodyBones.RightUpperArm);
-            var rhb = _anim.GetBoneTransform(HumanBodyBones.RightHand);
-            if (!bowHand || !sh || !rhb) return;
-            var aim = _aimDir.sqrMagnitude > 0.5f ? _aimDir : (Cam ? Cam.transform.forward : Root.forward);
-            var rest = _restValid ? Root.TransformPoint(_restRootLocal) : bowHand.position;
-            // the string fingers (not the wrist) land on the aim line behind the arrow rest
-            var nockGoal = rest - aim * (bowDrawLength * Mathf.Lerp(0.15f, 1f, Draw01)) + Vector3.up * bowDrawRaise;
-            var goal = nockGoal - rhb.rotation * _nockHandLocal;
-            _anim.SetIKPositionWeight(AvatarIKGoal.RightHand, w); _anim.SetIKPosition(AvatarIKGoal.RightHand, goal);
-            _anim.SetIKHintPositionWeight(AvatarIKHint.RightElbow, w); _anim.SetIKHintPosition(AvatarIKHint.RightElbow, sh.position + Root.TransformDirection(bowDrawElbowHint));
-        }
 
         /// <summary>Reads the bow mesh once: which side the string is on (limb tips sit near the string, the riser far from it),
         /// the riser line, the string line and the string vertices (for the draw pull), and the grip height from the left palm.</summary>
@@ -441,7 +539,7 @@ namespace ASH.Gameplay
         void UpdateNockAndString(GameObject v, float w)
         {
             bool bowOut = Current == Kind.Bow && v && v.activeInHierarchy;
-            _bowBlend = bowOut && (Aiming || _layer == null || _layer.State == "BowAim") ? Mathf.Clamp01(w) : 0f;
+            _bowBlend = bowOut && (Aiming || _layer == null || _layer.State == "BowDraw" || _layer.State == "BowHold") ? Mathf.Clamp01(w) : 0f;
             var rh = _anim ? _anim.GetBoneTransform(HumanBodyBones.RightHand) : null;
             var rmid = _anim ? _anim.GetBoneTransform(HumanBodyBones.RightMiddleProximal) : null;
             if (rh) _nockHandLocal = rmid ? rh.InverseTransformPoint(Vector3.Lerp(rh.position, rmid.position, 1.15f)) : new Vector3(0f, 0.09f, 0f);
@@ -455,7 +553,7 @@ namespace ASH.Gameplay
             if (rh) FingerWorld = rh.TransformPoint(_nockHandLocal);
             // the nocked arrow lies on the aim line through the arrow rest; its nock is where the string fingers project onto that line
             var aimL = _aimDir.sqrMagnitude > 0.5f ? _aimDir : Root.forward;
-            NockWorld = _restValid ? ArrowRestWorld - aimL * Mathf.Max(0.06f, Vector3.Dot(ArrowRestWorld - FingerWorld, aimL)) : FingerWorld;
+            NockWorld = FingerWorld;   // the archery animation brings the drawing fingers to the cheek; the nock sits there
             float n = _bowBlend;
 
             // arrow: authored rest arrow while idle; while drawing a runtime copy is nocked on the string and rests on the bow
@@ -463,14 +561,20 @@ namespace ASH.Gameplay
             {
                 if (n > 0.01f && rh && _restValid)
                 {
-                    if (!_nockArrow) _nockArrow = MakeArrowVisual("ASH_NockArrow");
+                    if (!_nockArrow) _nockArrow = MakeArrowVisual("ASH_NockArrow", true);
                     var rest = _restArrow.transform;
                     if (_restArrow.activeSelf) _restArrow.SetActive(false);
                     _nockArrow.SetActive(true);
-                    var nockRot = Quaternion.LookRotation(aimL, Vector3.up);
+                    var shaft = _restValid ? ArrowRestWorld - NockWorld : aimL; if (shaft.sqrMagnitude < 0.01f) shaft = aimL;
+                    var nockRot = Quaternion.LookRotation(shaft.normalized, Vector3.up);
                     _nockArrow.transform.localScale = rest.lossyScale;
                     float k = Mathf.SmoothStep(0f, 1f, n);
-                    _nockArrow.transform.SetPositionAndRotation(Vector3.Lerp(rest.position, NockWorld, k), Quaternion.Slerp(rest.rotation, nockRot, k));
+                    // start from the rest arrow's pose (nock end, tip direction) so the blend never spins the arrow end over end
+                    Vector3 rTail = rest.position, rFwd = rest.forward;
+                    if (_restEndsFor != _restArrow) { _restEndsFor = _restArrow; _restEndsOk = ArrowEndsLocal(_restArrow, out _restTipL, out _restTailL); }
+                    if (_restEndsOk) { var tw = rest.TransformPoint(_restTipL); rTail = rest.TransformPoint(_restTailL); rFwd = (tw - rTail).normalized; }
+                    var rRot = Quaternion.LookRotation(rFwd, rest.up);
+                    _nockArrow.transform.SetPositionAndRotation(Vector3.Lerp(rTail, NockWorld, k), Quaternion.Slerp(rRot, nockRot, k));
                 }
                 else
                 {
@@ -511,6 +615,9 @@ namespace ASH.Gameplay
 
         void LateUpdate()
         {
+            BowBodyAim();
+            BowArmDelta();
+            RifleBlade();
             var v = _eq ? _eq.MainVisual : null;
             float w = _layer && _layer.Valid ? _layer.Weight : (Aiming ? 1f : 0f);
             if (v && v.activeInHierarchy && _anim && _anim.isHuman)
@@ -518,21 +625,6 @@ namespace ASH.Gameplay
                 bool left = ASHEquipment.InLeftHand(_eq.Main);
                 var hand = _anim.GetBoneTransform(left ? HumanBodyBones.LeftHand : HumanBodyBones.RightHand);
                 var fore = _anim.GetBoneTransform(left ? HumanBodyBones.LeftLowerArm : HumanBodyBones.RightLowerArm);
-                // bow arm: left hand in toward the chest centre line on the aim line, elbow slightly bent (before the bow is aligned)
-                _bowArm = Mathf.MoveTowards(_bowArm, Current == Kind.Bow && Aiming ? 1f : 0f, armIKBlendSpeed * Time.deltaTime);
-                if (Current == Kind.Bow && left && _bowArm > 0.001f && bowArmIKWeight > 0f)
-                {
-                    var ua = _anim.GetBoneTransform(HumanBodyBones.LeftUpperArm); var ra = _anim.GetBoneTransform(HumanBodyBones.RightUpperArm);
-                    if (ua && ra && fore && hand)
-                    {
-                        var aim = _aimDir.sqrMagnitude > 0.5f ? _aimDir : Root.forward;
-                        var mid = (ua.position + ra.position) * 0.5f;
-                        var goal = mid + aim * bowArmReach + Root.right * bowArmLateral + Vector3.up * bowArmHeight;
-                        var keep = hand.rotation;
-                        TwoBoneIK(ua, fore, hand, goal, ua.position + Root.TransformDirection(bowArmElbowHint), Mathf.SmoothStep(0f, 1f, _bowArm) * bowArmIKWeight * Mathf.Max(w, Aiming ? 0f : 1f));
-                        hand.rotation = keep;
-                    }
-                }
                 if (hand && v.transform.IsChildOf(hand))
                 {
                     // recoil: forearm then hand pitch (bones only; the Animator re-poses them next frame)
@@ -563,30 +655,162 @@ namespace ASH.Gameplay
                     }
                 }
             }
-            DrawHandLate(v, w);
             UpdateGunSupportHand(v, w);
+            HeadLook();
             UpdateNockAndString(v, w);
         }
 
-        /// <summary>Right hand draws the string after the bow arm and bow are posed this frame (analytic, exact): the string fingers land
-        /// on the aim line through the arrow rest, bowDrawLength x draw behind it. OnAnimatorIK only pre-poses the arm.</summary>
-        void DrawHandLate(GameObject v, float w)
+
+        /// <summary>Bow: the Mixamo archery pose (from Genesis) has the archer side-on with the arrow line along the character's left.
+        /// Turn the whole body (hips, so legs follow into a side-on stance) about world up until the arrow line (draw hand to bow hand)
+        /// points at the aim point horizontally, then pitch the spine for the vertical part. Bones only, after animation (the Animator
+        /// re-poses next frame). No arm IK.</summary>
+        void BowBodyAim()
         {
-            if (Current != Kind.Bow || !v || !v.activeInHierarchy || !_anim || !_anim.isHuman || !(Aiming || _bowBlend > 0.01f)) return;
-            if (_bg.src != v || !_bg.ok) return;
-            float k = (_layer && _layer.Valid ? _layer.Weight : 1f) * bowDrawIKWeight;
-            if (k <= 0.001f) return;
-            var ua = _anim.GetBoneTransform(HumanBodyBones.RightUpperArm); var la = _anim.GetBoneTransform(HumanBodyBones.RightLowerArm);
-            var rh = _anim.GetBoneTransform(HumanBodyBones.RightHand);
-            if (!ua || !la || !rh) return;
-            var vt = v.transform;
-            var rest = vt.TransformPoint(new Vector3(_bg.riserX, 0f, _bg.gripZ + arrowRestAboveGrip)) - Root.right * arrowRestSide;
-            var aim = _aimDir.sqrMagnitude > 0.5f ? _aimDir : Root.forward;
-            var nockGoal = rest - aim * (bowDrawLength * Mathf.Lerp(0.15f, 1f, Draw01));
-            var keep = rh.rotation;
-            var off = rh.TransformPoint(_nockHandLocal) - rh.position;   // finger offset at the kept (animated) hand rotation
-            TwoBoneIK(ua, la, rh, nockGoal - off, ua.position + Root.TransformDirection(bowDrawElbowHint), k);
-            rh.rotation = keep;
+            BowBodyYaw = 0f; BowArrowLineError = -1f;
+            string st = _layer && _layer.Valid ? _layer.State : "";
+            float want = 0f;
+            if (bowBodyAim && Current == Kind.Bow && _anim && _anim.isHuman && IsBowState(st))
+                want = Mathf.Clamp01(_layer.Weight) * (st == "BowDraw" ? Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.15f, 0.7f, Draw01)) : 1f);
+            _bodyW = Mathf.MoveTowards(_bodyW, want, bowBodyBlendSpeed * Time.deltaTime);
+            if (_bodyW <= 0.001f) return;
+            var hips = _anim.GetBoneTransform(HumanBodyBones.Hips); var spine = _anim.GetBoneTransform(HumanBodyBones.Spine);
+            var chest = _anim.GetBoneTransform(HumanBodyBones.Chest);
+            var rh = _anim.GetBoneTransform(HumanBodyBones.RightHand); var lh = _anim.GetBoneTransform(HumanBodyBones.LeftHand);
+            if (!hips || !spine || !rh || !lh) return;
+            var aimPt = AimPoint(out _);
+            var line = lh.position - rh.position; if (line.sqrMagnitude < 0.04f) return;
+            var flatLine = Vector3.ProjectOnPlane(line, Vector3.up); var flatAim = Vector3.ProjectOnPlane(aimPt - rh.position, Vector3.up);
+            if (flatLine.sqrMagnitude < 1e-4f || flatAim.sqrMagnitude < 1e-4f) return;
+            float yaw = Mathf.Clamp(Vector3.SignedAngle(flatLine, flatAim, Vector3.up), -bowMaxBodyYaw, bowMaxBodyYaw) * _bodyW;
+            hips.rotation = Quaternion.AngleAxis(yaw, Vector3.up) * hips.rotation; BowBodyYaw = yaw;
+            if (bowSpinePitch > 0f)
+            {
+                var piv = chest ? chest : spine;
+                for (int i = 0; i < 2; i++)
+                {
+                    line = lh.position - rh.position; var aim = aimPt - rh.position;
+                    var axis = Vector3.Cross(line, aim); if (axis.sqrMagnitude < 1e-8f) break;
+                    // pitch only: keep the rotation axis horizontal so the stance yaw stays on the hips
+                    var hAxis = Vector3.ProjectOnPlane(axis, Vector3.up).normalized; if (hAxis.sqrMagnitude < 0.5f) break;
+                    float a = Vector3.SignedAngle(Vector3.ProjectOnPlane(line, hAxis), Vector3.ProjectOnPlane(aim, hAxis), hAxis);
+                    piv.rotation = Quaternion.AngleAxis(Mathf.Clamp(a, -60f, 60f) * bowSpinePitch * _bodyW, hAxis) * piv.rotation;
+                }
+            }
+            BowArrowLineError = Vector3.Angle(lh.position - rh.position, aimPt - rh.position);
+        }
+
+        /// <summary>Aim-only nudge of the bow arm: shoulder yaw (moves + turns the bow) and hand yaw (turns the bow), right = +.</summary>
+        void BowArmDelta()
+        {
+            if (_bodyW <= 0.001f || !_anim || !_anim.isHuman) return;
+            var ua = _anim.GetBoneTransform(HumanBodyBones.LeftUpperArm); var hand = _anim.GetBoneTransform(HumanBodyBones.LeftHand);
+            if (!ua || !hand) return;
+            float w = Mathf.SmoothStep(0f, 1f, _bodyW);
+            float reach = Mathf.Max(0.2f, Vector3.Distance(ua.position, hand.position));
+            float yaw = bowArmYaw + Mathf.Rad2Deg * Mathf.Atan2(bowArmShiftRight, reach);
+            if (Mathf.Abs(yaw) > 0.01f) ua.rotation = Quaternion.AngleAxis(yaw * w, Vector3.up) * ua.rotation;
+            if (Mathf.Abs(bowHandYaw) > 0.01f) hand.rotation = Quaternion.AngleAxis(bowHandYaw * w, Vector3.up) * hand.rotation;
+        }
+
+        /// <summary>Head (and a share on the neck) turns to look at the aim point (crosshair hit) while aiming. Runs after the
+        /// archery body turn / rifle blade so it never fights the pose; bones only, after animation; clamped and blended.</summary>
+        void HeadLook()
+        {
+            HeadLookError = -1f; HeadLookRaw = -1f; HeadLookTurn = 0f;
+            if (!_anim || !_anim.isHuman) return;
+            var head = _anim.GetBoneTransform(HumanBodyBones.Head);
+            if (!head) return;
+            string st = _layer && _layer.Valid ? _layer.State : "";
+            bool bow = Current == Kind.Bow && IsBowState(st) && _layer.Weight > 0.05f;
+            bool gun = headLookOnGuns && (Current == Kind.Rifle || Current == Kind.Pistol) && Aiming;
+            if (!_faceAxisOk && !Aiming && !bow && Time.frameCount > _wakeFrame + 30) { _faceLocal = Quaternion.Inverse(head.rotation) * Vector3.ProjectOnPlane(Root.forward, Vector3.up).normalized; _faceAxisOk = true; }
+            float want = headLookAtAim && _faceAxisOk && (bow || gun) ? headLookWeight * (bow ? Mathf.Clamp01(_layer.Weight) : 1f) : 0f;
+            _lookW = Mathf.MoveTowards(_lookW, want, headLookBlendSpeed * Time.deltaTime);
+            if (_lookW <= 0.001f) return;
+            var aimPt = AimPoint(out _);
+            var to = Quaternion.AngleAxis(headLookYawOffset, Vector3.up) * (aimPt - head.position).normalized;
+            var face = FaceDir(head);
+            HeadLookRaw = Vector3.Angle(face, to);
+            if (HeadLookRaw < 0.01f) { HeadLookError = 0f; return; }
+            // yaw and pitch clamped separately (looking up/down twists the neck/shoulder skin fastest)
+            var fFlat = Vector3.ProjectOnPlane(face, Vector3.up); var tFlat = Vector3.ProjectOnPlane(to, Vector3.up);
+            float dYaw = fFlat.sqrMagnitude > 1e-6f && tFlat.sqrMagnitude > 1e-6f ? Vector3.SignedAngle(fFlat, tFlat, Vector3.up) : 0f;
+            float dPitch = Mathf.Asin(Mathf.Clamp(to.y, -1f, 1f)) * Mathf.Rad2Deg - Mathf.Asin(Mathf.Clamp(face.y, -1f, 1f)) * Mathf.Rad2Deg;
+            dYaw = Mathf.Clamp(dYaw, -headLookClamp, headLookClamp); dPitch = Mathf.Clamp(dPitch, -headLookPitchClamp, headLookPitchClamp);
+            var side = Vector3.Cross(Vector3.up, fFlat.sqrMagnitude > 1e-6f ? fFlat.normalized : Root.forward).normalized;
+            var turnQ = Quaternion.AngleAxis(dYaw * _lookW, Vector3.up) * Quaternion.AngleAxis(-dPitch * _lookW, side);
+            turnQ.ToAngleAxis(out float a, out var axis); if (a > 180f) a -= 360f;
+            HeadLookTurn = Mathf.Abs(a);
+            // one world axis split over the chain: the rotations compose to exactly 'a' at the head, each bone only turns a little
+            float sSp = spineLookShare, sCh = chestLookShare, sNk = neckLookShare, sHd = Mathf.Max(0f, 1f - sSp - sCh - sNk);
+            var chest = _anim.GetBoneTransform(HumanBodyBones.UpperChest); if (!chest) chest = _anim.GetBoneTransform(HumanBodyBones.Chest);
+            void Turn(Transform t, float share) { if (t && share > 0f) t.rotation = Quaternion.AngleAxis(a * share, axis) * t.rotation; else sHd += share; }
+            Turn(_anim.GetBoneTransform(HumanBodyBones.Spine), sSp); Turn(chest, sCh); Turn(_anim.GetBoneTransform(HumanBodyBones.Neck), sNk);
+            head.rotation = Quaternion.AngleAxis(a * sHd, axis) * head.rotation;
+            HeadLookError = Vector3.Angle(Quaternion.AngleAxis(a, axis) * face, to);
+        }
+
+        /// <summary>Where the face points: from the eyes (mid-eye minus head, perpendicular to the neck) when the avatar maps them,
+        /// else the head axis learned at idle.</summary>
+        public string FaceSource { get; private set; } = "";
+        Vector3 FaceDir(Transform head)
+        {
+            var le = _anim.GetBoneTransform(HumanBodyBones.LeftEye); var re = _anim.GetBoneTransform(HumanBodyBones.RightEye);
+            var neck = _anim.GetBoneTransform(HumanBodyBones.Neck);
+            if (le && re && neck)
+            {
+                var up = (head.position - neck.position).normalized;
+                var f = Vector3.ProjectOnPlane((le.position + re.position) * 0.5f - head.position, up);
+                if (f.sqrMagnitude > 1e-6f) { FaceSource = "eyes"; return f.normalized; }
+            }
+            if (le && re)
+            {
+                // eye line: face = up x (left->right) ... right-handed: forward = cross(right, up)
+                var right = (re.position - le.position).normalized; FaceSource = "eyeline";
+                return Vector3.Cross(right, head.up).normalized;
+            }
+            FaceSource = "idle axis"; return head.rotation * _faceLocal;
+        }
+
+        /// <summary>Rifle aim: turn the chest toward the right (left shoulder forward, bladed stance) so the support hand reaches.</summary>
+        void RifleBlade()
+        {
+            bool on = rifleSeatInShoulder && Current == Kind.Rifle && Aiming && _anim && _anim.isHuman;
+            _bladeW = Mathf.MoveTowards(_bladeW, on ? 1f : 0f, armIKBlendSpeed * Time.deltaTime);
+            if (_bladeW <= 0.001f || rifleBladeYaw <= 0f || !_anim) return;
+            var spine = _anim.GetBoneTransform(HumanBodyBones.Spine); if (!spine) return;
+            spine.rotation = Quaternion.AngleAxis(rifleBladeYaw * Mathf.SmoothStep(0f, 1f, _bladeW), Vector3.up) * spine.rotation;
+        }
+
+        /// <summary>Rifle butt point in the visual's local space: back end (min local Z, local Z = muzzle) of the mesh bounds.</summary>
+        /// <summary>Called by ASHHeldRig after it moved the hands onto the item grips: re-seat the nocked arrow and the string.</summary>
+        public void RefreshAfterRig()
+        {
+            var v = _eq ? _eq.MainVisual : null; if (!v) return;
+            float w = _layer && _layer.Valid ? _layer.Weight : (Aiming ? 1f : 0f);
+            UpdateNockAndString(v, w);
+        }
+        /// <summary>Rifle butt point (world).</summary>
+        public Vector3 ButtWorld(GameObject v) => v ? v.transform.TransformPoint(ButtLocal(v)) : Vector3.zero;
+
+        Vector3 ButtLocal(GameObject v)
+        {
+            if (_buttFor == v) return _buttLocal;
+            _buttFor = v; float minZ = float.MaxValue; Vector3 sum = Vector3.zero; int n = 0; var corners = new List<Vector3>();
+            foreach (var mf in v.GetComponentsInChildren<MeshFilter>(true))
+            {
+                if (!mf.sharedMesh || mf.name == LeftHandIKName) continue;
+                var b = mf.sharedMesh.bounds;
+                for (int i = 0; i < 8; i++)
+                {
+                    var c = new Vector3((i & 1) == 0 ? b.min.x : b.max.x, (i & 2) == 0 ? b.min.y : b.max.y, (i & 4) == 0 ? b.min.z : b.max.z);
+                    corners.Add(v.transform.InverseTransformPoint(mf.transform.TransformPoint(c)));
+                }
+            }
+            foreach (var c in corners) minZ = Mathf.Min(minZ, c.z);
+            foreach (var c in corners) if (c.z < minZ + 0.02f) { sum += c; n++; }
+            _buttLocal = n > 0 ? sum / n : Vector3.zero; return _buttLocal;
         }
 
         /// <summary>Rifle/pistol: the left hand goes to the gun's LeftHandIK child (wrist pose, placed by hand in edit mode), full
@@ -604,8 +828,19 @@ namespace ASH.Gameplay
             float k = Mathf.SmoothStep(0f, 1f, _gunIK);
             // gun held out past the support arm's reach: bring it back toward the shoulder along its own aim line (keeps it on the
             // crosshair) just far enough that the left hand reaches LeftHandIK
-            GunPull = 0f;
+            GunPull = 0f; RifleButtToPocket = -1f;
             var rua = _anim.GetBoneTransform(HumanBodyBones.RightUpperArm); var rla = _anim.GetBoneTransform(HumanBodyBones.RightLowerArm); var rh = _anim.GetBoneTransform(HumanBodyBones.RightHand);
+            bool seat = rifleSeatInShoulder && Current == Kind.Rifle && Aiming && rua && rla && rh && !ASHEquipment.InLeftHand(_eq.Main);
+            Vector3 pocket = Vector3.zero;
+            if (seat)
+            {
+                // butt into the shoulder pocket: move the gun hand (gun follows, aim direction kept) so the stock's back end sits there
+                pocket = rua.position + Root.TransformDirection(rifleShoulderPocket);
+                var butt = v.transform.TransformPoint(ButtLocal(v));
+                var keep = rh.rotation;
+                TwoBoneIK(rua, rla, rh, rh.position + (pocket - butt), rua.position + Root.TransformDirection(gunRightElbowHint), k);
+                rh.rotation = keep;
+            }
             if (gunShoulderPull > 0f && rua && rla && rh && !ASHEquipment.InLeftHand(_eq.Main))
             {
                 float maxR = (Vector3.Distance(ua.position, la.position) + Vector3.Distance(la.position, lh.position)) * 0.97f;
@@ -614,7 +849,7 @@ namespace ASH.Gameplay
                 if (c > 0f)
                 {
                     float disc = b * b - c; float d = disc >= 0f ? b - Mathf.Sqrt(disc) : b;
-                    d = Mathf.Clamp(d, 0f, gunMaxPull) * gunShoulderPull * k;
+                    d = Mathf.Clamp(d, 0f, seat ? rifleMaxPull : gunMaxPull) * gunShoulderPull * k;
                     if (d > 0.001f)
                     {
                         var keep = rh.rotation;
@@ -623,10 +858,24 @@ namespace ASH.Gameplay
                     }
                 }
             }
-            TwoBoneIK(ua, la, lh, target.position, ua.position + Root.TransformDirection(gunLeftElbowHint), k);
+            var grip = target.position; GunGripSlide = 0f;
+            if (seat)
+            {
+                RifleButtToPocket = Vector3.Distance(v.transform.TransformPoint(ButtLocal(v)), pocket);
+                // support hand out of reach: grip further back along the forend (toward the butt) instead of moving the rifle
+                float maxR = (Vector3.Distance(ua.position, la.position) + Vector3.Distance(la.position, lh.position)) * 0.97f;
+                var ax = v.transform.forward; var rel = grip - ua.position; float c = rel.sqrMagnitude - maxR * maxR;
+                if (c > 0f && rifleGripSlideMax > 0f)
+                {
+                    float b = Vector3.Dot(rel, ax), disc = b * b - c;
+                    float t = disc >= 0f ? b - Mathf.Sqrt(disc) : b;   // smallest slide back along -ax that reaches (or the closest point)
+                    t = Mathf.Clamp(t, 0f, rifleGripSlideMax); grip -= ax * t; GunGripSlide = t;
+                }
+            }
+            TwoBoneIK(ua, la, lh, grip, ua.position + Root.TransformDirection(gunLeftElbowHint), k);
             lh.rotation = Quaternion.Slerp(lh.rotation, target.rotation, k);
-            GunLeftHandError = Vector3.Distance(lh.position, target.position);
-            GunLeftReach = Vector3.Distance(ua.position, target.position); GunLeftArmLength = Vector3.Distance(ua.position, la.position) + Vector3.Distance(la.position, lh.position);
+            GunLeftHandError = Vector3.Distance(lh.position, grip);
+            GunLeftReach = Vector3.Distance(ua.position, grip); GunLeftArmLength = Vector3.Distance(ua.position, la.position) + Vector3.Distance(la.position, lh.position);
         }
 
         /// <summary>Analytic two-bone IK on the bones (after animation): moves c (hand) toward target, elbow bent toward the hint.</summary>

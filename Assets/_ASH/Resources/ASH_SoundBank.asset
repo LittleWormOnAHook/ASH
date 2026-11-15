@@ -1,0 +1,63 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ddd285ce2faaf044e8026ff96d4fa5ed, type: 3}
+  m_Name: ASH_SoundBank
+  m_EditorClassIdentifier: Assembly-CSharp::ASH.Gameplay.ASHSoundBank
+  bowDraw:
+  - {fileID: 8300000, guid: ac38e039e1b87924ca20b52107b0522e, type: 3}
+  bowRelease:
+  - {fileID: 8300000, guid: 188a766b064b96147813c2b9bc088a30, type: 3}
+  arrowFlight:
+  - {fileID: 8300000, guid: a5b1d97edc4a4444fa2d50b5b6ab3fd6, type: 3}
+  - {fileID: 8300000, guid: ae54953b1c847da4d81b144467b087e4, type: 3}
+  - {fileID: 8300000, guid: 2724208c5266a054eb6cbcf7fe31e5f7, type: 3}
+  arrowImpactWood:
+  - {fileID: 8300000, guid: 9d67eefa1e1f5ef4abba0de9d8952245, type: 3}
+  arrowImpactSnow:
+  - {fileID: 8300000, guid: 2b8b220439fc5644a875e4a6f39dc4e0, type: 3}
+  - {fileID: 8300000, guid: f1d75a8d84643164183b74a7b1f5771e, type: 3}
+  arrowImpactRock:
+  - {fileID: 8300000, guid: 2dd156fd4007d0845af7d933539be205, type: 3}
+  rifleShot:
+  - {fileID: 8300000, guid: 7751f705ce5ead74bbd21da44dc8beea, type: 3}
+  rifleBolt:
+  - {fileID: 8300000, guid: 6e33fd2783f6439448ab1d5271feab78, type: 3}
+  pistolShot:
+  - {fileID: 8300000, guid: c0057ca8dceefe44295c9fb68cc54f75, type: 3}
+  dryFire:
+  - {fileID: 8300000, guid: c69fb69e5f9707a49b7282f20ad57526, type: 3}
+  axeChop:
+  - {fileID: 8300000, guid: 1d685ca1072aa514fbd7ed0b444e7484, type: 3}
+  - {fileID: 8300000, guid: c3ace6f26fdf1fa4d91a9700100755aa, type: 3}
+  - {fileID: 8300000, guid: b44c556d01f491f4c97695e36f3a3a70, type: 3}
+  - {fileID: 8300000, guid: d9a3af96563962043aadacd2b04071ea, type: 3}
+  treeCrack:
+  - {fileID: 8300000, guid: b2d1fcf743713334e9ba858a431e0934, type: 3}
+  treeFall:
+  - {fileID: 8300000, guid: 4141891f57b968f428697bd2d4d121a8, type: 3}
+  torchOn:
+  - {fileID: 8300000, guid: 8415ce3a86e993d49bf17f608dd3a827, type: 3}
+  torchOff: []
+  flashlightOn:
+  - {fileID: 8300000, guid: 852a04c73025ef74599d8aa96bad65f1, type: 3}
+  flashlightOff:
+  - {fileID: 8300000, guid: 2deacd1585c7c774fbe7f5410d54624a, type: 3}
+  lanternOn:
+  - {fileID: 8300000, guid: 9b4cd807dc33f2f4c9cdb967f95c97ee, type: 3}
+  lanternOff:
+  - {fileID: 8300000, guid: 9b4cd807dc33f2f4c9cdb967f95c97ee, type: 3}
+  volume: 0.9
+  gunVolume: 0.8
+  bowVolume: 0.8
+  impactVolume: 0.8
+  lightVolume: 0.6
+  pistolPitch: 1.15

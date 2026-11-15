@@ -92,3 +92,7 @@ desktop.ini
 # Vendor: Woodland vegetation pack - stays out of git
 /Assets/Woodland/
 /Assets/Woodland.meta
+
+# Large audio library (referenced by ASH_SoundBank) - stays out of git
+/Assets/Audio/
+/Assets/Audio.meta
