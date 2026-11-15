@@ -57,6 +57,18 @@ namespace ASH.DebugTools
             var rb = _cc.GetComponent<Rigidbody>(); if (rb) { rb.linearVelocity = Vector3.zero; rb.position = p + Vector3.up * 0.05f; }
             _cc.transform.position = p + Vector3.up * 0.05f;
         }
+        // Approach side whose eye ray reaches the pickup first (scene props like cabins may block one side).
+        static Vector3 ClearSide(Transform pickup, Vector3 c)
+        {
+            Vector3[] dirs = { Vector3.right, Vector3.left, Vector3.forward, Vector3.back, (Vector3.right + Vector3.forward).normalized, (Vector3.left + Vector3.back).normalized };
+            foreach (var d in dirs)
+            {
+                var eye = pickup.position + d * 1.1f + Vector3.up * 1.6f;
+                if (Physics.Raycast(eye, (c - eye).normalized, out var h, 5f, ~0, QueryTriggerInteraction.Collide) && h.collider.transform.IsChildOf(pickup)
+                    && !Physics.CheckSphere(pickup.position + d * 1.1f + Vector3.up * 1.0f, 0.3f, ~0, QueryTriggerInteraction.Ignore)) return d;
+            }
+            return Vector3.right;
+        }
         void Aim(Vector3 target) { var eye = _cc.transform.position + Vector3.up * 1.6f; _ix.SimRay = new Ray(eye, (target - eye).normalized); }
 
         IEnumerator Start()
@@ -78,7 +90,7 @@ namespace ASH.DebugTools
             {
                 int l0 = _inv.Count(lantern);
                 var c = lanternPickup.GetComponent<Collider>().bounds.center;
-                Teleport(lanternPickup.transform.position + Vector3.right * 1.1f); yield return new WaitForSeconds(0.6f); Aim(c); yield return new WaitForSeconds(0.3f);
+                Teleport(lanternPickup.transform.position + ClearSide(lanternPickup.transform, c) * 1.1f); yield return new WaitForSeconds(0.6f); Aim(c); yield return new WaitForSeconds(0.3f);
                 string pr = _ix.Prompt;
                 var hits = Physics.RaycastAll(_ix.SimRay.Value, 10f, ~0, QueryTriggerInteraction.Collide).OrderBy(h => h.distance);
                 string diag = $"target={(_ix.Target as Component)?.name} | player {_cc.transform.position} pickup {lanternPickup.transform.position} hits {string.Join(",", hits.Select(h => h.collider.name + ":" + h.distance.ToString("F1")))}";

@@ -63,6 +63,10 @@ namespace ASH.Gameplay
             if (!animator) animator = GetComponentInChildren<Animator>();
             _placer = GetComponent<ASHPlacer>();
             if (animator && !animator.GetComponent<ASHLightAim>()) animator.gameObject.AddComponent<ASHLightAim>();
+            if (animator && !animator.GetComponent<ASHActionLayer>()) animator.gameObject.AddComponent<ASHActionLayer>();
+            if (animator && !animator.GetComponent<ASHWeaponAim>()) animator.gameObject.AddComponent<ASHWeaponAim>();
+            if (animator && !animator.GetComponent<ASHChopAnimator>()) animator.gameObject.AddComponent<ASHChopAnimator>();
+            _weaponAim = animator ? animator.GetComponent<ASHWeaponAim>() : null;
         }
         void OnEnable() { if (inventory) inventory.Changed += Validate; }
         void OnDisable() { if (inventory) inventory.Changed -= Validate; }
@@ -80,6 +84,9 @@ namespace ASH.Gameplay
         {
             if (item == null || !item.IsEquippable || inventory == null || inventory.Count(item) <= 0) return false;
             Unequip(item.equipSlot);
+            // bow takes both hands: bow in the right hand, arrow in the left
+            if (item.equipSlot == ASHEquipSlot.MainHand && IsBow(item) && Off) Unequip(ASHEquipSlot.OffHand);
+            if (item.equipSlot == ASHEquipSlot.OffHand && IsBow(Main)) Unequip(ASHEquipSlot.MainHand);
             switch (item.equipSlot)
             {
                 case ASHEquipSlot.MainHand: Main = item; _mainGo = SpawnInHand(item); break;
@@ -275,7 +282,7 @@ namespace ASH.Gameplay
 
             if (input == null || ASHUIState.BlocksGameplay || (_placer && _placer.IsPlacing)) return;
             if (input.LightPressed) ToggleLight();
-            if (input.PrimaryPressed && Main) UseMain();
+            if (input.PrimaryPressed && Main) { if (_weaponAim) _weaponAim.Fire(); else UseMain(); }
         }
 
         /// <summary>Stub weapon use: spends one round/arrow with a muzzle flash. No damage, no combat system.</summary>
@@ -303,6 +310,8 @@ namespace ASH.Gameplay
             if (Hip && inventory.Count(Hip) <= 0) Unequip(ASHEquipSlot.Hip);
         }
 
-        void Say(string m) => Message?.Invoke(m);
+        public void Say(string m) => Message?.Invoke(m);
+        ASHWeaponAim _weaponAim;
+        public static bool IsBow(ASHItemDefinition it) => ASHWeaponAim.KindOf(it) == ASHWeaponAim.Kind.Bow;
     }
 }

@@ -107,6 +107,7 @@ namespace ASH.EditorTools.World
             WorldProps(log);
             ASHBuildUtil.Folder(HeldDir);
             int h = 0; foreach (var e in Held) if (HeldPrefab(e.file, e.vendor, e.grip, e.gripAt, e.headHeavy, log)) h++;
+            BuildArrowPrefab(log);
             log.Append($"held {h}/{Held.Length}; ");
             WireItems();
             AddEquipmentToPlayer(log);
@@ -261,7 +262,7 @@ namespace ASH.EditorTools.World
                 else
                 {
                     var holder = new GameObject("Model"); holder.transform.SetParent(root.transform, false);
-                    var inst = NestVendor(v, holder.transform);
+                    var inst = NestVendor(v, holder.transform, file == "WoodenBow" ? "WoodenArrow" : null); // the arrow rides the left hand
                     AlignLong(inst, holder.transform, grip, gripAt, headHeavy);
                     var b = Bounds(holder);
                     if (file == "Torch")
@@ -331,6 +332,25 @@ namespace ASH.EditorTools.World
             var fl = Item("Flashlight"); if (fl) { fl.fuelItem = Item("Battery"); fl.fuelSecondsPerUnit = 1200f; fl.fuelCapacityUnits = 1; EditorUtility.SetDirty(fl); }
         }
 
+        public const string ArrowPrefabFile = "ArrowProjectile";
+        /// <summary>Arrow visual for the hand and the projectile: nock at the origin, tip along +Z, no colliders.</summary>
+        static void BuildArrowPrefab(StringBuilder log)
+        {
+            var v = Vendor("Weapons/Guns&RangedWeapons/WoodenBow"); if (!v) { log.Append("arrow prefab skip; "); return; }
+            var root = new GameObject("ASH_Held_" + ArrowPrefabFile);
+            try
+            {
+                var holder = new GameObject("Model"); holder.transform.SetParent(root.transform, false);
+                var inst = NestVendor(v, holder.transform, "WoodenBow");
+                AlignLong(inst, holder.transform, ASHGripStyle.Handle, 0f, true);
+                foreach (var t in inst.GetComponentsInChildren<Transform>(true)) if (!t.gameObject.activeSelf) Object.DestroyImmediate(t.gameObject);
+                foreach (var c in root.GetComponentsInChildren<Collider>(true)) Object.DestroyImmediate(c);
+                ASHBuildUtil.SavePrefab(root, HeldPath(ArrowPrefabFile));
+                log.Append("arrow prefab; ");
+            }
+            catch (System.Exception ex) { log.Append($"arrow prefab failed: {ex.Message}; "); if (root) Object.DestroyImmediate(root); }
+        }
+
         static void AddEquipmentToPlayer(StringBuilder log)
         {
             var root = PrefabUtility.LoadPrefabContents(ASHPlayerBuilder.PrefabPath);
@@ -340,6 +360,12 @@ namespace ASH.EditorTools.World
                 if (!root.GetComponent<ASHEquipment>()) { root.AddComponent<ASHEquipment>(); ch = true; log.Append("ASHEquipment added to player prefab; "); }
                 var anim = root.GetComponentInChildren<Animator>();
                 if (anim && !anim.GetComponent<ASHLightAim>()) { anim.gameObject.AddComponent<ASHLightAim>(); ch = true; log.Append($"ASHLightAim added on {anim.name}; "); }
+                if (anim && !anim.GetComponent<ASHActionLayer>()) { anim.gameObject.AddComponent<ASHActionLayer>(); ch = true; }
+                if (anim && !anim.GetComponent<ASHChopAnimator>()) { anim.gameObject.AddComponent<ASHChopAnimator>(); ch = true; log.Append("ASHChopAnimator added; "); }
+                var wa = anim ? anim.GetComponent<ASHWeaponAim>() : null;
+                if (anim && !wa) { wa = anim.gameObject.AddComponent<ASHWeaponAim>(); ch = true; log.Append("ASHWeaponAim added; "); }
+                var arrow = AssetDatabase.LoadAssetAtPath<GameObject>(HeldPath(ArrowPrefabFile));
+                if (wa && arrow && wa.arrowPrefab != arrow) { wa.arrowPrefab = arrow; ch = true; log.Append("arrow prefab wired; "); }
                 if (ch) PrefabUtility.SaveAsPrefabAsset(root, ASHPlayerBuilder.PrefabPath);
             }
             finally { PrefabUtility.UnloadPrefabContents(root); }

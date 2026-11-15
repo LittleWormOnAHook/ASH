@@ -80,7 +80,9 @@ namespace ASH.Interaction
         bool HasTool(in ASHUseContext c) => requiredTool == ASHToolType.None || (c.Inventory != null && c.Inventory.HasTool(requiredTool));
 
         public float GetUsePriority(in ASHUseContext c) => _done || _busy ? -1f : 45f;
-        public float GetHoldDuration(in ASHUseContext c) => holdPerHit;
+        /// <summary>Global swing speed (set by ASHChopAnimator): hold per hit = holdPerHit / SwingSpeed.</summary>
+        public static float SwingSpeed = 1f;
+        public float GetHoldDuration(in ASHUseContext c) => holdPerHit / Mathf.Max(0.1f, SwingSpeed);
 
         public string GetPrompt(in ASHUseContext c)
         {

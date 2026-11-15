@@ -76,17 +76,21 @@ PrefabInstance:
       propertyPath: m_Name
       value: WoodenBow
       objectReference: {fileID: 0}
+    - target: {fileID: 1374635358942176, guid: bd34c9699654ac44ea1bb6d756264e11, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 4562056672544642, guid: bd34c9699654ac44ea1bb6d756264e11, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 0.07379125
+      value: 0.15586182
       objectReference: {fileID: 0}
     - target: {fileID: 4562056672544642, guid: bd34c9699654ac44ea1bb6d756264e11, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0.008244034
+      value: 0.000058139423
       objectReference: {fileID: 0}
     - target: {fileID: 4562056672544642, guid: bd34c9699654ac44ea1bb6d756264e11, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 0.019799083
+      value: -0.019799082
       objectReference: {fileID: 0}
     - target: {fileID: 4562056672544642, guid: bd34c9699654ac44ea1bb6d756264e11, type: 3}
       propertyPath: m_LocalRotation.w
@@ -94,7 +98,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4562056672544642, guid: bd34c9699654ac44ea1bb6d756264e11, type: 3}
       propertyPath: m_LocalRotation.x
-      value: -0.7071068
+      value: 0.7071068
       objectReference: {fileID: 0}
     - target: {fileID: 4562056672544642, guid: bd34c9699654ac44ea1bb6d756264e11, type: 3}
       propertyPath: m_LocalRotation.y

@@ -63,7 +63,8 @@ namespace ASH.Gameplay
             var off = _eq ? _eq.Off : null;
             _flash = off && off.IsLightSource && off.gripStyle == ASHGripStyle.Beam;
             _torch = off && off.IsLightSource && !_flash;
-            bool want = _in && ((_torch && aimWithTorch) || (_flash && aimWithFlashlight)) && _in.SecondaryHeld && !ASHUIState.BlocksGameplay;
+            bool weaponAims = _eq && ASHWeaponAim.KindOf(_eq.Main) != ASHWeaponAim.Kind.None; // RMB aims the gun/bow instead
+            bool want = !weaponAims && _in && ((_torch && aimWithTorch) || (_flash && aimWithFlashlight)) && _in.SecondaryHeld && !ASHUIState.BlocksGameplay;
             if (want != Aiming) SetAim(want);
             float target = Aiming ? aimWeight : _torch ? torchRaisedWeight : 0f;
             _w = Mathf.MoveTowards(_w, target, ikBlendSpeed * Time.deltaTime);
