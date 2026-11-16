@@ -1,0 +1,102 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 019d88a8f3b82424c80b41131baab27f, type: 3}
+  m_Name: ASH_TemperatureSettings
+  m_EditorClassIdentifier: Assembly-CSharp::ASH.Survival.ASHTemperatureSettings
+  normalWarmth: 30
+  minWarmth: 0
+  coldWarmth: 6
+  outdoorDropPerGameHour: 2
+  nightMultiplier: 1.6
+  warmestHour: 15
+  clearMul: 1
+  calmHazyMul: 1.1
+  lightAshMul: 1.2
+  heavyAshMul: 1.4
+  rainAshMul: 1.6
+  snowstormMul: 2.2
+  thunderstormMul: 1.5
+  lightSnowMorningMul: 1.3
+  windPerMS: 0.05
+  maxWindBonus: 1
+  multiplierBlendPerGameHour: 4
+  shelterWarmMinSealing: 0.5
+  shelterRecoverPerGameHour: 4
+  shelterRecoverTarget: 30
+  lanternWarmTarget: 52
+  lanternWarmPerGameHour: 16
+  torchWarmTarget: 52
+  torchWarmPerGameHour: 16
+  stoveWarmTarget: 75
+  stoveWarmPerGameHour: 30
+  fireplaceWarmTarget: 75
+  fireplaceWarmPerGameHour: 34
+  campfireWarmTarget: 75
+  campfireWarmPerGameHour: 38
+  excessWarmthLossPerGameHour: 8
+  maxWarmth: 100
+  heldTorchCoolingReduction: 0.4
+  heldLanternCoolingReduction: 0.3
+  heldLightWarmPerGameHour: 0
+  heldLightWarmTarget: 52
+  healthDrainPerGameHour: 8
+  healthDrainPerPointBelow: 1.5
+  staminaRecoveryPenalty: 0.3
+  freezingToast: "You're freezing \u2014 find warmth"
+  frostStartWarmth: 6
+  frostFullWarmth: 0
+  frostMaxAlpha: 0.8
+  frostEdgeWidth: 260
+  idleBreathIntervalMultiplier: 2
+  walkBreathIntervalMultiplier: 1.4
+  idleSpeed: 0.3
+  runSpeed: 3.5
+  breathFog: 1
+  breathFogWarmth: 6
+  breathFogFullWarmth: 0
+  coldBreathEveryRest: 8
+  coldBreathEveryExerted: 4.5
+  coldBreathJitter: 0.3
+  breathPuffCountMin: 6
+  breathPuffCountMax: 10
+  breathPuffLifetime: 2
+  breathPuffSize: {x: 0.16, y: 0.42}
+  breathPuffSpeed: 0.38
+  breathPuffRise: 0.2
+  breathPuffDampen: 0.55
+  breathPuffGrow: 2.2
+  breathPuffOpacity: 0.3
+  breathMinDensity: 0.7
+  breathPuffColor: {r: 0.78, g: 0.81, b: 0.86, a: 1}
+  breathPuffBrightness: 0.7
+  breathPuffTexture: {fileID: 2800000, guid: 1582f6e9e4ac7874aae82325ab87c0c9, type: 3}
+  mouthOffset: {x: 0, y: -0.02, z: 0.13}
+  ragFogMultiplier: 0.35
+  maskFogMultiplier: 0
+  exhaleClips:
+  - {fileID: 8300000, guid: c73b77f95eaf70348979be35d9e37700, type: 3}
+  exhaleVolume: 0.16
+  exhaleExhaustedVolume: 0.32
+  exhaleVolumeJitter: 0.25
+  exhalePitchJitter: 0.08
+  exhaleExhaustedPitch: 0.92
+  exhaleMaskMuffleHz: 900
+  exhaleRagMuffleHz: 2600
+  heavyBreathStamina: 10
+  heavyBreathEverySeconds: {x: 6, y: 12}
+  heavyBreathVolume: 0.34
+  breathOnSprintStop: 1
+  sprintStopMinSeconds: 1.5
+  sprintStopVolume: 0.3
+  heavyBreathClips: []
+  warmthTrendDeadzone: 0.2
+  pulseSpeed: 6

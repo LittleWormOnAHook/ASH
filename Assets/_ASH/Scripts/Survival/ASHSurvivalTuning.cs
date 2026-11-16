@@ -27,6 +27,15 @@ namespace ASH.Survival
         [Tooltip("Global multiplier for stress tests (1 = normal).")]
         [Range(0.1f, 60f)] public float needsRateMultiplier = 1f;
 
+        [Header("Global drain rate")]
+        [Tooltip("Speeds hunger, thirst, sprint stamina drain, outdoor temperature loss, and wet rag / filter usage (1 = normal, 1.5 = 50% faster). Does not affect stamina or health regen, warming from fires or shelters, jump cost, or health drain. The worn rag/filter countdown shows effective game time (a 7 h rag lasts ~4.7 h at 1.5). Stacks with Needs Rate Multiplier for hunger and thirst.")]
+        [Range(0f, 10f)] public float survivalRateMultiplier = 1.5f;
+
+        static ASHSurvivalTuning _bound;
+        /// <summary>Active drain-rate multiplier (1.5 if nothing is bound). See <see cref="survivalRateMultiplier"/>.</summary>
+        public static float DrainRate => _bound ? Mathf.Max(0f, _bound.survivalRateMultiplier) : 1.5f;
+        public static void Bind(ASHSurvivalTuning tuning) => _bound = tuning;
+
         [Header("Stamina (drives the Invector motor)")]
         [Range(0f, 100f)] public float sprintDrainPerSecond = 12f;
         [Range(0f, 100f)] public float staminaRecoveryPerSecond = 16f;

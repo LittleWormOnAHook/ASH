@@ -60,6 +60,7 @@ namespace ASH.Survival
         private void Awake()
         {
             if (tuning == null) tuning = ScriptableObject.CreateInstance<ASHSurvivalTuning>();
+            ASHSurvivalTuning.Bind(tuning);
             ResetStats();
         }
 
@@ -77,7 +78,8 @@ namespace ASH.Survival
         {
             if (IsDead || Paused || Time.timeScale <= 0f) return;
             float dt = Time.deltaTime;
-            float mul = tuning.needsRateMultiplier * (IsSprinting ? tuning.sprintNeedsMultiplier : 1f) / 60f;
+            ASHSurvivalTuning.Bind(tuning);
+            float mul = tuning.needsRateMultiplier * ASHSurvivalTuning.DrainRate * (IsSprinting ? tuning.sprintNeedsMultiplier : 1f) / 60f;
             Hunger = Mathf.Max(0f, Hunger - tuning.hungerPerMinute * mul * dt);
             Thirst = Mathf.Max(0f, Thirst - tuning.thirstPerMinute * mul * dt);
 

@@ -106,18 +106,27 @@ namespace ASH.Survival
         [Range(0.3f, 30f)] public float coldBreathEveryExerted = 4.5f;
         [Range(0f, 0.6f)] public float coldBreathJitter = 0.3f;
         [Tooltip("Particles per breath at the threshold / at the densest.")]
-        [Range(1, 80)] public int breathPuffCountMin = 10;
-        [Range(1, 160)] public int breathPuffCountMax = 24;
-        [Range(0.2f, 8f)] public float breathPuffLifetime = 2.6f;
-        public Vector2 breathPuffSize = new Vector2(0.2f, 0.6f);
-        [Range(0f, 3f)] public float breathPuffSpeed = 0.45f;
-        [Tooltip("Puff opacity (0-1). Unlit, so it stays visible at night.")]
-        [Range(0f, 1f)] public float breathPuffOpacity = 0.8f;
-        [Tooltip("Lowest density right at the threshold (0-1), so the first breaths are already easy to see.")]
+        [Range(1, 80)] public int breathPuffCountMin = 6;
+        [Range(1, 160)] public int breathPuffCountMax = 10;
+        [Range(0.2f, 8f)] public float breathPuffLifetime = 2f;
+        public Vector2 breathPuffSize = new Vector2(0.16f, 0.42f);
+        [Tooltip("Initial forward speed (m/s). The puff then slows and floats up.")]
+        [Range(0f, 3f)] public float breathPuffSpeed = 0.38f;
+        [Tooltip("Upward drift (m/s) as the puff slows and dissipates.")]
+        [Range(0f, 2f)] public float breathPuffRise = 0.2f;
+        [Tooltip("How quickly the forward speed is damped (0-1).")]
+        [Range(0f, 1f)] public float breathPuffDampen = 0.55f;
+        [Tooltip("Size multiplier at the end of the puff's life (grows as it dissipates).")]
+        [Range(0.5f, 6f)] public float breathPuffGrow = 2.2f;
+        [Tooltip("Puff opacity (0-1). Keep this low so the breath does not glow at night.")]
+        [Range(0f, 1f)] public float breathPuffOpacity = 0.3f;
+        [Tooltip("Lowest density right at the threshold (0-1).")]
         [Range(0f, 1f)] public float breathMinDensity = 0.7f;
-        public Color breathPuffColor = new Color(0.97f, 0.98f, 1f, 1f);
-        [Tooltip("Brightness boost (Unlit colour x this) so the breath reads in dark scenes.")]
-        [Range(0.2f, 3f)] public float breathPuffBrightness = 1.2f;
+        public Color breathPuffColor = new Color(0.78f, 0.81f, 0.86f, 1f);
+        [Tooltip("Colour multiplier. Keep at or below 1 so the puff is not an unlit glow in the dark.")]
+        [Range(0.1f, 3f)] public float breathPuffBrightness = 0.7f;
+        [Tooltip("Soft cloud / smoke texture (vendor texture by reference is fine). Empty = a procedural wispy puff.")]
+        public Texture2D breathPuffTexture;
         [Tooltip("Mouth position from the Head bone: x right, y up, z forward (player facing).")]
         public Vector3 mouthOffset = new Vector3(0f, -0.02f, 0.13f);
         [Tooltip("Breath fog multiplier while the wet rag is worn (0 = hidden).")]

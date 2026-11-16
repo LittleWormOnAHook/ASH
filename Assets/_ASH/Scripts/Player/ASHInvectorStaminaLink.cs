@@ -26,7 +26,7 @@ namespace ASH.Player
             if (controller == null || stats == null) return;
             var t = stats.Tuning;
             controller.maxStamina = t.maxStamina;
-            controller.sprintStamina = t.sprintDrainPerSecond; // Invector drains this per second (accumulative)
+            controller.sprintStamina = t.sprintDrainPerSecond * ASHSurvivalTuning.DrainRate; // Invector drains this per second (accumulative)
             controller.jumpStamina = t.jumpStaminaCost;
             controller.currentStamina = Mathf.Min(controller.currentStamina <= 0f ? t.maxStamina : controller.currentStamina, t.maxStamina);
         }
@@ -36,7 +36,7 @@ namespace ASH.Player
             if (controller == null || stats == null) return;
             // Invector adds staminaRecovery once per FixedUpdate.
             controller.staminaRecovery = stats.Tuning.staminaRecoveryPerSecond * stats.StaminaRecoveryMultiplier * Time.fixedDeltaTime;
-            if (ExtraDrainPerSecond > 0f && controller.currentStamina > 0f) controller.currentStamina = Mathf.Max(0f, controller.currentStamina - ExtraDrainPerSecond * Time.fixedDeltaTime);
+            if (ExtraDrainPerSecond > 0f && controller.currentStamina > 0f) controller.currentStamina = Mathf.Max(0f, controller.currentStamina - ExtraDrainPerSecond * ASHSurvivalTuning.DrainRate * Time.fixedDeltaTime);
         }
 
         private void LateUpdate()

@@ -34,24 +34,59 @@ namespace ASH.UI
             var h = go.AddComponent<ASHSurvivalHud>(); h._exp = e; h._face = e.GetComponent<ASHFaceProtection>(); h.Build();
         }
 
-        static Sprite FrostSprite()
+        static Sprite _frostSprite; static Texture2D _frostTex; static int _frostW, _frostH; static float _frostEdge;
+
+        static float Fbm(float x, float y, int octaves)
         {
-            const int n = 256, b = 127;
-            var t = new Texture2D(n, n, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp, filterMode = FilterMode.Bilinear };
-            var px = new Color32[n * n];
-            for (int y = 0; y < n; y++) for (int x = 0; x < n; x++)
+            float sum = 0f, amp = 0.5f, freq = 1f, norm = 0f;
+            for (int i = 0; i < octaves; i++) { sum += amp * Mathf.PerlinNoise(x * freq, y * freq); norm += amp; amp *= 0.5f; freq *= 2.03f; }
+            return norm > 0f ? sum / norm : 0f;
+        }
+
+        /// <summary>Fullscreen organic frost (no 9-slice — slicing a noisy edge stretches it into streaks).</summary>
+        static Sprite FrostSprite(float edgeWidth)
+        {
+            const int w = 1280, h = 720;
+            if (_frostSprite && _frostW == w && _frostH == h && Mathf.Abs(_frostEdge - edgeWidth) < 0.5f) return _frostSprite;
+            _frostW = w; _frostH = h; _frostEdge = edgeWidth;
+            var tex = new Texture2D(w, h, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp, filterMode = FilterMode.Bilinear, name = "ASH_FrostVignette" };
+            var px = new Color32[w * h];
+            float edgePx = Mathf.Max(24f, edgeWidth * (h / 1080f));
+            float aspect = w / (float)h;
+            float corner = edgePx * 0.65f;
+            for (int y = 0; y < h; y++)
             {
-                int d = Mathf.Min(Mathf.Min(x, n - 1 - x), Mathf.Min(y, n - 1 - y));
-                float edge = Mathf.Clamp01(1f - d / (float)b);
-                float noise = Mathf.PerlinNoise(x * 0.045f, y * 0.045f) * 0.6f + Mathf.PerlinNoise(x * 0.17f + 31f, y * 0.17f + 7f) * 0.4f;
-                float crystals = Mathf.Pow(Mathf.PerlinNoise(x * 0.5f + 11f, y * 0.5f + 3f), 6f) * 2.5f;
-                float a = Mathf.Clamp01(edge * edge * (0.55f + noise) + crystals * edge);
-                a = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((a - 0.15f) * 1.4f));
-                byte w = (byte)(220 + 35 * noise);
-                px[y * n + x] = new Color32((byte)(w - 25), (byte)(w - 5), 255, (byte)(a * 255));
+                float ny = (y + 0.5f) / h;
+                for (int x = 0; x < w; x++)
+                {
+                    float nx = (x + 0.5f) / w;
+                    float dx = Mathf.Min(x + 0.5f, w - 0.5f - x);
+                    float dy = Mathf.Min(y + 0.5f, h - 0.5f - y);
+                    // rounded-rect distance from the frame (circular in the corners, no hard 45° ridges)
+                    float dEdge;
+                    if (dx < corner && dy < corner)
+                    {
+                        float cx = corner - dx, cy = corner - dy;
+                        dEdge = corner - Mathf.Sqrt(cx * cx + cy * cy);
+                    }
+                    else dEdge = Mathf.Min(dx, dy);
+                    float warp = (Fbm(nx * 5.2f + 2.1f, ny * 5.2f * aspect + 0.7f, 4) - 0.5f) * edgePx * 0.5f;
+                    float d = dEdge + warp;
+                    float fall = 1f - Mathf.SmoothStep(0f, edgePx, Mathf.Max(0f, d));
+                    float grain = Fbm(nx * 22f, ny * 22f * aspect, 3);
+                    float crystals = Mathf.Pow(Mathf.Clamp01(Fbm(nx * 36f + 3.4f, ny * 36f * aspect + 8.1f, 2)), 8f) * fall;
+                    float a = Mathf.Clamp01(fall * (0.4f + 0.6f * grain) + crystals * 0.7f);
+                    a = Mathf.SmoothStep(0f, 1f, a);
+                    byte tint = (byte)(198 + 42 * grain);
+                    px[y * w + x] = new Color32((byte)(tint - 20), (byte)(tint - 4), 255, (byte)(a * 255f));
+                }
             }
-            t.SetPixels32(px); t.Apply();
-            return Sprite.Create(t, new Rect(0, 0, n, n), new Vector2(0.5f, 0.5f), 100f, 0, SpriteMeshType.FullRect, new Vector4(b, b, b, b));
+            tex.SetPixels32(px); tex.Apply(false, false);
+            if (_frostTex) Object.Destroy(_frostTex);
+            if (_frostSprite) Object.Destroy(_frostSprite);
+            _frostTex = tex;
+            _frostSprite = Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0.5f, 0.5f), 100f, 0, SpriteMeshType.FullRect);
+            return _frostSprite;
         }
 
         static Sprite EdgeSprite()
@@ -76,7 +111,7 @@ namespace ASH.UI
             var er = K.Stretch("LowHealthEdge", _root); _edge = K.Image(er, new Color(0.85f, 0.05f, 0.03f, 0f));
             _edge.sprite = EdgeSprite(); _edge.type = Image.Type.Sliced; _edge.fillCenter = false;
             var fr = K.Stretch("FrostEdge", _root); _frost = K.Image(fr, new Color(1, 1, 1, 0f));
-            _frost.sprite = FrostSprite(); _frost.type = Image.Type.Sliced; _frost.fillCenter = false;
+            _frost.sprite = FrostSprite(ASHTemperatureSettings.I.frostEdgeWidth); _frost.type = Image.Type.Simple; _frost.preserveAspect = false; _frost.raycastTarget = false;
 
             // status: a column bottom-left above the bars. Temperature stays at the bottom (its old spot); the worn rag/mask and
             // the air/shelter indicator stack above it (hidden rows collapse). The bottle is shown only in the inventory panels.
@@ -132,8 +167,8 @@ namespace ASH.UI
             var bt = ASHBodyTemperature.Instance; var ts = ASHTemperatureSettings.I;
             float ft = bt ? bt.Frost * ts.frostMaxAlpha : 0f;
             _frostA = Mathf.MoveTowards(_frostA, ft, Time.unscaledDeltaTime * 0.35f);
+            if (_frost.sprite != FrostSprite(ts.frostEdgeWidth)) _frost.sprite = FrostSprite(ts.frostEdgeWidth);
             _frost.color = new Color(1, 1, 1, hidden ? 0f : _frostA);
-            _frost.pixelsPerUnitMultiplier = 127f / Mathf.Max(10f, ts.frostEdgeWidth);
 
             _status.gameObject.SetActive(!hidden);
             if (!hidden) UpdateStatus();

@@ -63,26 +63,28 @@ namespace ASH.Survival
         void OnDestroy() { if (Instance == this) Instance = null; }
 
         static void Toast(string m) { var h = FindAnyObjectByType<ASHHud>(); if (h) h.Toast(m); }
+        static float Rate => Mathf.Max(0.0001f, ASHSurvivalTuning.DrainRate);
+        static float Effective(float hours) => hours / Rate;
 
         // ------------------------------------------------------------------ protection
         public float Protection
         {
             get
             {
-                if (Worn == Kind.Rag) return S.ragProtection * (S.ragDegradeHours > 0f ? Mathf.Clamp01(RagHours / S.ragDegradeHours) : (RagHours > 0f ? 1f : 0f));
+                if (Worn == Kind.Rag) return S.ragProtection * (S.ragDegradeHours > 0f ? Mathf.Clamp01(Effective(RagHours) / S.ragDegradeHours) : (RagHours > 0f ? 1f : 0f));
                 if (Worn == Kind.Mask)
                 {
                     if (FilterHours <= 0f) return S.maskNoFilterProtection;
-                    float f = S.filterDegradeHours > 0f ? Mathf.Clamp01(FilterHours / S.filterDegradeHours) : 1f;
+                    float f = S.filterDegradeHours > 0f ? Mathf.Clamp01(Effective(FilterHours) / S.filterDegradeHours) : 1f;
                     return Mathf.Lerp(S.maskNoFilterProtection, S.maskProtection, f);
                 }
                 return 0f;
             }
         }
 
-        /// <summary>Remaining game hours of what is worn (-1 = nothing to count down).</summary>
-        public float RemainingHours => Worn == Kind.Rag ? RagHours : Worn == Kind.Mask ? FilterHours : -1f;
-        public bool Low => Worn == Kind.Rag ? RagHours <= S.ragDegradeHours : Worn == Kind.Mask && FilterHours <= S.filterLowHours;
+        /// <summary>Remaining effective game hours of what is worn (raw life / drain rate; -1 = nothing to count down).</summary>
+        public float RemainingHours => Worn == Kind.Rag ? Effective(RagHours) : Worn == Kind.Mask ? Effective(FilterHours) : -1f;
+        public bool Low => Worn == Kind.Rag ? Effective(RagHours) <= S.ragDegradeHours : Worn == Kind.Mask && Effective(FilterHours) <= S.filterLowHours;
         public float Durability01 => Worn == Kind.Rag ? Mathf.Clamp01(RagHours / Mathf.Max(0.01f, S.ragHours)) : Worn == Kind.Mask ? Mathf.Clamp01(FilterHours / Mathf.Max(0.01f, S.filterHours)) : 0f;
 
         /// <summary>Called by ASHExposure every frame: dh = game hours, exposed = the air is bad where you stand.</summary>
@@ -92,8 +94,8 @@ namespace ASH.Survival
             if (dh <= 0f) return;
             if (Worn == Kind.Rag)
             {
-                RagHours -= dh;
-                if (!_ragWarned && RagHours <= S.ragDegradeHours && RagHours > 0f) { _ragWarned = true; Toast("Your rag is drying out"); }
+                RagHours -= dh * Rate;
+                if (!_ragWarned && Effective(RagHours) <= S.ragDegradeHours && RagHours > 0f) { _ragWarned = true; Toast("Your rag is drying out"); }
                 if (RagHours <= 0f)
                 {
                     RagHours = 0f; Worn = Kind.None; _ragWarned = false;
@@ -103,8 +105,8 @@ namespace ASH.Survival
             }
             else if (Worn == Kind.Mask && FilterHours > 0f && (exposed || !S.filterWearsOnlyWhenExposed))
             {
-                FilterHours -= dh;
-                if (!_filterWarned && FilterHours <= S.filterLowHours && FilterHours > 0f) { _filterWarned = true; Toast("Gas mask filter is running low"); }
+                FilterHours -= dh * Rate;
+                if (!_filterWarned && Effective(FilterHours) <= S.filterLowHours && FilterHours > 0f) { _filterWarned = true; Toast("Gas mask filter is running low"); }
                 if (FilterHours <= 0f) { FilterHours = 0f; _filterWarned = false; Toast("Filter clogged. Fit a new cartridge."); }
             }
         }
@@ -140,8 +142,8 @@ namespace ASH.Survival
             float c = Mathf.Clamp01(_inv.Slots[i].condition);
             _inv.RemoveFromSlot(i, 1);
             ReturnRag();
-            Worn = Kind.Rag; RagHours = c * S.ragHours; _ragWarned = RagHours <= S.ragDegradeHours;
-            Toast($"Wet rag tied over your face  ({ASHGameTime.Format(RagHours)} left)");
+            Worn = Kind.Rag; RagHours = c * S.ragHours; _ragWarned = Effective(RagHours) <= S.ragDegradeHours;
+            Toast($"Wet rag tied over your face  ({ASHGameTime.Format(Effective(RagHours))} left)");
             return true;
         }
 
@@ -152,7 +154,7 @@ namespace ASH.Survival
             ReturnRag();
             Worn = Kind.Mask;
             if (FilterHours <= 0f) FitFilter(-1, true);
-            Toast(FilterHours > 0f ? $"Gas mask on  (filter {ASHGameTime.Format(FilterHours)} left)" : "Gas mask on - no filter fitted. It barely helps.");
+            Toast(FilterHours > 0f ? $"Gas mask on  (filter {ASHGameTime.Format(Effective(FilterHours))} left)" : "Gas mask on - no filter fitted. It barely helps.");
             return true;
         }
 
@@ -166,8 +168,8 @@ namespace ASH.Survival
             _inv.RemoveFromSlot(i, 1);
             float old = FilterHours / Mathf.Max(0.01f, S.filterHours);
             if (old >= S.filterUnusableBelow) Give(f, old); else if (FilterHours > 0f || !quiet) Toast("Spent filter thrown away.");
-            FilterHours = c * S.filterHours; _filterWarned = FilterHours <= S.filterLowHours;
-            if (!quiet) Toast($"Filter fitted  ({ASHGameTime.Format(FilterHours)} left)" + (Worn != Kind.Mask ? " - wear the mask to use it" : ""));
+            FilterHours = c * S.filterHours; _filterWarned = Effective(FilterHours) <= S.filterLowHours;
+            if (!quiet) Toast($"Filter fitted  ({ASHGameTime.Format(Effective(FilterHours))} left)" + (Worn != Kind.Mask ? " - wear the mask to use it" : ""));
             return true;
         }
 
@@ -259,7 +261,7 @@ namespace ASH.Survival
         {
             var s = JsonUtility.FromJson<State>(json); if (s == null) return;
             Worn = (Kind)s.worn; RagHours = s.ragHours; FilterHours = s.filterHours; BottleDirty = s.dirty;
-            _ragWarned = Worn == Kind.Rag && RagHours <= S.ragDegradeHours; _filterWarned = FilterHours <= S.filterLowHours;
+            _ragWarned = Worn == Kind.Rag && Effective(RagHours) <= S.ragDegradeHours; _filterWarned = Effective(FilterHours) <= S.filterLowHours;
         }
     }
 }

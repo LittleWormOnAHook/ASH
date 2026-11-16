@@ -27,39 +27,59 @@ namespace ASH.Survival
             return _head;
         }
 
-        static Texture2D SoftTex()
+        Texture PuffTex()
         {
+            if (S.breathPuffTexture) return S.breathPuffTexture;
             if (_tex) return _tex;
-            const int n = 64; _tex = new Texture2D(n, n, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp };
+            const int n = 256;
+            _tex = new Texture2D(n, n, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp, filterMode = FilterMode.Bilinear, name = "ASH_BreathCloud" };
             var px = new Color32[n * n];
             for (int y = 0; y < n; y++) for (int x = 0; x < n; x++)
             {
-                float dx = (x + 0.5f) / n * 2f - 1f, dy = (y + 0.5f) / n * 2f - 1f; float r = Mathf.Sqrt(dx * dx + dy * dy);
-                float a = Mathf.Clamp01(1f - r); a = a * a * (3f - 2f * a);
-                a *= 0.75f + 0.25f * Mathf.PerlinNoise(x * 0.15f, y * 0.15f);
-                px[y * n + x] = new Color32(255, 255, 255, (byte)(a * 255));
+                float u = (x + 0.5f) / n * 2f - 1f, v = (y + 0.5f) / n * 2f - 1f;
+                float r = Mathf.Sqrt(u * u + v * v);
+                float env = Mathf.Clamp01(1f - r); env = env * env * (3f - 2f * env); env = Mathf.Pow(env, 1.2f);
+                float n1 = Mathf.PerlinNoise(x * 0.03f + 5f, y * 0.03f + 3f);
+                float n2 = Mathf.PerlinNoise(x * 0.07f + 20f, y * 0.07f + 11f);
+                float n3 = Mathf.PerlinNoise(x * 0.16f + 7f, y * 0.16f + 29f);
+                float cloud = Mathf.SmoothStep(0.22f, 0.92f, n1 * 0.55f + n2 * 0.3f + n3 * 0.15f);
+                px[y * n + x] = new Color32(255, 255, 255, (byte)(Mathf.Clamp01(env * cloud) * 255f));
             }
-            _tex.SetPixels32(px); _tex.Apply(); return _tex;
+            _tex.SetPixels32(px); _tex.Apply(false, false); return _tex;
+        }
+
+        void ApplyMotion()
+        {
+            var main = _ps.main; main.playOnAwake = false; main.loop = true; main.duration = 5f; main.simulationSpace = ParticleSystemSimulationSpace.World;
+            main.startLifetime = S.breathPuffLifetime; main.maxParticles = 400; main.startSpeed = 0f; main.gravityModifier = 0f;
+            var sz = _ps.sizeOverLifetime; sz.enabled = true;
+            sz.size = new ParticleSystem.MinMaxCurve(1f, new AnimationCurve(new Keyframe(0f, 0.45f), new Keyframe(0.35f, 0.9f), new Keyframe(1f, Mathf.Max(0.5f, S.breathPuffGrow))));
+            var col = _ps.colorOverLifetime; col.enabled = true;
+            var g = new Gradient();
+            g.SetKeys(
+                new[] { new GradientColorKey(Color.white, 0f), new GradientColorKey(new Color(0.9f, 0.92f, 0.95f), 1f) },
+                new[] { new GradientAlphaKey(0f, 0f), new GradientAlphaKey(0.85f, 0.1f), new GradientAlphaKey(0.35f, 0.55f), new GradientAlphaKey(0f, 1f) });
+            col.color = g;
+            var vel = _ps.velocityOverLifetime; vel.enabled = true; vel.space = ParticleSystemSimulationSpace.World;
+            vel.x = 0f; vel.z = 0f;
+            vel.y = new ParticleSystem.MinMaxCurve(S.breathPuffRise * 0.55f, S.breathPuffRise * 1.15f);
+            var lim = _ps.limitVelocityOverLifetime; lim.enabled = true; lim.dampen = S.breathPuffDampen; lim.limit = 0.08f;
         }
 
         void Build()
         {
             var go = new GameObject("ASH_BreathFog"); go.transform.SetParent(transform, false);
             _ps = go.AddComponent<ParticleSystem>(); _ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
-            var main = _ps.main; main.playOnAwake = false; main.loop = true; main.duration = 5f; main.simulationSpace = ParticleSystemSimulationSpace.World;
-            main.startLifetime = S.breathPuffLifetime; main.maxParticles = 400; main.startSpeed = 0f; main.gravityModifier = -0.02f;
+            ApplyMotion();
             var em = _ps.emission; em.enabled = false;
             var sh = _ps.shape; sh.enabled = false;
-            var sz = _ps.sizeOverLifetime; sz.enabled = true; sz.size = new ParticleSystem.MinMaxCurve(1f, AnimationCurve.EaseInOut(0f, 0.4f, 1f, 1.6f));
-            var col = _ps.colorOverLifetime; col.enabled = true;
-            var g = new Gradient(); g.SetKeys(new[] { new GradientColorKey(Color.white, 0f), new GradientColorKey(Color.white, 1f) }, new[] { new GradientAlphaKey(0f, 0f), new GradientAlphaKey(1f, 0.08f), new GradientAlphaKey(0.65f, 0.55f), new GradientAlphaKey(0f, 1f) });
-            col.color = g;
-            var vel = _ps.velocityOverLifetime; vel.enabled = true; vel.space = ParticleSystemSimulationSpace.World; vel.y = new ParticleSystem.MinMaxCurve(0.05f, 0.12f); vel.x = new ParticleSystem.MinMaxCurve(0f, 0f); vel.z = new ParticleSystem.MinMaxCurve(0f, 0f);
-            var lim = _ps.limitVelocityOverLifetime; lim.enabled = true; lim.dampen = 0.35f; lim.limit = 0.05f;
             var r = go.GetComponent<ParticleSystemRenderer>();
-            var sh0 = Shader.Find("Universal Render Pipeline/Particles/Unlit") ?? Shader.Find("Universal Render Pipeline/Particles/Lit") ?? Shader.Find("Particles/Standard Unlit");
+            var sh0 = Shader.Find("Universal Render Pipeline/Particles/Unlit") ?? Shader.Find("Particles/Standard Unlit");
             var m = new Material(sh0) { name = "ASH_BreathFog (runtime)" };
-            m.SetTexture("_BaseMap", SoftTex()); m.mainTexture = SoftTex(); if (m.HasProperty("_BaseColor")) m.SetColor("_BaseColor", Color.white);
+            var tex = PuffTex(); m.SetTexture("_BaseMap", tex); m.mainTexture = tex;
+            if (m.HasProperty("_BaseColor")) m.SetColor("_BaseColor", Color.white);
+            if (m.HasProperty("_Color")) m.SetColor("_Color", Color.white);
+            if (m.HasProperty("_EmissionColor")) m.SetColor("_EmissionColor", Color.black);
             if (m.HasProperty("_Surface")) { m.SetFloat("_Surface", 1f); m.SetFloat("_Blend", 0f); m.SetOverrideTag("RenderType", "Transparent"); m.EnableKeyword("_SURFACE_TYPE_TRANSPARENT"); }
             if (m.HasProperty("_SrcBlend")) { m.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.SrcAlpha); m.SetFloat("_DstBlend", (float)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha); }
             if (m.HasProperty("_ZWrite")) m.SetFloat("_ZWrite", 0f);
@@ -139,18 +159,19 @@ namespace ASH.Survival
             var o = S.mouthOffset; var pos = head.position + right * o.x + Vector3.up * o.y + fwd * o.z;
             if (k > 0.01f)
             {
-                var main = _ps.main; main.startLifetime = S.breathPuffLifetime;
-                int n = Mathf.Max(1, Mathf.RoundToInt(Mathf.Lerp(S.breathPuffCountMin, S.breathPuffCountMax, k) * Mathf.Lerp(1f, 1.4f, exert)));
-                var c = S.breathPuffColor;
+                ApplyMotion();
+                int n = Mathf.Max(1, Mathf.RoundToInt(Mathf.Lerp(S.breathPuffCountMin, S.breathPuffCountMax, k) * Mathf.Lerp(1f, 1.25f, exert)));
+                var c = S.breathPuffColor; float b = S.breathPuffBrightness;
+                var tint = new Color(c.r * b, c.g * b, c.b * b, S.breathPuffOpacity * Mathf.Lerp(0.7f, 1f, k));
                 for (int i = 0; i < n; i++)
                 {
                     var ep = new ParticleSystem.EmitParams
                     {
-                        position = pos + Random.insideUnitSphere * 0.03f,
-                        velocity = (fwd * S.breathPuffSpeed * Mathf.Lerp(1f, 1.6f, exert) + Random.insideUnitSphere * 0.08f + Vector3.down * 0.03f),
+                        position = pos + Random.insideUnitSphere * 0.025f,
+                        velocity = fwd * S.breathPuffSpeed * Mathf.Lerp(0.85f, 1.25f, exert) * Random.Range(0.8f, 1.15f) + Vector3.up * S.breathPuffRise * 0.35f + Random.insideUnitSphere * 0.05f,
                         startSize = Random.Range(S.breathPuffSize.x, S.breathPuffSize.y),
-                        startLifetime = S.breathPuffLifetime * Random.Range(0.75f, 1.15f),
-                        startColor = new Color(Mathf.Min(1f, c.r * S.breathPuffBrightness), Mathf.Min(1f, c.g * S.breathPuffBrightness), Mathf.Min(1f, c.b * S.breathPuffBrightness), S.breathPuffOpacity * Mathf.Lerp(0.7f, 1f, k)),
+                        startLifetime = S.breathPuffLifetime * Random.Range(0.75f, 1.25f),
+                        startColor = tint,
                         rotation = Random.Range(0f, 360f)
                     };
                     _ps.Emit(ep, 1);

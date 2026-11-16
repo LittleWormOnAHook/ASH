@@ -103,7 +103,7 @@ namespace ASH.Survival
             }
             NearHeat = reduction > 0.01f || warm > 0f;
 
-            float rate = -S.outdoorDropPerGameHour * DropMultiplier * (1f - sealing) * (1f - Mathf.Clamp01(reduction));
+            float rate = -S.outdoorDropPerGameHour * DropMultiplier * (1f - sealing) * (1f - Mathf.Clamp01(reduction)) * ASHSurvivalTuning.DrainRate;
             bool shelterWarms = sealing >= S.shelterWarmMinSealing && Warmth < S.shelterRecoverTarget;
             if (shelterWarms) rate += S.shelterRecoverPerGameHour * sealing;
             rate += warm;

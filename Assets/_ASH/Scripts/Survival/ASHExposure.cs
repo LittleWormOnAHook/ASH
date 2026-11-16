@@ -116,7 +116,7 @@ namespace ASH.Survival
             // coughing: occasional when outdoors in ash without protection, more often while the wet rag is in its final stretch
             // or at low health
             bool unprotected = airBad && Sealing < 0.5f && (!_face || _face.Worn == ASHFaceProtection.Kind.None) && Exposure >= S.coughExposure;
-            bool ragEnding = airBad && _face && _face.Worn == ASHFaceProtection.Kind.Rag && _face.RagHours <= S.ragCoughHours;
+            bool ragEnding = airBad && _face && _face.Worn == ASHFaceProtection.Kind.Rag && _face.RemainingHours <= S.ragCoughHours;
             bool coughs = unprotected || ragEnding || Warning;
             if (!coughs) _nextCough = Mathf.Max(_nextCough, Time.time + 2f);
             else if (Time.time >= _nextCough)

@@ -21,8 +21,13 @@ namespace ASH.EditorTools.Systems
                 if (!c) c = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/_ASH/Audio/Exposure/ASH_Breathing_Loop.ogg");
                 s.exhaleClips = c ? new[] { c } : new AudioClip[0];
             }
+            if (!s.breathPuffTexture)
+            {
+                s.breathPuffTexture = AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/ANGRY MESH/Nature Pack - PBR Rocks/Particles/Texture_Cloud_01.tif");
+                if (!s.breathPuffTexture) s.breathPuffTexture = AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/Invector-3rdPersonController/Basic Locomotion/Scripts/FootStep/Textures/ParticleCloudWhite.png");
+            }
             EditorUtility.SetDirty(s); AssetDatabase.SaveAssets(); Selection.activeObject = s;
-            Debug.Log($"[ASH] Temperature installed: {SettingsPath} (exhale: {(s.exhaleClips.Length > 0 ? s.exhaleClips[0].name : "none")}). Campfires get a heat source automatically at runtime; add lanterns/stoves/fireplaces with ASH/Systems/Add Heat Source to Selected.");
+            Debug.Log($"[ASH] Temperature installed: {SettingsPath} (exhale: {(s.exhaleClips.Length > 0 ? s.exhaleClips[0].name : "none")}, puff tex: {(s.breathPuffTexture ? s.breathPuffTexture.name : "procedural")}). Campfires get a heat source automatically at runtime; add lanterns/stoves/fireplaces with ASH/Systems/Add Heat Source to Selected.");
         }
 
         static void Add(ASHHeatSource.Preset p)
