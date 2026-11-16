@@ -14,6 +14,7 @@ namespace ASH.EditorTools.World
     /// hold to brush rubble, Shift-drag to copy a reseeded variation. Ctrl+D / paste also reseeds
     /// (unless Lock Seed is on). Pieces come from ANGRY MESH and Quantum Theory prefabs (referenced, not vendored).
     /// Everything lives under ASH_PlacedRocks, is undoable, and the open scene is never saved.
+    /// Newly placed pieces (and the wrapper/root) are marked fully static.
     /// </summary>
     public sealed class ASHRockCliffTool : EditorWindow
     {
@@ -323,6 +324,7 @@ namespace ASH.EditorTools.World
                 r.hasCliffEnd = false;
                 Rebuild(r);
                 Snap(r, keepSink: true, force: true);
+                ASHMeshColliderTool.MarkStaticRecursive(clone);
                 Selection.activeGameObject = clone;
                 return r;
             }
@@ -363,6 +365,7 @@ namespace ASH.EditorTools.World
                 r.cliffEnd = cliffEnd;
                 Rebuild(r);
                 Snap(r, keepSink: false, force: true);
+                ASHMeshColliderTool.MarkStaticRecursive(go);
                 Selection.activeGameObject = go;
                 EditorSceneManager.MarkSceneDirty(go.scene);
                 Undo.CollapseUndoOperations(g);
@@ -373,9 +376,14 @@ namespace ASH.EditorTools.World
         public static Transform EnsureRoot()
         {
             var existing = GameObject.Find(RootName);
-            if (existing) return existing.transform;
+            if (existing)
+            {
+                ASHMeshColliderTool.MarkStaticRecursive(existing);
+                return existing.transform;
+            }
             var go = new GameObject(RootName);
             Undo.RegisterCreatedObjectUndo(go, "ASH placed rocks root");
+            ASHMeshColliderTool.MarkStaticRecursive(go);
             EditorSceneManager.MarkSceneDirty(go.scene);
             return go.transform;
         }
@@ -497,6 +505,7 @@ namespace ASH.EditorTools.World
             go.transform.localRotation = localRot;
             go.transform.localScale = Vector3.one * Mathf.Max(0.01f, scale);
             go.name = prefab.name;
+            ASHMeshColliderTool.MarkStaticRecursive(go);
             return go;
         }
 

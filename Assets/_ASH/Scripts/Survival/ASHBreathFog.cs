@@ -50,7 +50,12 @@ namespace ASH.Survival
 
         void ApplyMotion()
         {
-            var main = _ps.main; main.playOnAwake = false; main.loop = true; main.duration = 5f; main.simulationSpace = ParticleSystemSimulationSpace.World;
+            var main = _ps.main;
+            main.playOnAwake = false;
+            main.loop = true;
+            main.simulationSpace = ParticleSystemSimulationSpace.World;
+            // duration can only be set while the system is stopped (Unity errors otherwise)
+            if (!_ps.isPlaying) main.duration = 5f;
             main.startLifetime = S.breathPuffLifetime; main.maxParticles = 400; main.startSpeed = 0f; main.gravityModifier = 0f;
             var sz = _ps.sizeOverLifetime; sz.enabled = true;
             sz.size = new ParticleSystem.MinMaxCurve(1f, new AnimationCurve(new Keyframe(0f, 0.45f), new Keyframe(0.35f, 0.9f), new Keyframe(1f, Mathf.Max(0.5f, S.breathPuffGrow))));
@@ -61,8 +66,10 @@ namespace ASH.Survival
                 new[] { new GradientAlphaKey(0f, 0f), new GradientAlphaKey(0.85f, 0.1f), new GradientAlphaKey(0.35f, 0.55f), new GradientAlphaKey(0f, 1f) });
             col.color = g;
             var vel = _ps.velocityOverLifetime; vel.enabled = true; vel.space = ParticleSystemSimulationSpace.World;
-            vel.x = 0f; vel.z = 0f;
+            // all three axes must use the same MinMaxCurve mode
+            vel.x = new ParticleSystem.MinMaxCurve(0f, 0f);
             vel.y = new ParticleSystem.MinMaxCurve(S.breathPuffRise * 0.55f, S.breathPuffRise * 1.15f);
+            vel.z = new ParticleSystem.MinMaxCurve(0f, 0f);
             var lim = _ps.limitVelocityOverLifetime; lim.enabled = true; lim.dampen = S.breathPuffDampen; lim.limit = 0.08f;
         }
 

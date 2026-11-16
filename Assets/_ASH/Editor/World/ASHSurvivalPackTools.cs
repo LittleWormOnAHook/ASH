@@ -269,11 +269,17 @@ namespace ASH.EditorTools.World
                     if (file == "Torch")
                     {
                         var fire = ASHContentBuilder.LoadPrefab("ASH_Campfire"); var flames = fire ? fire.transform.Find("Flames") : null;
-                        var flameGo = flames ? Object.Instantiate(flames.gameObject, root.transform) : new GameObject("Flames");
-                        flameGo.name = "Flame"; flameGo.transform.localPosition = new Vector3(0, 0, b.max.z - 0.02f); flameGo.transform.localScale = Vector3.one * 0.4f;
+                        var tipGo = new GameObject("FlameTip");
+                        tipGo.transform.SetParent(root.transform, false);
+                        if (!ASHLightSource.TryMeshTip(root.transform, out var tip, out var axis))
+                        { tip = new Vector3(b.center.x, b.center.y, b.max.z); axis = Vector3.forward; }
+                        tipGo.transform.localPosition = tip + axis * 0.015f;
+                        var flameGo = flames ? Object.Instantiate(flames.gameObject, tipGo.transform) : new GameObject("Flames");
+                        flameGo.name = "Flame"; flameGo.transform.SetParent(tipGo.transform, false);
+                        flameGo.transform.localPosition = Vector3.zero; flameGo.transform.localScale = Vector3.one * 0.4f;
                         var upright = flames ? flames.localRotation : Quaternion.identity;
                         foreach (var ps in flameGo.GetComponentsInChildren<ParticleSystem>(true)) { var main = ps.main; main.simulationSpace = ParticleSystemSimulationSpace.World; main.scalingMode = ParticleSystemScalingMode.Hierarchy; main.playOnAwake = false; }
-                        var lg = new GameObject("TorchLight"); lg.transform.SetParent(root.transform, false); lg.transform.localPosition = new Vector3(0, 0, b.max.z + 0.1f);
+                        var lg = new GameObject("TorchLight"); lg.transform.SetParent(tipGo.transform, false); lg.transform.localPosition = Vector3.zero;
                         var l = lg.AddComponent<Light>(); l.type = LightType.Point; l.color = new Color(1f, 0.62f, 0.3f); l.range = 10f; l.intensity = 2.4f; l.shadows = LightShadows.None;
                         var ls = root.AddComponent<ASHLightSource>(); ls.Configure(l, new[] { flameGo }, null, flameGo.GetComponentsInChildren<ParticleSystem>(true), 2.4f, 0.35f);
                         ls.KeepUpright(flameGo.transform, upright);
