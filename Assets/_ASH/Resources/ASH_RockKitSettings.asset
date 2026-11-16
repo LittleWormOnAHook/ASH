@@ -1,0 +1,99 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 46f28a894d3a25e4fae8c4c989c6c935, type: 3}
+  m_Name: ASH_RockKitSettings
+  m_EditorClassIdentifier: Assembly-CSharp::ASH.World.ASHRockKitSettings
+  preset: 1
+  boulders:
+  - {fileID: 1821419836553512, guid: ae7000391945be940b15231297215d89, type: 3}
+  - {fileID: 1616130700329440, guid: 1e57cc4157d9fb84994b2b2b6a983a59, type: 3}
+  - {fileID: 1011549416125726, guid: 6a51ffef68d8892458d11fad26266d20, type: 3}
+  - {fileID: 1553892390474770, guid: 968057d819d25f446a78b1ff77839d2a, type: 3}
+  - {fileID: 1193171786661956, guid: 46ebe59ff061fb24582d3be88b370a9c, type: 3}
+  - {fileID: 1257196454809392, guid: 78ddcface40615149950ad894b31e6f3, type: 3}
+  - {fileID: 1771682270059358, guid: 495a18c2f39b8e24d9fd958f85571385, type: 3}
+  - {fileID: 1359500781596920, guid: 95cc0f5628744264e96242984c79f15a, type: 3}
+  - {fileID: 1160849925843480, guid: 3c66310b160c6ac47bdf75d51324065c, type: 3}
+  - {fileID: 1205276580984562, guid: 7a3dc1df84833af449dd72574afa3403, type: 3}
+  - {fileID: 1844960362315940, guid: 03f500fe2f0d7e840b0fa1ed5f268ec8, type: 3}
+  - {fileID: 1031511741086074, guid: 08a269acf6917224b8a3ab7b3fbb7a67, type: 3}
+  - {fileID: 1994472593467582, guid: 8088df2b2894cae46b589a4625abc9f9, type: 3}
+  - {fileID: 1813734824538722, guid: e6df2da947adad442a34f1397ff82899, type: 3}
+  - {fileID: 1380655668625086, guid: 059fa6d8908d4b844be88424204affe4, type: 3}
+  - {fileID: 1746837537904568, guid: 3d7c79b14c905a74c99cfef5e4870c42, type: 3}
+  - {fileID: 1078711052628276, guid: 208d9b73c91b13f4d9de309b7df862c8, type: 3}
+  - {fileID: 1444859517876524, guid: aa060ba5d512d8949a4844dab428a582, type: 3}
+  - {fileID: 1697219925574854, guid: 448dfe7823369eb4c949045724d67a58, type: 3}
+  - {fileID: 1010404307080470, guid: 1976d1b81f1e5a249a1126f024a756e4, type: 3}
+  - {fileID: 1725181568685448, guid: 69076c5bd04db5446a9298fc6626606d, type: 3}
+  - {fileID: 1569724684653556, guid: f6acee74fa4782a4d961bf2c5f0d9904, type: 3}
+  - {fileID: 1797161157620466, guid: 2f225805ddf576d4e9c491120769b5e4, type: 3}
+  - {fileID: 1416046974539440, guid: 4cfe05f3ddbf8aa47ae7da377a05e4f5, type: 3}
+  rubble:
+  - {fileID: 1466967405912318, guid: 3cea8f14f7bfc8848b98fc6872b9b1bb, type: 3}
+  - {fileID: 1001590810353796, guid: e0d1945c19064704fa72143ceba2b94d, type: 3}
+  - {fileID: 1775939963566816, guid: 6073c65b79455234298e2d83bfe343bb, type: 3}
+  cliffs:
+  - {fileID: 8074152363460267295, guid: 58ac255134b7f744dac95f34f2218c96, type: 3}
+  - {fileID: 8680109477950273661, guid: a30fb3346e39b1b4f8d00eae953b7667, type: 3}
+  - {fileID: 3520401458709685574, guid: f096e7148eb4d7a4092b0a939cabde0f, type: 3}
+  - {fileID: 6184874944025451351, guid: e1e672c233e5d3a45afc719741a22d15, type: 3}
+  - {fileID: 1760527212632690387, guid: 2118ff00cedf13d4a9503c36f92cadaa, type: 3}
+  - {fileID: 3312134676453789664, guid: 7f7dd3e4729b3a44c9fe916d10b8126d, type: 3}
+  sharp:
+  - {fileID: 3520401458709685574, guid: f096e7148eb4d7a4092b0a939cabde0f, type: 3}
+  boulderFolder: ANGRY MESH/Nature Pack - PBR Rocks/Prefabs Rocks Desktop/Snow Rocks
+  rubbleFolder: ANGRY MESH/Nature Pack - PBR Rocks/Prefabs Rocks Desktop/Terrain
+    Detail Unlit
+  cliffFolder: Quantum Theory/Better Rocks and Cliffs/Prefabs
+  boulderScaleMin: 0.7
+  boulderScaleMax: 1.4
+  pileScaleMin: 0.45
+  pileScaleMax: 1.2
+  outcropScaleMin: 0.8
+  outcropScaleMax: 1.6
+  rubbleScaleMin: 0.4
+  rubbleScaleMax: 1
+  spireScaleMin: 0.7
+  spireScaleMax: 1.5
+  cliffScaleMin: 0.85
+  cliffScaleMax: 1.4
+  pileCountMin: 3
+  pileCountMax: 7
+  outcropCountMin: 2
+  outcropCountMax: 5
+  rubbleCountMin: 6
+  rubbleCountMax: 14
+  spireCountMin: 2
+  spireCountMax: 5
+  cliffPiecesPerMetre: 0.35
+  cliffCountMin: 3
+  cliffCountMax: 16
+  pileRadius: 2.4
+  outcropLength: 5.5
+  rubbleRadius: 4
+  cliffOverlap: 0.6
+  brushSpacing: 3.5
+  snapMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  snapToProps: 1
+  tiltStrength: 0.65
+  maxTiltDegrees: 45
+  baseSinkMetres: 0.25
+  sinkPerDegree: 0.012
+  maxSinkMetres: 2.5
+  skipBoulderAboveDegrees: 55
+  avoidOverlap: 1
+  overlapTries: 6
+  overlapPushMetres: 1.5
+  yawJitter: 180
