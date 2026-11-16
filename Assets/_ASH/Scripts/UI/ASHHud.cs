@@ -370,8 +370,9 @@ namespace ASH.UI
 
         void BuildInventory()
         {
-            int n = inventory ? inventory.SlotCount : 12; const int cols = 6; const float cell = 96f, gap = 10f;
+            int n = inventory ? inventory.SlotCount : 12; const int cols = 6; const float gap = 10f;
             int rows = Mathf.CeilToInt(n / (float)cols);
+            float cell = rows > 5 ? 84f : 96f;
             float gridW = cols * cell + (cols - 1) * gap, gridH = rows * cell + (rows - 1) * gap;
             _invPanel = Img("Inventory", _root, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, 40), new Vector2(gridW + 80, gridH + 270), Panel).gameObject;
             var rt = (RectTransform)_invPanel.transform;

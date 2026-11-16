@@ -82,18 +82,29 @@ namespace ASH.Core
             var dir = ASHWeatherDirector.Instance;
             if (dir && s.weatherKind >= 0) { dir.debugOverride = false; dir.Snap((ASHWeatherKind)s.weatherKind); dir.SetScheduler(s.scheduler); }
 
-            // pack
+            // pack: pad missing slots. When the saved layout is a different size, the last CrossCount slots
+            // stay on the cross bar and the rest are the pack (so 12+4 and 22+4 saves still load after the pack grew).
             var inv = UnityEngine.Object.FindAnyObjectByType<ASHInventory>();
             if (inv && s.slots.Count > 0)
             {
                 var reg = ASHItemRegistry.I;
-                int n = Mathf.Min(inv.Slots.Count, s.slots.Count);
-                for (int i = 0; i < inv.Slots.Count; i++)
+                void Apply(int dest, SlotState st)
                 {
-                    var st = i < n ? s.slots[i] : null;
                     var item = st != null && !string.IsNullOrEmpty(st.id) ? reg.Find(st.id) : null;
                     if (st != null && !string.IsNullOrEmpty(st.id) && item == null) Debug.LogWarning($"[ASH] Save: unknown item '{st.id}' (run ASH/Systems/Install Data to refresh the item registry)");
-                    inv.RestoreSlot(i, item, item ? st.amount : 0, st != null ? st.condition : 1f);
+                    inv.RestoreSlot(dest, item, item ? st.amount : 0, st != null ? st.condition : 1f);
+                }
+                int saved = s.slots.Count, cross = ASHInventory.CrossCount;
+                bool split = saved != inv.Slots.Count && saved >= cross;
+                if (split)
+                {
+                    int savedPack = saved - cross, pack = inv.SlotCount;
+                    for (int i = 0; i < pack; i++) Apply(i, i < savedPack ? s.slots[i] : null);
+                    for (int q = 0; q < cross; q++) Apply(inv.CrossStart + q, s.slots[savedPack + q]);
+                }
+                else
+                {
+                    for (int i = 0; i < inv.Slots.Count; i++) Apply(i, i < saved ? s.slots[i] : null);
                 }
                 inv.NotifyChanged();
             }
@@ -161,7 +172,7 @@ namespace ASH.Core
         }
     }
 
-    /// <summary>World save section: felled trees / chopped logs, depleted resource nodes, taken or partly taken scene pickups and
+    /// <summary>World save section: felled trees / chopped logs, depleted resource nodes, opened supply crates, taken or partly taken scene pickups and
     /// items the player dropped. Scene objects are identified by a hierarchy path recorded when the scene loads (before anything
     /// changes), so the ids match between the saving run and the restoring run.</summary>
     public sealed class ASHWorldSave : IASHSaveable
@@ -176,10 +187,12 @@ namespace ASH.Core
             public List<Node> nodes = new List<Node>();
             public List<Pick> pickups = new List<Pick>();   // amount 0 = taken
             public List<Drop> drops = new List<Drop>();
+            public List<string> openedCrates = new List<string>();
         }
 
         readonly Dictionary<string, ASHChoppable> _chop = new Dictionary<string, ASHChoppable>();
         readonly Dictionary<string, ASHResourceNode> _nodes = new Dictionary<string, ASHResourceNode>();
+        readonly Dictionary<string, ASHSupplyCrate> _crates = new Dictionary<string, ASHSupplyCrate>();
         readonly Dictionary<string, (ASHItemPickup pk, int amount)> _picks = new Dictionary<string, (ASHItemPickup, int)>();
         readonly HashSet<ASHItemPickup> _scenePicks = new HashSet<ASHItemPickup>();
 
@@ -196,9 +209,10 @@ namespace ASH.Core
         /// <summary>Records every scene choppable, resource node and pickup with its id (called on scene load).</summary>
         public void Snapshot()
         {
-            _chop.Clear(); _nodes.Clear(); _picks.Clear(); _scenePicks.Clear();
+            _chop.Clear(); _nodes.Clear(); _crates.Clear(); _picks.Clear(); _scenePicks.Clear();
             foreach (var c in UnityEngine.Object.FindObjectsByType<ASHChoppable>(FindObjectsInactive.Include)) { var id = IdOf(c.transform); if (!_chop.ContainsKey(id)) _chop[id] = c; }
             foreach (var n in UnityEngine.Object.FindObjectsByType<ASHResourceNode>(FindObjectsInactive.Include)) { var id = IdOf(n.transform); if (!_nodes.ContainsKey(id)) _nodes[id] = n; }
+            foreach (var c in UnityEngine.Object.FindObjectsByType<ASHSupplyCrate>(FindObjectsInactive.Include)) { var id = IdOf(c.transform); if (!_crates.ContainsKey(id)) _crates[id] = c; }
             foreach (var p in UnityEngine.Object.FindObjectsByType<ASHItemPickup>(FindObjectsInactive.Include)) { var id = IdOf(p.transform); if (!_picks.ContainsKey(id)) { _picks[id] = (p, p.Amount); _scenePicks.Add(p); } }
         }
 
@@ -207,6 +221,7 @@ namespace ASH.Core
             var s = new State();
             foreach (var kv in _chop) if (kv.Value && kv.Value.Done) s.felled.Add(kv.Key);
             foreach (var kv in _nodes) if (kv.Value && kv.Value.Remaining < kv.Value.MaxGathers) s.nodes.Add(new Node { id = kv.Key, remaining = kv.Value.Remaining });
+            foreach (var kv in _crates) if (kv.Value && kv.Value.Opened) s.openedCrates.Add(kv.Key);
             foreach (var kv in _picks)
             {
                 var pk = kv.Value.pk;
@@ -226,6 +241,7 @@ namespace ASH.Core
             var s = JsonUtility.FromJson<State>(json); if (s == null) return;
             foreach (var id in s.felled) if (_chop.TryGetValue(id, out var c) && c) c.RestoreFelled();
             foreach (var n in s.nodes) if (_nodes.TryGetValue(n.id, out var r) && r) r.RestoreRemaining(n.remaining);
+            if (s.openedCrates != null) foreach (var id in s.openedCrates) if (_crates.TryGetValue(id, out var crate) && crate) crate.RestoreOpened();
             foreach (var p in s.pickups)
             {
                 if (!_picks.TryGetValue(p.id, out var e) || !e.pk) continue;

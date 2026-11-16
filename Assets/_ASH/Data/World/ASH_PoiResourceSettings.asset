@@ -1,0 +1,108 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8f4c5f46e2045af4db1cfed029078baf, type: 3}
+  m_Name: ASH_PoiResourceSettings
+  m_EditorClassIdentifier: Assembly-CSharp::ASH.World.ASHPoiResourceSettings
+  radius: 40
+  poiKeepout: 8
+  maxSlope: 28
+  minTreeDistance: 1.6
+  minObjectDistance: 2.2
+  minSpacing: 2.2
+  attemptsPerItem: 40
+  seed: 17
+  stonePerPoi: 4
+  berriesPerPoi: 3
+  woodPerPoi: 4
+  kindlingPerPoi: 5
+  foodPerPoi: 3
+  cratesPerPoi: 1
+  stonePrefab: {fileID: 4886184086582746285, guid: 2694ee715387cd44b93bd4516334dce3, type: 3}
+  berryPrefab: {fileID: 1519016707796019290, guid: 0932f4dfa0e348447b97265810817b68, type: 3}
+  kindlingPrefab: {fileID: 6416033868191175501, guid: 7b15afe3cca1c8d4c95a5f47f91053ef, type: 3}
+  cratePrefab: {fileID: 8868911821224592727, guid: d8df3f3adb553a645b0e24eaa350d953, type: 3}
+  woodPrefabs:
+  - {fileID: 5190420944475317908, guid: 4bcdd044aed14fb44811aa987208810d, type: 3}
+  - {fileID: 4424290404945828686, guid: d84c5a1582743284aaf2926104916135, type: 3}
+  - {fileID: 2096882229854955777, guid: 67fd44bce8199244884287561fb6a6b3, type: 3}
+  - {fileID: 3621567068889540353, guid: 7f4c1ab99aea01e4188328e37321a6b5, type: 3}
+  - {fileID: 7899528505420190299, guid: d0cd6e59d2b805546b0a392c9ab2e62f, type: 3}
+  foodPrefabs:
+  - {fileID: 8720778761482492999, guid: 3b0274e1fa48bb642a3ee545c1f4a4e7, type: 3}
+  - {fileID: 3666581863574385473, guid: 121743a0f4077e7498002772d4ea768e, type: 3}
+  - {fileID: 7536342947875636645, guid: b37e4fe042fb57b41991b6083c7bc80d, type: 3}
+  - {fileID: 9088265095384346228, guid: a33f1ffc80bd88042a8a9c20569bc3b4, type: 3}
+  - {fileID: 5188922253555743333, guid: 81f3c76bb0d199846a1873f14fa7ca51, type: 3}
+  - {fileID: 3734448708633278020, guid: 2f6167624b5bf1f4ebaac99df96a3953, type: 3}
+  crateLootMin: 2
+  crateLootMax: 5
+  crateLoot:
+  - item: {fileID: 11400000, guid: 3f84b2f9435bf8645b3f58b992e4d95b, type: 2}
+    weight: 3
+    amountMin: 1
+    amountMax: 3
+  - item: {fileID: 11400000, guid: 7cd557381b29b784494aba3006fe97c5, type: 2}
+    weight: 3
+    amountMin: 1
+    amountMax: 2
+  - item: {fileID: 11400000, guid: 60a01e34ee84bf8478b4e029262354c3, type: 2}
+    weight: 2
+    amountMin: 1
+    amountMax: 2
+  - item: {fileID: 11400000, guid: 253dcd79e602ff540ab668a717fb2a7b, type: 2}
+    weight: 2
+    amountMin: 1
+    amountMax: 3
+  - item: {fileID: 11400000, guid: 022e78f657aeffe4091a3073ce00cd10, type: 2}
+    weight: 2
+    amountMin: 1
+    amountMax: 2
+  - item: {fileID: 11400000, guid: 9788539a33748784b9934ff73ae9466d, type: 2}
+    weight: 3
+    amountMin: 1
+    amountMax: 2
+  - item: {fileID: 11400000, guid: bd04ca413ce93144a853e0da8ee70c00, type: 2}
+    weight: 2
+    amountMin: 1
+    amountMax: 2
+  - item: {fileID: 11400000, guid: 8e24c5d37538af54d9c1aafc6ec731cc, type: 2}
+    weight: 2
+    amountMin: 1
+    amountMax: 3
+  - item: {fileID: 11400000, guid: 0d309887d3d74564faeda75273494ee9, type: 2}
+    weight: 1.5
+    amountMin: 1
+    amountMax: 2
+  - item: {fileID: 11400000, guid: cdf61af5b2170224aa295f116d6ca24d, type: 2}
+    weight: 2
+    amountMin: 2
+    amountMax: 4
+  - item: {fileID: 11400000, guid: e10acb963d71fee4e8afdb47e60c6685, type: 2}
+    weight: 1.2
+    amountMin: 1
+    amountMax: 1
+  - item: {fileID: 11400000, guid: c937fb7bffaa750419ad80a22bb92278, type: 2}
+    weight: 1
+    amountMin: 1
+    amountMax: 1
+  - item: {fileID: 11400000, guid: 151ffd9b1b592cc4bba57253a3bc9651, type: 2}
+    weight: 1.5
+    amountMin: 1
+    amountMax: 3
+  - item: {fileID: 11400000, guid: 2bb36505d94f8914fba669eb78d3e44d, type: 2}
+    weight: 1.2
+    amountMin: 1
+    amountMax: 1
+  - item: {fileID: 11400000, guid: 9b5a13a77ffa7bd4e8e4cfab7d7e854f, type: 2}
+    weight: 1
+    amountMin: 4
+    amountMax: 10

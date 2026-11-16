@@ -23,10 +23,10 @@ namespace ASH.Inventory
             public void Clear() { item = null; amount = 0; condition = 1f; }
         }
 
-        [Tooltip("Pack slots. Never fewer than MinPackSlots at runtime (older scenes/prefabs saved 12).")]
+        [Tooltip("Pack slots. Never fewer than MinPackSlots at runtime (older scenes/prefabs saved 12 or 22).")]
         [Range(4, 60)] [SerializeField] private int slotCount = MinPackSlots;
-        /// <summary>Pack size floor: the original 12 slots plus the 10 added later. Older saved layouts are migrated up to this.</summary>
-        public const int MinPackSlots = 22;
+        /// <summary>Pack size floor: the original 12, plus 10, plus 10 more. Older saved layouts are migrated up to this.</summary>
+        public const int MinPackSlots = 32;
         /// <summary>Effective pack size (serialized slotCount, raised to MinPackSlots).</summary>
         int Pack => Mathf.Max(slotCount, MinPackSlots);
         [SerializeField] private List<Slot> slots = new List<Slot>();

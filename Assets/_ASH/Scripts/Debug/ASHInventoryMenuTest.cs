@@ -11,7 +11,7 @@ using UnityEngine.EventSystems;
 
 namespace ASH.DebugTools
 {
-    /// <summary>Pack size + item menu test (Play Mode, exec ASH.DebugTools.ASHInventoryMenuTest.Run): 22 pack slots in the grid,
+    /// <summary>Pack size + item menu test (Play Mode, exec ASH.DebugTools.ASHInventoryMenuTest.Run): 32 pack slots in the grid,
     /// old 12-slot layouts migrate with the cross bar kept, RMB menu Use / Drop 1 / Drop all / Split, Use disabled for materials,
     /// dropped pickups on the ground in front of the player, Esc and click-away close. Logs "[ASH] INVMENU ..." + SUMMARY.</summary>
     public sealed class ASHInventoryMenuTest : MonoBehaviour
@@ -39,13 +39,13 @@ namespace ASH.DebugTools
 
             // ---- slot count + grid
             int P = inv.SlotCount;
-            Check("22 pack slots in the grid, cross bar after them", P >= ASHInventory.MinPackSlots && P == 22 && hud.PackSlotCount == P && inv.Slots.Count == P + ASHInventory.CrossCount && inv.CrossStart == P,
+            Check("32 pack slots in the grid, cross bar after them", P >= ASHInventory.MinPackSlots && P == ASHInventory.MinPackSlots && hud.PackSlotCount == P && inv.Slots.Count == P + ASHInventory.CrossCount && inv.CrossStart == P,
                 $"pack {P} (min {ASHInventory.MinPackSlots}) grid {hud.PackSlotCount} total {inv.Slots.Count} crossStart {inv.CrossStart}");
             inv.ClearAll(); yield return null;
             for (int i = 0; i < P; i++) inv.AddItem(kindling, kindling.maxStack);
             bool lastUsed = !inv.Slots[P - 1].IsEmpty && inv.Slots[P - 1].item == kindling; bool crossFree = inv.Slots[inv.CrossStart].IsEmpty;
             bool full = !inv.HasSpaceFor(kindling, 1);
-            Check("all 22 slots fill before the pack is full (cross bar untouched)", lastUsed && crossFree && full && inv.Count(kindling) == P * kindling.maxStack,
+            Check("all pack slots fill before the pack is full (cross bar untouched)", lastUsed && crossFree && full && inv.Count(kindling) == P * kindling.maxStack,
                 $"last slot used {lastUsed} cross free {crossFree} full {full} count {inv.Count(kindling)}");
             inv.ClearAll(); yield return null;
 
@@ -57,7 +57,7 @@ namespace ASH.DebugTools
             list[3].item = bar; list[3].amount = 2; list[12].item = rifle; list[12].amount = 1;   // old weapon cross slot = 12
             ensure.Invoke(inv, null);
             var w = inv.CrossSlot(ASHInventory.CrossQuad.Weapon);
-            Check("old 12-slot layout migrates to 22 (cross bar kept)", inv.Slots.Count == P + 4 && inv.Slots[3].item == bar && inv.Slots[3].amount == 2 && w.item == rifle && inv.Slots[12].IsEmpty,
+            Check("old 12-slot layout migrates to the current pack size (cross bar kept)", inv.Slots.Count == P + 4 && inv.Slots[3].item == bar && inv.Slots[3].amount == 2 && w.item == rifle && inv.Slots[12].IsEmpty,
                 $"total {inv.Slots.Count} slot3 {(inv.Slots[3].item ? inv.Slots[3].item.displayName : "-")} weapon {(w.item ? w.item.displayName : "-")} slot12 empty {inv.Slots[12].IsEmpty}");
             inv.ClearAll(); yield return null;
 
