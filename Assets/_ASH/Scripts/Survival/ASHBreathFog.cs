@@ -4,9 +4,10 @@ using UnityEngine;
 namespace ASH.Survival
 {
     /// <summary>
-    /// Visible breath in cold air: a small lit particle puff at the Head bone + mouth offset on each breath (faster when
-    /// exhausted or sprinting), denser as the air gets colder, reduced/hidden under the rag or mask, with a quiet exhale sound
-    /// per puff (pitch/volume variation, heavier when exhausted, muffled under the mask). Settings: ASH_TemperatureSettings.
+    /// Cold breath once warmth is at or below the threshold (6): a small particle puff at the Head bone + mouth offset on each
+    /// breath (faster when exhausted or sprinting), denser as warmth falls, reduced/hidden under the rag or mask, with a quiet
+    /// exhale per puff (muffled under the mask). At any temperature: heavy breaths while stamina is at or below 10, and one
+    /// recovery breath when a sprint ends. Settings: ASH_TemperatureSettings.
     /// Added to the player with ASHBodyTemperature.
     /// </summary>
     [DisallowMultipleComponent]
@@ -73,33 +74,45 @@ namespace ASH.Survival
             _lp = ag.AddComponent<AudioLowPassFilter>(); _lp.cutoffFrequency = 22000f;
         }
 
-        float EffectiveAmbient()
-        {
-            if (!_temp) return 20f;
-            var ex = ASHExposure.Instance; float sealing = ex ? ex.Sealing : 0f;
-            return Mathf.Lerp(_temp.Ambient, Mathf.Max(_temp.Ambient, S.shelterAmbient), sealing);
-        }
+        float _nextHeavy; bool _wasSprinting; float _sprintSince = -1f;
 
         void Update()
         {
-            if (!S.breathFog || !_stats || _stats.IsDead || Time.timeScale <= 0f) return;
+            if (!_stats || _stats.IsDead || Time.timeScale <= 0f) return;
             if (!_temp) _temp = GetComponent<ASHBodyTemperature>();
             if (!_face) _face = GetComponent<ASHFaceProtection>();
-            if (Time.time < _next) return;
-
+            var worn = _face ? _face.Worn : ASHFaceProtection.Kind.None;
             float exert = Mathf.Clamp01(Mathf.Max(_stats.IsSprinting ? 1f : 0f, 1f - _stats.Stamina / Mathf.Max(1f, _stats.MaxStamina)));
+            bool cold = S.breathFog && _temp && _temp.Warmth <= S.breathFogWarmth;
+            float density = cold ? Mathf.Clamp01(Mathf.InverseLerp(S.breathFogWarmth + 0.001f, S.breathFogFullWarmth, _temp.Warmth)) : 0f;
+            density = cold ? Mathf.Max(0.25f, density) : 0f;
+            float mult = worn == ASHFaceProtection.Kind.Mask ? S.maskFogMultiplier : worn == ASHFaceProtection.Kind.Rag ? S.ragFogMultiplier : 1f;
+
+            // heavy breathing (any temperature): one recovery breath when a sprint ends, panting while stamina is low
+            bool sprint = _stats.IsSprinting;
+            if (sprint && !_wasSprinting) _sprintSince = Time.time;
+            if (!sprint && _wasSprinting && S.breathOnSprintStop && _sprintSince >= 0f && Time.time - _sprintSince >= S.sprintStopMinSeconds)
+            {
+                Breath(density * mult, 1f, worn, S.sprintStopVolume, true);
+                _next = Time.time + S.breathIntervalExerted; _nextHeavy = Time.time + S.heavyBreathIntervalSeconds.y;
+            }
+            _wasSprinting = sprint;
+            if (_stats.Stamina <= S.heavyBreathStamina && Time.time >= _nextHeavy)
+            {
+                var iv = S.heavyBreathIntervalSeconds;
+                _nextHeavy = Time.time + Random.Range(Mathf.Min(iv.x, iv.y), Mathf.Max(iv.x, iv.y));
+                Breath(density * mult, 1f, worn, S.heavyBreathVolume, true);
+                _next = Time.time + S.breathIntervalExerted;
+            }
+
+            // cold breath: visible puffs + soft exhale, only at or below the warmth threshold
+            if (!cold || Time.time < _next) return;
             float interval = Mathf.Lerp(S.breathIntervalRest, S.breathIntervalExerted, exert);
             _next = Time.time + interval * (1f + Random.Range(-S.breathIntervalJitter, S.breathIntervalJitter));
-
-            float amb = EffectiveAmbient();
-            if (amb >= S.breathFogAmbient) return;
-            float density = Mathf.Clamp01(Mathf.InverseLerp(S.breathFogAmbient, S.breathFogFullAmbient, amb));
-            var worn = _face ? _face.Worn : ASHFaceProtection.Kind.None;
-            float mult = worn == ASHFaceProtection.Kind.Mask ? S.maskFogMultiplier : worn == ASHFaceProtection.Kind.Rag ? S.ragFogMultiplier : 1f;
-            Puff(density * mult, exert, worn);
+            Breath(density * mult, exert, worn, -1f, false);
         }
 
-        void Puff(float k, float exert, ASHFaceProtection.Kind worn)
+        void Breath(float k, float exert, ASHFaceProtection.Kind worn, float volume, bool heavy)
         {
             var head = Head(); if (!head) return;
             if (!_ps) Build();
@@ -126,11 +139,12 @@ namespace ASH.Survival
                 }
             }
             // exhale sound with the puff (also under the mask, muffled)
-            if (S.exhaleClips == null || S.exhaleClips.Length == 0) return;
-            var clip = Gameplay.ASHSfx.Pick(S.exhaleClips); if (!clip) return;
+            var clips = heavy && S.heavyBreathClips != null && S.heavyBreathClips.Length > 0 && System.Array.Exists(S.heavyBreathClips, c => c) ? S.heavyBreathClips : S.exhaleClips;
+            if (clips == null || clips.Length == 0) return;
+            var clip = Gameplay.ASHSfx.Pick(clips); if (!clip) return;
             _lp.cutoffFrequency = worn == ASHFaceProtection.Kind.Mask ? S.exhaleMaskMuffleHz : worn == ASHFaceProtection.Kind.Rag ? S.exhaleRagMuffleHz : 22000f;
             _src.pitch = Mathf.Lerp(1f, S.exhaleExhaustedPitch, exert) * (1f + Random.Range(-S.exhalePitchJitter, S.exhalePitchJitter));
-            float vol = Mathf.Lerp(S.exhaleVolume, S.exhaleExhaustedVolume, exert) * (1f + Random.Range(-S.exhaleVolumeJitter, S.exhaleVolumeJitter));
+            float vol = (volume >= 0f ? volume : Mathf.Lerp(S.exhaleVolume, S.exhaleExhaustedVolume, exert)) * (1f + Random.Range(-S.exhaleVolumeJitter, S.exhaleVolumeJitter));
             _src.PlayOneShot(clip, Mathf.Clamp01(vol * ASHGameSettings.CachedSfx));
         }
     }

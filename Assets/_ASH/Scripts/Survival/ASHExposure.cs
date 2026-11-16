@@ -113,12 +113,15 @@ namespace ASH.Survival
             if (Warning && !_warnToasted) { _warnToasted = true; var hud = FindAnyObjectByType<ASHHud>(); if (hud && !string.IsNullOrEmpty(S.warnToast)) hud.Toast(S.warnToast); }
             if (!low || Sealing >= 0.99f) _warnToasted = false;
 
-            // coughing in bad air (more often at low health)
-            bool coughs = Draining && (Exposure >= S.coughExposure || Warning);
+            // coughing: occasional when outdoors in ash without protection, more often while the wet rag is in its final stretch
+            // or at low health
+            bool unprotected = airBad && Sealing < 0.5f && (!_face || _face.Worn == ASHFaceProtection.Kind.None) && Exposure >= S.coughExposure;
+            bool ragEnding = airBad && _face && _face.Worn == ASHFaceProtection.Kind.Rag && _face.RagHours <= S.ragCoughHours;
+            bool coughs = unprotected || ragEnding || Warning;
             if (!coughs) _nextCough = Mathf.Max(_nextCough, Time.time + 2f);
             else if (Time.time >= _nextCough)
             {
-                var iv = Warning ? S.lowHealthCoughIntervalSeconds : S.coughIntervalSeconds;
+                var iv = Warning ? S.lowHealthCoughIntervalSeconds : ragEnding ? S.ragEndingCoughIntervalSeconds : S.coughIntervalSeconds;
                 _nextCough = Time.time + Random.Range(Mathf.Min(iv.x, iv.y), Mathf.Max(iv.x, iv.y));
                 if (S.coughClips != null && S.coughClips.Length > 0)
                     Gameplay.ASHSfx.Play("exposure.cough", S.coughClips, transform.position + Vector3.up * 1.6f, S.coughVolume, 1f, 0.08f, 0f);

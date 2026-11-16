@@ -18,6 +18,8 @@ namespace ASH.Gameplay
     public sealed class ASHChopAnimator : MonoBehaviour
     {
         [Range(0.25f, 3f)] public float swingSpeed = 1f;
+        [Tooltip("Chop effort: hits needed per log / stump / tree x this (2 = felling takes twice as long; swing speed unchanged). Applies to trees as they load.")]
+        [Range(0.25f, 6f)] public float chopEffortMultiplier = 2f;
         [Tooltip("Normalized time on the low chop clip (Villager Axe-Chopping02: logs, stumps, downed trees) where the axe hits.")]
         [Range(0f, 1f)] public float impactNormalized = 0.51f;
         [Tooltip("Use the level swing (Malbers Axe_2Hand Swing_Right) on standing trees.")]
@@ -93,7 +95,7 @@ namespace ASH.Gameplay
 
         void Update()
         {
-            ASHChoppable.SwingSpeed = swingSpeed;
+            ASHChoppable.SwingSpeed = swingSpeed; ASHChoppable.HitsMultiplier = chopEffortMultiplier;
             var ch = _ix ? _ix.Target as ASHChoppable : null;
             float p = _ix ? _ix.HoldProgress01 : 0f;
             bool swinging = ch && p > 0f && !ch.Done && _inv && _inv.HasTool(ASHToolType.Axe);

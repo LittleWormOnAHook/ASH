@@ -8,8 +8,8 @@ using K = ASH.UI.ASHUIKit;
 namespace ASH.UI
 {
     /// <summary>
-    /// Survival HUD additions (code-built uGUI like the main HUD): air/exposure status, worn rag/mask durability, water bottle fill
-    /// (bottom-left, above the bars), the worn rag / filter countdown in game time above the hotbar (icon + h:mm; amber in the
+    /// Survival HUD additions (code-built uGUI like the main HUD): a bottom-left column above the bars (temperature, worn
+    /// rag/mask durability, air/shelter status; the bottle fill shows only in the inventory panels), the worn rag / filter countdown in game time above the hotbar (icon + h:mm; amber in the
     /// rag's last 30 min / low filter, red near empty; hidden when nothing is worn) and the pulsing red screen edge at low health
     /// while exposed. Positions: ASHExposureSettings (HUD).
     /// </summary>
@@ -18,9 +18,10 @@ namespace ASH.UI
         static readonly Color Amber = new Color(1f, 0.72f, 0.3f), Red = new Color(1f, 0.36f, 0.3f), Green = new Color(0.62f, 0.83f, 0.6f), Water = new Color(0.4f, 0.66f, 0.9f);
 
         ASHExposure _exp; ASHFaceProtection _face; ASHHud _hud;
-        RectTransform _root, _status, _timer, _protW, _bottleW;
-        Text _airText, _protText, _bottleText, _timerText, _timerLabel, _timerAbbr; Image _protFill, _bottleFill, _timerIcon, _timerBack, _edge, _airDot;
-        RectTransform _tempW; Text _tempText; Image _tempFill, _frost; float _frostA;
+        const float StatusW = 170f, RowH = 34f, RowGap = 6f;
+        RectTransform _root, _status, _timer, _protW, _airW;
+        Text _airText, _protText, _timerText, _timerLabel, _timerAbbr; Image _protFill, _timerIcon, _timerBack, _edge, _airDot;
+        RectTransform _tempW; Text _tempText; Image _tempFill, _tempBack, _frost; float _frostA;
         float _edgeA; ASHFaceProtection.Kind _iconKind = (ASHFaceProtection.Kind)(-1);
         ASHExposureSettings S => ASHExposureSettings.I;
 
@@ -77,25 +78,22 @@ namespace ASH.UI
             var fr = K.Stretch("FrostEdge", _root); _frost = K.Image(fr, new Color(1, 1, 1, 0f));
             _frost.sprite = FrostSprite(); _frost.type = Image.Type.Sliced; _frost.fillCenter = false;
 
-            // status (bottom-left above the bars)
-            _status = K.At("Status", _root, new Vector2(0, 0), S.statusOffset, new Vector2(680, 40));
-            _tempW = K.At("Temperature", _status, new Vector2(0, 0), Vector2.zero, new Vector2(150, 34)); K.Image(_tempW, new Color(0, 0, 0, 0.35f));
+            // status: a column bottom-left above the bars. Temperature stays at the bottom (its old spot); the worn rag/mask and
+            // the air/shelter indicator stack above it (hidden rows collapse). The bottle is shown only in the inventory panels.
+            _status = K.At("Status", _root, new Vector2(0, 0), S.statusOffset, new Vector2(StatusW, 120));
+            _tempW = K.At("Temperature", _status, new Vector2(0, 0), Vector2.zero, new Vector2(StatusW, RowH)); _tempBack = K.Image(_tempW, new Color(0, 0, 0, 0.35f));
             _tempText = K.Text(K.Stretch("T", _tempW, 10, 10, 6, 0), "", 15, K.Ink); K.Shadow(_tempText);
-            var tb = K.At("Bar", _tempW, new Vector2(0, 0), new Vector2(10, 5), new Vector2(130, 5)); K.Image(tb, new Color(0, 0, 0, 0.5f));
+            var tb = K.At("Bar", _tempW, new Vector2(0, 0), new Vector2(10, 5), new Vector2(StatusW - 20, 5)); K.Image(tb, new Color(0, 0, 0, 0.5f));
             _tempFill = K.Image(K.Stretch("Fill", tb), Green);
-            var air = K.At("Air", _status, new Vector2(0, 0), new Vector2(158, 0), new Vector2(170, 34)); K.Image(air, new Color(0, 0, 0, 0.35f));
-            _airDot = K.Image(K.At("Dot", air, new Vector2(0, 0.5f), new Vector2(10, 0), new Vector2(12, 12)), Green);
-            _airText = K.Text(K.Stretch("T", air, 30, 0, 6, 0), "", 16, K.Ink); K.Shadow(_airText);
 
-            _protW = K.At("Protection", _status, new Vector2(0, 0), new Vector2(336, 0), new Vector2(160, 34)); K.Image(_protW, new Color(0, 0, 0, 0.35f));
+            _protW = K.At("Protection", _status, new Vector2(0, 0), new Vector2(0, RowH + RowGap), new Vector2(StatusW, RowH)); K.Image(_protW, new Color(0, 0, 0, 0.35f));
             _protText = K.Text(K.Stretch("T", _protW, 10, 10, 6, 0), "", 15, K.Ink); K.Shadow(_protText);
-            var pb = K.At("Bar", _protW, new Vector2(0, 0), new Vector2(10, 5), new Vector2(140, 5)); K.Image(pb, new Color(0, 0, 0, 0.5f));
+            var pb = K.At("Bar", _protW, new Vector2(0, 0), new Vector2(10, 5), new Vector2(StatusW - 20, 5)); K.Image(pb, new Color(0, 0, 0, 0.5f));
             _protFill = K.Image(K.Stretch("Fill", pb), Green); _protFill.rectTransform.pivot = new Vector2(0, 0.5f);
 
-            _bottleW = K.At("Bottle", _status, new Vector2(0, 0), new Vector2(504, 0), new Vector2(150, 34)); K.Image(_bottleW, new Color(0, 0, 0, 0.35f));
-            _bottleText = K.Text(K.Stretch("T", _bottleW, 10, 10, 6, 0), "", 15, K.Ink); K.Shadow(_bottleText);
-            var bb = K.At("Bar", _bottleW, new Vector2(0, 0), new Vector2(10, 5), new Vector2(130, 5)); K.Image(bb, new Color(0, 0, 0, 0.5f));
-            _bottleFill = K.Image(K.Stretch("Fill", bb), Water);
+            _airW = K.At("Air", _status, new Vector2(0, 0), new Vector2(0, (RowH + RowGap) * 2), new Vector2(StatusW, RowH)); K.Image(_airW, new Color(0, 0, 0, 0.35f));
+            _airDot = K.Image(K.At("Dot", _airW, new Vector2(0, 0.5f), new Vector2(10, 0), new Vector2(12, 12)), Green);
+            _airText = K.Text(K.Stretch("T", _airW, 30, 0, 6, 0), "", 16, K.Ink); K.Shadow(_airText);
 
             // countdown above the hotbar
             _timer = K.At("WornTimer", _root, new Vector2(0.5f, 0), S.timerOffset, new Vector2(196, 46));
@@ -169,15 +167,10 @@ namespace ASH.UI
                 _protFill.rectTransform.anchorMax = new Vector2(d, 1); _protFill.rectTransform.offsetMin = _protFill.rectTransform.offsetMax = Vector2.zero;
                 _protFill.color = TimerColor(Green);
             }
-            bool bottle = _face && _face.HasBottle;
-            _bottleW.gameObject.SetActive(bottle);
-            if (bottle)
-            {
-                float f = _face.BottleFill;
-                _bottleText.text = $"WATER  {Mathf.RoundToInt(f * 100f)}%" + (_face.BottleDirty ? "  <color=#c9a46a>dirty</color>" : "");
-                _bottleFill.rectTransform.anchorMax = new Vector2(f, 1); _bottleFill.rectTransform.offsetMin = _bottleFill.rectTransform.offsetMax = Vector2.zero;
-                _bottleFill.color = f * 100f + 0.01f < S.sipPercent ? Red : Water;
-            }
+            // stack: temperature (bottom), protection (if worn), air/shelter
+            float y = _tempW.gameObject.activeSelf ? RowH + RowGap : 0f;
+            if (worn) { _protW.anchoredPosition = new Vector2(0, y); y += RowH + RowGap; }
+            _airW.anchoredPosition = new Vector2(0, y);
         }
 
         static readonly Color Cold = new Color(0.55f, 0.78f, 1f), Freezing = new Color(0.4f, 0.6f, 1f);
@@ -186,14 +179,18 @@ namespace ASH.UI
             var bt = ASHBodyTemperature.Instance; var ts = ASHTemperatureSettings.I;
             _tempW.gameObject.SetActive(bt);
             if (!bt) return;
-            float tr = bt.Trend, dz = ts.trendDeadzone;
+            float w = bt.Warmth, tr = bt.Trend, dz = ts.warmthTrendDeadzone;
             string arrow = tr > dz * 10f ? " <color=#ffb070>▲▲</color>" : tr > dz ? " <color=#ffb070>▲</color>" : tr < -dz * 10f ? " <color=#8cc4ff>▼▼</color>" : tr < -dz ? " <color=#8cc4ff>▼</color>" : "";
-            var col = bt.Body < ts.coldThreshold ? Freezing : bt.Body < ts.normalBody - 0.75f ? Cold : K.Ink;
-            if (bt.Body < ts.coldThreshold) col = Color.Lerp(Freezing, Color.white, 0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * 6f));
-            _tempText.text = $"<color=#{ColorUtility.ToHtmlStringRGB(col)}>{ts.Format(bt.Body)}</color>{arrow}";
-            float f = Mathf.InverseLerp(ts.minBody, ts.normalBody, bt.Body);
+            bool cold = bt.Cold;
+            float pulse = 0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * ts.pulseSpeed);
+            var col = cold ? Color.Lerp(Freezing, Color.white, pulse) : w < ts.normalWarmth - 0.5f ? Cold : K.Ink;
+            _tempText.text = $"TEMP  <color=#{ColorUtility.ToHtmlStringRGB(col)}>{ts.Format(w)}</color>{arrow}";
+            float f = Mathf.InverseLerp(ts.minWarmth, ts.normalWarmth, w);
             _tempFill.rectTransform.anchorMax = new Vector2(f, 1); _tempFill.rectTransform.offsetMin = _tempFill.rectTransform.offsetMax = Vector2.zero;
-            _tempFill.color = bt.Body < ts.coldThreshold ? Freezing : bt.Body < ts.normalBody - 0.75f ? Cold : new Color(0.95f, 0.62f, 0.28f);
+            _tempFill.color = cold ? Color.Lerp(Freezing, Color.white, pulse * 0.6f) : w < ts.normalWarmth - 0.5f ? Cold : new Color(0.95f, 0.62f, 0.28f);
+            // the whole meter pulses at/below the cold threshold
+            _tempBack.color = cold ? new Color(0.1f, 0.2f, 0.45f, 0.35f + 0.3f * pulse) : new Color(0, 0, 0, 0.35f);
+            _tempW.localScale = Vector3.one * (cold ? 1f + 0.04f * pulse : 1f);
         }
 
         Color TimerColor(Color normal)

@@ -286,7 +286,7 @@ namespace ASH.UI
             if (_book && _book.gameObject.activeSelf) ShowBookPage();
 
             K.Clear(_treeContent);
-            // unlocked recipes, plus faded sketches only for the next step (a parent is unlocked); deeper ones stay hidden
+            // unlocked recipes, plus "?" nodes only for the next step (a parent is unlocked); deeper ones stay hidden
             var entries = d.entries.Where(e => e != null && e.recipe && (m.IsUnlocked(e.recipe) || (e.parents != null && e.parents.Any(p => p && m.IsUnlocked(p))))).ToList();
             if (_selRecipe == null || entries.Find(e => e.recipe == _selRecipe) == null) _selRecipe = entries.Count > 0 ? entries[0].recipe : null;
             float w = 0, h = 0;
@@ -334,9 +334,9 @@ namespace ASH.UI
             var ii = K.Image(K.Stretch("I", ib, 3, 3, 3, 3), Color.white); ii.preserveAspect = true;
             var ab = K.Text(K.Stretch("A", ib), "", 15, K.Ink, TextAnchor.MiddleCenter, FontStyle.Bold);
             SetIcon(ii, ab, r.outputItem);
-            if (!un) { ii.color = new Color(0.8f, 0.75f, 0.65f, 0.3f); ab.color = new Color(0.8f, 0.75f, 0.65f, 0.35f); }
+            if (!un) { ii.enabled = false; ab.text = "?"; ab.fontSize = 24; ab.color = new Color(0.86f, 0.68f, 0.34f, 0.85f); } // locked: a question mark until revealed
             string why = un && _craft ? _craft.MissingReason(r) : "locked";
-            var t = K.Text(K.Stretch("Name", rt, NodeH, 2, 4, 2), r.displayName, 14, un ? K.Ink : new Color(0.85f, 0.8f, 0.7f, 0.4f), TextAnchor.MiddleLeft, un ? FontStyle.Normal : FontStyle.Italic);
+            var t = K.Text(K.Stretch("Name", rt, NodeH, 2, 4, 2), un ? r.displayName : "???", 14, un ? K.Ink : new Color(0.85f, 0.8f, 0.7f, 0.55f), TextAnchor.MiddleLeft, un ? FontStyle.Normal : FontStyle.Bold);
             t.horizontalOverflow = HorizontalWrapMode.Wrap;
             if (un) K.Image(K.At("Ready", rt, new Vector2(1, 0), new Vector2(-6, 6), new Vector2(7, 7)), why == null ? new Color(0.62f, 0.83f, 0.6f) : new Color(0.85f, 0.55f, 0.47f, 0.7f));
             if (m.IsNew(r))
@@ -479,10 +479,10 @@ namespace ASH.UI
             var man = ASHFieldManual.Instance;
             if (man && man.Data && !man.IsUnlocked(r))
             {
-                // locked: a faded sketch with a hint (what unlocks it)
-                _dIcon.color = new Color(1, 1, 1, 0.3f);
-                _dName.text = $"<color=#8c8579><i>{r.displayName}</i></color>";
-                _dDesc.text = "<i>A rough sketch, half the page is missing...</i>";
+                // locked: a question mark (name hidden) with the hint and what unlocks it
+                _dIcon.enabled = false; _dIconAbbr.text = "?"; _dIconAbbr.color = new Color(0.86f, 0.68f, 0.34f, 0.9f);
+                _dName.text = "<color=#8c8579>???</color>";
+                _dDesc.text = "<i>Not in the guide yet.</i>";
                 var e = man.Data.Find(r);
                 var hs = new System.Text.StringBuilder("<color=#c9a46a>NOT IN THE MANUAL YET</color>\n");
                 if (e != null)

@@ -69,7 +69,7 @@ namespace ASH.Interaction
 
         void Awake()
         {
-            _left = hits; _cols = GetComponentsInChildren<Collider>(true);
+            _left = Hits; _cols = GetComponentsInChildren<Collider>(true);
             if (!visualRoot) visualRoot = gameObject;
             _baseScale = visualRoot.transform.localScale; _baseRot = visualRoot.transform.localRotation; _basePos = visualRoot.transform.localPosition;
             bool has = false; Bounds b = default;
@@ -93,13 +93,17 @@ namespace ASH.Interaction
         public float GetUsePriority(in ASHUseContext c) => _done || _busy ? -1f : 45f;
         /// <summary>Global swing speed (set by ASHChopAnimator): hold per hit = holdPerHit / SwingSpeed.</summary>
         public static float SwingSpeed = 1f;
+        /// <summary>Global chop effort (set by ASHChopAnimator.chopEffortMultiplier): every log/stump/tree needs hits x this
+        /// (2 = felling takes twice as long; the swing animation speed is unchanged).</summary>
+        public static float HitsMultiplier = 2f;
+        int Hits => Mathf.Max(1, Mathf.RoundToInt(hits * Mathf.Max(0.1f, HitsMultiplier)));
         public float GetHoldDuration(in ASHUseContext c) => holdPerHit / Mathf.Max(0.1f, SwingSpeed);
 
         public string GetPrompt(in ASHUseContext c)
         {
             if (!HasTool(c)) return $"Needs {ASHCrafting.ToolName(requiredTool)} to chop {displayName.ToLowerInvariant()}";
             string verb = kind == ASHChopKind.StandingTree ? "Fell" : kind == ASHChopKind.DownedTree ? "Cut up" : "Chop";
-            return hits > 1 ? $"{verb} {displayName} ({hits - _left + 1}/{hits})" : $"{verb} {displayName}";
+            return Hits > 1 ? $"{verb} {displayName} ({Hits - _left + 1}/{Hits})" : $"{verb} {displayName}";
         }
 
         public bool TryUse(in ASHUseContext c)
@@ -224,7 +228,7 @@ namespace ASH.Interaction
             yield return new WaitForSeconds(respawnSeconds);
             var t = visualRoot.transform; t.localScale = _baseScale; t.localRotation = _baseRot; t.localPosition = _basePos;
             visualRoot.SetActive(true); foreach (var col in _cols) if (col) col.enabled = true;
-            _left = hits; _done = false;
+            _left = Hits; _done = false;
         }
     }
 }

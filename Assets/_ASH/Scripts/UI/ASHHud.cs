@@ -262,8 +262,9 @@ namespace ASH.UI
         /// <summary>Test hook: drag slot a onto slot b through the same path as the mouse.</summary>
         public bool SimDrag(int a, int b) { if (inventory == null || a < 0 || a >= inventory.Slots.Count || inventory.Slots[a].IsEmpty) return false; _dragFrom = a; bool ok = DropOn(b); _dragFrom = -1; return ok; }
 
-        // Genesis Hot Cross, adapted to uGUI: four quadrants split by a thin gold cross with a ring in the middle.
-        // TL weapon (Z / d-pad up), TR ammo (X / right), BL food (V / down), BR light (G / left). Centre: rounds for the held weapon.
+        // Genesis Hot Cross, adapted to uGUI: four quadrants split by a thin gold cross (no centre square).
+        // Clockwise from top-left, matching the d-pad clockwise: TL weapon (Z / d-pad up), TR ammo (X / right),
+        // BR light (G / down), BL food (V / left). The ammo slot's count is the rounds carried.
         void BuildCross()
         {
             if (inventory == null) return;
@@ -281,10 +282,6 @@ namespace ASH.UI
                 s.key.text = ASHInput.CrossKeys[i]; s.key.color = Gold;
                 _cross.Add(s);
             }
-            var ring = Img("Ring", _crossRoot, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(36, 36), new Color(0.05f, 0.045f, 0.04f, 0.95f));
-            ring.raycastTarget = false; var ro = ring.gameObject.AddComponent<Outline>(); ro.effectColor = Gold; ro.effectDistance = new Vector2(2, -2);
-            _crossCenter = Label("Rounds", ring.rectTransform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(36, 36), 17, TextAnchor.MiddleCenter, Ink);
-            _crossCenter.fontStyle = FontStyle.Bold; AddShadow(_crossCenter);
         }
 
         void RefreshCross()
@@ -712,7 +709,7 @@ namespace ASH.UI
             if (ui.icon.enabled) ui.icon.sprite = s.item.icon;
             ui.abbr.text = empty || s.item.icon != null ? "" : s.item.displayName.Substring(0, Mathf.Min(2, s.item.displayName.Length)).ToUpperInvariant();
             if (!empty) ui.abbr.color = Color.Lerp(s.item.uiTint, Color.white, 0.25f);
-            ui.count.text = empty || s.item.maxStack <= 1 ? "" : s.amount.ToString();
+            ui.count.text = empty ? "" : s.item.maxStack > 1 ? s.amount.ToString() : s.item.itemId == "water_bottle" ? $"{Mathf.RoundToInt(s.condition * 100f)}%" : ""; // bottle fill lives here (not on the HUD)
             ui.strip.enabled = !empty;
             if (!empty) { var c = s.item.uiTint; c.a = 0.9f; ui.strip.color = c; }
         }

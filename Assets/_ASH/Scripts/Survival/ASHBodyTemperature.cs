@@ -9,23 +9,27 @@ using UnityEngine.SceneManagement;
 namespace ASH.Survival
 {
     /// <summary>
-    /// Body temperature: ambient air from the clock (colder at night), the weather kind and wind chill; outdoors the body cools by
-    /// how far ambient is below comfort. Shelters (same sealing as exposure) cut cooling and warm you slowly; heat sources
-    /// (ASHHeatSource registry: fires warm you to normal, lanterns/torches only slow cooling; a lit held torch/lantern counts).
-    /// Cold: health drain + toast, slower stamina recovery, frost vignette (survival HUD). Rates per game hour. Saved.
-    /// Added to the player automatically on scene load.
+    /// Warmth (abstract scale shown as degrees on the HUD): starts at 30 (normal outside) and drops the longer you're outdoors,
+    /// faster at night, in bad weather and wind (game-clock time). At or below 6 (cold threshold): the meter pulses, frost
+    /// vignette, health drain + toast, slower stamina recovery and cold breath (ASHBreathFog). Shelters (exposure sealing) cut the
+    /// drop and recover you toward 30; heat sources (ASHHeatSource: fires warm you back to 30, lanterns/torches only slow the drop;
+    /// a lit held torch/lantern counts). Saved (old body-°C saves are converted). Added to the player automatically.
     /// </summary>
     [DisallowMultipleComponent]
     public sealed class ASHBodyTemperature : MonoBehaviour, IASHSaveable
     {
         public static ASHBodyTemperature Instance { get; private set; }
-        public float Body { get; private set; } = 37f;
-        public float Ambient { get; private set; }
-        /// <summary>°C per game hour (smoothed; + warming, - cooling).</summary>
+        /// <summary>Current warmth (30 = normal by default).</summary>
+        public float Warmth { get; private set; } = 30f;
+        /// <summary>Kept for older callers: same as Warmth.</summary>
+        public float Body => Warmth;
+        /// <summary>Current outdoor drop multiplier (night x weather x wind).</summary>
+        public float DropMultiplier { get; private set; } = 1f;
+        /// <summary>Warmth points per game hour (smoothed; + warming, - cooling).</summary>
         public float Trend { get; private set; }
-        public bool Cold => Body < S.coldThreshold;
+        public bool Cold => Warmth <= S.coldWarmth;
         /// <summary>0..1 frost vignette strength.</summary>
-        public float Frost => Mathf.Clamp01(Mathf.InverseLerp(S.frostStart, S.frostFull, Body));
+        public float Frost => Warmth > S.frostStartWarmth ? 0f : Mathf.Clamp01(Mathf.InverseLerp(S.frostStartWarmth + 0.001f, S.frostFullWarmth, Warmth));
         public bool NearHeat { get; private set; }
 
         ASHTemperatureSettings S => ASHTemperatureSettings.I;
@@ -48,21 +52,20 @@ namespace ASH.Survival
             if (st && !st.GetComponent<ASHBreathFog>()) st.gameObject.AddComponent<ASHBreathFog>();
         }
 
-        void Awake() { Instance = this; _stats = GetComponent<ASHSurvivalStats>(); Body = S.normalBody; }
+        void Awake() { Instance = this; _stats = GetComponent<ASHSurvivalStats>(); Warmth = S.normalWarmth; }
         void OnEnable() => ASHSaveSystem.Register(this);
         void OnDisable() { ASHSaveSystem.Unregister(this); if (_stats) _stats.ColdRecoveryMultiplier = 1f; }
         void OnDestroy() { if (Instance == this) Instance = null; }
 
-        float TargetAmbient(out bool outdoorsWind)
+        float TargetMultiplier()
         {
-            outdoorsWind = true;
             var clock = ASHGameTime.Clock;
             float hour = clock ? clock.timeOfDay : 12f;
-            float f = 0.5f + 0.5f * Mathf.Cos((hour - S.warmestHour) / 24f * Mathf.PI * 2f);
-            float a = Mathf.Lerp(S.nightTemperature, S.dayTemperature, f);
+            float day = 0.5f + 0.5f * Mathf.Cos((hour - S.warmestHour) / 24f * Mathf.PI * 2f); // 1 at the warmest hour, 0 twelve hours later
+            float m = Mathf.Lerp(S.nightMultiplier, 1f, day);
             var dir = ASHWeatherDirector.Instance;
-            if (dir) { a += S.WeatherOffset(dir.CurrentKind); a -= Mathf.Min(S.maxWindChill, S.windChillPerMS * Mathf.Max(0f, dir.WindMS)); }
-            return a;
+            if (dir) { m *= S.WeatherMultiplier(dir.CurrentKind); m *= 1f + Mathf.Min(S.maxWindBonus, S.windPerMS * Mathf.Max(0f, dir.WindMS)); }
+            return m;
         }
 
         float Sealing()
@@ -76,35 +79,33 @@ namespace ASH.Survival
         {
             if (!_stats || _stats.IsDead || ASHSaveSystem.IsRestoring) return;
             float dh = ASHGameTime.DeltaHours;
-            float target = TargetAmbient(out _);
-            if (!_init) { _init = true; Ambient = target; }
-            else Ambient = Mathf.MoveTowards(Ambient, target, S.ambientBlendPerGameHour * Mathf.Max(dh, Time.deltaTime / 120f));
+            float target = TargetMultiplier();
+            if (!_init) { _init = true; DropMultiplier = target; }
+            else DropMultiplier = Mathf.MoveTowards(DropMultiplier, target, S.multiplierBlendPerGameHour * Mathf.Max(dh, Time.deltaTime / 120f));
             if (dh <= 0f) { ApplyEffects(0f); return; }
 
             float sealing = Sealing();
-            // heat sources: strongest cooling reduction, summed warming (capped by each source's target)
+            // heat sources: strongest drop reduction, summed warming (capped by each source's target)
             float reduction = 0f, warm = 0f, warmTarget = 0f; var p = transform.position + Vector3.up;
             foreach (var h in ASHHeatSource.All)
             {
                 if (!h) continue; float k = h.StrengthAt(p); if (k <= 0f) continue;
                 reduction = Mathf.Max(reduction, h.coolingReduction * k);
-                if (h.warmth > 0f && Body < h.maxWarmTarget) { warm += h.warmth * k; warmTarget = Mathf.Max(warmTarget, h.maxWarmTarget); }
+                if (h.warmthPerGameHour > 0f && Warmth < h.warmTarget) { warm += h.warmthPerGameHour * k; warmTarget = Mathf.Max(warmTarget, h.warmTarget); }
             }
             reduction = Mathf.Max(reduction, HeldLightReduction());
             NearHeat = reduction > 0.01f || warm > 0f;
 
-            float below = Mathf.Max(0f, S.comfortAmbient - Ambient);
-            float rate = -below * S.coolingPerDegree * (1f - sealing) * (1f - Mathf.Clamp01(reduction));
-            if (below <= 0f && Body < S.normalBody) rate += S.passiveWarmPerGameHour;
-            if (sealing >= S.shelterWarmMinSealing && Body < S.shelterWarmTarget) rate += S.shelterWarmPerGameHour * sealing;
+            float rate = -S.outdoorDropPerGameHour * DropMultiplier * (1f - sealing) * (1f - Mathf.Clamp01(reduction));
+            bool shelterWarms = sealing >= S.shelterWarmMinSealing && Warmth < S.shelterRecoverTarget;
+            if (shelterWarms) rate += S.shelterRecoverPerGameHour * sealing;
             rate += warm;
 
-            float before = Body;
-            float ceiling = warm > 0f ? Mathf.Max(warmTarget, S.shelterWarmTarget) : sealing >= S.shelterWarmMinSealing ? S.shelterWarmTarget : S.normalBody;
-            if (warm <= 0f && sealing >= S.shelterWarmMinSealing && below <= 0f) ceiling = S.normalBody;
-            Body = rate > 0f ? Mathf.Min(before + rate * dh, Mathf.Max(before, ceiling)) : before + rate * dh;
-            Body = Mathf.Max(Body, S.minBody);
-            Trend = Mathf.Lerp(Trend, (Body - before) / dh, 1f - Mathf.Exp(-Time.deltaTime * 2f));
+            float before = Warmth;
+            float ceiling = Mathf.Max(warm > 0f ? warmTarget : 0f, sealing >= S.shelterWarmMinSealing ? S.shelterRecoverTarget : 0f);
+            Warmth = rate > 0f ? Mathf.Min(before + rate * dh, Mathf.Max(before, ceiling)) : before + rate * dh;
+            Warmth = Mathf.Max(Warmth, S.minWarmth);
+            Trend = Mathf.Lerp(Trend, (Warmth - before) / dh, 1f - Mathf.Exp(-Time.deltaTime * 2f));
             ApplyEffects(dh);
         }
 
@@ -125,25 +126,33 @@ namespace ASH.Survival
 
         void ApplyEffects(float dh)
         {
-            float under = S.coldThreshold - Body;
-            if (under > 0f)
+            if (Warmth <= S.coldWarmth)
             {
-                if (dh > 0f && S.healthDrainPerDegree > 0f) _stats.Damage(S.healthDrainPerDegree * under * dh, false);
-                _stats.ColdRecoveryMultiplier = 1f - S.staminaRecoveryPenalty * Mathf.Clamp01(under / 3f);
+                float under = S.coldWarmth - Warmth;
+                float drain = S.healthDrainPerGameHour + S.healthDrainPerPointBelow * under;
+                if (dh > 0f && drain > 0f) _stats.Damage(drain * dh, false);
+                float span = Mathf.Max(0.01f, S.coldWarmth - S.minWarmth);
+                _stats.ColdRecoveryMultiplier = 1f - S.staminaRecoveryPenalty * Mathf.Clamp01(0.25f + 0.75f * under / span);
                 if (!_toasted) { _toasted = true; var hud = FindAnyObjectByType<ASHHud>(); if (hud && !string.IsNullOrEmpty(S.freezingToast)) hud.Toast(S.freezingToast); }
             }
             else
             {
                 _stats.ColdRecoveryMultiplier = 1f;
-                if (Body > S.coldThreshold + 0.5f) _toasted = false;
+                if (Warmth > S.coldWarmth + 1f) _toasted = false;
             }
         }
 
         // ------------------------------------------------------------------ save
-        [Serializable] sealed class State { public float body; }
+        /// <summary>v2 = warmth scale. Older saves stored body °C (37 normal, 35 cold): mapped 37 -> 30, 35 -> 6 (linear).</summary>
+        [Serializable] sealed class State { public float body; public float warmth; public int v; }
         public string SaveKey => "temperature";
         public int RestoreOrder => 35;
-        public string CaptureJson() => JsonUtility.ToJson(new State { body = Body });
-        public void RestoreJson(string json) { var s = JsonUtility.FromJson<State>(json); if (s != null) { Body = Mathf.Clamp(s.body, S.minBody, 42f); Trend = 0f; _toasted = Body < S.coldThreshold; } }
+        public string CaptureJson() => JsonUtility.ToJson(new State { warmth = Warmth, v = 2 });
+        public void RestoreJson(string json)
+        {
+            var s = JsonUtility.FromJson<State>(json); if (s == null) return;
+            float w = s.v >= 2 ? s.warmth : S.coldWarmth + (s.body - 35f) * (S.normalWarmth - S.coldWarmth) / 2f;
+            Warmth = Mathf.Clamp(w, S.minWarmth, Mathf.Max(S.normalWarmth, S.shelterRecoverTarget) + 20f); Trend = 0f; _toasted = Warmth <= S.coldWarmth;
+        }
     }
 }

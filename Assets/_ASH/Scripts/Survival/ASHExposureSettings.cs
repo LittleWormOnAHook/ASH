@@ -84,9 +84,13 @@ namespace ASH.Survival
         public AudioClip[] coughClips;
         public AudioClip breathingLoop;
         [Range(0f, 1f)] public float coughVolume = 0.7f;
-        [Tooltip("Coughing starts above this exposure (real seconds between coughs, random in range).")]
+        [Tooltip("Occasional coughing outdoors in ash with no rag/mask, above this exposure.")]
         [Range(0f, 2f)] public float coughExposure = 0.25f;
-        public Vector2 coughIntervalSeconds = new Vector2(9f, 22f);
+        [Tooltip("Real seconds between occasional coughs (random in range).")]
+        public Vector2 coughIntervalSeconds = new Vector2(18f, 45f);
+        [Tooltip("The wet rag's final stretch (game hours left) where it lets ash through: coughing even while worn.")]
+        [Range(0f, 12f)] public float ragCoughHours = 0.5f;
+        public Vector2 ragEndingCoughIntervalSeconds = new Vector2(8f, 18f);
         public Vector2 lowHealthCoughIntervalSeconds = new Vector2(4f, 9f);
         [Range(0f, 1f)] public float breathingVolume = 0.35f;
         [Range(200f, 8000f)] public float breathingMuffleHz = 1100f;

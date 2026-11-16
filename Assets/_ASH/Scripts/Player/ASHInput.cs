@@ -65,8 +65,8 @@ namespace ASH.Player
             _cross = new InputActionMap("ASH_Cross");
             _crossWeapon = _cross.AddAction("CrossWeapon", InputActionType.Button, "<Keyboard>/z"); _crossWeapon.AddBinding("<Gamepad>/dpad/up");
             _crossAmmo = _cross.AddAction("CrossAmmo", InputActionType.Button, "<Keyboard>/x"); _crossAmmo.AddBinding("<Gamepad>/dpad/right");
-            _crossLight = _cross.AddAction("CrossLight", InputActionType.Button, "<Keyboard>/g"); _crossLight.AddBinding("<Gamepad>/dpad/left");
-            _crossFood = _cross.AddAction("CrossFood", InputActionType.Button, "<Keyboard>/v"); _crossFood.AddBinding("<Gamepad>/dpad/down");
+            _crossLight = _cross.AddAction("CrossLight", InputActionType.Button, "<Keyboard>/g"); _crossLight.AddBinding("<Gamepad>/dpad/down"); // BR quadrant
+            _crossFood = _cross.AddAction("CrossFood", InputActionType.Button, "<Keyboard>/v"); _crossFood.AddBinding("<Gamepad>/dpad/left"); // BL quadrant
             _aimAlt = _cross.AddAction("AimAlt", InputActionType.Button, "<Gamepad>/leftTrigger");
             MoveOffDpad(_craft, "<Gamepad>/dpad/up", "<Gamepad>/leftShoulder");
             MoveOffDpad(_map, "<Gamepad>/dpad/right", "<Gamepad>/rightShoulder");
