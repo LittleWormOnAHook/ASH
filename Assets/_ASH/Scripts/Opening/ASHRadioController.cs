@@ -29,6 +29,8 @@ namespace ASH.Opening
         [Tooltip("Fade in / out when stepping through the door (s).")]
         [Range(0.05f, 3f)] public float insideFadeSeconds = 0.35f;
         [Range(0f, 1f)] public float afterBroadcastStaticVolume = 0.18f;
+        [Tooltip("Broadcast subtitles stop for good this many real seconds after the broadcast starts (or when it ends, whichever is first). Reaching the cutoff also ends the broadcast (static only). 0 = no time cutoff.")]
+        [Range(0f, 900f)] public float broadcastSubtitleCutoffSeconds = 180f;
 
         AudioSource _main, _static; AudioLowPassFilter _lp; AudioHighPassFilter _hp; AudioDistortionFilter _dist;
         Mode _mode = Mode.Off; float _modeT, _lineT, _dropUntil, _interrupt, _musicVol; int _line; ASHOpeningProfile.Line[] _lines; bool _userOff;
@@ -60,16 +62,21 @@ namespace ASH.Opening
         // ---------------------------------------------------------------- control (ASHEruptionSequence)
         public void PlayMusic()
         {
-            _broadcastOver = false; _userOff = false; var clip = audioBank ? ASH.Gameplay.ASHSfx.Pick(audioBank.radioMusic) : null;
+            _broadcastOver = false; _broadcastStart = -1f; _userOff = false; var clip = audioBank ? ASH.Gameplay.ASHSfx.Pick(audioBank.radioMusic) : null;
             _musicVol = profile ? profile.musicVolume : 0.28f; SetMode(Mode.Music);
             if (clip) { _main.clip = clip; _main.loop = true; _main.volume = _musicVol; _main.time = Random.Range(0f, clip.length * 0.3f); _main.Play(); }
         }
-        public void StartBroadcast() { SetMode(Mode.Alert); _userOff = false; }
+        public void StartBroadcast() { if (_broadcastOver) return; SetMode(Mode.Alert); _userOff = false; _broadcastStart = Time.time; }
+        float _broadcastStart = -1f;
+        /// <summary>Broadcast text may still show: broadcast running and inside the cutoff.</summary>
+        bool SubtitlesAllowed => !_broadcastOver && !(broadcastSubtitleCutoffSeconds > 0f && _broadcastStart >= 0f && Time.time - _broadcastStart > broadcastSubtitleCutoffSeconds);
         /// <summary>The broadcast is over: music and voice stop for good, only the static bed remains (inside the cabin).</summary>
         public void StaticFragments()
         {
+            bool wasOver = _broadcastOver;
             _broadcastOver = true; _userOff = false;
             if (_main) { _main.Stop(); _main.clip = null; }
+            if (!wasOver) ClearSubtitle();
             _lines = afterBroadcastFragments && profile ? profile.afterQuake : null; _line = -1; _lineT = 0f; SetMode(Mode.StaticOnly);
         }
         public bool BroadcastOver => _broadcastOver;
@@ -111,6 +118,8 @@ namespace ASH.Opening
         void Update()
         {
             float dt = Time.deltaTime; _modeT += dt;
+            // cutoff: the broadcast (and its text) ends for good a few minutes after it started
+            if (!_broadcastOver && (_mode == Mode.Alert || _mode == Mode.Voice) && broadcastSubtitleCutoffSeconds > 0f && _broadcastStart >= 0f && Time.time - _broadcastStart > broadcastSubtitleCutoffSeconds) StaticFragments();
             float bv = profile ? profile.broadcastVolume : 0.75f, sv = profile ? profile.staticVolume : 0.12f;
             _lp.cutoffFrequency = band.y; _hp.cutoffFrequency = band.x;
             float drop = Time.time < _dropUntil ? 1f : 0f;
@@ -163,8 +172,10 @@ namespace ASH.Opening
             Subtitle(l.speaker, l.text, l.seconds);
         }
 
+        void ClearSubtitle() { var h = Hud; if (h && LastSubtitle.Length > 0 && h.SubtitleText.Contains(LastSubtitle)) h.ShowSubtitle(null, 0f); }
         void Subtitle(string who, string text, float seconds)
         {
+            if (!SubtitlesAllowed) return; // broadcast over / past the cutoff: no text, ever (fragments, loops, later loads)
             LastSubtitle = text; SubtitlesShown++;
             var h = Hud; if (h) h.ShowSubtitle(string.IsNullOrEmpty(who) ? text : $"<color=#d8c48a>{who}:</color> {text}", seconds);
         }
