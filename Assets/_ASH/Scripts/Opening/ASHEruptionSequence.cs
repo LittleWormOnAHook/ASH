@@ -86,7 +86,7 @@ namespace ASH.Opening
             if (suppressed || s == Stage.Inactive || s == Stage.Done)
             {
                 if (quake) quake.Stop();
-                if (radio) radio.Stop();
+                if (radio) { if (s == Stage.Done && !suppressed) radio.StaticFragments(); else radio.Stop(); } // after the broadcast: static only, inside the cabin
                 EndObjective(); ASHQuakeProp.ResetAll();
                 UnlockCabin(false);
                 _journalBroadcast = true; _quakeStarted = true; _ashStarted = true;

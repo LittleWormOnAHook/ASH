@@ -51,7 +51,7 @@ namespace ASH.Player
             _journal = map.FindAction("Journal", false); _map = map.FindAction("Map", false); _breakDown = map.FindAction("BreakDown", false); _lightToggle = map.FindAction("Light", false);
         }
 
-        private void OnEnable() { if (actions != null) actions.Enable(); EnsureCrossMap(); _cross.Enable(); }
+        private void OnEnable() { if (actions != null) actions.Enable(); EnsureCrossMap(); if (_cross != null && !_cross.enabled) _cross.Enable(); }
         private void OnDisable() { if (actions != null) actions.Disable(); if (_cross != null) _cross.Disable(); }
 
         // ---------------------------------------------------------------- cross bar (Genesis Hot Cross style)
@@ -59,6 +59,7 @@ namespace ASH.Player
         // up/right/left/down (as in Genesis); Craft and Map move from the d-pad to the shoulders at runtime.
         InputActionMap _cross; InputAction _crossWeapon, _crossAmmo, _crossLight, _crossFood, _aimAlt;
         public int SimCross = -1;
+        int _crossFrame = -1;
         void EnsureCrossMap()
         {
             if (_cross != null) return;
@@ -82,12 +83,36 @@ namespace ASH.Player
             get
             {
                 if (SimCross >= 0) { int s = SimCross; SimCross = -1; return s; }
-                if (_cross == null || GameplayBlocked) return -1;
-                if (_crossWeapon.WasPressedThisFrame()) return 0;
-                if (_crossAmmo.WasPressedThisFrame()) return 1;
-                if (_crossLight.WasPressedThisFrame()) return 2;
-                if (_crossFood.WasPressedThisFrame()) return 3;
-                return -1;
+                if (GameplayBlocked) return -1;
+                if (_crossFrame == Time.frameCount) return -1; // one quadrant per frame, even if two readers ask
+                int q = -1;
+                // Direct device reads first (same path as the hotbar keys, which work): the runtime action map alone
+                // never delivered presses in Play, so the keys did nothing. The action map stays as a rebind-able extra path.
+                var kb = Keyboard.current;
+                if (kb != null)
+                {
+                    if (kb[Key.Z].wasPressedThisFrame) q = 0;
+                    else if (kb[Key.X].wasPressedThisFrame) q = 1;
+                    else if (kb[Key.G].wasPressedThisFrame) q = 2;
+                    else if (kb[Key.V].wasPressedThisFrame) q = 3;
+                }
+                var gp = Gamepad.current;
+                if (q < 0 && gp != null)
+                {
+                    if (gp.dpad.up.wasPressedThisFrame) q = 0;
+                    else if (gp.dpad.right.wasPressedThisFrame) q = 1;
+                    else if (gp.dpad.down.wasPressedThisFrame) q = 2;
+                    else if (gp.dpad.left.wasPressedThisFrame) q = 3;
+                }
+                if (q < 0 && _cross != null && _cross.enabled)
+                {
+                    if (_crossWeapon.WasPressedThisFrame()) q = 0;
+                    else if (_crossAmmo.WasPressedThisFrame()) q = 1;
+                    else if (_crossLight.WasPressedThisFrame()) q = 2;
+                    else if (_crossFood.WasPressedThisFrame()) q = 3;
+                }
+                if (q >= 0) _crossFrame = Time.frameCount;
+                return q;
             }
         }
         public static readonly string[] CrossKeys = { "Z", "X", "G", "V" };

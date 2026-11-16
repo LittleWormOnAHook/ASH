@@ -28,6 +28,8 @@ namespace ASH.UI
         [SerializeField] private ASHInteractor interactor;
         [SerializeField] private ASHPlacer placer;
         [SerializeField] private ASHObjectiveTracker objective;
+        [Tooltip("Objectives listed on screen (tracked one + the next active ones). The rest are in the journal.")]
+        [Range(1, 6)] public int MaxObjectivesShown = 3;
         [SerializeField] private ASHDayNightClock clock;
         [SerializeField] private ASHGpsMap gps;
         [Range(0.5f, 2f)] public float uiScale = 1f;
@@ -173,11 +175,14 @@ namespace ASH.UI
             _holdFill.pivot = new Vector2(0, 0.5f);
 
             // objective, top-left
-            var obj = Img("Objective", _root, new Vector2(0, 1), new Vector2(0, 1), new Vector2(40, -40), new Vector2(520, 150), new Color(0, 0, 0, 0.28f)).rectTransform;
+            // text only (no panel): up to MaxObjectivesShown objectives, readable over bright sky via shadow + outline
+            var objImg = Img("Objective", _root, new Vector2(0, 1), new Vector2(0, 1), new Vector2(40, -40), new Vector2(560, 420), new Color(0, 0, 0, 0f));
+            objImg.enabled = false; var obj = objImg.rectTransform;
             obj.pivot = new Vector2(0, 1);
-            _objTitle = Label("Title", obj, new Vector2(0, 1), new Vector2(16, -12), new Vector2(490, 34), 26, TextAnchor.UpperLeft, Accent, pivot: new Vector2(0, 1));
-            _objLines = Label("Lines", obj, new Vector2(0, 1), new Vector2(16, -50), new Vector2(490, 100), 21, TextAnchor.UpperLeft, Ink, pivot: new Vector2(0, 1));
-            AddShadow(_objTitle); AddShadow(_objLines);
+            _objTitle = Label("Title", obj, new Vector2(0, 1), new Vector2(0, -4), new Vector2(560, 34), 26, TextAnchor.UpperLeft, Accent, pivot: new Vector2(0, 1));
+            _objLines = Label("Lines", obj, new Vector2(0, 1), new Vector2(0, -42), new Vector2(560, 380), 21, TextAnchor.UpperLeft, Ink, pivot: new Vector2(0, 1));
+            _objLines.verticalOverflow = VerticalWrapMode.Overflow;
+            AddShadow(_objTitle); AddShadow(_objLines); AddOutline(_objTitle); AddOutline(_objLines);
 
             _clock = Label("Clock", _root, new Vector2(1, 1), new Vector2(-40, -40), new Vector2(240, 34), 24, TextAnchor.UpperRight, Ink, pivot: new Vector2(1, 1));
             AddShadow(_clock);
@@ -310,17 +315,29 @@ namespace ASH.UI
             if (quad < _cross.Count) _cross[quad].pulse = 1f;
             var q = (ASHInventory.CrossQuad)quad;
             if (s.IsEmpty) { Toast($"Cross bar: drag {CrossHint(q)} onto the {ASHInventory.CrossLabel(q).ToLowerInvariant()} slot [{ASHInput.CrossKeys[quad]}]."); return false; }
+            if (!_equip) { _equip = inventory.GetComponent<ASHEquipment>(); if (!_equip) _equip = FindAnyObjectByType<ASHEquipment>(); }
+            bool ok;
             switch (q)
             {
                 case ASHInventory.CrossQuad.Ammo:
                     var w = _equip ? _equip.Main : null;
                     Toast(w && w.ammoItem == s.item ? $"{w.displayName}: {inventory.Count(s.item)} {s.item.displayName} ready." : $"{s.item.displayName}: {inventory.Count(s.item)} carried.");
-                    return true;
+                    ok = true; break;
+                case ASHInventory.CrossQuad.Weapon:
+                    // weapon / hatchet: draw it, or put it away if already in hand
+                    if (_equip && s.item.IsEquippable) ok = _equip.ToggleEquip(s.item);
+                    else ok = UseSlot(idx);
+                    break;
                 case ASHInventory.CrossQuad.Light:
-                    if (_equip && (s.item == _equip.Off || s.item == _equip.Hip)) return _equip.ToggleLight();
-                    return UseSlot(idx);
-                default: return UseSlot(idx);
+                    // light: ready it and switch it on; pressing again toggles it on/off
+                    if (_equip && _equip.IsEquipped(s.item)) ok = _equip.SetLight(s.item, !_equip.IsLit(s.item)) || true;
+                    else if (_equip && s.item.IsEquippable) { ok = _equip.Equip(s.item); if (ok && !_equip.IsLit(s.item)) _equip.SetLight(s.item, true); }
+                    else ok = UseSlot(idx);
+                    break;
+                default: ok = UseSlot(idx); break; // food / water / meds: eat, drink or use
             }
+            ASH.Core.ASHLog.Info($"Cross {ASHInput.CrossKeys[quad]} ({q}): {s.item.displayName} -> {(ok ? "used" : "not used")}");
+            return ok;
         }
         public string CrossText(int quad) { if (inventory == null || quad < 0 || quad >= ASHInventory.CrossCount) return null; var s = inventory.Slots[inventory.CrossStart + quad]; return s.IsEmpty ? "" : s.item.displayName + "|" + s.amount; }
         public int CrossSlotCount => _cross.Count;
@@ -595,8 +612,15 @@ namespace ASH.UI
                 _objTitle.text = ot;
                 var sb = new System.Text.StringBuilder();
                 foreach (var (text, done) in objective.Lines()) sb.AppendLine((done ? "<color=#9fd39b>√ " : "• ") + text + (done ? "</color>" : ""));
-                int others = objective.OtherActiveCount;
-                if (others > 0) sb.AppendLine($"<size=16><color=#857d72>+{others} more objective{(others > 1 ? "s" : "")}  ·  journal [J]</color></size>");
+                int shownOthers = Mathf.Max(0, MaxObjectivesShown - 1);
+                foreach (var o in objective.OtherActive(shownOthers))
+                {
+                    sb.AppendLine();
+                    sb.AppendLine($"<color=#{ColorUtility.ToHtmlStringRGB(Accent)}><size=22>{o.Title}</size></color>");
+                    foreach (var (text, done) in o.GetLines()) if (!done) { sb.AppendLine("• " + text); break; } // its current step only
+                }
+                int others = objective.OtherActiveCount - shownOthers;
+                if (others > 0) sb.AppendLine($"<size=16><color=#b8ae9f>+{others} more  ·  journal [J]</color></size>");
                 _objLines.text = sb.ToString();
             }
             if (clock) { int h = (int)clock.timeOfDay; int m = (int)((clock.timeOfDay - h) * 60f); _clock.text = $"{h:00}:{m:00}"; }
@@ -876,6 +900,7 @@ namespace ASH.UI
             return t;
         }
 
+        static void AddOutline(Text t) { var o = t.gameObject.AddComponent<Outline>(); o.effectColor = new Color(0, 0, 0, 0.45f); o.effectDistance = new Vector2(1f, -1f); }
         static void AddShadow(Text t) { var s = t.gameObject.AddComponent<Shadow>(); s.effectColor = new Color(0, 0, 0, 0.75f); s.effectDistance = new Vector2(1.5f, -1.5f); }
     }
 }

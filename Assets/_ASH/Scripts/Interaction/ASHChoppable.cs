@@ -95,7 +95,7 @@ namespace ASH.Interaction
         public static float SwingSpeed = 1f;
         /// <summary>Global chop effort (set by ASHChopAnimator.chopEffortMultiplier): every log/stump/tree needs hits x this
         /// (2 = felling takes twice as long; the swing animation speed is unchanged).</summary>
-        public static float HitsMultiplier = 2f;
+        public static float HitsMultiplier = 1f;
         int Hits => Mathf.Max(1, Mathf.RoundToInt(hits * Mathf.Max(0.1f, HitsMultiplier)));
         public float GetHoldDuration(in ASHUseContext c) => holdPerHit / Mathf.Max(0.1f, SwingSpeed);
 

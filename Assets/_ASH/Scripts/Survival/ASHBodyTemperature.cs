@@ -31,6 +31,7 @@ namespace ASH.Survival
         /// <summary>0..1 frost vignette strength.</summary>
         public float Frost => Warmth > S.frostStartWarmth ? 0f : Mathf.Clamp01(Mathf.InverseLerp(S.frostStartWarmth + 0.001f, S.frostFullWarmth, Warmth));
         public bool NearHeat { get; private set; }
+        bool _heldLit;
 
         ASHTemperatureSettings S => ASHTemperatureSettings.I;
         ASHSurvivalStats _stats; ASHEquipment _eq; float _eqLook; bool _init, _toasted;
@@ -86,24 +87,35 @@ namespace ASH.Survival
 
             float sealing = Sealing();
             // heat sources: strongest drop reduction, summed warming (capped by each source's target)
-            float reduction = 0f, warm = 0f, warmTarget = 0f; var p = transform.position + Vector3.up;
+            float reduction = 0f, warm = 0f, warmTarget = 0f, hold = 0f; var p = transform.position + Vector3.up;
             foreach (var h in ASHHeatSource.All)
             {
                 if (!h) continue; float k = h.StrengthAt(p); if (k <= 0f) continue;
                 reduction = Mathf.Max(reduction, h.coolingReduction * k);
-                if (h.warmthPerGameHour > 0f && Warmth < h.warmTarget) { warm += h.warmthPerGameHour * k; warmTarget = Mathf.Max(warmTarget, h.warmTarget); }
+                float wr = h.WarmPerGameHour, wt = h.WarmTarget;
+                if (wr > 0f) { hold = Mathf.Max(hold, wt); if (Warmth < wt) { warm += wr * k; warmTarget = Mathf.Max(warmTarget, wt); } }
             }
             reduction = Mathf.Max(reduction, HeldLightReduction());
+            if (_heldLit && S.heldLightWarmPerGameHour > 0f)
+            {
+                hold = Mathf.Max(hold, S.heldLightWarmTarget);
+                if (Warmth < S.heldLightWarmTarget) { warm += S.heldLightWarmPerGameHour; warmTarget = Mathf.Max(warmTarget, S.heldLightWarmTarget); }
+            }
             NearHeat = reduction > 0.01f || warm > 0f;
 
             float rate = -S.outdoorDropPerGameHour * DropMultiplier * (1f - sealing) * (1f - Mathf.Clamp01(reduction));
             bool shelterWarms = sealing >= S.shelterWarmMinSealing && Warmth < S.shelterRecoverTarget;
             if (shelterWarms) rate += S.shelterRecoverPerGameHour * sealing;
             rate += warm;
+            // above normal with nothing holding you there: shed the extra warmth back toward normal (or the strongest source in range)
+            float floorW = Mathf.Max(S.normalWarmth, hold);
+            if (Warmth > floorW && S.excessWarmthLossPerGameHour > 0f) rate -= S.excessWarmthLossPerGameHour;
 
             float before = Warmth;
             float ceiling = Mathf.Max(warm > 0f ? warmTarget : 0f, sealing >= S.shelterWarmMinSealing ? S.shelterRecoverTarget : 0f);
             Warmth = rate > 0f ? Mathf.Min(before + rate * dh, Mathf.Max(before, ceiling)) : before + rate * dh;
+            if (before > floorW && Warmth < floorW) Warmth = floorW; // excess loss stops at the floor (normal cooling continues next frame)
+            Warmth = Mathf.Min(Warmth, S.maxWarmth);
             Warmth = Mathf.Max(Warmth, S.minWarmth);
             Trend = Mathf.Lerp(Trend, (Warmth - before) / dh, 1f - Mathf.Exp(-Time.deltaTime * 2f));
             ApplyEffects(dh);
@@ -112,11 +124,13 @@ namespace ASH.Survival
         float HeldLightReduction()
         {
             if (!_eq && Time.unscaledTime >= _eqLook) { _eqLook = Time.unscaledTime + 3f; _eq = GetComponent<ASHEquipment>(); if (!_eq) _eq = FindAnyObjectByType<ASHEquipment>(); }
+            _heldLit = false;
             if (!_eq) return 0f;
             float r = 0f;
             foreach (var it in new[] { _eq.Off, _eq.Main, _eq.Hip })
             {
                 if (!it || !it.IsLightSource || !_eq.IsLit(it)) continue;
+                _heldLit = true;
                 string id = (it.itemId + " " + it.displayName).ToLowerInvariant();
                 if (id.Contains("torch")) r = Mathf.Max(r, S.heldTorchCoolingReduction);
                 else if (id.Contains("lantern")) r = Mathf.Max(r, S.heldLanternCoolingReduction);
@@ -152,7 +166,7 @@ namespace ASH.Survival
         {
             var s = JsonUtility.FromJson<State>(json); if (s == null) return;
             float w = s.v >= 2 ? s.warmth : S.coldWarmth + (s.body - 35f) * (S.normalWarmth - S.coldWarmth) / 2f;
-            Warmth = Mathf.Clamp(w, S.minWarmth, Mathf.Max(S.normalWarmth, S.shelterRecoverTarget) + 20f); Trend = 0f; _toasted = Warmth <= S.coldWarmth;
+            Warmth = Mathf.Clamp(w, S.minWarmth, Mathf.Max(S.maxWarmth, S.normalWarmth)); Trend = 0f; _toasted = Warmth <= S.coldWarmth;
         }
     }
 }

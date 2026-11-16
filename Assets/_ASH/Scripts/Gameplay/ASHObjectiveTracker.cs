@@ -281,6 +281,13 @@ namespace ASH.Gameplay
         /// <summary>Lines of the tracked objective (HUD).</summary>
         public IEnumerable<(string text, bool done)> Lines() => Tracked.GetLines();
         /// <summary>Number of active objectives other than the tracked one.</summary>
+        /// <summary>Active objectives other than the tracked one, in display order (HUD shows a few under the tracked one).</summary>
+        public List<Objective> OtherActive(int max)
+        {
+            var t = Tracked; var list = new List<Objective>();
+            foreach (var o in Sorted()) { if (list.Count >= max) break; if (!o.Completed && o != t && !(SliceHeld && o == _slice)) list.Add(o); }
+            return list;
+        }
         public int OtherActiveCount { get { var t = Tracked; int n = 0; foreach (var o in _objectives) if (!o.Completed && o != t && !(SliceHeld && o == _slice)) n++; return n; } }
 
         string SliceTitle()

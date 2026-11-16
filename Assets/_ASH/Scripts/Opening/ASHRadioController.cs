@@ -20,6 +20,15 @@ namespace ASH.Opening
         [Range(2f, 80f)] public float maxDistance = 22f;
         [Tooltip("Small-speaker band: low / high cut (Hz).")] public Vector2 band = new Vector2(320f, 4800f);
         [Range(0f, 1f)] public float distortion = 0.35f;
+        [Header("After the broadcast")]
+        [Tooltip("Off (default): once the broadcast ends the music and voice are gone for good and only the static bed remains. On: the old after-quake voice fragments repeat over the static.")]
+        public bool afterBroadcastFragments = false;
+        [Tooltip("Static is only audible while the listener is inside the shelter zone (cabin interior) that contains the radio. With no zone around the radio, inside = within insideRadius.")]
+        public bool staticOnlyInside = true;
+        [Range(1f, 30f)] public float insideRadius = 6f;
+        [Tooltip("Fade in / out when stepping through the door (s).")]
+        [Range(0.05f, 3f)] public float insideFadeSeconds = 0.35f;
+        [Range(0f, 1f)] public float afterBroadcastStaticVolume = 0.18f;
 
         AudioSource _main, _static; AudioLowPassFilter _lp; AudioHighPassFilter _hp; AudioDistortionFilter _dist;
         Mode _mode = Mode.Off; float _modeT, _lineT, _dropUntil, _interrupt, _musicVol; int _line; ASHOpeningProfile.Line[] _lines; bool _userOff;
@@ -51,12 +60,48 @@ namespace ASH.Opening
         // ---------------------------------------------------------------- control (ASHEruptionSequence)
         public void PlayMusic()
         {
-            _userOff = false; var clip = audioBank ? ASH.Gameplay.ASHSfx.Pick(audioBank.radioMusic) : null;
+            _broadcastOver = false; _userOff = false; var clip = audioBank ? ASH.Gameplay.ASHSfx.Pick(audioBank.radioMusic) : null;
             _musicVol = profile ? profile.musicVolume : 0.28f; SetMode(Mode.Music);
             if (clip) { _main.clip = clip; _main.loop = true; _main.volume = _musicVol; _main.time = Random.Range(0f, clip.length * 0.3f); _main.Play(); }
         }
         public void StartBroadcast() { SetMode(Mode.Alert); _userOff = false; }
-        public void StaticFragments() { _lines = profile ? profile.afterQuake : null; _line = -1; _lineT = 0f; SetMode(Mode.StaticOnly); }
+        /// <summary>The broadcast is over: music and voice stop for good, only the static bed remains (inside the cabin).</summary>
+        public void StaticFragments()
+        {
+            _broadcastOver = true; _userOff = false;
+            if (_main) { _main.Stop(); _main.clip = null; }
+            _lines = afterBroadcastFragments && profile ? profile.afterQuake : null; _line = -1; _lineT = 0f; SetMode(Mode.StaticOnly);
+        }
+        public bool BroadcastOver => _broadcastOver;
+        bool _broadcastOver; float _inside = 1f; ASHShelterZoneRef _zone;
+        struct ASHShelterZoneRef { public ASH.Survival.ASHShelterZone z; public float lookAt; }
+
+        /// <summary>0-1: the listener is inside the radio's cabin (shelter zone around the radio), smoothed.</summary>
+        float InsideFactor(float dt)
+        {
+            if (!staticOnlyInside) return 1f;
+            var l = Listener(); if (!l) return 1f;
+            if (!_zone.z && Time.unscaledTime >= _zone.lookAt)
+            {
+                _zone.lookAt = Time.unscaledTime + 2f;
+                foreach (var z in ASH.Survival.ASHShelterZone.All) if (z && z.Contains(transform.position - Vector3.up * 0.5f)) { _zone.z = z; break; }
+            }
+            bool inside = _zone.z ? _zone.z.Contains(PlayerFeet(l)) : (PlayerFeet(l) - transform.position).sqrMagnitude <= insideRadius * insideRadius;
+            _inside = Mathf.MoveTowards(_inside, inside ? 1f : 0f, dt / Mathf.Max(0.01f, insideFadeSeconds));
+            return _inside;
+        }
+        Transform _listener, _player; float _listenerLook;
+        Transform Listener()
+        {
+            if ((!_listener || !_listener.gameObject.activeInHierarchy) && Time.unscaledTime >= _listenerLook)
+            {
+                _listenerLook = Time.unscaledTime + 1f;
+                var al = FindAnyObjectByType<AudioListener>(); _listener = al ? al.transform : null;
+                var st = FindAnyObjectByType<ASH.Survival.ASHSurvivalStats>(); _player = st ? st.transform : null;
+            }
+            return _player ? _player : _listener;
+        }
+        static Vector3 PlayerFeet(Transform t) => t.position;
         public void Stop() { SetMode(Mode.Off); _main.Stop(); _static.volume = 0f; }
         /// <summary>0-1 from the shaking: static swamps the speaker.</summary>
         public void Interrupt(float amount) { _interrupt = Mathf.Max(_interrupt, Mathf.Clamp01(amount)); }
@@ -82,6 +127,10 @@ namespace ASH.Opening
                     if (_main.clip == null || _main.loop) { _main.loop = false; _main.clip = audioBank && audioBank.alertTone ? audioBank.alertTone : GenAlert(profile ? profile.alertSeconds : 7f); _main.volume = bv * 0.8f; _main.Play(); _dist.distortionLevel = distortion * 0.5f; Subtitle("Radio", "[Emergency alert tone]", 4f); }
                     _static.volume = Mathf.MoveTowards(_static.volume, sv * 0.5f, dt);
                     if (_modeT > fade + (profile ? profile.alertSeconds : 7f)) { _main.Stop(); _main.clip = null; _lines = profile ? profile.broadcast : null; _line = -1; _lineT = 0f; SetMode(Mode.Voice); }
+                    break;
+                case Mode.StaticOnly when _broadcastOver && _lines == null:
+                    if (_main.isPlaying) _main.Stop();
+                    _static.volume = Mathf.MoveTowards(_static.volume, Mathf.Clamp01((afterBroadcastStaticVolume + _interrupt * 0.6f) * InsideFactor(dt)), dt * 3f);
                     break;
                 case Mode.Voice:
                 case Mode.StaticOnly:
@@ -149,11 +198,12 @@ namespace ASH.Opening
 
         // ---------------------------------------------------------------- IASHUsable (turn the radio on/off while it only plays music)
         public Transform UseTransform => transform;
-        public float GetUsePriority(in ASHUseContext c) => _mode == Mode.Music || _mode == Mode.Off ? 1f : -1f;
+        public float GetUsePriority(in ASHUseContext c) => !_broadcastOver && (_mode == Mode.Music || _mode == Mode.Off) ? 1f : -1f;
         public string GetPrompt(in ASHUseContext c) => _mode == Mode.Music && !_userOff ? "Turn off Grandpa's radio" : "Turn on Grandpa's radio";
         public float GetHoldDuration(in ASHUseContext c) => 0f;
         public bool TryUse(in ASHUseContext c)
         {
+            if (_broadcastOver) return false; // dead after the broadcast: static only
             if (_mode == Mode.Off) { PlayMusic(); return true; }
             if (_mode != Mode.Music) return false;
             _userOff = !_userOff; return true;

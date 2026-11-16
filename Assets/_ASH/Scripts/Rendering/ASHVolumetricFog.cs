@@ -48,6 +48,11 @@ namespace ASH.Rendering
         [Header("Shadows")]
         [Tooltip("Sample the main light shadow map along the ray (light shafts through trees).")] public BoolParameter shadows = new BoolParameter(true);
         [Tooltip("0 = shadows ignored, 1 = full shafts.")] public ClampedFloatParameter shadowStrength = new ClampedFloatParameter(1f, 0f, 1f);
+        [Tooltip("Shafts fade out from (Shadow Max Distance - Shadow Fade) to Shadow Max Distance (m). The far shadow cascades are coarse: their texels show up in the fog as blocky squares.")]
+        public ClampedFloatParameter shadowMaxDistance = new ClampedFloatParameter(140f, 5f, 3000f);
+        public ClampedFloatParameter shadowFade = new ClampedFloatParameter(60f, 0.1f, 1000f);
+        [Tooltip("Average two shadow taps per step (half a step apart): softer, less blocky shafts.")]
+        public BoolParameter softShadows = new BoolParameter(true);
 
         [Header("Noise / Wind")]
         [Tooltip("0 disables the noise.")] public ClampedFloatParameter noiseStrength = new ClampedFloatParameter(0.5f, 0f, 1f);
@@ -74,6 +79,13 @@ namespace ASH.Rendering
         public BoolParameter halfResolution = new BoolParameter(true);
         [Tooltip("Half-res upsample: how strongly depth edges are preserved.")] public ClampedFloatParameter upsampleDepthSensitivity = new ClampedFloatParameter(1f, 0.01f, 20f);
         [Tooltip("Stop marching once the ray is this opaque (higher = cheaper).")] public ClampedFloatParameter earlyOutOpacity = new ClampedFloatParameter(0.997f, 0.9f, 1f);
+
+        [Header("Denoise")]
+        [Tooltip("Depth-aware blur of the marched fog (two passes) before it is composited. Removes the per-pixel ray jitter pattern that otherwise shows as a blocky checker, worst at half resolution and in dim light.")]
+        public BoolParameter denoise = new BoolParameter(true);
+        [Tooltip("Blur radius in fog-texture pixels per tap (9 taps).")] public ClampedFloatParameter denoiseRadius = new ClampedFloatParameter(1f, 0.25f, 4f);
+        [Tooltip("How strongly depth edges stop the blur (higher = sharper silhouettes).")] public ClampedFloatParameter denoiseDepthSensitivity = new ClampedFloatParameter(10f, 0f, 100f);
+        [Tooltip("0 = off, 1 = fully blurred.")] public ClampedFloatParameter denoiseStrength = new ClampedFloatParameter(1f, 0f, 1f);
 
         [Header("Temporal")]
         [Tooltip("Vary the ray start every frame (pairs well with TAA). Spatial noise jitter is always on.")]

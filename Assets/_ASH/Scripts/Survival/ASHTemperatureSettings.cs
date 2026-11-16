@@ -45,9 +45,30 @@ namespace ASH.Survival
         [Tooltip("Shelter alone recovers you up to this (fires go to normal).")]
         [Range(0f, 100f)] public float shelterRecoverTarget = 30f;
 
+        [Header("Heat source presets (ASHHeatSource with a preset reads these live)")]
+        [Tooltip("Lantern / torch placed in the world: warms you up to this cap while you stand near it.")]
+        [Range(0f, 150f)] public float lanternWarmTarget = 52f;
+        [Range(0f, 200f)] public float lanternWarmPerGameHour = 16f;
+        [Range(0f, 150f)] public float torchWarmTarget = 52f;
+        [Range(0f, 200f)] public float torchWarmPerGameHour = 16f;
+        [Tooltip("Stove / fireplace / campfire: warms you up to this cap.")]
+        [Range(0f, 150f)] public float stoveWarmTarget = 75f;
+        [Range(0f, 200f)] public float stoveWarmPerGameHour = 30f;
+        [Range(0f, 150f)] public float fireplaceWarmTarget = 75f;
+        [Range(0f, 200f)] public float fireplaceWarmPerGameHour = 34f;
+        [Range(0f, 150f)] public float campfireWarmTarget = 75f;
+        [Range(0f, 200f)] public float campfireWarmPerGameHour = 38f;
+        [Tooltip("Above normal warmth with no heat source holding you there, warmth sheds back toward normal this fast (per game hour, on top of the outdoor drop).")]
+        [Range(0f, 200f)] public float excessWarmthLossPerGameHour = 8f;
+        [Tooltip("Highest warmth a save can restore / the scale can reach.")]
+        [Range(30f, 200f)] public float maxWarmth = 100f;
+
         [Header("Held lights (torch / lantern in hand or on the hip, lit)")]
         [Range(0f, 0.95f)] public float heldTorchCoolingReduction = 0.4f;
         [Range(0f, 0.95f)] public float heldLanternCoolingReduction = 0.3f;
+        [Tooltip("Held lights can also warm you (per game hour) up to heldLightWarmTarget. 0 = held lights only slow the drop (so carrying a torch doesn't remove the cold).")]
+        [Range(0f, 200f)] public float heldLightWarmPerGameHour = 0f;
+        [Range(0f, 150f)] public float heldLightWarmTarget = 52f;
 
         [Header("Cold effects (at or below the cold threshold)")]
         [Tooltip("Health per game hour at the threshold...")]
@@ -71,17 +92,23 @@ namespace ASH.Survival
         [Range(-10f, 60f)] public float breathFogWarmth = 6f;
         [Tooltip("Densest breath at or below this warmth.")]
         [Range(-30f, 50f)] public float breathFogFullWarmth = 0f;
-        [Tooltip("Seconds between breaths at rest / exhausted or sprinting (real seconds).")]
-        [Range(0.5f, 10f)] public float breathIntervalRest = 3.6f;
-        [Range(0.3f, 5f)] public float breathIntervalExerted = 1.3f;
-        [Range(0f, 0.3f)] public float breathIntervalJitter = 0.12f;
-        [Range(1, 30)] public int puffParticlesMin = 2;
-        [Range(1, 60)] public int puffParticlesMax = 7;
-        [Range(0.2f, 5f)] public float puffLifetime = 1.6f;
-        public Vector2 puffSize = new Vector2(0.08f, 0.32f);
-        [Range(0f, 3f)] public float puffSpeed = 0.35f;
-        [Range(0f, 1f)] public float puffAlpha = 0.32f;
-        public Color puffColor = new Color(0.92f, 0.94f, 0.97f, 1f);
+        [Tooltip("Occasional cold breath: seconds between visible breaths (+ exhale) at rest / exhausted or sprinting (real seconds).")]
+        [Range(0.5f, 40f)] public float coldBreathEveryRest = 8f;
+        [Range(0.3f, 30f)] public float coldBreathEveryExerted = 4.5f;
+        [Range(0f, 0.6f)] public float coldBreathJitter = 0.3f;
+        [Tooltip("Particles per breath at the threshold / at the densest.")]
+        [Range(1, 80)] public int breathPuffCountMin = 10;
+        [Range(1, 160)] public int breathPuffCountMax = 24;
+        [Range(0.2f, 8f)] public float breathPuffLifetime = 2.6f;
+        public Vector2 breathPuffSize = new Vector2(0.2f, 0.6f);
+        [Range(0f, 3f)] public float breathPuffSpeed = 0.45f;
+        [Tooltip("Puff opacity (0-1). Unlit, so it stays visible at night.")]
+        [Range(0f, 1f)] public float breathPuffOpacity = 0.8f;
+        [Tooltip("Lowest density right at the threshold (0-1), so the first breaths are already easy to see.")]
+        [Range(0f, 1f)] public float breathMinDensity = 0.7f;
+        public Color breathPuffColor = new Color(0.97f, 0.98f, 1f, 1f);
+        [Tooltip("Brightness boost (Unlit colour x this) so the breath reads in dark scenes.")]
+        [Range(0.2f, 3f)] public float breathPuffBrightness = 1.2f;
         [Tooltip("Mouth position from the Head bone: x right, y up, z forward (player facing).")]
         public Vector3 mouthOffset = new Vector3(0f, -0.02f, 0.13f);
         [Tooltip("Breath fog multiplier while the wet rag is worn (0 = hidden).")]
@@ -105,7 +132,7 @@ namespace ASH.Survival
         [Tooltip("Heavy breaths play while stamina is at or below this (stamina points).")]
         [Range(0f, 100f)] public float heavyBreathStamina = 10f;
         [Tooltip("Real seconds between heavy breaths while stamina is low.")]
-        public Vector2 heavyBreathIntervalSeconds = new Vector2(1.2f, 1.8f);
+        public Vector2 heavyBreathEverySeconds = new Vector2(6f, 12f);
         [Range(0f, 1f)] public float heavyBreathVolume = 0.34f;
         [Tooltip("One recovery breath when you stop sprinting.")]
         public bool breathOnSprintStop = true;

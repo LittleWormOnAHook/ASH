@@ -1,7 +1,8 @@
 // ASH Volumetric Fog (URP 17, RenderGraph). Driven by ASHVolumetricFogFeature + the "ASH Volumetric Fog" volume override.
 // Pass 0 raymarches depth-aware height fog (main-light in-scattering with Henyey-Greenstein phase, optional main-light
 // shadows for light shafts, drifting ash-haze noise) into an RGBA16F target: rgb in-scattered light, a transmittance.
-// Pass 1 composites it over the camera colour, with a depth-aware (bilateral) upsample when the march ran at half res.
+// Pass 1 (Blur) denoises the marched fog (separable depth-aware gaussian, run twice).
+// Pass 2 composites it over the camera colour, with a depth-aware (bilateral) upsample when the march ran at half res.
 Shader "Hidden/ASH/Volumetric Fog"
 {
     SubShader
@@ -27,6 +28,8 @@ Shader "Hidden/ASH/Volumetric Fog"
         float4 _ASH_VF_Dist;       // x start distance, y start fade, z sky density mul (0 = no sky fog), w sky distance factor
         float4 _ASH_VF_Misc;       // x jitter strength, y early-out opacity, z brightness, w debug view
         float4 _ASH_VF_LowRes;     // xy low-res size, z 1/width, w upsample depth sensitivity
+        float4 _ASH_VF_Shadow;     // x shadow max distance, y shadow fade length, z soft shadows (1/0)
+        float4 _ASH_VF_BlurDir;    // xy uv step per tap, z depth sensitivity, w strength
         float  _ASH_VF_AreaCount;
         float4x4 _ASH_VF_AreaW2L[8];
         float4 _ASH_VF_AreaHalf[8];   // xyz half extents (sphere: x radius), w 1 = sphere
@@ -151,7 +154,13 @@ Shader "Hidden/ASH/Volumetric Fog"
                     if (sigma < 1e-7) continue;
                     float shadow = 1.0;
                     #if defined(_ASH_VF_SHADOWS)
-                        shadow = lerp(1.0, MainLightRealtimeShadow(TransformWorldToShadowCoord(p)), _ASH_VF_SunTint.w);
+                        float sfade = saturate((_ASH_VF_Shadow.x - t) / max(_ASH_VF_Shadow.y, 1e-3)); // coarse far cascades fade out
+                        UNITY_BRANCH if (sfade > 0.0)
+                        {
+                            float sh = MainLightRealtimeShadow(TransformWorldToShadowCoord(p));
+                            if (_ASH_VF_Shadow.z > 0.5) sh = 0.5 * (sh + MainLightRealtimeShadow(TransformWorldToShadowCoord(p - dir * (0.5 * stepLen))));
+                            shadow = lerp(1.0, sh, _ASH_VF_SunTint.w * sfade);
+                        }
                     #endif
                     float3 S = (sunL * shadow + ambL + ASH_AddLights(p, dir)) * alb;   // scattering = sigma * albedo
                     float tr = exp(-sigma * stepLen);
@@ -160,6 +169,36 @@ Shader "Hidden/ASH/Volumetric Fog"
                     if (T < minT) break;
                 }
                 return float4(L * _ASH_VF_Misc.z, T);
+            }
+            ENDHLSL
+        }
+
+        Pass
+        {
+            Name "Blur"
+            HLSLPROGRAM
+            #pragma vertex Vert
+            #pragma fragment FragBlur
+
+            // separable depth-aware gaussian on the low-res fog (direction in _ASH_VF_BlurDir.xy): removes the ray-jitter pattern
+            float4 FragBlur(Varyings i) : SV_Target
+            {
+                float2 uv = i.texcoord;
+                float4 c0 = SAMPLE_TEXTURE2D_X_LOD(_BlitTexture, sampler_PointClamp, uv, 0);
+                float z0 = LinearEyeDepth(SampleSceneDepth(uv), _ZBufferParams);
+                float4 acc = c0 * 0.2270270; float ws = 0.2270270;
+                [unroll] for (int k = 1; k <= 4; k++)
+                {
+                    float wk = k == 1 ? 0.1945946 : k == 2 ? 0.1216216 : k == 3 ? 0.0540541 : 0.0162162;
+                    [unroll] for (int sg = 0; sg < 2; sg++)
+                    {
+                        float2 tuv = uv + _ASH_VF_BlurDir.xy * (sg == 0 ? -k : k);
+                        float z = LinearEyeDepth(SampleSceneDepth(tuv), _ZBufferParams);
+                        float w = wk * exp(-_ASH_VF_BlurDir.z * abs(z - z0) / max(z0, 1e-3));
+                        acc += SAMPLE_TEXTURE2D_X_LOD(_BlitTexture, sampler_PointClamp, tuv, 0) * w; ws += w;
+                    }
+                }
+                return lerp(c0, acc / max(ws, 1e-5), _ASH_VF_BlurDir.w);
             }
             ENDHLSL
         }

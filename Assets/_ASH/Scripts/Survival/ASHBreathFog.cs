@@ -6,8 +6,8 @@ namespace ASH.Survival
     /// <summary>
     /// Cold breath once warmth is at or below the threshold (6): a small particle puff at the Head bone + mouth offset on each
     /// breath (faster when exhausted or sprinting), denser as warmth falls, reduced/hidden under the rag or mask, with a quiet
-    /// exhale per puff (muffled under the mask). At any temperature: heavy breaths while stamina is at or below 10, and one
-    /// recovery breath when a sprint ends. Settings: ASH_TemperatureSettings.
+    /// exhale per puff (muffled under the mask), occasional (every ~8 s at rest). At any temperature: an occasional heavy breath
+    /// (every 6-12 s) while stamina is at or below 10, and one recovery breath when a sprint ends. Settings: ASH_TemperatureSettings.
     /// Added to the player with ASHBodyTemperature.
     /// </summary>
     [DisallowMultipleComponent]
@@ -47,19 +47,19 @@ namespace ASH.Survival
             var go = new GameObject("ASH_BreathFog"); go.transform.SetParent(transform, false);
             _ps = go.AddComponent<ParticleSystem>(); _ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
             var main = _ps.main; main.playOnAwake = false; main.loop = true; main.duration = 5f; main.simulationSpace = ParticleSystemSimulationSpace.World;
-            main.startLifetime = S.puffLifetime; main.maxParticles = 64; main.startSpeed = 0f; main.gravityModifier = -0.02f;
+            main.startLifetime = S.breathPuffLifetime; main.maxParticles = 400; main.startSpeed = 0f; main.gravityModifier = -0.02f;
             var em = _ps.emission; em.enabled = false;
             var sh = _ps.shape; sh.enabled = false;
-            var sz = _ps.sizeOverLifetime; sz.enabled = true; sz.size = new ParticleSystem.MinMaxCurve(1f, AnimationCurve.EaseInOut(0f, 0.35f, 1f, 1f));
+            var sz = _ps.sizeOverLifetime; sz.enabled = true; sz.size = new ParticleSystem.MinMaxCurve(1f, AnimationCurve.EaseInOut(0f, 0.4f, 1f, 1.6f));
             var col = _ps.colorOverLifetime; col.enabled = true;
-            var g = new Gradient(); g.SetKeys(new[] { new GradientColorKey(Color.white, 0f), new GradientColorKey(Color.white, 1f) }, new[] { new GradientAlphaKey(0f, 0f), new GradientAlphaKey(1f, 0.15f), new GradientAlphaKey(0.4f, 0.55f), new GradientAlphaKey(0f, 1f) });
+            var g = new Gradient(); g.SetKeys(new[] { new GradientColorKey(Color.white, 0f), new GradientColorKey(Color.white, 1f) }, new[] { new GradientAlphaKey(0f, 0f), new GradientAlphaKey(1f, 0.08f), new GradientAlphaKey(0.65f, 0.55f), new GradientAlphaKey(0f, 1f) });
             col.color = g;
             var vel = _ps.velocityOverLifetime; vel.enabled = true; vel.space = ParticleSystemSimulationSpace.World; vel.y = new ParticleSystem.MinMaxCurve(0.05f, 0.12f); vel.x = new ParticleSystem.MinMaxCurve(0f, 0f); vel.z = new ParticleSystem.MinMaxCurve(0f, 0f);
             var lim = _ps.limitVelocityOverLifetime; lim.enabled = true; lim.dampen = 0.35f; lim.limit = 0.05f;
             var r = go.GetComponent<ParticleSystemRenderer>();
-            var sh0 = Shader.Find("Universal Render Pipeline/Particles/Lit") ?? Shader.Find("Universal Render Pipeline/Particles/Unlit") ?? Shader.Find("Particles/Standard Unlit");
+            var sh0 = Shader.Find("Universal Render Pipeline/Particles/Unlit") ?? Shader.Find("Universal Render Pipeline/Particles/Lit") ?? Shader.Find("Particles/Standard Unlit");
             var m = new Material(sh0) { name = "ASH_BreathFog (runtime)" };
-            m.SetTexture("_BaseMap", SoftTex()); m.mainTexture = SoftTex();
+            m.SetTexture("_BaseMap", SoftTex()); m.mainTexture = SoftTex(); if (m.HasProperty("_BaseColor")) m.SetColor("_BaseColor", Color.white);
             if (m.HasProperty("_Surface")) { m.SetFloat("_Surface", 1f); m.SetFloat("_Blend", 0f); m.SetOverrideTag("RenderType", "Transparent"); m.EnableKeyword("_SURFACE_TYPE_TRANSPARENT"); }
             if (m.HasProperty("_SrcBlend")) { m.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.SrcAlpha); m.SetFloat("_DstBlend", (float)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha); }
             if (m.HasProperty("_ZWrite")) m.SetFloat("_ZWrite", 0f);
@@ -85,7 +85,7 @@ namespace ASH.Survival
             float exert = Mathf.Clamp01(Mathf.Max(_stats.IsSprinting ? 1f : 0f, 1f - _stats.Stamina / Mathf.Max(1f, _stats.MaxStamina)));
             bool cold = S.breathFog && _temp && _temp.Warmth <= S.breathFogWarmth;
             float density = cold ? Mathf.Clamp01(Mathf.InverseLerp(S.breathFogWarmth + 0.001f, S.breathFogFullWarmth, _temp.Warmth)) : 0f;
-            density = cold ? Mathf.Max(0.25f, density) : 0f;
+            density = cold ? Mathf.Max(S.breathMinDensity, density) : 0f;
             float mult = worn == ASHFaceProtection.Kind.Mask ? S.maskFogMultiplier : worn == ASHFaceProtection.Kind.Rag ? S.ragFogMultiplier : 1f;
 
             // heavy breathing (any temperature): one recovery breath when a sprint ends, panting while stamina is low
@@ -94,21 +94,21 @@ namespace ASH.Survival
             if (!sprint && _wasSprinting && S.breathOnSprintStop && _sprintSince >= 0f && Time.time - _sprintSince >= S.sprintStopMinSeconds)
             {
                 Breath(density * mult, 1f, worn, S.sprintStopVolume, true);
-                _next = Time.time + S.breathIntervalExerted; _nextHeavy = Time.time + S.heavyBreathIntervalSeconds.y;
+                _next = Time.time + S.coldBreathEveryExerted; _nextHeavy = Time.time + S.heavyBreathEverySeconds.y;
             }
             _wasSprinting = sprint;
             if (_stats.Stamina <= S.heavyBreathStamina && Time.time >= _nextHeavy)
             {
-                var iv = S.heavyBreathIntervalSeconds;
+                var iv = S.heavyBreathEverySeconds;
                 _nextHeavy = Time.time + Random.Range(Mathf.Min(iv.x, iv.y), Mathf.Max(iv.x, iv.y));
                 Breath(density * mult, 1f, worn, S.heavyBreathVolume, true);
-                _next = Time.time + S.breathIntervalExerted;
+                _next = Time.time + S.coldBreathEveryExerted;
             }
 
             // cold breath: visible puffs + soft exhale, only at or below the warmth threshold
             if (!cold || Time.time < _next) return;
-            float interval = Mathf.Lerp(S.breathIntervalRest, S.breathIntervalExerted, exert);
-            _next = Time.time + interval * (1f + Random.Range(-S.breathIntervalJitter, S.breathIntervalJitter));
+            float interval = Mathf.Lerp(S.coldBreathEveryRest, S.coldBreathEveryExerted, exert);
+            _next = Time.time + interval * (1f + Random.Range(-S.coldBreathJitter, S.coldBreathJitter));
             Breath(density * mult, exert, worn, -1f, false);
         }
 
@@ -121,18 +121,18 @@ namespace ASH.Survival
             var o = S.mouthOffset; var pos = head.position + right * o.x + Vector3.up * o.y + fwd * o.z;
             if (k > 0.01f)
             {
-                var main = _ps.main; main.startLifetime = S.puffLifetime;
-                int n = Mathf.Max(1, Mathf.RoundToInt(Mathf.Lerp(S.puffParticlesMin, S.puffParticlesMax, k) * Mathf.Lerp(1f, 1.4f, exert)));
-                var c = S.puffColor;
+                var main = _ps.main; main.startLifetime = S.breathPuffLifetime;
+                int n = Mathf.Max(1, Mathf.RoundToInt(Mathf.Lerp(S.breathPuffCountMin, S.breathPuffCountMax, k) * Mathf.Lerp(1f, 1.4f, exert)));
+                var c = S.breathPuffColor;
                 for (int i = 0; i < n; i++)
                 {
                     var ep = new ParticleSystem.EmitParams
                     {
-                        position = pos + Random.insideUnitSphere * 0.015f,
-                        velocity = (fwd * S.puffSpeed * Mathf.Lerp(1f, 1.6f, exert) + Random.insideUnitSphere * 0.08f + Vector3.down * 0.03f),
-                        startSize = Random.Range(S.puffSize.x, S.puffSize.y),
-                        startLifetime = S.puffLifetime * Random.Range(0.75f, 1.15f),
-                        startColor = new Color(c.r, c.g, c.b, S.puffAlpha * Mathf.Lerp(0.45f, 1f, k)),
+                        position = pos + Random.insideUnitSphere * 0.03f,
+                        velocity = (fwd * S.breathPuffSpeed * Mathf.Lerp(1f, 1.6f, exert) + Random.insideUnitSphere * 0.08f + Vector3.down * 0.03f),
+                        startSize = Random.Range(S.breathPuffSize.x, S.breathPuffSize.y),
+                        startLifetime = S.breathPuffLifetime * Random.Range(0.75f, 1.15f),
+                        startColor = new Color(Mathf.Min(1f, c.r * S.breathPuffBrightness), Mathf.Min(1f, c.g * S.breathPuffBrightness), Mathf.Min(1f, c.b * S.breathPuffBrightness), S.breathPuffOpacity * Mathf.Lerp(0.7f, 1f, k)),
                         rotation = Random.Range(0f, 360f)
                     };
                     _ps.Emit(ep, 1);

@@ -70,8 +70,8 @@ namespace ASH.Rendering
                 ID_Fog = Shader.PropertyToID("_ASH_FogTex"), ID_AC = Shader.PropertyToID("_ASH_VF_AreaCount"), ID_AM = Shader.PropertyToID("_ASH_VF_AreaW2L"),
                 ID_AH = Shader.PropertyToID("_ASH_VF_AreaHalf"), ID_AP = Shader.PropertyToID("_ASH_VF_AreaParams"), ID_ACol = Shader.PropertyToID("_ASH_VF_AreaColor"),
                 ID_LC = Shader.PropertyToID("_ASH_VF_LightCount"), ID_LP = Shader.PropertyToID("_ASH_VF_LightPos"), ID_LCol = Shader.PropertyToID("_ASH_VF_LightColor"),
-                ID_LD = Shader.PropertyToID("_ASH_VF_LightSpot");
-            readonly ProfilingSampler _march = new ProfilingSampler("ASH VolFog March"), _comp = new ProfilingSampler("ASH VolFog Composite");
+                ID_LD = Shader.PropertyToID("_ASH_VF_LightSpot"), ID_Sh = Shader.PropertyToID("_ASH_VF_Shadow"), ID_BD = Shader.PropertyToID("_ASH_VF_BlurDir");
+            readonly ProfilingSampler _march = new ProfilingSampler("ASH VolFog March"), _comp = new ProfilingSampler("ASH VolFog Composite"), _blurH = new ProfilingSampler("ASH VolFog Denoise H"), _blurV = new ProfilingSampler("ASH VolFog Denoise V");
             readonly Vector3[] _corners = new Vector3[4];
             readonly Matrix4x4[] _aM = new Matrix4x4[MaxAreas]; readonly Vector4[] _aH = new Vector4[MaxAreas], _aP = new Vector4[MaxAreas], _aC = new Vector4[MaxAreas];
             readonly Vector4[] _lP = new Vector4[MaxLights], _lC = new Vector4[MaxLights], _lD = new Vector4[MaxLights];
@@ -79,7 +79,7 @@ namespace ASH.Rendering
             readonly List<(float d, int i)> _lights = new List<(float, int)>();
             Material _mat; ASHVolumetricFog _v; int _frame;
 
-            class PassData { public Material mat; public TextureHandle src, fog; }
+            class PassData { public Material mat; public TextureHandle src, fog; public Vector4 dir; }
 
             public void Setup(Material m, ASHVolumetricFog v) { _mat = m; _v = v; }
 
@@ -118,6 +118,7 @@ namespace ASH.Rendering
                 _mat.SetVector(ID_Wi, new Vector4(Mathf.Sin(ang) * v.windSpeed.value, Mathf.Cos(ang) * v.windSpeed.value, v.additionalAnisotropy.value, v.additionalLightIntensity.value));
                 _mat.SetVector(ID_Dist, new Vector4(v.startDistance.value, Mathf.Max(0.001f, v.startFade.value), v.fogSky.value ? v.skyDensity.value : 0f, v.skyDistance.value));
                 _mat.SetVector(ID_Misc, new Vector4(v.jitterStrength.value, v.earlyOutOpacity.value, v.brightness.value, (int)v.debugView.value));
+                _mat.SetVector(ID_Sh, new Vector4(v.shadowMaxDistance.value, Mathf.Max(0.1f, v.shadowFade.value), v.softShadows.value ? 1f : 0f, 0f));
 
                 // local density areas: nearest 8 to the camera (priority first)
                 _local.Clear(); foreach (var a in _sorted) if (a.mode == ASHFogArea.AreaMode.LocalDensity && a.localDensity > 0f) _local.Add(a);
@@ -189,14 +190,32 @@ namespace ASH.Rendering
                     bld.SetRenderAttachment(fog, 0, AccessFlags.Write);
                     bld.SetRenderFunc((PassData p, RasterGraphContext ctx) => Blitter.BlitTexture(ctx.cmd, p.src, new Vector4(1, 1, 0, 0), p.mat, 0));
                 }
+                if (v.denoise.value && v.denoiseStrength.value > 0f)
+                {
+                    TextureHandle tmp = UniversalRenderer.CreateRenderGraphTexture(renderGraph, fogDesc, "ASH_VolFogDenoise", false, FilterMode.Point, TextureWrapMode.Clamp);
+                    float r = v.denoiseRadius.value, ds = v.denoiseDepthSensitivity.value, st = v.denoiseStrength.value;
+                    Blur(renderGraph, fog, tmp, new Vector4(r / fogDesc.width, 0f, ds, st), _blurH);
+                    Blur(renderGraph, tmp, fog, new Vector4(0f, r / fogDesc.height, ds, st), _blurV);
+                }
                 using (var bld = renderGraph.AddRasterRenderPass<PassData>("ASH VolFog Composite", out var d, _comp))
                 {
                     d.mat = _mat; d.src = src; d.fog = fog;
                     bld.UseTexture(src); bld.UseTexture(fog); bld.UseAllGlobalTextures(true);
                     bld.SetRenderAttachment(dst, 0, AccessFlags.Write);
-                    bld.SetRenderFunc((PassData p, RasterGraphContext ctx) => { p.mat.SetTexture(ID_Fog, (RTHandle)p.fog); Blitter.BlitTexture(ctx.cmd, p.src, new Vector4(1, 1, 0, 0), p.mat, 1); });
+                    bld.SetRenderFunc((PassData p, RasterGraphContext ctx) => { p.mat.SetTexture(ID_Fog, (RTHandle)p.fog); Blitter.BlitTexture(ctx.cmd, p.src, new Vector4(1, 1, 0, 0), p.mat, 2); }); // pass 2 = Composite
                 }
                 res.cameraColor = dst;
+            }
+            void Blur(RenderGraph rg, TextureHandle from, TextureHandle to, Vector4 dir, ProfilingSampler ps)
+            {
+                using (var bld = rg.AddRasterRenderPass<PassData>(ps.name, out var d, ps))
+                {
+                    d.mat = _mat; d.src = from; d.dir = dir;
+                    bld.UseTexture(from); bld.UseAllGlobalTextures(true); bld.AllowGlobalStateModification(true);
+                    bld.SetRenderAttachment(to, 0, AccessFlags.Write);
+                    // global (recorded in order) - a material value would be read at execution and both passes would get the last one
+                    bld.SetRenderFunc((PassData p, RasterGraphContext ctx) => { ctx.cmd.SetGlobalVector(ID_BD, p.dir); Blitter.BlitTexture(ctx.cmd, p.src, new Vector4(1, 1, 0, 0), p.mat, 1); }); // pass 1 = Blur
+                }
             }
             readonly float[] _lCone = new float[MaxLights];
         }

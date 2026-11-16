@@ -17,9 +17,11 @@ namespace ASH.Gameplay
     [DefaultExecutionOrder(1660)]
     public sealed class ASHChopAnimator : MonoBehaviour
     {
-        [Range(0.25f, 3f)] public float swingSpeed = 1f;
-        [Tooltip("Chop effort: hits needed per log / stump / tree x this (2 = felling takes twice as long; swing speed unchanged). Applies to trees as they load.")]
-        [Range(0.25f, 6f)] public float chopEffortMultiplier = 2f;
+        [Tooltip("Chop / fell swing speed (0.5 = the swing animation plays at half speed). The hit is time-locked to the clip, so the impact, chop sound and damage stay on the axe landing; hits needed are unchanged.")]
+        [Range(0.1f, 3f)] public float swingSpeed = 0.5f;
+        [SerializeField, HideInInspector] int _speedVersion; // < 1: component saved before the half-speed swing -> swingSpeed 0.5, effort 1
+        [Tooltip("Chop effort: hits needed per log / stump / tree x this (1 = normal). Applies to trees as they load.")]
+        [Range(0.25f, 6f)] public float chopEffortMultiplier = 1f;
         [Tooltip("Normalized time on the low chop clip (Villager Axe-Chopping02: logs, stumps, downed trees) where the axe hits.")]
         [Range(0f, 1f)] public float impactNormalized = 0.51f;
         [Tooltip("Use the level swing (Malbers Axe_2Hand Swing_Right) on standing trees.")]
@@ -87,6 +89,7 @@ namespace ASH.Gameplay
 
         void Awake()
         {
+            if (_speedVersion < 1) { _speedVersion = 1; swingSpeed = 0.5f; chopEffortMultiplier = 1f; }
             _ix = GetComponentInParent<ASHInteractor>(); if (!_ix) _ix = FindAnyObjectByType<ASHInteractor>();
             _inv = GetComponentInParent<ASHInventory>(); _eq = GetComponentInParent<ASHEquipment>(); _cc = GetComponentInParent<vThirdPersonController>();
             _layer = GetComponent<ASHActionLayer>(); if (!_layer) _layer = gameObject.AddComponent<ASHActionLayer>();
@@ -113,7 +116,7 @@ namespace ASH.Gameplay
                     if (moving || Time.time >= _exitUntil) Lock(false); else HoldPosition(false);
                 }
                 if (Time.time < _exitUntil && !string.IsNullOrEmpty(SwingState) && _layer.Weight > 0f)
-                { ClipTime = Mathf.Min(0.999f, ClipTime + Time.deltaTime * 0.8f); _layer.PlayAt(SwingState, ClipTime, false); } // follow-through keeps moving while it blends out
+                { ClipTime = Mathf.Min(0.999f, ClipTime + Time.deltaTime * 0.8f * swingSpeed); _layer.PlayAt(SwingState, ClipTime, false); } // follow-through keeps moving while it blends out
                 if (_reequip && Time.time >= _exitUntil) Reequip();
                 return;
             }
@@ -126,7 +129,7 @@ namespace ASH.Gameplay
                 ClipTime = Mathf.Repeat((high ? impactNormalizedHigh : impactNormalized) + p, 1f);
                 _prevP = p;
             }
-            else ClipTime = Mathf.Repeat(ClipTime + Time.deltaTime * 0.8f, 1f); // follow-through while releasing
+            else ClipTime = Mathf.Repeat(ClipTime + Time.deltaTime * 0.8f * swingSpeed, 1f); // follow-through while releasing
             if (!_fell || SnapDone) _layer.PlayAt(SwingState, ClipTime); // felling: swings start once he is in the spot, facing the trunk
 
             if (_fell && _target && _cc)
