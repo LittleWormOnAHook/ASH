@@ -407,7 +407,7 @@ namespace ASH.EditorTools.World
         };
 
         static List<GameObject> Instances(string prefabPath) =>
-            Object.FindObjectsByType<Transform>(FindObjectsInactive.Include, FindObjectsSortMode.None).Select(t => t.gameObject)
+            Object.FindObjectsByType<Transform>(FindObjectsInactive.Include).Select(t => t.gameObject)
                 .Where(g => g.scene.IsValid() && PrefabUtility.IsOutermostPrefabInstanceRoot(g) && PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(g) == prefabPath && (PlaceRootT() == null || !g.transform.IsChildOf(PlaceRootT())))
                 .OrderBy(g => g.transform.position.x).ThenBy(g => g.transform.position.z).ToList();
         static Transform _placeRoot;

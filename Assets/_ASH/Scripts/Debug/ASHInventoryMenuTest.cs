@@ -79,10 +79,10 @@ namespace ASH.DebugTools
 
             // ---- drop 1 and drop all
             var who = eq.Animator ? eq.Animator.transform : inv.transform;
-            int pk0 = FindObjectsByType<ASHItemPickup>(FindObjectsSortMode.None).Length; int bb = inv.Count(bar);
+            int pk0 = FindObjectsByType<ASHItemPickup>().Length; int bb = inv.Count(bar);
             hud.OpenContext(bi); bool d1 = hud.ContextPick("drop1"); yield return null;
             var drops = new System.Collections.Generic.List<ASHItemPickup>();
-            foreach (var p in FindObjectsByType<ASHItemPickup>(FindObjectsSortMode.None)) if (p.name.EndsWith("_Dropped")) drops.Add(p);
+            foreach (var p in FindObjectsByType<ASHItemPickup>()) if (p.name.EndsWith("_Dropped")) drops.Add(p);
             var one = drops.Find(p => p.Item == bar && p.Amount == 1);
             float dist = one ? Vector3.Distance(Vector3.ProjectOnPlane(one.transform.position - who.position, Vector3.up), Vector3.zero) : -1f;
             float front = one ? Vector3.Dot((one.transform.position - who.position).normalized, who.forward) : -1f;
@@ -91,7 +91,7 @@ namespace ASH.DebugTools
                 $"dropped {d1} pickup {(one ? one.name : "none")} x{(one ? one.Amount : 0)} bars {bb}->{inv.Count(bar)} dist {dist:F2} m front {front:F2} ground gap {gap:F2} m");
             int rest = inv.Count(bar);
             hud.OpenContext(bi); bool da = hud.ContextPick("dropall"); yield return null;
-            ASHItemPickup all = null; foreach (var p in FindObjectsByType<ASHItemPickup>(FindObjectsSortMode.None)) if (p.name.EndsWith("_Dropped") && p.Item == bar && p.Amount == rest) all = p;
+            ASHItemPickup all = null; foreach (var p in FindObjectsByType<ASHItemPickup>()) if (p.name.EndsWith("_Dropped") && p.Item == bar && p.Amount == rest) all = p;
             Check("Drop all: whole stack as one pickup, slot empty", da && all && inv.Count(bar) == 0 && inv.Slots[bi].IsEmpty, $"dropped {da} pickup x{(all ? all.Amount : 0)} (stack was {rest}) left {inv.Count(bar)}");
             Check("dropped pickup uses the item's world pickup prefab when set", all && (bar.worldPickupPrefab == null || all.name.StartsWith(bar.worldPickupPrefab.name)),
                 $"prefab {(bar.worldPickupPrefab ? bar.worldPickupPrefab.name : "none (runtime fallback)")} spawned {(all ? all.name : "-")}");
@@ -111,7 +111,7 @@ namespace ASH.DebugTools
             Check("Split from the menu", sp && stacks == 2 && inv.Count(kindling) == 3, $"split {sp} stacks {stacks} count {inv.Count(kindling)}");
 
             // cleanup
-            foreach (var p in FindObjectsByType<ASHItemPickup>(FindObjectsSortMode.None)) if (p.name.EndsWith("_Dropped")) Destroy(p.gameObject);
+            foreach (var p in FindObjectsByType<ASHItemPickup>()) if (p.name.EndsWith("_Dropped")) Destroy(p.gameObject);
             if (hud.InventoryOpen) { input.SimInventory = true; yield return null; yield return null; }
             Finish();
         }

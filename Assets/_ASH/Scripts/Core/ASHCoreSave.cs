@@ -123,7 +123,7 @@ namespace ASH.Core
             var o = LocationOverride?.Invoke(); if (!string.IsNullOrEmpty(o)) return o;
             var cc = Player(); if (!cc) return "Unknown";
             ASHSurveyPoint best = null; float bd = float.MaxValue;
-            foreach (var p in UnityEngine.Object.FindObjectsByType<ASHSurveyPoint>(FindObjectsSortMode.None))
+            foreach (var p in UnityEngine.Object.FindObjectsByType<ASHSurveyPoint>())
             {
                 if (!p.Definition) continue; float d = (p.transform.position - cc.transform.position).sqrMagnitude;
                 if (d < bd) { bd = d; best = p; }
@@ -197,9 +197,9 @@ namespace ASH.Core
         public void Snapshot()
         {
             _chop.Clear(); _nodes.Clear(); _picks.Clear(); _scenePicks.Clear();
-            foreach (var c in UnityEngine.Object.FindObjectsByType<ASHChoppable>(FindObjectsInactive.Include, FindObjectsSortMode.None)) { var id = IdOf(c.transform); if (!_chop.ContainsKey(id)) _chop[id] = c; }
-            foreach (var n in UnityEngine.Object.FindObjectsByType<ASHResourceNode>(FindObjectsInactive.Include, FindObjectsSortMode.None)) { var id = IdOf(n.transform); if (!_nodes.ContainsKey(id)) _nodes[id] = n; }
-            foreach (var p in UnityEngine.Object.FindObjectsByType<ASHItemPickup>(FindObjectsInactive.Include, FindObjectsSortMode.None)) { var id = IdOf(p.transform); if (!_picks.ContainsKey(id)) { _picks[id] = (p, p.Amount); _scenePicks.Add(p); } }
+            foreach (var c in UnityEngine.Object.FindObjectsByType<ASHChoppable>(FindObjectsInactive.Include)) { var id = IdOf(c.transform); if (!_chop.ContainsKey(id)) _chop[id] = c; }
+            foreach (var n in UnityEngine.Object.FindObjectsByType<ASHResourceNode>(FindObjectsInactive.Include)) { var id = IdOf(n.transform); if (!_nodes.ContainsKey(id)) _nodes[id] = n; }
+            foreach (var p in UnityEngine.Object.FindObjectsByType<ASHItemPickup>(FindObjectsInactive.Include)) { var id = IdOf(p.transform); if (!_picks.ContainsKey(id)) { _picks[id] = (p, p.Amount); _scenePicks.Add(p); } }
         }
 
         public string CaptureJson()
@@ -213,7 +213,7 @@ namespace ASH.Core
                 if (!pk) s.pickups.Add(new Pick { id = kv.Key, amount = 0 });
                 else if (pk.Amount != kv.Value.amount) s.pickups.Add(new Pick { id = kv.Key, amount = pk.Amount });
             }
-            foreach (var pk in UnityEngine.Object.FindObjectsByType<ASHItemPickup>(FindObjectsSortMode.None))
+            foreach (var pk in UnityEngine.Object.FindObjectsByType<ASHItemPickup>())
             {
                 if (_scenePicks.Contains(pk) || !pk.Item || pk.Amount <= 0) continue;
                 s.drops.Add(new Drop { item = pk.Item.itemId, amount = pk.Amount, condition = pk.Condition, pos = pk.transform.position, rot = pk.transform.rotation });

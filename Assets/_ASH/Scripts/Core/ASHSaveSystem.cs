@@ -154,10 +154,10 @@ namespace ASH.Core
             var stats = FindAnyObjectByType<ASH.Survival.ASHSurvivalStats>();
             if (stats && stats.IsDead) { reason = "dead"; return false; }
             if (ASHUIState.BlocksGameplay) { reason = "menu"; return false; }
-            foreach (var q in FindObjectsByType<ASH.Opening.ASHEarthquakeEffects>(FindObjectsSortMode.None)) if (q.Running) { reason = "quake"; return false; }
+            foreach (var q in FindObjectsByType<ASH.Opening.ASHEarthquakeEffects>()) if (q.Running) { reason = "quake"; return false; }
             var seq = ASH.Opening.ASHEruptionSequence.Instance;
             if (seq && !seq.Suppressed && seq.Current == ASH.Opening.ASHEruptionSequence.Stage.Quake) { reason = "quake"; return false; }
-            foreach (var a in FindObjectsByType<ASH.Gameplay.ASHWeaponAim>(FindObjectsSortMode.None)) if (a.Aiming) { reason = "aiming"; return false; }
+            foreach (var a in FindObjectsByType<ASH.Gameplay.ASHWeaponAim>()) if (a.Aiming) { reason = "aiming"; return false; }
             var placer = FindAnyObjectByType<ASH.Gameplay.ASHPlacer>(); if (placer && placer.IsPlacing) { reason = "placing"; return false; }
             foreach (var b in AutosaveBlockers) if (b != null && b()) { reason = "blocked"; return false; }
             return true;

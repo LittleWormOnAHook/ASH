@@ -230,7 +230,7 @@ namespace ASH.EditorTools.Systems
         {
             if (!SceneViewPoint(out var p, out var yaw)) return;
             var d = AssetDatabase.LoadAssetAtPath<ASHFieldManualData>(DataPath); int total = d ? d.totalPages : 12;
-            var used = new HashSet<int>(Object.FindObjectsByType<ASHManualPagePickup>(FindObjectsInactive.Include, FindObjectsSortMode.None).Select(x => x.pageNumber));
+            var used = new HashSet<int>(Object.FindObjectsByType<ASHManualPagePickup>(FindObjectsInactive.Include).Select(x => x.pageNumber));
             int n = 1; while (used.Contains(n) && n <= total) n++;
             if (n > total) { Debug.LogWarning($"[ASH] All {total} manual pages are already placed."); return; }
             var root = GameObject.Find("ASH_ManualPages") ?? new GameObject("ASH_ManualPages");

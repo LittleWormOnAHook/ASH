@@ -13,7 +13,7 @@ namespace ASH.EditorTools
             var sb = new StringBuilder("[ASH] CABIN PROBE\n");
             var cabin = GameObject.Find("Grandpa Cabin");
             sb.Append($"cabin: {(cabin ? Path(cabin.transform) + " static=" + cabin.isStatic : "none")}\n");
-            var all = Object.FindObjectsByType<Transform>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            var all = Object.FindObjectsByType<Transform>(FindObjectsInactive.Include);
             foreach (var t in all.Where(t => { var n = t.name.ToLowerInvariant(); return n.Contains("door") || n.Contains("window") || n.Contains("glass") || n.Contains("hatch") || n.Contains("shutter"); }))
             {
                 var mf = t.GetComponent<MeshFilter>(); var r = t.GetComponent<Renderer>();

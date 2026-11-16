@@ -239,7 +239,7 @@ namespace ASH.EditorTools.World
 
         // ------------------------------------------------------------------ scene swaps
         static List<GameObject> Instances(string prefabPath) =>
-            Object.FindObjectsByType<Transform>(FindObjectsInactive.Include, FindObjectsSortMode.None).Select(t => t.gameObject)
+            Object.FindObjectsByType<Transform>(FindObjectsInactive.Include).Select(t => t.gameObject)
                 .Where(g => g.scene.IsValid() && PrefabUtility.IsOutermostPrefabInstanceRoot(g) && PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(g) == prefabPath)
                 .OrderBy(g => g.transform.position.x).ThenBy(g => g.transform.position.z).ToList();
 
@@ -371,7 +371,7 @@ namespace ASH.EditorTools.World
                     if (placed.TryGetValue(Key(x, z), out var l)) foreach (var q in l) if ((q - p).sqrMagnitude < r * r) return false;
                 return true;
             }
-            foreach (var mb in Object.FindObjectsByType<MonoBehaviour>(FindObjectsSortMode.None)) if (mb is IASHUsable) Mark(new Vector2(mb.transform.position.x, mb.transform.position.z));
+            foreach (var mb in Object.FindObjectsByType<MonoBehaviour>()) if (mb is IASHUsable) Mark(new Vector2(mb.transform.position.x, mb.transform.position.z));
 
             var sb = new StringBuilder("[ASH] Resource scatter: "); int total = 0;
             foreach (var e in s.entries)

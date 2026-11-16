@@ -81,7 +81,7 @@ namespace ASH.DebugTools
             yield return new WaitForSeconds(1f);
 
             // 1) pickup visuals
-            var pickups = FindObjectsByType<ASHItemPickup>(FindObjectsSortMode.None);
+            var pickups = FindObjectsByType<ASHItemPickup>();
             int vendorVis = pickups.Count(p => { var v = p.transform.Find("Visual"); return v && v.childCount > 0 && v.GetComponentsInChildren<MeshFilter>().Any(m => m.sharedMesh && !m.sharedMesh.name.StartsWith("Cube") && !m.sharedMesh.name.StartsWith("Cylinder") && !m.sharedMesh.name.StartsWith("Sphere") && !m.sharedMesh.name.StartsWith("Capsule")); });
             var placed = GameObject.Find("ASH_SurvivalPackPickups");
             Check("pickup visuals swapped", vendorVis >= 30, $"{vendorVis}/{pickups.Length} pickups use vendor models; new item pickups placed {(placed ? placed.transform.childCount : 0)}");

@@ -222,7 +222,7 @@ namespace ASH.World.Accumulation
                 sig = sig * 31 + _maskMin.GetHashCode(); sig = sig * 31 + res; sig = sig * 31 + (bank ? 1 : 0);
                 sig = sig * 31 + colliderFadePadding.GetHashCode(); sig = sig * 31 + colliderFadeSoftness.GetHashCode(); sig = sig * 31 + colliderFootprintHeight.GetHashCode();
                 sig = sig * 31 + bankReach.GetHashCode(); sig = sig * 31 + bankNoiseStrength.GetHashCode(); sig = sig * 31 + bankMinColliderSize.GetHashCode();
-                foreach (var col in _cols) { var b = col.bounds; sig = sig * 31 + col.GetInstanceID(); sig = sig * 31 + Vector3Int.RoundToInt(b.center * 50f).GetHashCode(); sig = sig * 31 + Vector3Int.RoundToInt(b.size * 50f).GetHashCode(); }
+                foreach (var col in _cols) { var b = col.bounds; sig = sig * 31 + col.GetHashCode(); sig = sig * 31 + Vector3Int.RoundToInt(b.center * 50f).GetHashCode(); sig = sig * 31 + Vector3Int.RoundToInt(b.size * 50f).GetHashCode(); }
             }
             if (sig == _maskSig && _maskValid) return;
             _maskSig = sig; _maskValid = true;

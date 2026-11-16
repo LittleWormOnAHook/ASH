@@ -25,8 +25,8 @@ namespace ASH.DebugTools
                 yield return new WaitForSeconds(4f);
                 int frames = 0; float t = 0f, worst = 0f;
                 while (t < 8f) { t += Time.unscaledDeltaTime; worst = Mathf.Max(worst, Time.unscaledDeltaTime); frames++; yield return null; }
-                int nodes = FindObjectsByType<ASHResourceNode>(FindObjectsSortMode.None).Length, chops = FindObjectsByType<ASHChoppable>(FindObjectsSortMode.None).Length;
-                int rends = FindObjectsByType<Renderer>(FindObjectsSortMode.None).Length;
+                int nodes = FindObjectsByType<ASHResourceNode>().Length, chops = FindObjectsByType<ASHChoppable>().Length;
+                int rends = FindObjectsByType<Renderer>().Length;
                 Debug.Log($"[ASH] FPS avg {frames / t:F1} worst frame {worst * 1000f:F1} ms | resource nodes {nodes}, choppables {chops}, renderers {rends}");
                 Destroy(gameObject);
             }
@@ -78,8 +78,8 @@ namespace ASH.DebugTools
             while (_inv.Count(hatchet) > 0) _inv.Remove(hatchet, 1);
 
             var p0 = _cc.transform.position;
-            var tree = FindObjectsByType<ASHChoppable>(FindObjectsSortMode.None).Where(c => c.Kind == ASHChopKind.StandingTree && !c.Done).OrderBy(c => (c.transform.position - p0).sqrMagnitude).FirstOrDefault();
-            Check("standing dead tree in scene", tree, tree ? $"{tree.name} at {tree.transform.position} ({FindObjectsByType<ASHChoppable>(FindObjectsSortMode.None).Length} choppables)" : "none");
+            var tree = FindObjectsByType<ASHChoppable>().Where(c => c.Kind == ASHChopKind.StandingTree && !c.Done).OrderBy(c => (c.transform.position - p0).sqrMagnitude).FirstOrDefault();
+            Check("standing dead tree in scene", tree, tree ? $"{tree.name} at {tree.transform.position} ({FindObjectsByType<ASHChoppable>().Length} choppables)" : "none");
             if (!tree) { Finish(); yield break; }
             var side = Vector3.Cross(Vector3.up, tree.transform.forward).normalized;
             Teleport(tree.transform.position - side * 1.6f); yield return new WaitForSeconds(0.6f);
@@ -118,7 +118,7 @@ namespace ASH.DebugTools
                 Check("stump chopped", stump.Done && _inv.Count(firewood) > fw0, $"firewood {fw0}->{_inv.Count(firewood)}");
             }
             // branch pile pickup (deadwood)
-            var branch = FindObjectsByType<ASHResourceNode>(FindObjectsSortMode.None).Where(n => n.name.StartsWith("ASH_Deadwood_Branches") && !n.Depleted).OrderBy(n => (n.transform.position - _cc.transform.position).sqrMagnitude).FirstOrDefault();
+            var branch = FindObjectsByType<ASHResourceNode>().Where(n => n.name.StartsWith("ASH_Deadwood_Branches") && !n.Depleted).OrderBy(n => (n.transform.position - _cc.transform.position).sqrMagnitude).FirstOrDefault();
             if (branch)
             {
                 int d0 = _inv.Count(deadwood); var bc = Centre(branch);
@@ -128,7 +128,7 @@ namespace ASH.DebugTools
                 Check("branch pile gathers deadwood", _inv.Count(deadwood) > d0, $"prompt '{pr}', deadwood {d0}->{_inv.Count(deadwood)}");
             }
             else Check("branch pile gathers deadwood", false, "no branch pile found");
-            var plant = FindObjectsByType<ASHResourceNode>(FindObjectsSortMode.None).Where(n => n.name.StartsWith("ASH_Fiber_") && !n.Depleted).OrderBy(n => (n.transform.position - _cc.transform.position).sqrMagnitude).FirstOrDefault();
+            var plant = FindObjectsByType<ASHResourceNode>().Where(n => n.name.StartsWith("ASH_Fiber_") && !n.Depleted).OrderBy(n => (n.transform.position - _cc.transform.position).sqrMagnitude).FirstOrDefault();
             if (plant)
             {
                 var fiber = plant.Item; int f0 = _inv.Count(fiber); var pc = Centre(plant);

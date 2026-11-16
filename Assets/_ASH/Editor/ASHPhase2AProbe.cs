@@ -35,7 +35,7 @@ namespace ASH.EditorTools
             {
                 var ty = System.AppDomain.CurrentDomain.GetAssemblies().Select(a => a.GetType(t)).FirstOrDefault(x => x != null);
                 if (ty == null) { sb.Append($"type {t} missing\n"); continue; }
-                var all = Object.FindObjectsByType(ty, FindObjectsInactive.Include, FindObjectsSortMode.None);
+                var all = Object.FindObjectsByType(ty, FindObjectsInactive.Include);
                 sb.Append($"{ty.Name} x{all.Length}: {string.Join("; ", all.Take(6).Select(o => Path(((Component)o).transform) + " d=" + Vector3.Distance(((Component)o).transform.position, c).ToString("F0")))}\n");
             }
             var cam = Camera.main; sb.Append($"Camera.main={(cam ? Path(cam.transform) : "none")} comps [{(cam ? string.Join(",", cam.GetComponents<Component>().Select(x => x.GetType().Name)) : "")}]\n");

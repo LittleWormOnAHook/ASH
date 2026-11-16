@@ -48,7 +48,7 @@ namespace ASH.DebugTools
             yield return new WaitForSecondsRealtime(3f);
             var post = ASHPostProcessing.Instance; var fs = ctl.GetComponent<ASHFootsteps>(); var pf = ctl.GetComponent<ASHFootstepPuffs>();
             Debug.Log($"[ASH] BATCH components: post {(bool)post}, footsteps {(bool)fs} (map {(fs && fs.map ? fs.map.name : "-")}), puffs {(bool)pf}, vFootStep enabled {VfsOn(ctl)}");
-            foreach (var mr in FindObjectsByType<MeshRenderer>(FindObjectsSortMode.None)) if (mr.name.Contains("ASH") && mr.name.Contains("Surface")) Debug.Log($"[ASH] BATCH '{mr.name}' shadows {mr.shadowCastingMode}, receive {mr.receiveShadows}");
+            foreach (var mr in FindObjectsByType<MeshRenderer>()) if (mr.name.Contains("ASH") && mr.name.Contains("Surface")) Debug.Log($"[ASH] BATCH '{mr.name}' shadows {mr.shadowCastingMode}, receive {mr.receiveShadows}");
 
             // FPS: before (scene post only) / after (ASH stack) / no post
             if (post) post.SetActive(false);
@@ -67,7 +67,7 @@ namespace ASH.DebugTools
                 Probe("spawn", p0);
                 for (int i = 0; i < 6; i++) { var a = i * 60f * Mathf.Deg2Rad; Probe("ring" + i, p0 + new Vector3(Mathf.Cos(a), 0, Mathf.Sin(a)) * 12f); }
                 // a structure top (wood) if any collider named like a cabin/deck is near
-                foreach (var col in FindObjectsByType<Collider>(FindObjectsSortMode.None))
+                foreach (var col in FindObjectsByType<Collider>())
                 {
                     if (col.isTrigger || col is TerrainCollider) continue; var n = col.name.ToLowerInvariant();
                     if ((n.Contains("cabin") || n.Contains("floor") || n.Contains("deck") || n.Contains("porch") || n.Contains("rock")) && (col.bounds.center - p0).magnitude < 120f)

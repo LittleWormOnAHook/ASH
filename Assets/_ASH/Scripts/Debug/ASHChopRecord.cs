@@ -109,7 +109,7 @@ namespace ASH.DebugTools
             if (_inv.Count(hatchet) == 0) _inv.AddItem(hatchet, 1);
             for (int i = 0; i < _inv.Slots.Count; i++) if (_inv.Slots[i].item == hatchet) { if (!_inv.IsHotbar(i)) _inv.Move(i, 0); break; }
             var p0 = _cc.transform.position;
-            var all = FindObjectsByType<ASHChoppable>(FindObjectsSortMode.None).Where(c => !c.Done && !c.Busy && c.HitsLeft > 1).OrderBy(c => (c.transform.position - p0).sqrMagnitude).ToList();
+            var all = FindObjectsByType<ASHChoppable>().Where(c => !c.Done && !c.Busy && c.HitsLeft > 1).OrderBy(c => (c.transform.position - p0).sqrMagnitude).ToList();
             var targets = new[] { all.FirstOrDefault(c => c.Kind == ASHChopKind.StandingTree) }.Where(c => c).ToList(); // felling only
             Check("standing harvest tree found", targets.Count > 0, targets.Count > 0 ? targets[0].name + " at " + targets[0].transform.position.ToString("F1") : "none");
             float t = 0f;

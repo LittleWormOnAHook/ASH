@@ -220,7 +220,7 @@ namespace ASH.Inventory
             _pagesRead.Clear(); if (s.pagesRead != null) foreach (var x in s.pagesRead) _pagesRead.Add(x);
             _crafted.Clear(); foreach (var c in s.crafted) _crafted[c.id] = c.n;
             // found pages are gone from the world
-            foreach (var p in FindObjectsByType<ASH.Interaction.ASHManualPagePickup>(FindObjectsSortMode.None)) if (_pages.Contains(p.pageNumber)) Destroy(p.gameObject);
+            foreach (var p in FindObjectsByType<ASH.Interaction.ASHManualPagePickup>()) if (_pages.Contains(p.pageNumber)) Destroy(p.gameObject);
             Evaluate(true);
             Changed?.Invoke();
         }

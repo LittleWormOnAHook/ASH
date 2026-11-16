@@ -99,7 +99,7 @@ namespace ASH.Core
         {
             var acc = ASHAccumulationController.Instance ? ASHAccumulationController.Instance : UnityEngine.Object.FindAnyObjectByType<ASHAccumulationController>();
             if (acc && SnowQuality >= 0) acc.SetDeformationQuality((ASHAccumulationController.DeformQuality)Mathf.Clamp(SnowQuality, 0, (int)ASHAccumulationController.DeformQuality.Extreme));
-            if (SnowBanks >= 0) foreach (var s in UnityEngine.Object.FindObjectsByType<ASHAccumulationSurface>(FindObjectsSortMode.None)) s.banking = SnowBanks == 1;
+            if (SnowBanks >= 0) foreach (var s in UnityEngine.Object.FindObjectsByType<ASHAccumulationSurface>()) s.banking = SnowBanks == 1;
             var ash = UnityEngine.Object.FindAnyObjectByType<ASHAshFall>();
             if (ash)
             {

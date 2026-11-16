@@ -54,7 +54,7 @@ namespace ASH.EditorTools
                 added++; Debug.Log($"[ASH] VOLFOG feature added to {AssetDatabase.GetAssetPath(data)}");
             }
 
-            var vol = Object.FindObjectsByType<Volume>(FindObjectsSortMode.None).Where(x => x.isGlobal && x.sharedProfile).OrderByDescending(x => x.priority).FirstOrDefault();
+            var vol = Object.FindObjectsByType<Volume>().Where(x => x.isGlobal && x.sharedProfile).OrderByDescending(x => x.priority).FirstOrDefault();
             var prof = vol ? vol.sharedProfile : null;
             if (!prof) { Debug.LogWarning("[ASH] VOLFOG no Global Volume profile in the open scene"); return; }
             if (!prof.TryGet(out ASHVolumetricFog fog))
