@@ -115,7 +115,7 @@ namespace ASH.UI
 
         void OnEnable()
         {
-            if (inventory) { inventory.Changed += RefreshInventory; inventory.ItemAdded += OnItemAdded; }
+            if (inventory) { inventory.Changed += RefreshInventory; inventory.Changed += WatchLightSlot; inventory.ItemAdded += OnItemAdded; WatchLightSlot(); }
             if (crafting) { crafting.Crafted += OnCrafted; crafting.CraftFailed += OnCraftFailed; crafting.BrokeDown += OnBrokeDown; crafting.BreakdownFailed += OnBreakFailed; }
             if (gps) gps.SurveyLogged += OnSurvey;
             if (objective) { objective.Message += Toast; objective.Changed += ObjDirty; }
@@ -125,7 +125,7 @@ namespace ASH.UI
 
         void OnDisable()
         {
-            if (inventory) { inventory.Changed -= RefreshInventory; inventory.ItemAdded -= OnItemAdded; }
+            if (inventory) { inventory.Changed -= RefreshInventory; inventory.Changed -= WatchLightSlot; inventory.ItemAdded -= OnItemAdded; }
             if (crafting) { crafting.Crafted -= OnCrafted; crafting.CraftFailed -= OnCraftFailed; crafting.BrokeDown -= OnBrokeDown; crafting.BreakdownFailed -= OnBreakFailed; }
             if (gps) gps.SurveyLogged -= OnSurvey;
             if (objective) { objective.Message -= Toast; objective.Changed -= ObjDirty; }
@@ -329,8 +329,9 @@ namespace ASH.UI
                     else ok = UseSlot(idx);
                     break;
                 case ASHInventory.CrossQuad.Light:
-                    // light: ready it and switch it on; pressing again toggles it on/off
-                    if (_equip && _equip.IsEquipped(s.item)) ok = _equip.SetLight(s.item, !_equip.IsLit(s.item)) || true;
+                    // light: ready it and switch it on; pressing again switches it off and stows it
+                    // held (left hand / hip): turn it off and stow it; not held: take it out and turn it on
+                    if (_equip && _equip.IsEquipped(s.item)) { StowLight(s.item); ok = true; }
                     else if (_equip && s.item.IsEquippable) { ok = _equip.Equip(s.item); if (ok && !_equip.IsLit(s.item)) _equip.SetLight(s.item, true); }
                     else ok = UseSlot(idx);
                     break;
@@ -339,6 +340,31 @@ namespace ASH.UI
             ASH.Core.ASHLog.Info($"Cross {ASHInput.CrossKeys[quad]} ({q}): {s.item.displayName} -> {(ok ? "used" : "not used")}");
             return ok;
         }
+        /// <summary>Turns a held light off and puts it away (left hand or hip). No orphaned light: Unequip hides/destroys the
+        /// held model with its light, and the held-light warmth stops because the item is no longer equipped.</summary>
+        void StowLight(ASHItemDefinition it)
+        {
+            if (!_equip || !it) return;
+            if (it.IsLightSource && _equip.IsLit(it)) _equip.SetLight(it, false);
+            if (it == _equip.Off) _equip.Unequip(ASHEquipSlot.OffHand);
+            else if (it == _equip.Hip) _equip.Unequip(ASHEquipSlot.Hip);
+            else if (it == _equip.Main) _equip.Unequip(ASHEquipSlot.MainHand);
+            _equip.Say("Put away " + it.displayName);
+        }
+
+        // A held light that leaves the cross bar's light slot (dragged to the pack / another slot, dropped, split away) is
+        // switched off and stowed at once.
+        ASHItemDefinition _lightCrossItem;
+        void WatchLightSlot()
+        {
+            if (inventory == null) return;
+            var cs = inventory.CrossSlot(ASHInventory.CrossQuad.Light); var now = cs.IsEmpty ? null : cs.item;
+            var prev = _lightCrossItem; _lightCrossItem = now;
+            if (prev == null || prev == now) return;
+            if (!_equip) { _equip = inventory.GetComponent<ASHEquipment>(); if (!_equip) _equip = FindAnyObjectByType<ASHEquipment>(); }
+            if (_equip && (prev == _equip.Off || prev == _equip.Hip)) StowLight(prev);
+        }
+
         public string CrossText(int quad) { if (inventory == null || quad < 0 || quad >= ASHInventory.CrossCount) return null; var s = inventory.Slots[inventory.CrossStart + quad]; return s.IsEmpty ? "" : s.item.displayName + "|" + s.amount; }
         public int CrossSlotCount => _cross.Count;
 

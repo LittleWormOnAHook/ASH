@@ -87,6 +87,15 @@ namespace ASH.Survival
         [Range(40f, 600f)] public float frostEdgeWidth = 260f;
 
         [Header("Breath fog (visible cold breath, tied to warmth)")]
+        [Header("Breathing pace (cold breath + the breathing under the rag / mask)")]
+        [Tooltip("Breath intervals x this while standing still (2 = half as many breaths). Sprinting, running at or above Run Speed, and the rag / filter warning window use the normal pace (x1). Low-stamina heavy breaths and the strained warning breaths are unaffected.")]
+        [Range(1f, 5f)] public float idleBreathIntervalMultiplier = 2f;
+        [Tooltip("Breath intervals x this while walking (between idle and running).")]
+        [Range(1f, 5f)] public float walkBreathIntervalMultiplier = 1.4f;
+        [Tooltip("Below this ground speed (m/s) the player counts as idle.")]
+        [Range(0f, 2f)] public float idleSpeed = 0.3f;
+        [Tooltip("At or above this ground speed (m/s) breathing runs at the normal pace.")]
+        [Range(0.5f, 10f)] public float runSpeed = 3.5f;
         public bool breathFog = true;
         [Tooltip("Cold breath shows at or below this warmth (default = cold threshold).")]
         [Range(-10f, 60f)] public float breathFogWarmth = 6f;

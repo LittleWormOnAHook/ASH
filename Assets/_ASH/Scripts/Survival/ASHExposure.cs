@@ -154,6 +154,7 @@ namespace ASH.Survival
             _labored.PlayOneShot(clip, Mathf.Clamp01(S.laboredVolume * Mathf.Lerp(0.5f, 1f, k) * ASHGameSettings.CachedSfx));
         }
 
+        float _breathPassStart = -999f;
         void UpdateBreathing()
         {
             bool on = _face && _face.Worn != ASHFaceProtection.Kind.None && S.breathingLoop && !_stats.IsDead && Time.timeScale > 0f;
@@ -164,10 +165,18 @@ namespace ASH.Survival
                 _breath = go.AddComponent<AudioSource>(); _breath.loop = true; _breath.playOnAwake = false; _breath.spatialBlend = 0f;
                 _lp = go.AddComponent<AudioLowPassFilter>();
             }
-            if (_breath.clip != S.breathingLoop) _breath.clip = S.breathingLoop;
+            if (_breath.clip != S.breathingLoop) { _breath.Stop(); _breath.clip = S.breathingLoop; }
             _lp.cutoffFrequency = _face.Worn == ASHFaceProtection.Kind.Mask ? S.breathingMuffleHz : S.breathingMuffleHz * 1.8f;
             _breath.volume = S.breathingVolume * ASHGameSettings.CachedSfx * (_face.Worn == ASHFaceProtection.Kind.Mask ? 1f : 0.7f);
-            if (!_breath.isPlaying) _breath.Play();
+            // pace: each pass of the breathing clip is followed by a gap so the cycle lasts clip x pace multiplier
+            // (x1 = back-to-back as before: running / sprinting / rag-filter warning; ~x2 standing still). No pitch change.
+            _breath.loop = false;
+            if (!_breath.isPlaying && _breath.clip)
+            {
+                float pace = Mathf.Max(1f, ASHBreathFog.PaceMultiplier(gameObject)); // re-read every frame: speeding up cuts the gap short
+                float len = _breath.clip.length / Mathf.Max(0.1f, Mathf.Abs(_breath.pitch));
+                if (Time.time >= _breathPassStart + len * pace) { _breath.Play(); _breathPassStart = Time.time; }
+            }
         }
     }
 }

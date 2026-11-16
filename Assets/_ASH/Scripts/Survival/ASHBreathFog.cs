@@ -76,6 +76,23 @@ namespace ASH.Survival
 
         float _nextHeavy; bool _wasSprinting; float _sprintSince = -1f;
 
+        /// <summary>Breath interval multiplier from movement: idleBreathIntervalMultiplier standing still, walk multiplier in
+        /// between, 1 (normal pace) when running / sprinting or while the rag / filter is in its warning window.</summary>
+        public static float PaceMultiplier(GameObject player)
+        {
+            var t = ASHTemperatureSettings.I; if (!player) return 1f;
+            var st = player.GetComponent<ASHSurvivalStats>(); if (st && st.IsSprinting) return 1f;
+            var face = player.GetComponent<ASHFaceProtection>(); if (face && face.Worn != ASHFaceProtection.Kind.None && face.Low) return 1f;
+            var rb = player.GetComponent<Rigidbody>();
+            float v = 0f;
+            if (rb) { var vel = rb.linearVelocity; vel.y = 0f; v = vel.magnitude; }
+            else { var cc = player.GetComponent<CharacterController>(); if (cc) { var vel = cc.velocity; vel.y = 0f; v = vel.magnitude; } }
+            if (v <= t.idleSpeed) return t.idleBreathIntervalMultiplier;
+            float walkSpeed = Mathf.Lerp(t.idleSpeed, t.runSpeed, 0.4f);
+            if (v <= walkSpeed) return Mathf.Lerp(t.idleBreathIntervalMultiplier, t.walkBreathIntervalMultiplier, Mathf.InverseLerp(t.idleSpeed, walkSpeed, v));
+            return Mathf.Lerp(t.walkBreathIntervalMultiplier, 1f, Mathf.InverseLerp(walkSpeed, t.runSpeed, v));
+        }
+
         void Update()
         {
             if (!_stats || _stats.IsDead || Time.timeScale <= 0f) return;
@@ -108,6 +125,7 @@ namespace ASH.Survival
             // cold breath: visible puffs + soft exhale, only at or below the warmth threshold
             if (!cold || Time.time < _next) return;
             float interval = Mathf.Lerp(S.coldBreathEveryRest, S.coldBreathEveryExerted, exert);
+            interval *= PaceMultiplier(gameObject); // slower standing still, normal pace running / sprinting / rag-filter warning
             _next = Time.time + interval * (1f + Random.Range(-S.coldBreathJitter, S.coldBreathJitter));
             Breath(density * mult, exert, worn, -1f, false);
         }
