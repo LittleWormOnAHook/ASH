@@ -103,3 +103,10 @@ desktop.ini
 # Vendor: ARTnGAME (PPv2-only fog, unused) - stays out of git
 /Assets/ARTnGAME/
 /Assets/ARTnGAME.meta
+
+# Generated Ultimate Mesh Simplifier LODs from vendor rock meshes - stay out of git
+/Assets/UMS_LODs/
+/Assets/UMS_LODs.meta
+
+# Accidental empty material at the repo root
+/bush.mat
