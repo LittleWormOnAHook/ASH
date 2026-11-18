@@ -110,3 +110,11 @@ desktop.ini
 
 # Accidental empty material at the repo root
 /bush.mat
+
+# Vendor: copied from Dark Matter Genesis (Invector add-ons, JMO WarFX, Malbers) - stays out of git
+/Assets/JMO Assets/
+/Assets/JMO Assets.meta
+/Assets/Malbers Animations/
+/Assets/Malbers Animations.meta
+/Assets/TextMesh Pro/
+/Assets/TextMesh Pro.meta
