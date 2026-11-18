@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: ASH_Phase2A_Audio
   m_EditorClassIdentifier: Assembly-CSharp::ASH.World.Weather.ASHPhase2AAudio
   radioMusic:
-  - {fileID: 8300000, guid: cff884b704c79814197543d77d2a5975, type: 3}
+  - {fileID: 8300000, guid: 088a24c1d4642b34eb23893898ab7148, type: 3}
   alertTone: {fileID: 0}
   broadcastVoice: []
   staticLoop: {fileID: 8300000, guid: ebe4b478781f7ba4cb066451bfe45f7c, type: 3}

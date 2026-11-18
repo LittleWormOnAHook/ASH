@@ -20,7 +20,7 @@ MonoBehaviour:
   walkRevealRadius: 30
   gpsUncertainty: 70
   gpsDrift: 25
-  fogResolution: 512
+  fogResolution: 1000
   pois:
   - id: redstone_camp
     displayName: Redstone Camp

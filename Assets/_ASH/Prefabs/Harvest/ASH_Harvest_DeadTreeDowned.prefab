@@ -60,7 +60,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 1.0644835, y: 1.0644835, z: 1.0644835}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 6711258796406555745}
@@ -109,7 +109,7 @@ MonoBehaviour:
     amount: 2
   chipItem: {fileID: 11400000, guid: cdf61af5b2170224aa295f116d6ca24d, type: 2}
   chipChance: 0.3
-  logPrefab: {fileID: 7431534890675112891, guid: 2c32ff272ab49df46a4799cb9f5f22f4, type: 3}
+  logPrefab: {fileID: 1175400958797266, guid: e7f5b16ef2213b14a8575b450c28dcef, type: 3}
   logLength: 2.5
   maxLogs: 2
   usableHeight: 1
