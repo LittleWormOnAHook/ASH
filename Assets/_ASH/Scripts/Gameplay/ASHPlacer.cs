@@ -156,6 +156,7 @@ namespace ASH.Gameplay
             if (!inventory.Remove(item, 1)) { Cancel(); return false; }
             var go = Instantiate(item.placeablePrefab, _pos, Quaternion.Euler(0f, _yaw, 0f));
             go.name = item.placeablePrefab.name;
+            go.AddComponent<ASHPlacedObject>().itemId = item.itemId; // saved by ASHPlacedSave
             Cancel();
             ASHLog.Info($"Placed {item.displayName} at {go.transform.position}");
             PlacedObject?.Invoke(item, go);

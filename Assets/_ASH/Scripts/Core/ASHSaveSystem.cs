@@ -82,7 +82,7 @@ namespace ASH.Core
         }
 
         float _nextAuto, _iconUntil, _lastShelterSave = -999f;
-        ASHCoreSave _core; ASHWorldSave _world;
+        ASHCoreSave _core; ASHWorldSave _world; ASH.Gameplay.ASHPlacedSave _placed;
         Canvas _canvas; RectTransform _icon; Image _fade; float _fadeT = -1f;
 
         void Awake()
@@ -90,14 +90,15 @@ namespace ASH.Core
             if (Instance && Instance != this) { Destroy(gameObject); return; }
             Instance = this;
             _core = new ASHCoreSave(); _world = new ASHWorldSave(); _world.Snapshot();
-            Register(_core); Register(_world);
+            _placed = new ASH.Gameplay.ASHPlacedSave(); _placed.Snapshot();
+            Register(_core); Register(_world); Register(_placed);
             BuildUI();
             if (PendingLoad == null && !ASHSceneFlow.ContinuingRun) PlaySeconds = 0f;
             ASHSceneFlow.ContinuingRun = false;
             ResetAutosaveTimer();
         }
 
-        void OnDestroy() { if (Instance == this) Instance = null; Unregister(_core); Unregister(_world); }
+        void OnDestroy() { if (Instance == this) Instance = null; Unregister(_core); Unregister(_world); Unregister(_placed); }
 
         void Start() { if (PendingLoad != null) StartCoroutine(RestoreRoutine(PendingLoad)); }
 
