@@ -3,7 +3,8 @@ using UnityEngine;
 namespace ASH.Survival
 {
     /// <summary>
-    /// All survival balancing in one asset. Rates are per real minute for readability. Wide ranges plus
+    /// All survival balancing in one asset. Rates are per real minute / second at the default 48-minute day
+    /// (1 game hour = 2 real minutes); ASHSurvivalStats applies them on the game clock, so they scale with day length. Wide ranges plus
     /// presets (Relaxed / Default / Extreme) for stress testing.
     /// </summary>
     [CreateAssetMenu(menuName = "ASH/Survival/Survival Tuning", fileName = "ASH_SurvivalTuning")]
@@ -19,7 +20,7 @@ namespace ASH.Survival
         [Range(0f, 1f)] public float startHunger = 0.72f;
         [Range(0f, 1f)] public float startThirst = 0.64f;
 
-        [Header("Needs decay (points per real minute)")]
+        [Header("Needs decay (points per minute at the default 48-min day = per half game hour; runs on the game clock)")]
         [Range(0f, 100f)] public float hungerPerMinute = 1.1f;
         [Range(0f, 100f)] public float thirstPerMinute = 1.6f;
         [Tooltip("Needs decay multiplier while sprinting.")]

@@ -9,6 +9,9 @@ namespace ASH.Survival
     /// authored maxima, low-stat health drain, delayed health regen, throttled change notification,
     /// Consume(item). Energy/oxygen/exposure/progression replaced by hunger and thirst.
     /// Stamina itself is simulated by the Invector motor and mirrored in via <see cref="SetStaminaFromMotor"/>.
+    /// Hunger, thirst, empty-need health drain, regen and the regen delay run on GAME time (<see cref="ASHGameTime"/>):
+    /// tuning values stay "per real minute / second at the default 48-minute day" (1 game hour = 120 of those seconds),
+    /// so the balance is unchanged at 48 min/day and scales with the clock if the day length changes (frozen clock = frozen needs).
     /// </summary>
     [DisallowMultipleComponent]
     public sealed class ASHSurvivalStats : MonoBehaviour, IASHConsumer
@@ -45,7 +48,7 @@ namespace ASH.Survival
             Health = Mathf.Clamp(health, 1f, MaxHealth);
             if (hunger >= 0f) Hunger = Mathf.Clamp(hunger, 0f, MaxHunger);
             if (thirst >= 0f) Thirst = Mathf.Clamp(thirst, 0f, MaxThirst);
-            _lastDamageTime = Time.time;
+            _sinceDamage = 0f;
             Changed?.Invoke();
         }
 
@@ -55,7 +58,9 @@ namespace ASH.Survival
 
         private const float NotifyInterval = 0.1f;
         private float _nextNotify;
-        private float _lastDamageTime = float.NegativeInfinity;
+        /// <summary>Real seconds per game hour at the default 48-minute day (the unit the tuning rates are authored in).</summary>
+        public const float SecondsPerGameHourAtDefault = 48f * 60f / 24f;
+        private float _sinceDamage = float.PositiveInfinity; // game-time seconds (at the default day) since the last damage
 
         private void Awake()
         {
@@ -77,8 +82,10 @@ namespace ASH.Survival
         private void Update()
         {
             if (IsDead || Paused || Time.timeScale <= 0f) return;
-            float dt = Time.deltaTime;
+            // Game-clock delta expressed in "seconds at the default 48-min day" so authored rates keep their balance.
+            float dt = ASHGameTime.DeltaHours * SecondsPerGameHourAtDefault;
             ASHSurvivalTuning.Bind(tuning);
+            if (_sinceDamage < float.PositiveInfinity) _sinceDamage += dt;
             float mul = tuning.needsRateMultiplier * ASHSurvivalTuning.DrainRate * (IsSprinting ? tuning.sprintNeedsMultiplier : 1f) / 60f;
             Hunger = Mathf.Max(0f, Hunger - tuning.hungerPerMinute * mul * dt);
             Thirst = Mathf.Max(0f, Thirst - tuning.thirstPerMinute * mul * dt);
@@ -88,7 +95,7 @@ namespace ASH.Survival
             if (Thirst <= 0f) drain += tuning.emptyNeedHealthDrainPerSecond;
             if (drain > 0f) Damage(drain * dt, false);
             else if (Hunger >= MaxHunger * tuning.regenNeedThreshold && Thirst >= MaxThirst * tuning.regenNeedThreshold
-                     && Time.time - _lastDamageTime > tuning.regenDelayAfterDamage && Health < MaxHealth)
+                     && _sinceDamage > tuning.regenDelayAfterDamage && Health < MaxHealth)
                 Health = Mathf.Min(MaxHealth, Health + tuning.healthRegenPerSecond * dt);
 
             if (Time.unscaledTime >= _nextNotify) { _nextNotify = Time.unscaledTime + NotifyInterval; Changed?.Invoke(); }
@@ -103,8 +110,7 @@ namespace ASH.Survival
         {
             if (IsDead || amount <= 0f) return;
             Health = Mathf.Max(0f, Health - amount);
-            if (resetsRegen) _lastDamageTime = Time.time;
-            else _lastDamageTime = Time.time;
+            _sinceDamage = 0f; // every damage source pauses regen (resetsRegen kept for API compatibility)
             if (Health <= 0f) { IsDead = true; Changed?.Invoke(); Died?.Invoke(); }
         }
 
