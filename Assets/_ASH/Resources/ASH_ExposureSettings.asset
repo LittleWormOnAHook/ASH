@@ -1,0 +1,79 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bd7d33fe85f8ec04c8911e9b6cc6035b, type: 3}
+  m_Name: ASH_ExposureSettings
+  m_EditorClassIdentifier: Assembly-CSharp::ASH.Survival.ASHExposureSettings
+  clear: 0
+  calmHazy: 0.1
+  lightAsh: 0.4
+  heavyAsh: 1
+  rainAsh: 0.6
+  snowstorm: 0.15
+  thunderstorm: 0.5
+  lightSnowMorning: 0
+  weatherBlendPerGameHour: 3
+  healthDrainPerGameHour: 10
+  staminaDrainPerGameHour: 0
+  staminaRecoveryPenalty: 0.45
+  exposureDeadzone: 0.02
+  ragProtection: 0.6
+  ragHours: 7
+  ragDegradeHours: 1.75
+  rewetWaterPercent: 10
+  maskProtection: 0.9
+  maskNoFilterProtection: 0.15
+  filterHours: 14
+  filterDegradeHours: 0.875
+  filterWearsOnlyWhenExposed: 1
+  filterLowHours: 3.5
+  filterUnusableBelow: 0.03
+  foundFilterCondition:
+  - label: new
+    min: 0.95
+    max: 1
+    weight: 1.5
+  - label: used
+    min: 0.45
+    max: 0.9
+    weight: 4
+  - label: nearly spent
+    min: 0.08
+    max: 0.4
+    weight: 3
+  - label: clogged
+    min: 0
+    max: 0.02
+    weight: 1.5
+  warnHealthFraction: 0.25
+  edgePulseSpeed: 1.6
+  edgeMaxAlpha: 0.55
+  edgeWidth: 140
+  warnToast: Find shelter quickly
+  coughClips:
+  - {fileID: 8300000, guid: 732bf3b88da69be4d9073a7c78bc5a4e, type: 3}
+  breathingLoop: {fileID: 8300000, guid: 7d18370d717a27a44ac4a19ba5873a1d, type: 3}
+  coughVolume: 0.7
+  coughExposure: 0.25
+  coughIntervalSeconds: {x: 9, y: 22}
+  lowHealthCoughIntervalSeconds: {x: 4, y: 9}
+  breathingVolume: 0.35
+  breathingMuffleHz: 1100
+  laboredClip: {fileID: 0}
+  laboredVolume: 0.35
+  laboredIntervalSeconds: {x: 14, y: 4}
+  laboredPitchJitter: 0.06
+  sipPercent: 10
+  thirstPerSip: 12
+  refillHoldSeconds: 1.6
+  timerOffset: {x: 0, y: 140}
+  timerRedMinutes: 10
+  statusOffset: {x: 40, y: 200}
