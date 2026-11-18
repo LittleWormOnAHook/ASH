@@ -15,6 +15,9 @@ TagManager:
   - CompanionAI
   - Weapon
   - LadderTrigger
+  - AutoCrouch
+  - Action
+  - Ignore Ragdoll
   layers:
   - Default
   - TransparentFX
