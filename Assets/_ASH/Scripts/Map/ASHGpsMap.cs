@@ -1,5 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.IO.Compression;
+using ASH.Core;
 using UnityEngine;
 
 namespace ASH.Map
@@ -8,9 +11,10 @@ namespace ASH.Map
     /// The damaged GPS: holds the region map, fog of war and logged survey points. Starts nearly blank (a small
     /// patch around the start), records a coarse track as the player walks, and opens up regions when survey
     /// points are logged. Position is only approximate: a drifting estimate inside an uncertainty circle.
+    /// Saved as the "map" section (fog mask gzip+base64, logged surveys, known POIs); saves without it keep the fresh map.
     /// </summary>
     [DefaultExecutionOrder(-100)]
-    public sealed class ASHGpsMap : MonoBehaviour
+    public sealed class ASHGpsMap : MonoBehaviour, IASHSaveable
     {
         public static ASHGpsMap Instance { get; private set; }
 
@@ -39,6 +43,8 @@ namespace ASH.Map
             Fog = new ASHMapFog(region.fogResolution, region.worldMin, region.worldSize) { EdgeSoftness = region.fogEdgeSoftness, EdgeMinMetres = region.fogEdgeMinMetres };
         }
         private void OnDestroy() { if (Instance == this) Instance = null; }
+        private void OnEnable() { ASHSaveSystem.Register(this); }
+        private void OnDisable() { ASHSaveSystem.Unregister(this); }
 
         private void Start()
         {
@@ -101,5 +107,53 @@ namespace ASH.Map
         }
 
         public ASHSurveyPointDef FindSurvey(string id) => region ? region.surveys.Find(s => s.surveyId == id) : null;
+
+        // ---- Save ("map") ----
+        [Serializable] sealed class State { public int res; public string fog; public List<string> logged = new List<string>(); public List<string> pois = new List<string>(); }
+        public string SaveKey => "map";
+        public int RestoreOrder => 25;
+
+        public string CaptureJson()
+        {
+            var st = new State();
+            if (Fog != null) { st.res = Fog.Resolution; st.fog = Pack(Fog.BuildSave()); }
+            st.logged.AddRange(_logged); st.pois.AddRange(_knownPois);
+            return JsonUtility.ToJson(st);
+        }
+
+        public void RestoreJson(string json)
+        {
+            var st = JsonUtility.FromJson<State>(json); if (st == null || Fog == null) return;
+            if (st.res == Fog.Resolution && !string.IsNullOrEmpty(st.fog))
+            {
+                var mask = Unpack(st.fog);
+                if (mask != null) Fog.ApplySave(mask);
+            }
+            if (st.logged != null) foreach (var id in st.logged) if (!string.IsNullOrEmpty(id)) _logged.Add(id);
+            if (st.pois != null) foreach (var id in st.pois) if (!string.IsNullOrEmpty(id)) _knownPois.Add(id);
+            if (region) MarkKnownPois();
+            Fog.Upload();
+            Revealed?.Invoke();
+        }
+
+        static string Pack(byte[] data)
+        {
+            using (var ms = new MemoryStream())
+            {
+                using (var gz = new GZipStream(ms, System.IO.Compression.CompressionLevel.Optimal, true)) gz.Write(data, 0, data.Length);
+                return Convert.ToBase64String(ms.ToArray());
+            }
+        }
+
+        static byte[] Unpack(string b64)
+        {
+            try
+            {
+                using (var src = new MemoryStream(Convert.FromBase64String(b64)))
+                using (var gz = new GZipStream(src, CompressionMode.Decompress))
+                using (var dst = new MemoryStream()) { gz.CopyTo(dst); return dst.ToArray(); }
+            }
+            catch (Exception e) { Debug.LogWarning("[ASH] Map save: fog data unreadable, keeping the current fog. " + e.Message); return null; }
+        }
     }
 }
