@@ -118,3 +118,6 @@ desktop.ini
 /Assets/Malbers Animations.meta
 /Assets/TextMesh Pro/
 /Assets/TextMesh Pro.meta
+# Vendor: Vehicle Physics (Grandpa's truck) - stays out of git
+/Assets/VehiclePhysics/
+/Assets/VehiclePhysics.meta
