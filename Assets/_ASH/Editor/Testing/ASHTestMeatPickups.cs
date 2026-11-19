@@ -59,7 +59,7 @@ namespace ASH.EditorTools
         static void SceneManager_Move(GameObject go, UnityEngine.SceneManagement.Scene s) { if (go.scene != s) UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(go, s); }
 
         /// <summary>Scene campfire closest to the cabin door that is not inside the cabin interior.</summary>
-        static ASHCampfire FindCabinFire(out string how)
+        public static ASHCampfire FindCabinFire(out string how)
         {
             how = "";
             var door = GameObject.Find("ASH_CabinDoor");
@@ -79,7 +79,7 @@ namespace ASH.EditorTools
             return best;
         }
 
-        static void Snap(GameObject go, Transform fire)
+        public static void Snap(GameObject go, Transform fire)
         {
             var p = go.transform.position;
             float ground = p.y; bool found = false;

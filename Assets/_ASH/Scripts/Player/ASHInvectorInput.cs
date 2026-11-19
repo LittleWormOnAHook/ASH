@@ -5,11 +5,15 @@ using UnityEngine;
 namespace ASH.Player
 {
     /// <summary>
-    /// ASH adapter over Invector's vThirdPersonInput (the controller Genesis uses). Invector stays unmodified;
-    /// this subclass feeds it from <see cref="ASHInput"/> (Unity Input System) instead of legacy axes and
-    /// disables features ASH does not use (roll, strafe toggle). Sprint is hold-to-sprint for the slice.
+    /// ASH adapter over Invector's full shooter + melee input (vShooterMeleeInput, which extends vMeleeCombatInput and
+    /// vThirdPersonInput, as in Genesis). Invector stays unmodified; this subclass feeds locomotion from <see cref="ASHInput"/>
+    /// (Unity Input System) and disables features ASH does not use (roll, strafe toggle, blocking, strong attack, scope,
+    /// camera-side switch). R reloads guns (Invector reload; rounds come from the ASH pack). Combat: LMB attacks with a melee weapon
+    /// (axe, clubs) or fires/looses while RMB aims a gun or draws the bow (Invector archery: hold LMB to charge bow power).
+    /// Melee only runs while ASH says so (a melee weapon is held, not chopping, no UI open): see ASH.Combat.ASHCombatBridge.
+    /// Sprint is hold-to-sprint.
     /// </summary>
-    public class ASHInvectorInput : vThirdPersonInput
+    public class ASHInvectorInput : vShooterMeleeInput
     {
         [Header("ASH")]
         [SerializeField] private ASHInput ashInput;
@@ -37,9 +41,48 @@ namespace ASH.Player
         protected override void Start()
         {
             if (ashInput == null) ashInput = GetComponent<ASHInput>();
+            // fallback if ASH/Systems/Combat setup was not run on this player: the shooter input needs its managers
+            if (!GetComponent<Invector.vShooter.vShooterManager>()) gameObject.AddComponent<Invector.vShooter.vShooterManager>().useAmmoDisplay = false;
+            if (!GetComponent<Invector.vMelee.vMeleeManager>()) gameObject.AddComponent<Invector.vMelee.vMeleeManager>();
+            if (!GetComponent<Invector.vItemManager.vAmmoManager>()) gameObject.AddComponent<Invector.vItemManager.vAmmoManager>();
+            if (!GetComponent<ASH.Combat.ASHCombatBridge>()) gameObject.AddComponent<ASH.Combat.ASHCombatBridge>();
             base.Start();
             if (cc != null) cc.useContinuousSprint = !holdToSprint;
+            // ASH has no blocking, shields, scope, camera-side switch or strong attack: those Invector keys clash
+            // with ASH binds (Tab = pack, Z = weapon quad, 1 = hotbar), so they are switched off here.
+            if (strongAttackInput != null) strongAttackInput.useInput = false;
+            if (blockInput != null) blockInput.useInput = false;
+            if (switchCameraSideInput != null) switchCameraSideInput.useInput = false;
+            if (scopeViewInput != null) scopeViewInput.useInput = false;
+            if (strafeInput != null) strafeInput.useInput = false;
             ASHUIState.ApplyCursor();
+        }
+
+        /// <summary>Set by ASH.Combat.ASHCombatBridge: true while a melee weapon is out and nothing else owns LMB.</summary>
+        public System.Func<bool> MeleeAllowed;
+        /// <summary>Set by ASH.Combat.ASHCombatBridge: true while an Invector gun / bow is out.</summary>
+        public System.Func<bool> ShooterAllowed;
+
+        protected override bool MeleeAttackConditions()
+        {
+            if (ASHUIState.BlocksGameplay) return false;
+            if (MeleeAllowed != null && !MeleeAllowed()) return false;
+            return base.MeleeAttackConditions();
+        }
+
+        public override void BlockingInput() { isBlocking = false; } // no shields / blocking in ASH
+        public override void MeleeStrongAttackInput() { }            // no strong attack bind yet (data-driven later)
+
+        public override void AimInput()
+        {
+            if (ShooterAllowed != null && !ShooterAllowed()) { isAimingByInput = false; return; }
+            base.AimInput();
+        }
+
+        public override void ShotInput()
+        {
+            if (ShooterAllowed != null && !ShooterAllowed()) return;
+            base.ShotInput();
         }
 
         public override void InputHandle()

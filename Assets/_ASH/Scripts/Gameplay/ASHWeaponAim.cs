@@ -246,11 +246,37 @@ namespace ASH.Gameplay
 
         static bool IsBowState(string s) => s == "BowDraw" || s == "BowHold" || s == "BowShot";
 
+        /// <summary>Set by ASH.Combat.ASHCombatBridge while an Invector shooter weapon (gun or bow) is out: Invector owns aiming,
+        /// the aim camera, arm IK, firing and projectiles; this component only keeps the bow visuals (nocked arrow on the string,
+        /// string pull to the drawing fingers) driven by <see cref="ExternalAiming"/> / <see cref="ExternalDraw01"/> (bow power).</summary>
+        [System.NonSerialized] public bool ExternalControl;
+        [System.NonSerialized] public bool ExternalAiming;
+        [System.NonSerialized] public float ExternalDraw01;
+        bool _wasExternal;
+        /// <summary>Invector loosed the arrow: hide the nocked arrow for a moment (the next one is nocked after).</summary>
+        public void ExternalShot(float hideSeconds = 0.45f) { _shotUntil = Time.time + hideSeconds; }
+
         void Update()
         {
             var kindNow = _eq ? KindOf(_eq.Main) : Kind.None;
             if (kindNow != Current) _nextFire = 0f; // cooldown is per weapon
             Current = kindNow;
+            if (ExternalControl)
+            {
+                if (!_wasExternal)
+                {
+                    _wasExternal = true;
+                    if (Aiming) SetAim(false);
+                    if (_camAiming && _tpIn) { _camAiming = false; _tpIn.ResetCameraState(); }
+                    if (_layer && (IsBowState(_layer.State) || _layer.State == "RifleAim" || _layer.State == "PistolAim" || _layer.State == "RifleShot" || _layer.State == "PistolShot")) _layer.Release();
+                }
+                Aiming = ExternalAiming && !ASHUIState.BlocksGameplay;
+                Draw01 = Aiming && Current == Kind.Bow && HasArrows && Time.time >= _shotUntil ? Mathf.Max(Mathf.Min(1f, handArrowAppearDraw01 + 0.001f), Mathf.Clamp01(ExternalDraw01)) : 0f; // arrow nocked as soon as the bow is raised
+                _kick = 0f;
+                UpdateHandArrow();
+                return;
+            }
+            if (_wasExternal) { _wasExternal = false; Aiming = false; Draw01 = 0f; }
             bool want = Current != Kind.None && _in && _in.SecondaryHeld && !ASHUIState.BlocksGameplay;
             if (want != Aiming) { SetAim(want); if (!want) _aimReleasedAt = Time.time; }
             Draw01 = Aiming && Current == Kind.Bow && HasArrows ? Mathf.Min(1f, Draw01 + Time.deltaTime / Mathf.Max(0.05f, drawSeconds)) : 0f;
@@ -638,6 +664,18 @@ namespace ASH.Gameplay
 
         void LateUpdate()
         {
+            if (ExternalControl)
+            {
+                var ev = _eq ? _eq.MainVisual : null;
+                if (Current == Kind.Bow && ev && ev.activeInHierarchy && _anim && _anim.isHuman)
+                {
+                    _aimDir = (AimPoint(out _) - ev.transform.position).normalized;
+                    var lh = _anim.GetBoneTransform(HumanBodyBones.LeftHand);
+                    if (lh) EnsureBowGeometry(ev, lh);
+                }
+                UpdateNockAndString(ev, Aiming ? 1f : 0f);
+                return;
+            }
             BowBodyAim();
             BowArmDelta();
             RifleBlade();

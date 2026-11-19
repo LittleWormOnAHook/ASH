@@ -1,0 +1,299 @@
+using System.Collections.Generic;
+using ASH.Core;
+using ASH.Gameplay;
+using ASH.Inventory;
+using ASH.Player;
+using ASH.Survival;
+using Invector;
+using Invector.vCharacterController;
+using Invector.vItemManager;
+using Invector.vMelee;
+using Invector.vShooter;
+using UnityEngine;
+
+namespace ASH.Combat
+{
+    /// <summary>
+    /// Glue between ASH and the Invector shooter/melee layer on the player:
+    /// - ASHEquipment decides what is in hand (hotbar, pack). When the main item's pre-placed Held_ model carries an Invector
+    ///   vShooterWeapon (pistol, hunting rifle, shotgun, wooden bow) or vMeleeWeapon (hatchet, clubs), it is handed to
+    ///   vShooterManager / vMeleeManager; otherwise both are cleared. Models and hand placements are never moved.
+    /// - Ammo: the ASH pack is the only store. Rounds in the clip stay counted in the pack; Invector's reserve is the pack
+    ///   minus the clip, and every shot removes one from the pack. So saves need nothing extra, and old saves load as before.
+    /// - Damage numbers come from ASHWeaponData (Genesis tuning); handling (spread, recoil, reload) stays Invector's.
+    /// - Damage to the player goes to ASH health (ASHSurvivalStats); Invector's own health is kept immortal so ASH owns death.
+    ///   Genesis stagger rules decide whether a hit plays a reaction. Melee hits get Genesis hit stop and hit marks.
+    /// - ASHWeaponAim is put in external mode while a gun or the bow is out (it only draws the nocked arrow and string pull).
+    /// </summary>
+    [DisallowMultipleComponent]
+    [DefaultExecutionOrder(1590)]
+    public sealed class ASHCombatBridge : MonoBehaviour
+    {
+        public static ASHCombatBridge Player { get; private set; }
+
+        ASHEquipment _eq; ASHInvectorInput _in; vShooterManager _sm; vMeleeManager _mm; vAmmoManager _am; vThirdPersonController _cc;
+        ASHSurvivalStats _stats; ASHWeaponAim _aim; ASHChopAnimator _chop; Animator _anim;
+        ASHItemDefinition _cur; GameObject _curGo; vShooterWeapon _gun; vMeleeWeapon _melee; bool _gunLeft, _lastCrit, _wasCharging, _camDone;
+        float _staggerImmuneUntil;
+        readonly Dictionary<vShooterWeapon, bool> _primed = new Dictionary<vShooterWeapon, bool>();
+
+        public ASHWeaponData CurrentData { get; private set; }
+        public ASHItemDefinition CurrentItem => _cur;
+        public bool MeleeOut => _melee;
+        public bool GunOut => _gun;
+        public vShooterWeapon Gun => _gun;
+
+        /// <summary>Invector reserve backed by the ASH pack: pack count minus what is already in the clip. Use() is a no-op
+        /// because loaded rounds stay in the pack until fired.</summary>
+        sealed class PackAmmo : vAmmo
+        {
+            public ASHCombatBridge owner; public ASHItemDefinition item;
+            public PackAmmo(ASHCombatBridge o, ASHItemDefinition it, int id) : base(it ? it.displayName : "ammo", id, 0) { owner = o; item = it; }
+            public override int count => owner ? Mathf.Max(0, owner.PackCount(item) - owner.LoadedOf(item)) : 0;
+            public override void Use() { }
+            public override void Use(int amount) { }
+        }
+
+        int PackCount(ASHItemDefinition it) => _eq ? _eq.AmmoCount(it) : 0;
+        int LoadedOf(ASHItemDefinition it) => _gun && _cur && _cur.ammoItem == it ? Mathf.Max(0, _gun.ammo) : 0;
+
+        void Awake()
+        {
+            Player = this;
+            _in = GetComponent<ASHInvectorInput>(); _cc = GetComponent<vThirdPersonController>();
+            _sm = GetComponent<vShooterManager>(); _mm = GetComponent<vMeleeManager>(); _am = GetComponent<vAmmoManager>();
+            _eq = GetComponentInChildren<ASHEquipment>(true); if (!_eq) _eq = GetComponentInParent<ASHEquipment>();
+            _stats = GetComponentInChildren<ASHSurvivalStats>(true); if (!_stats) _stats = GetComponentInParent<ASHSurvivalStats>();
+            _anim = GetComponent<Animator>(); if (!_anim) _anim = GetComponentInChildren<Animator>();
+            _aim = _anim ? _anim.GetComponent<ASHWeaponAim>() : null; if (!_aim) _aim = GetComponentInChildren<ASHWeaponAim>(true);
+            _chop = GetComponentInChildren<ASHChopAnimator>(true);
+            if (_in)
+            {
+                _in.MeleeAllowed = () => _melee && !(_chop && _chop.Chopping) && !ASHUIState.BlocksGameplay;
+                _in.ShooterAllowed = () => _gun && !ASHUIState.BlocksGameplay;
+            }
+            if (_eq) _eq.CombatOwnsMain = it => it != null && it == _cur && (_gun || _melee);
+            if (_am) { _am.ammoListData = null; _am.ammos.Clear(); }
+            if (_sm) _sm.useAmmoDisplay = false;
+            var t = ASHCombatTuning.Live;
+            if (t.shooterUiPrefab && !FindAnyObjectByType<vControlAimCanvas>(FindObjectsInactive.Include))
+            {
+                var ui = Instantiate(t.shooterUiPrefab); ui.name = "ASH_ShooterUI (Invector crosshair)";
+                foreach (var d in ui.GetComponentsInChildren<vAmmoDisplay>(true)) d.gameObject.SetActive(false);
+            }
+        }
+
+        void OnDestroy() { if (Player == this) Player = null; }
+
+        void Start()
+        {
+            if (_cc)
+            {
+                _cc.isImmortal = true; // ASH health owns damage and death
+                _cc.onStartReceiveDamage.AddListener(OnStartDamage);
+                _cc.onReceiveDamage.AddListener(OnDamage);
+            }
+            if (_mm) _mm.onDamageHit.AddListener(OnMeleeHit);
+            if (_sm) { _sm.onShot.AddListener(OnShot); _sm.onEmptyClipShot.AddListener(OnEmpty); _sm.onFinishReloadWeapon.AddListener(OnReloaded); }
+        }
+
+        void Update()
+        {
+            if (!_camDone) _camDone = EnsureCameraStates();
+            if (_eq)
+            {
+                var main = _eq.Main; var go = _eq.MainVisual;
+                if (main != _cur || go != _curGo) Rebind(main, go);
+            }
+            if (_gun && _cur && _cur.ammoItem)
+            {
+                int pack = PackCount(_cur.ammoItem);
+                if (_gun.ammo > pack) _gun.ammo = pack; // rounds dropped or used elsewhere
+            }
+            if (_aim)
+            {
+                _aim.ExternalControl = _gun;
+                if (_gun) { _aim.ExternalAiming = _in && _in.IsAiming; _aim.ExternalDraw01 = _gun.chargeWeapon ? _gun.powerCharge : 0f; }
+            }
+            if (_gun && _gun.chargeWeapon)
+            {
+                bool ch = _gun.powerCharge > 0.02f;
+                if (ch && !_wasCharging) { var b = ASHSoundBank.Instance; if (b) ASHSfx.Play("bowDraw", b.bowDraw, transform.position + Vector3.up * 1.4f, b.bowVolume * b.volume, 1f, 0.04f, 0.6f); }
+                _wasCharging = ch;
+            }
+        }
+
+        void Rebind(ASHItemDefinition main, GameObject go)
+        {
+            if (_gun)
+            {
+                _gun.onInstantiateProjectile.RemoveListener(OnProjectile);
+                if (_sm) { if (_gunLeft) _sm.SetLeftWeapon((GameObject)null); else _sm.SetRightWeapon((GameObject)null); }
+                _gun.isAiming = false; _gun.powerCharge = 0f;
+            }
+            if (_melee)
+            {
+                _melee.onEnableDamage.RemoveListener(RollMelee);
+                if (_mm) _mm.SetRightWeapon((vMeleeWeapon)null);
+            }
+            _gun = null; _melee = null; CurrentData = null; _wasCharging = false;
+            _cur = main; _curGo = go;
+            if (!main || !go) return;
+            CurrentData = ASHWeaponData.For(main);
+            _gun = go.GetComponent<vShooterWeapon>();
+            _melee = _gun ? null : go.GetComponent<vMeleeWeapon>();
+            if (_gun && _sm)
+            {
+                ApplyGun(main);
+                _gunLeft = ASHEquipment.InLeftHand(main) || _gun.isLeftWeapon;
+                if (_gunLeft) _sm.SetLeftWeapon(go); else _sm.SetRightWeapon(go);
+                _gun.onInstantiateProjectile.AddListener(OnProjectile);
+            }
+            else _gun = null;
+            if (_melee && _mm) { ApplyMelee(); _mm.SetRightWeapon(_melee); _melee.onEnableDamage.AddListener(RollMelee); }
+            else _melee = null;
+        }
+
+        void ApplyGun(ASHItemDefinition main)
+        {
+            var d = CurrentData; var t = ASHCombatTuning.Live; var ammo = main.ammoItem;
+            if (d && !d.useInvectorDamage)
+            {
+                _gun.maxDamage = Mathf.RoundToInt((d.damage + d.damageRandom) * t.outgoingDamage);
+                _gun.minDamage = Mathf.RoundToInt(Mathf.Max(0f, d.damage - d.damageRandom) * t.outgoingDamage);
+                _gun.damageByDistance = true; _gun.minDamageDistance = d.range * 0.25f; _gun.maxDamageDistance = d.range;
+                if (d.kind == ASHWeaponKind.Bow) { _gun.chargeDamageMultiplier = d.fullDrawDamageMultiplier; _gun.minDamageDistance = d.range * 0.5f; }
+            }
+            if (d && d.kind == ASHWeaponKind.Bow)
+            {
+                _gun.chargeWeapon = true; _gun.chargeSpeed = 1f / Mathf.Max(0.1f, d.drawSeconds);
+                _gun.changeVelocityByCharge = true; _gun.chargeVelocityMultiplier = d.fullDrawSpeedMultiplier;
+                _gun.velocity = d.projectileSpeed / Mathf.Max(1f, d.fullDrawSpeedMultiplier); _gun.autoShotOnFinishCharge = d.autoLooseAtFullDraw;
+            }
+            if (d && d.overrideInvectorHandling && d.kind == ASHWeaponKind.Gun)
+            { _gun.velocity = d.projectileSpeed; _gun.dispersion = d.dispersion; _gun.shootFrequency = d.shotInterval; }
+            _gun.isInfinityAmmo = false; _gun.checkAmmoHandle = null; _gun.changeAmmoHandle = null;
+            if (ammo && _am)
+            {
+                if (_am.ammos.Find(a => a.ammoID == _gun.ammoID) is PackAmmo pa) pa.item = ammo;
+                else { _am.ammos.RemoveAll(a => a.ammoID == _gun.ammoID); _am.ammos.Add(new PackAmmo(this, ammo, _gun.ammoID)); }
+            }
+            // first draw this session: the gun comes out loaded from the pack (a save stores only the pack)
+            if (!_primed.ContainsKey(_gun)) { _primed[_gun] = true; _gun.ammo = Mathf.Min(_gun.clipSize, ammo ? PackCount(ammo) : 0); }
+            if (ammo) _gun.ammo = Mathf.Min(_gun.ammo, PackCount(ammo));
+        }
+
+        void ApplyMelee()
+        {
+            var d = CurrentData; if (!d) return;
+            _melee.distanceToAttack = d.reach; _melee.staminaCost = d.staminaCost; _melee.staminaRecoveryDelay = d.staminaRecoveryDelay;
+            _melee.attackID = d.attackID; _melee.movesetID = d.movesetID; _melee.meleeType = vMeleeType.OnlyAttack; // no blocking
+        }
+
+        void RollMelee()
+        {
+            if (!_melee) return;
+            var d = CurrentData; bool crit = false;
+            float dmg = d ? d.RollDamage(out crit) : _melee.damage.damageValue;
+            _melee.damage.damageValue = dmg * ASHCombatTuning.Live.outgoingDamage;
+            _melee.damage.damageType = crit ? "ASH_MeleeCrit" : "ASH_Melee";
+            _lastCrit = crit;
+        }
+
+        void OnMeleeHit(vHitInfo hi)
+        {
+            if (hi == null || !_melee || hi.attackObject != _melee) return;
+            ASHHitStop.OnMeleeHit(_anim, hi.targetCollider, CurrentData, _lastCrit);
+            var n = (transform.position + Vector3.up * 1.2f - hi.hitPoint); n.y *= 0.3f;
+            ASHHitMarks.Spawn(hi.hitPoint, n.normalized, hi.targetCollider, ASHHitKind.Melee);
+            var rb = hi.targetCollider ? hi.targetCollider.attachedRigidbody : null;
+            if (rb && !rb.isKinematic && CurrentData) rb.AddForceAtPosition(-n.normalized * CurrentData.knockback, hi.hitPoint, ForceMode.Impulse);
+            var b = ASHSoundBank.Instance; if (b && b.axeChop != null) ASHSfx.Play("meleeHit", b.axeChop, hi.hitPoint, b.volume, Random.Range(0.85f, 1.05f), 0.05f, 1f, 30f);
+        }
+
+        void OnShot(vShooterWeapon w)
+        {
+            if (!w || w != _gun || !_cur) return;
+            if (_cur.ammoItem) _eq.SpendAmmo(_cur.ammoItem, 1);
+            var kind = CurrentData ? CurrentData.kind : (w.chargeWeapon ? ASHWeaponKind.Bow : ASHWeaponKind.Gun);
+            var b = ASHSoundBank.Instance; var at = w.muzzle ? w.muzzle.position : transform.position + Vector3.up * 1.4f;
+            if (kind == ASHWeaponKind.Bow)
+            {
+                if (_aim) _aim.ExternalShot();
+                if (b) { ASHSfx.Play("bowRelease", b.bowRelease, at, b.bowVolume * b.volume, 1f, 0.05f, 0.6f); ASHSfx.Play("arrowFlight", b.arrowFlight, at, b.bowVolume * b.volume * 0.45f, 1.1f, 0.08f, 0.8f); }
+            }
+            else
+            {
+                // Invector's own fire clip plays if the template had one; ASH sounds only fill in when it has none
+                if (b && !w.fireClip)
+                {
+                    if (_cur.gripStyle == ASHGripStyle.PistolGrip) ASHSfx.Play("pistolShot", b.pistolShot, at, b.gunVolume * b.volume, b.pistolPitch, 0.04f, 0.6f, 250f);
+                    else ASHSfx.Play("rifleShot", b.rifleShot, at, b.gunVolume * b.volume, 1f, 0.03f, 0.6f, 400f);
+                }
+                var fx = ASHCombatTuning.Live.muzzleFlash;
+                if (fx && w.muzzle) { var g = Instantiate(fx, w.muzzle.position, w.muzzle.rotation, w.muzzle); Destroy(g, 2f); }
+                if (CurrentData) ASHCameraKick.Kick(CurrentData.cameraKick, Random.Range(-0.4f, 0.4f));
+            }
+        }
+
+        void OnEmpty(vShooterWeapon w)
+        {
+            if (!w || w != _gun) return;
+            var b = ASHSoundBank.Instance;
+            if (b && !w.emptyClip) ASHSfx.Play("dryFire", b.dryFire, w.muzzle ? w.muzzle.position : transform.position, b.gunVolume * b.volume, 1f, 0.05f, 0.6f);
+            if (_cur && _cur.ammoItem && PackCount(_cur.ammoItem) <= 0) _eq.Say("No " + _cur.ammoItem.displayName);
+        }
+
+        void OnReloaded(vShooterWeapon w) { if (w && w == _gun && _cur && _cur.ammoItem) _eq.Say($"{_cur.displayName}: {w.ammo} loaded, {PackCount(_cur.ammoItem)} {_cur.ammoItem.displayName} in pack"); }
+
+        void OnProjectile(vProjectileControl p)
+        {
+            if (!p || !_gun) return;
+            bool bow = CurrentData ? CurrentData.kind == ASHWeaponKind.Bow : _gun.chargeWeapon;
+            p.onCastCollider.AddListener(hit => ASHHitMarks.Spawn(hit.point, hit.normal, hit.collider, bow ? ASHHitKind.Arrow : ASHHitKind.Bullet));
+            if (!bow) return;
+            var arrow = p.GetComponent<vArrow>();
+            if (arrow && CurrentData) arrow.penetration = Mathf.Lerp(CurrentData.minPenetration, CurrentData.maxPenetration, _gun.powerCharge);
+            var rec = p.GetComponentInChildren<ASHArrowRecover>(true); if (rec && _cur) rec.arrowItem = _cur.ammoItem;
+        }
+
+        void OnStartDamage(vDamage d)
+        {
+            if (d == null) return;
+            var t = ASHCombatTuning.Live;
+            float h01 = _stats && _stats.MaxHealth > 0f ? _stats.Health / _stats.MaxHealth : 1f;
+            float chance = Mathf.Lerp(t.playerStaggerChanceMax, t.playerStaggerChanceMin, h01);
+            bool stagger = Time.time >= _staggerImmuneUntil && Random.value < chance;
+            d.hitReaction = d.hitReaction && stagger;
+            if (stagger) { _staggerImmuneUntil = Time.time + t.playerStaggerImmunitySeconds; if (_cc && t.playerStaggerStaminaCost > 0f) _cc.ReduceStamina(t.playerStaggerStaminaCost, false); }
+        }
+
+        void OnDamage(vDamage d)
+        {
+            if (d == null || !_stats) return;
+            _stats.Damage(d.damageValue * ASHCombatTuning.Live.incomingDamage);
+        }
+
+        /// <summary>Adds Invector's Aiming / CrouchingAiming / AimingScopeView camera states to a runtime copy of the player's
+        /// camera list (framed like ASH's over-the-shoulder aim). The Invector assets are never edited.</summary>
+        bool EnsureCameraStates()
+        {
+            var cam = _in ? _in.tpCamera : null; if (!cam || !cam.CameraStateList) return false;
+            var src = ASHCombatTuning.Live.shooterCameraStates;
+            var list = cam.CameraStateList;
+            if (list.tpCameraStates.Exists(s => s.Name == "Aiming")) return true;
+            if (!list.name.Contains("(ASH runtime)")) { list = Instantiate(list); list.name = cam.CameraStateList.name + " (ASH runtime)"; }
+            var def = list.tpCameraStates.Find(s => s.Name == "Default") ?? list.tpCameraStates[0];
+            foreach (var n in new[] { "Aiming", "CrouchingAiming", "AimingScopeView" })
+            {
+                var from = src ? src.tpCameraStates.Find(s => s.Name == n) : null;
+                var st = new vThirdPersonCameraState(n);
+                JsonUtility.FromJsonOverwrite(JsonUtility.ToJson(from ?? def), st); st.Name = n;
+                if (_aim && n != "AimingScopeView") { st.right = _aim.aimCameraRight; st.height = n == "CrouchingAiming" ? _aim.aimCameraHeight * 0.7f : _aim.aimCameraHeight; st.defaultDistance = _aim.aimCameraDistance; st.fov = _aim.aimCameraFov; st.maxDistance = Mathf.Max(st.maxDistance, _aim.aimCameraDistance + 0.5f); st.minDistance = Mathf.Min(st.minDistance, 0.3f); }
+                list.tpCameraStates.Add(st);
+            }
+            if (list != cam.CameraStateList) cam.ChangeStateList(list);
+            return true;
+        }
+    }
+}

@@ -22,11 +22,15 @@ namespace ASH.EditorTools.Build
         [MenuItem("ASH/Build/Action Animations (chop, bow, guns)", priority = 40)]
         public static void Run() { Debug.Log("[ASH] ActionAnim: " + Build()); }
 
-        public static string Build()
+        public static string Build() => Build(ControllerPath);
+
+        /// <summary>Builds the ASH_Action / ASH_ActionFull layers on any controller (ASH_BasicLocomotion, or the ASH copy of
+        /// Invector's ShooterMelee controller made by ASH/Systems/Combat).</summary>
+        public static string Build(string controllerPath)
         {
             var sb = new StringBuilder();
-            var c = AssetDatabase.LoadAssetAtPath<AnimatorController>(ControllerPath);
-            if (!c) return "controller missing";
+            var c = AssetDatabase.LoadAssetAtPath<AnimatorController>(controllerPath);
+            if (!c) return "controller missing: " + controllerPath;
             AnimationClip Clip(string file, string name)
             {
                 foreach (var o in AssetDatabase.LoadAllAssetsAtPath($"{ClipDir}/{file}"))

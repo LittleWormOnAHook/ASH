@@ -343,7 +343,7 @@ namespace ASH.Gameplay
 
             if (input == null || ASHUIState.BlocksGameplay || (_placer && _placer.IsPlacing)) return;
             if (input.LightPressed) ToggleLight();
-            if (input.PrimaryPressed && Main) { if (_weaponAim) _weaponAim.Fire(); else UseMain(); }
+            if (input.PrimaryPressed && Main && !(CombatOwnsMain != null && CombatOwnsMain(Main))) { if (_weaponAim) _weaponAim.Fire(); else UseMain(); }
         }
 
         /// <summary>Stub weapon use: spends one round/arrow with a muzzle flash. No damage, no combat system.</summary>
@@ -370,6 +370,14 @@ namespace ASH.Gameplay
             if (Off && inventory.Count(Off) <= 0) Unequip(ASHEquipSlot.OffHand);
             if (Hip && inventory.Count(Hip) <= 0) Unequip(ASHEquipSlot.Hip);
         }
+
+        /// <summary>Set by ASH.Combat.ASHCombatBridge: true when the Invector combat layer handles LMB for this item (melee weapon,
+        /// Invector gun or bow), so the old stub fire path is skipped.</summary>
+        public Func<ASHItemDefinition, bool> CombatOwnsMain;
+        /// <summary>Spends ammo from the pack for the combat layer (one shot / arrow).</summary>
+        public bool SpendAmmo(ASHItemDefinition ammo, int n = 1) { if (ammo == null || inventory == null || n <= 0) return false; bool ok = inventory.Remove(ammo, n); if (ok) ShotsFired += n; return ok; }
+        public int AmmoCount(ASHItemDefinition ammo) => ammo == null || inventory == null ? 0 : inventory.Count(ammo);
+        public ASHInventory Inventory => inventory;
 
         public void Say(string m) => Message?.Invoke(m);
         ASHWeaponAim _weaponAim;
