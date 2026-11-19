@@ -17,8 +17,9 @@ namespace ASH.EditorTools
     ///    weapon handler); Invector's support-hand IK target = the authored Grip_L; muzzle on the bore at the barrel tip.
     ///  - shotgun (Invector model): Invector's right-hand weapon handler mapped from the vBot hand onto the ASH hand (anatomical
     ///    frames: wrist->knuckles, index->little), Invector's leftHandIK converted to the ASH hand bone (Grip_L).
-    ///  - wooden bow: on its authored Grip_L in the left hand (shoots along the knuckles, top limb up, string toward the archer);
-    ///    the drawing hand is IK'd from the string at rest to the authored full-draw String_R by the bow power (ASHBowDrawRig).
+    ///  - wooden bow: left-hand Grip_L placement is kept (not re-seated). The drawing hand is IK'd from the
+    ///    string at rest to the authored String_R, pulled in to a cheek anchor by ASHBowDrawRig.anchorIn;
+    ///    the held bow is scaled around Grip_L (bowScale) and the nocked arrow is centered on the string plane.
     ///  - ASH_WeaponIKAdjustList: Invector's vBot per-category IK offsets converted to the ASH rig, assigned to the shooter manager
     ///    (made once; later edits in Invector's IK Adjust window are kept).
     ///  - ASH_ArrowProjectile: trail / line renderers removed.
@@ -46,6 +47,47 @@ namespace ASH.EditorTools
             try { Do(sb); }
             catch (System.Exception e) { Debug.LogError("[ASH] Grips failed: " + e); }
             Debug.Log("[ASH] Grips: " + sb);
+        }
+
+        [MenuItem("ASH/Systems/Combat/Tune Bow Draw (cheek anchor, scale, centered arrow)")]
+        public static void TuneBowDraw()
+        {
+            if (EditorApplication.isPlayingOrWillChangePlaymode) { Debug.LogWarning("[ASH] Bow: stop Play mode first."); return; }
+            var sb = new StringBuilder();
+            var root = PrefabUtility.LoadPrefabContents(PlayerPath);
+            try
+            {
+                var an = root.GetComponentInChildren<Animator>(true);
+                if (!an) { Debug.LogError("[ASH] Bow: no Animator on ASH_Player."); return; }
+                var aR = MakeHand(an, true); var aL = MakeHand(an, false);
+                var wa = root.GetComponentInChildren<ASHWeaponAim>(true);
+                var bow = Find(aL.bone, "Held_WoodenBow");
+                if (!bow) { Debug.LogError("[ASH] Bow: Held_WoodenBow missing on ASH_Player."); return; }
+                var rig = bow.GetComponent<ASHBowDrawRig>() ?? bow.gameObject.AddComponent<ASHBowDrawRig>();
+                rig.bowScale = 0.88f;
+                rig.anchorIn = 0.10f;
+                rig.anchorOffsetLocal = Vector3.zero;
+                rig.nockOffsetLocal = Vector3.zero;
+                rig.restOffsetLocal = Vector3.zero;
+                Bow(bow, aL, aR, wa, root.transform, sb);
+                PrefabUtility.SaveAsPrefabAsset(root, PlayerPath);
+            }
+            finally { PrefabUtility.UnloadPrefabContents(root); }
+
+            var item = AssetDatabase.LoadAssetAtPath<UnityEngine.Object>("Assets/_ASH/Data/Items/ASH_Item_WoodenBow.asset");
+            if (item)
+            {
+                var so = new SerializedObject(item);
+                var p = so.FindProperty("heldScale");
+                if (p != null && !Mathf.Approximately(p.floatValue, 0.88f))
+                {
+                    p.floatValue = 0.88f;
+                    so.ApplyModifiedPropertiesWithoutUndo();
+                    sb.Append("ASH_Item_WoodenBow.heldScale=0.88; ");
+                }
+            }
+            AssetDatabase.SaveAssets();
+            Debug.Log("[ASH] Bow draw: " + sb);
         }
 
         static string V(Vector3 v) => $"({v.x:F3},{v.y:F3},{v.z:F3})";
@@ -146,7 +188,11 @@ namespace ASH.EditorTools
         static void Bow(Transform bow, Hand aL, Hand aR, ASHWeaponAim wa, Transform root, StringBuilder sb)
         {
             var g = Child(bow, GripL); if (!g) { sb.Append("Held_WoodenBow: no Grip_L; "); return; }
-            PlaceFromGrip(bow, g);
+            // Do not PlaceFromGrip: the left-hand placement / Grip_L may be hand-tuned. Scale around Grip_L instead.
+            var rig = bow.GetComponent<ASHBowDrawRig>() ?? bow.gameObject.AddComponent<ASHBowDrawRig>();
+            if (rig.bowScale < 0.5f) rig.bowScale = 0.88f;
+            ScaleBowAroundGrip(bow, g, rig.bowScale);
+
             // geometry in bow space (as ASHWeaponAim reads it): limbs along Z, string on the sign*X side, riser opposite
             var pts = new List<Vector3>();
             foreach (var mf in bow.GetComponentsInChildren<MeshFilter>(true))
@@ -170,35 +216,51 @@ namespace ASH.EditorTools
             var back = new Vector3(sign, 0f, 0f);                 // toward the string / archer
             var up = Vector3.forward;                              // top limb (+Z: the index side of the bow hand on Grip_L)
             var shoot = -back;
-            var palm = bow.InverseTransformPoint(aL.bone.position + aL.bone.rotation * aL.palmB);
-            float above = wa ? wa.arrowRestAboveGrip : 0.045f, side = wa ? wa.arrowRestSide : 0.02f;
-            float nockZ = palm.z + above;
-            var right = Vector3.Cross(up, shoot).normalized;       // the archer's right while the bow is upright
-            var rest = new Vector3(riserX, yMid, nockZ) - right * side;
+            float above = wa ? wa.arrowRestAboveGrip : 0.045f;
+            float nockZ = g.localPosition.z + above; // above the grip, stable when the bow is scaled
+            // rest and nock share Y (the string plane) so the nocked arrow is centered, not sitting beside the riser
+            var rest = new Vector3(riserX, yMid, nockZ);
             var nock = new Vector3(stringX, yMid, nockZ);
             var rot = Quaternion.LookRotation(shoot, up);
             var w = bow.GetComponent<vShooterWeapon>();
-            var mz = Child(bow, "ASH_ArrowRest") ?? NewChild(bow, "ASH_ArrowRest"); mz.localPosition = rest; mz.localRotation = rot;
-            var ar = Child(bow, "ASH_AimReference") ?? NewChild(bow, "ASH_AimReference"); ar.localPosition = rest; ar.localRotation = rot;
+            var mz = Child(bow, "ASH_ArrowRest") ?? NewChild(bow, "ASH_ArrowRest");
+            var ar = Child(bow, "ASH_AimReference") ?? NewChild(bow, "ASH_AimReference");
             var sR = Child(bow, StringR);
-            var rig = bow.GetComponent<ASHBowDrawRig>() ?? bow.gameObject.AddComponent<ASHBowDrawRig>();
             var hk = Child(bow, "ASH_BowHandIK") ?? NewChild(bow, "ASH_BowHandIK");
             rig.handTarget = hk; rig.nockRestLocal = nock; rig.restLocal = rest; rig.backLocal = back;
             if (sR)
             {
                 rig.handFullLocal = bow.InverseTransformPoint(sR.position); rig.handRotLocal = Quaternion.Inverse(bow.rotation) * sR.rotation;
-                var hookFull = rig.handFullLocal + rig.handRotLocal * aR.hookB;
-                rig.drawLength = Mathf.Clamp(Vector3.Dot(hookFull - nock, back), 0.2f, 0.8f);
             }
-            else { rig.handRotLocal = Quaternion.identity; rig.handFullLocal = nock + back * 0.5f; rig.drawLength = 0.44f; }
+            else { rig.handRotLocal = Quaternion.identity; rig.handFullLocal = nock + back * 0.5f; }
+            var hookFull = rig.HandFullEffective + rig.handRotLocal * aR.hookB;
+            rig.drawLength = Mathf.Clamp(Vector3.Dot(hookFull - rig.NockRestEffective, back), 0.05f, 1f);
+            mz.localPosition = rig.RestEffective; mz.localRotation = rot;
+            ar.localPosition = rig.RestEffective; ar.localRotation = rot;
             rig.draw01 = 0f; rig.Apply();
             if (w)
             {
                 w.muzzle = mz; w.aimReference = ar; w.handIKTarget = hk; w.useIKOnAiming = true;
                 w.freeIKOptions.use = false; w.strafeIKOptions.use = false;   // drawing hand stays free until the bow is raised
             }
+            float tipToTip = pts.Count > 20 ? (pts.Max(p => p.z) - pts.Min(p => p.z)) * rig.bowScale : 0f;
+            float worldH = Vector3.Distance(bow.TransformPoint(rig.HandFullEffective), g.position);
             var arrowMesh = bow.GetComponentsInChildren<MeshRenderer>(true).FirstOrDefault(r => r.name.IndexOf("arrow", System.StringComparison.OrdinalIgnoreCase) >= 0);
-            sb.Append($"Held_WoodenBow: bow hand on Grip_L, string side {(sign > 0 ? "+X" : "-X")}, nock {V(nock)}, rest {V(rest)}, draw {rig.drawLength:F2} m to String_R{(sR ? "" : " (missing, default)")}{(arrowMesh ? $", model arrow mesh '{arrowMesh.name}' enabled={arrowMesh.enabled}" : "")}; ");
+            sb.Append($"Held_WoodenBow: Grip_L kept, scale {rig.bowScale:F2} (tip-to-tip ~{tipToTip:F2} m), nock {V(nock)}, rest {V(rest)} (centered on string plane), draw {rig.drawLength:F2} m, anchorIn {rig.anchorIn:F2} m ({worldH:F2} m grip-to-hand world){(sR ? "" : " (String_R missing)")}{(arrowMesh ? $", model arrow mesh '{arrowMesh.name}' enabled={arrowMesh.enabled}" : "")}; ");
+        }
+
+        /// <summary>Sets the bow's world scale, then shifts its local position so Grip_L stays where it was in the left hand (rotation unchanged).</summary>
+        static void ScaleBowAroundGrip(Transform bow, Transform grip, float worldScale)
+        {
+            var keep = bow.localPosition + bow.localRotation * Vector3.Scale(bow.localScale, grip.localPosition);
+            bow.localScale = Vector3.one;
+            var ls = bow.lossyScale;
+            var nl = new Vector3(
+                worldScale / Mathf.Max(Mathf.Abs(ls.x), 1e-4f),
+                worldScale / Mathf.Max(Mathf.Abs(ls.y), 1e-4f),
+                worldScale / Mathf.Max(Mathf.Abs(ls.z), 1e-4f));
+            bow.localScale = nl;
+            bow.localPosition = keep - bow.localRotation * Vector3.Scale(nl, grip.localPosition);
         }
 
         static vWeaponIKAdjustList MakeIKList(Quaternion mR, Quaternion mL, Quaternion mRF, Quaternion mLF, StringBuilder sb)

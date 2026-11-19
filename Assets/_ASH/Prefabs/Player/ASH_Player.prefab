@@ -21381,8 +21381,8 @@ Transform:
   m_GameObject: {fileID: 5195798018617803048}
   serializedVersion: 2
   m_LocalRotation: {x: -0.47150472, y: 0.30755484, z: 0.6731105, w: -0.47959942}
-  m_LocalPosition: {x: -0.007839942, y: -0.10195411, z: 0.0013213576}
-  m_LocalScale: {x: 1.1114368, y: 1.1114372, z: 1.1114374}
+  m_LocalPosition: {x: -0.07409206, y: -0.044690996, z: -0.051657733}
+  m_LocalScale: {x: 0.978064, y: 0.9780653, z: 0.97806334}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 5376358562253071581}
@@ -21677,12 +21677,17 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ASH.Combat.ASHBowDrawRig
   handTarget: {fileID: 5114762658580262298}
-  handFullLocal: {x: 0.65400016, y: -0.022999737, z: 0.056000322}
+  handFullLocal: {x: 0.654, y: -0.02299958, z: 0.0560003}
   handRotLocal: {x: -0.0035395664, y: -0.3450379, z: -0.71763194, w: -0.6049319}
-  nockRestLocal: {x: 0.14803845, y: 0.002981961, z: 0.03497954}
-  restLocal: {x: -0.14796278, y: 0.02298196, z: 0.03497954}
+  nockRestLocal: {x: 0.14803818, y: 0.0029819473, z: 0.041}
+  restLocal: {x: -0.14796282, y: 0.0029819473, z: 0.041}
   backLocal: {x: 1, y: 0, z: 0}
-  drawLength: 0.40430397
+  bowScale: 0.88
+  drawLength: 0.304304
+  anchorIn: 0.1
+  anchorOffsetLocal: {x: 0, y: 0, z: 0}
+  nockOffsetLocal: {x: 0, y: 0, z: 0}
+  restOffsetLocal: {x: 0, y: 0, z: 0}
 --- !u!1 &5244018001361201629
 GameObject:
   m_ObjectHideFlags: 0
@@ -21834,7 +21839,7 @@ Transform:
   m_GameObject: {fileID: 5590975136832680702}
   serializedVersion: 2
   m_LocalRotation: {x: 0.5, y: -0.5, z: -0.5, w: 0.5}
-  m_LocalPosition: {x: -0.14796278, y: 0.02298196, z: 0.03497954}
+  m_LocalPosition: {x: -0.14796282, y: 0.0029819473, z: 0.041}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -32424,7 +32429,7 @@ Transform:
   m_GameObject: {fileID: 6390295747469216201}
   serializedVersion: 2
   m_LocalRotation: {x: 0.5, y: -0.5, z: -0.5, w: 0.5}
-  m_LocalPosition: {x: -0.14796278, y: 0.02298196, z: 0.03497954}
+  m_LocalPosition: {x: -0.14796282, y: 0.0029819473, z: 0.041}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -33073,7 +33078,7 @@ Transform:
   m_GameObject: {fileID: 7321736734222748660}
   serializedVersion: 2
   m_LocalRotation: {x: -0.0035395632, y: -0.34503758, z: -0.7176313, w: -0.6049313}
-  m_LocalPosition: {x: 0.2496962, y: -0.022999737, z: 0.056000322}
+  m_LocalPosition: {x: 0.24969596, y: -0.02299958, z: 0.0560003}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -34210,6 +34215,7 @@ MonoBehaviour:
   startingItems:
   - item: {fileID: 11400000, guid: 966a7d0b7e4b9704da8372d320f301c6, type: 2}
     amount: 1
+  startWithGpsAndJournal: 0
 --- !u!114 &3259645904203360744
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -35248,7 +35254,7 @@ Transform:
   m_GameObject: {fileID: 8110703721304338976}
   serializedVersion: 2
   m_LocalRotation: {x: 0.47150457, y: -0.30755487, z: -0.6731106, w: -0.47959948}
-  m_LocalPosition: {x: -0.0861, y: -0.0307, z: -0.0105}
+  m_LocalPosition: {x: -0.107, y: -0.02, z: -0.004}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []

@@ -21,6 +21,7 @@ MonoBehaviour:
   category: 7
   maxStack: 1
   useVerb: Hold
+  keyItem: 0
   restoreHunger: 0
   restoreThirst: 0
   restoreHealth: 0
@@ -28,6 +29,10 @@ MonoBehaviour:
   requiresOpener: 0
   smashedYield: 0.65
   leftoverItem: {fileID: 0}
+  sicknessChance: 0
+  sicknessHealthLoss: 8
+  sicknessThirstLoss: 10
+  sicknessHungerLoss: 6
   toolType: 0
   breakdownYield: []
   breakdownTool: 0
@@ -43,7 +48,7 @@ MonoBehaviour:
   holdPosition: {x: 0, y: 0, z: 0}
   holdEuler: {x: 0, y: 0, z: 0}
   gripStyle: 0
-  heldScale: 1
+  heldScale: 0.88
   ammoItem: {fileID: 11400000, guid: a95128cdc7c3461438a6d741742178a3, type: 2}
   fuelItem: {fileID: 0}
   fuelSecondsPerUnit: 480
