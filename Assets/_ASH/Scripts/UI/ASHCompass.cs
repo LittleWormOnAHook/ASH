@@ -43,6 +43,8 @@ namespace ASH.UI
         ASHInventory _inventory;
         ASHGpsMap _gps;
         RectTransform _root, _strip, _tickLayer, _markerLayer;
+        CanvasGroup _group;
+        bool _visible = true;
         Text _heading;
         readonly List<TickEntry> _ticks = new List<TickEntry>();
         readonly Dictionary<string, ASHCompassMarker> _markers = new Dictionary<string, ASHCompassMarker>();
@@ -96,6 +98,7 @@ namespace ASH.UI
             c._inventory = inventory;
             c._gps = gps ? gps : ASHGpsMap.Instance;
             c.Build(hudRoot);
+            c.gameObject.SetActive(true);
             return c;
         }
 
@@ -173,7 +176,7 @@ namespace ASH.UI
             if (!_built) return;
             if (_gps == null) _gps = ASHGpsMap.Instance;
             ApplyVisibility();
-            if (!_root.gameObject.activeSelf) return;
+            if (!_visible) return;
             ApplyLayout();
             float heading = HeadingDegrees();
             RefreshTicks(heading);
@@ -192,9 +195,18 @@ namespace ASH.UI
 
         void ApplyVisibility()
         {
+            // Never SetActive(false) on this GameObject: that would stop LateUpdate and the compass
+            // would never come back after the intro / a journal / the pause menu. Hide with a CanvasGroup.
+            if (!gameObject.activeSelf) gameObject.SetActive(true);
             bool panels = S.hideWhenPanelsOpen && ASHUIState.BlocksGameplay;
             bool show = !panels && (S.compassAlwaysVisible || HasGps);
-            if (_root.gameObject.activeSelf != show) _root.gameObject.SetActive(show);
+            if (!_group) _group = gameObject.GetComponent<CanvasGroup>() ?? gameObject.AddComponent<CanvasGroup>();
+            if (_visible == show && _group.alpha == (show ? 1f : 0f)) return;
+            _visible = show;
+            _group.alpha = show ? 1f : 0f;
+            _group.blocksRaycasts = false;
+            _group.interactable = false;
+            if (show && _root) _root.SetAsLastSibling();
         }
 
         bool HasGps => _inventory && _inventory.HasTool(ASHToolType.GPS);
@@ -240,6 +252,11 @@ namespace ASH.UI
             _root = (RectTransform)transform;
             _root.SetParent(hudRoot, false);
             gameObject.name = "CompassHud";
+            gameObject.SetActive(true);
+            _group = gameObject.GetComponent<CanvasGroup>() ?? gameObject.AddComponent<CanvasGroup>();
+            _group.alpha = 1f; _group.blocksRaycasts = false; _group.interactable = false;
+            _visible = true;
+            _root.SetAsLastSibling();
             _root.anchorMin = _root.anchorMax = new Vector2(0.5f, 1f);
             _root.pivot = new Vector2(0.5f, 1f);
             if (_root.GetComponent<CanvasRenderer>() == null && _ticks.Count > 0)

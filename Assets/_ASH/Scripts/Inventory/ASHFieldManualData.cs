@@ -8,7 +8,8 @@ namespace ASH.Inventory
     {
         [Tooltip("First time the item enters the pack.")] FirstPickup,
         [Tooltip("Item crafted (total output, at least Quantity).")] Crafted,
-        [Tooltip("Torn manual page number found.")] ManualPage
+        [Tooltip("Torn manual page number found.")] ManualPage,
+        [Tooltip("A saved upgrade has reached this tier (upgradeId + upgradeTier).")] UpgradeTier
     }
 
     [Serializable]
@@ -18,6 +19,8 @@ namespace ASH.Inventory
         [Tooltip("FirstPickup / Crafted: the item.")] public ASHItemDefinition item;
         [Tooltip("Crafted: how many must have been crafted in total.")] [Min(1)] public int quantity = 1;
         [Tooltip("ManualPage: page number (1-based).")] [Min(1)] public int page = 1;
+        [Tooltip("UpgradeTier: the upgrade id (e.g. ammo_pouch).")] public string upgradeId;
+        [Tooltip("UpgradeTier: unlocked once this many tiers have been crafted.")] [Min(1)] public int upgradeTier = 1;
     }
 
     /// <summary>One recipe in Grandpa's Field Manual tree.</summary>

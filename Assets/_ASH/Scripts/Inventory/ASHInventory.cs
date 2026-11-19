@@ -98,7 +98,7 @@ namespace ASH.Inventory
         public int AddItemWithCondition(ASHItemDefinition item, int amount, float condition)
         {
             if (item == null || amount <= 0) return 0;
-            if (item.maxStack > 1) return AddItem(item, amount);
+            if (StackLimit(item) > 1) return AddItem(item, amount);
             EnsureSlots(); int added = 0;
             if (crossFirst)
                 for (int q = 0; q < CrossCount && added < amount; q++)
@@ -148,8 +148,8 @@ namespace ASH.Inventory
             var s = slots[i]; var item = s.item;
             for (int k = Hot; k < Pack && s.amount > 0; k++)
             {
-                var d = slots[k]; if (d.item != item || d.amount >= item.maxStack || item.maxStack <= 1) continue;
-                int add = Mathf.Min(s.amount, item.maxStack - d.amount); d.amount += add; s.amount -= add;
+                var d = slots[k]; if (d.item != item || d.amount >= StackLimit(item) || StackLimit(item) <= 1) continue;
+                int add = Mathf.Min(s.amount, StackLimit(item) - d.amount); d.amount += add; s.amount -= add;
             }
             if (s.amount > 0)
                 for (int k = Hot; k < Pack; k++)
@@ -200,8 +200,8 @@ namespace ASH.Inventory
             int remaining = amount;
             for (int i = 0; i < slots.Count && remaining > 0; i++)
             {
-                if (slots[i].item != item || slots[i].amount >= item.maxStack) continue;
-                int add = Mathf.Min(remaining, item.maxStack - slots[i].amount);
+                if (slots[i].item != item || slots[i].amount >= StackLimit(item)) continue;
+                int add = Mathf.Min(remaining, StackLimit(item) - slots[i].amount);
                 slots[i].amount += add; remaining -= add;
             }
             // pickups go to a matching empty cross bar slot first (weapon / ammo / light / food), then the pack
@@ -210,13 +210,13 @@ namespace ASH.Inventory
                 {
                     int ci = CrossIndex((CrossQuad)q);
                     if (!slots[ci].IsEmpty || !CrossAccepts((CrossQuad)q, item)) continue;
-                    int add = Mathf.Min(remaining, item.maxStack);
+                    int add = Mathf.Min(remaining, StackLimit(item));
                     slots[ci].item = item; slots[ci].amount = add; slots[ci].condition = 1f; remaining -= add;
                 }
             for (int i = Hot; i < Pack && remaining > 0; i++)
             {
                 if (!slots[i].IsEmpty) continue;
-                int add = Mathf.Min(remaining, item.maxStack);
+                int add = Mathf.Min(remaining, StackLimit(item));
                 slots[i].item = item; slots[i].amount = add; remaining -= add;
             }
             int added = amount - remaining;
@@ -232,8 +232,8 @@ namespace ASH.Inventory
             for (int i = 0; i < slots.Count; i++)
             {
                 var s = slots[i];
-                if (s.IsEmpty) { if (IsPack(i) || (crossFirst && IsCross(i) && Accepts(i, item))) free += item.maxStack; }
-                else if (s.item == item) free += item.maxStack - s.amount;
+                if (s.IsEmpty) { if (IsPack(i) || (crossFirst && IsCross(i) && Accepts(i, item))) free += StackLimit(item); }
+                else if (s.item == item) free += StackLimit(item) - s.amount;
                 if (free >= amount) return true;
             }
             return false;
@@ -246,6 +246,9 @@ namespace ASH.Inventory
             foreach (var s in slots) if (s.item == item) n += s.amount;
             return n;
         }
+
+        /// <summary>Runtime stack cap (StackLimit(item) plus ammo-pouch bonuses). Use this instead of the asset field.</summary>
+        public static int StackLimit(ASHItemDefinition item) => ASHUpgrades.StackLimit(item);
 
         public bool Remove(ASHItemDefinition item, int amount = 1)
         {
@@ -273,12 +276,12 @@ namespace ASH.Inventory
             if (a == b || a < 0 || b < 0 || a >= slots.Count || b >= slots.Count || slots[a].IsEmpty) return false;
             var sa = slots[a]; var sb = slots[b];
             if (!Accepts(b, sa.item)) { LastMoveRefused = b; return false; }
-            bool merge = !sb.IsEmpty && sb.item == sa.item && sb.amount < sb.item.maxStack;
+            bool merge = !sb.IsEmpty && sb.item == sa.item && sb.amount < StackLimit(sb.item);
             if (!merge && !sb.IsEmpty && !Accepts(a, sb.item)) { LastMoveRefused = a; return false; }
             LastMoveRefused = -1;
-            if (!sb.IsEmpty && sb.item == sa.item && sb.amount < sb.item.maxStack)
+            if (!sb.IsEmpty && sb.item == sa.item && sb.amount < StackLimit(sb.item))
             {
-                int add = Mathf.Min(sa.amount, sb.item.maxStack - sb.amount);
+                int add = Mathf.Min(sa.amount, StackLimit(sb.item) - sb.amount);
                 sb.amount += add; sa.amount -= add; if (sa.amount <= 0) sa.Clear();
             }
             else { slots[a] = sb; slots[b] = sa; }
@@ -348,7 +351,7 @@ namespace ASH.Inventory
         {
             EnsureSlots();
             for (int i = Hot; i < Pack && amount > 0; i++)
-                if (slots[i].IsEmpty) { int add = Mathf.Min(amount, item.maxStack); slots[i].item = item; slots[i].amount = add; amount -= add; }
+                if (slots[i].IsEmpty) { int add = Mathf.Min(amount, StackLimit(item)); slots[i].item = item; slots[i].amount = add; amount -= add; }
             Changed?.Invoke();
         }
 

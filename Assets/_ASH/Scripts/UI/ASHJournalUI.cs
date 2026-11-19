@@ -377,7 +377,7 @@ namespace ASH.UI
             var ib = K.At("Icon", rt, new Vector2(0, 0.5f), new Vector2(4, 0), new Vector2(NodeH - 8, NodeH - 8)); K.Image(ib, new Color(0, 0, 0, un ? 0.3f : 0.12f));
             var ii = K.Image(K.Stretch("I", ib, 3, 3, 3, 3), Color.white); ii.preserveAspect = true;
             var ab = K.Text(K.Stretch("A", ib), "", 15, K.Ink, TextAnchor.MiddleCenter, FontStyle.Bold);
-            SetIcon(ii, ab, r.outputItem);
+            SetIcon(ii, ab, r);
             if (!un) { ii.enabled = false; ab.text = "?"; ab.fontSize = 24; ab.color = new Color(0.86f, 0.68f, 0.34f, 0.85f); } // locked: a question mark until revealed
             string why = un && _craft ? _craft.MissingReason(r) : "locked";
             var t = K.Text(K.Stretch("Name", rt, NodeH, 2, 4, 2), un ? r.displayName : "???", 14, un ? K.Ink : new Color(0.85f, 0.8f, 0.7f, 0.55f), TextAnchor.MiddleLeft, un ? FontStyle.Normal : FontStyle.Bold);
@@ -478,6 +478,12 @@ namespace ASH.UI
             if (it != null) abbr.color = Color.Lerp(it.uiTint, Color.white, 0.3f);
         }
 
+        static void SetIcon(Image img, Text abbr, ASHRecipe r)
+        {
+            if (r && r.icon) { img.enabled = true; img.sprite = r.icon; img.color = Color.white; abbr.text = ""; return; }
+            SetIcon(img, abbr, r ? r.outputItem : null);
+        }
+
         RectTransform Row(RectTransform list, ASHItemDefinition icon, string title, string right, bool selected, UnityEngine.Events.UnityAction onClick, float h = 54f)
         {
             var row = K.Rect("Row", list); K.Layout(row, h);
@@ -508,7 +514,7 @@ namespace ASH.UI
             {
                 var rec = r; string why = _craft.MissingReason(r);
                 string status = why == null ? "<color=#9fd39b>Ready</color>" : $"<color=#d98b77>{Short(why)}</color>";
-                Row(_recipeList, r.outputItem, r.displayName + (r.outputAmount > 1 ? $" x{r.outputAmount}" : ""), status, r == _selRecipe, () => SelectRecipe(rec));
+                Row(_recipeList, r.outputItem, r.displayName + (!r.IsUpgrade && r.outputAmount > 1 ? $" x{r.outputAmount}" : ""), status, r == _selRecipe, () => SelectRecipe(rec));
             }
             RefreshRecipeDetail();
         }
@@ -518,9 +524,9 @@ namespace ASH.UI
         void RefreshRecipeDetail()
         {
             var r = _selRecipe;
-            if (r == null) { _dName.text = "No recipes"; _dDesc.text = _dReq.text = _dStatus.text = ""; _dCraft.interactable = false; SetIcon(_dIcon, _dIconAbbr, null); return; }
-            SetIcon(_dIcon, _dIconAbbr, r.outputItem);
-            _dName.text = r.displayName + (r.outputAmount > 1 ? $"  <size=20>x{r.outputAmount}</size>" : "");
+            if (r == null) { _dName.text = "No recipes"; _dDesc.text = _dReq.text = _dStatus.text = ""; _dCraft.interactable = false; SetIcon(_dIcon, _dIconAbbr, (ASHItemDefinition)null); return; }
+            SetIcon(_dIcon, _dIconAbbr, r);
+            _dName.text = r.displayName + (!r.IsUpgrade && r.outputAmount > 1 ? $"  <size=20>x{r.outputAmount}</size>" : "");
             var man = ASHFieldManual.Instance;
             if (man && man.Data && !man.IsUnlocked(r))
             {
@@ -565,6 +571,20 @@ namespace ASH.UI
                 bool ok = ASHCrafting.HasWaterFor(r);
                 sb.AppendLine($"<color=#{(ok ? "9fd39b" : "e08a78")}>{(ok ? "√" : "×")}</color>  Water from your bottle   <color=#{(ok ? "cfc6b6" : "e08a78")}>{r.waterPercent:0}%</color>");
             }
+            if (r.requiredCraftingLevel > 1)
+            {
+                int have = ASH.Gameplay.ASHSkills.Level(ASH.Gameplay.ASHSkills.Crafting);
+                bool ok = have >= r.requiredCraftingLevel;
+                sb.AppendLine($"<color=#{(ok ? "9fd39b" : "e08a78")}>{(ok ? "√" : "×")}</color>  Crafting level {r.requiredCraftingLevel}   <color=#{(ok ? "cfc6b6" : "e08a78")}>you: {have}</color>");
+            }
+            if (r.IsUpgrade)
+            {
+                int have = ASHUpgrades.Tier(r.upgradeId);
+                int cap = r.upgradeId == ASHUpgrades.AmmoPouch ? ASHUpgrades.AmmoPouchMaxTier : Mathf.Max(r.upgradeTier, 1);
+                sb.AppendLine($"<color=#c9a46a>Upgrade  ·  {r.upgradeId.Replace("_", " ")}  {have}/{cap}</color>");
+                if (r.upgradeId == ASHUpgrades.AmmoPouch)
+                    sb.AppendLine($"<color=#a59e93>Ammo stacks +{Mathf.RoundToInt(ASHUpgrades.AmmoPouchBonusPerTier * 100f)}% each tier (up to {ASHUpgrades.AmmoPouchMaxTier}).</color>");
+            }
             sb.AppendLine($"\n<color=#a59e93>Time: {r.craftSeconds:0.#} s   ·   Category: {r.category}</color>");
             _dReq.text = sb.ToString();
             string why = _craft.MissingReason(r);
@@ -593,11 +613,11 @@ namespace ASH.UI
         {
             var it = _selItem;
             _iUse.gameObject.SetActive(it != null); _iBreak.gameObject.SetActive(it != null && it.CanBreakDown);
-            if (it == null) { _iName.text = ""; _iDesc.text = ""; _iInfo.text = ""; SetIcon(_iIcon, _iIconAbbr, null); return; }
+            if (it == null) { _iName.text = ""; _iDesc.text = ""; _iInfo.text = ""; SetIcon(_iIcon, _iIconAbbr, (ASHItemDefinition)null); return; }
             SetIcon(_iIcon, _iIconAbbr, it);
             _iName.text = it.displayName;
             _iDesc.text = it.description;
-            var sb = new System.Text.StringBuilder($"<color=#a59e93>{it.category}   ·   carrying {_inv.Count(it)}   ·   stack {it.maxStack}</color>\n");
+            var sb = new System.Text.StringBuilder($"<color=#a59e93>{it.category}   ·   carrying {_inv.Count(it)}   ·   stack {ASHInventory.StackLimit(it)}</color>\n");
             if (it.IsConsumable)
             {
                 sb.Append("\n");

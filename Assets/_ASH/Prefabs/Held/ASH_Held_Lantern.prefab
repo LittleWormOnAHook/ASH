@@ -118,9 +118,14 @@ MonoBehaviour:
   effects: []
   keepUpright: {fileID: 0}
   uprightRotation: {x: 0, y: 0, z: 0, w: 1}
-  intensity: 1.7
+  intensity: 0.35
   flicker: 0.08
   flickerSpeed: 6
+  flameTip: {fileID: 0}
+  tipOffset: {x: 0, y: 0, z: 0}
+  tipPadding: 0.015
+  anchorFlameToMeshTip: 1
+  playToggleSound: 1
 --- !u!1001 &938617633039729459
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -259,16 +264,57 @@ PrefabInstance:
       propertyPath: m_Color.r
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: 108343765411009958, guid: 1c73351a018566e4fa25d41d6d9d3f49, type: 3}
+      propertyPath: m_Intensity
+      value: 0.35
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 1822344158544930, guid: 1c73351a018566e4fa25d41d6d9d3f49, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7803965248735049852}
   m_SourcePrefab: {fileID: 100100000, guid: 1c73351a018566e4fa25d41d6d9d3f49, type: 3}
 --- !u!108 &4345963341928215214 stripped
 Light:
   m_CorrespondingSourceObject: {fileID: 108343765411009958, guid: 1c73351a018566e4fa25d41d6d9d3f49, type: 3}
   m_PrefabInstance: {fileID: 4453810126925833992}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &4452201715089351466 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 1822344158544930, guid: 1c73351a018566e4fa25d41d6d9d3f49, type: 3}
+  m_PrefabInstance: {fileID: 4453810126925833992}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &7803965248735049852
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4452201715089351466}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 474bcb49853aa07438625e644c072ee6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.UniversalAdditionalLightData
+  m_UsePipelineSettings: 1
+  m_AdditionalLightsShadowResolutionTier: 2
+  m_CustomShadowLayers: 0
+  m_LightCookieSize: {x: 1, y: 1}
+  m_LightCookieOffset: {x: 0, y: 0}
+  m_SoftShadowQuality: 0
+  m_RenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_ShadowRenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_Version: 4
+  m_LightLayerMask: 1
+  m_ShadowLayerMask: 1
+  m_RenderingLayers: 1
+  m_ShadowRenderingLayers: 1
 --- !u!4 &4458433933921338824 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 4669334188090048, guid: 1c73351a018566e4fa25d41d6d9d3f49, type: 3}

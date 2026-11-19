@@ -44,7 +44,28 @@ namespace ASH.Combat
         [Tooltip("Arrow rest offset. X = along the draw, Y = sideways off the string plane, Z = along the limbs.")]
         public Vector3 restOffsetLocal;
 
+        [Header("Idle (equipped, not aiming)")]
+        [Tooltip("Relax Invector bow-ready animator layers while idle so both arms hang at the sides. The left hand still holds the bow.")]
+        public bool relaxIdleAnimator = true;
+        [Tooltip("Upper-body / arm layer weight while idle. 0 = arms at the sides.")]
+        [Range(0f, 1f)] public float idleUpperBodyWeight = 0f;
+        [Tooltip("Layer names to relax (substring, case-insensitive). Leave empty to auto-pick Upper / Arm / Bow / Overlay / Shooter layers.")]
+        public string[] idleRelaxLayers;
+        [Tooltip("Hang the Model child so the bow points down beside the leg. Grip_L is not moved.")]
+        public bool idleHangVertical = true;
+        [Tooltip("Bow-local axis that should point world-down when hanging (limb axis).")]
+        public Vector3 idleHangAxis = Vector3.up;
+        [Tooltip("Extra Euler on the Model after hanging (degrees).")]
+        public Vector3 idleHangEuler;
+
         [System.NonSerialized] public float draw01;
+
+        Animator _idleAnim;
+        float[] _baseWeights;
+        bool _weightsCaptured, _idleOn;
+        Transform _model;
+        Quaternion _modelBaseLocal;
+        bool _modelCaptured;
 
         Vector3 Back => backLocal.sqrMagnitude > 1e-8f ? backLocal.normalized : Vector3.right;
 
@@ -62,6 +83,81 @@ namespace ASH.Combat
             if (!handTarget) return;
             handTarget.localPosition = HandFullEffective - Back * (drawLength * (1f - Mathf.Clamp01(draw01)));
             handTarget.localRotation = handRotLocal;
+        }
+
+        public void RestoreIdle(Animator anim)
+        {
+            if (_idleOn && anim && _weightsCaptured && _baseWeights != null)
+            {
+                int n = Mathf.Min(_baseWeights.Length, anim.layerCount);
+                for (int i = 0; i < n; i++) anim.SetLayerWeight(i, _baseWeights[i]);
+            }
+            if (_model && _modelCaptured) _model.localRotation = _modelBaseLocal;
+            _idleOn = false;
+        }
+
+        public void ApplyIdle(Animator anim, bool aiming)
+        {
+            if (aiming || !isActiveAndEnabled) { RestoreIdle(anim); return; }
+            if (relaxIdleAnimator && anim)
+            {
+                if (!_weightsCaptured || _idleAnim != anim) CaptureWeights(anim);
+                for (int i = 1; i < anim.layerCount; i++)
+                    if (ShouldRelax(anim.GetLayerName(i)))
+                        anim.SetLayerWeight(i, idleUpperBodyWeight);
+            }
+            HangModel();
+            _idleOn = true;
+        }
+
+        void OnDisable() { if (_idleOn) RestoreIdle(_idleAnim); }
+
+        void CaptureWeights(Animator anim)
+        {
+            _idleAnim = anim;
+            _baseWeights = new float[anim.layerCount];
+            for (int i = 0; i < anim.layerCount; i++) _baseWeights[i] = anim.GetLayerWeight(i);
+            _weightsCaptured = true;
+        }
+
+        bool ShouldRelax(string name)
+        {
+            if (string.IsNullOrEmpty(name)) return false;
+            if (idleRelaxLayers != null && idleRelaxLayers.Length > 0)
+            {
+                foreach (var s in idleRelaxLayers)
+                    if (!string.IsNullOrEmpty(s) && name.IndexOf(s, System.StringComparison.OrdinalIgnoreCase) >= 0) return true;
+                return false;
+            }
+            string n = name.ToLowerInvariant();
+            if (n.Contains("base") || n.Contains("locomotion") || n.Contains("full body") || n.Contains("fullbody")) return false;
+            return n.Contains("upper") || n.Contains("arm") || n.Contains("bow") || n.Contains("overlay")
+                || n.Contains("shooter") || n.Contains("aim") || n.Contains("item") || n.Contains("hand") || n.Contains("ik");
+        }
+
+        void HangModel()
+        {
+            if (!idleHangVertical) { if (_model && _modelCaptured) _model.localRotation = _modelBaseLocal; return; }
+            if (!_model)
+            {
+                _model = transform.Find("Model");
+                if (!_model)
+                {
+                    foreach (Transform t in transform)
+                    {
+                        string n = t.name;
+                        if (n.StartsWith("Grip") || n.StartsWith("String") || n.StartsWith("Arrow") || n.StartsWith("Nock") || (handTarget && t == handTarget)) continue;
+                        _model = t; break;
+                    }
+                }
+                if (_model && !_modelCaptured) { _modelBaseLocal = _model.localRotation; _modelCaptured = true; }
+            }
+            if (!_model) return;
+            if (_modelCaptured) _model.localRotation = _modelBaseLocal;
+            Vector3 axis = idleHangAxis.sqrMagnitude > 1e-8f ? idleHangAxis.normalized : Vector3.up;
+            Vector3 axisWorld = _model.TransformDirection(axis);
+            _model.rotation = Quaternion.FromToRotation(axisWorld, Vector3.down) * _model.rotation;
+            if (idleHangEuler.sqrMagnitude > 1e-8f) _model.Rotate(idleHangEuler, Space.Self);
         }
     }
 }

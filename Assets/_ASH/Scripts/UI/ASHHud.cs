@@ -118,6 +118,7 @@ namespace ASH.UI
         void OnEnable()
         {
             if (inventory) { inventory.Changed += RefreshInventory; inventory.Changed += WatchLightSlot; inventory.ItemAdded += OnItemAdded; WatchLightSlot(); }
+            ASHUpgrades.Changed += RefreshInventory;
             if (crafting) { crafting.Crafted += OnCrafted; crafting.CraftFailed += OnCraftFailed; crafting.BrokeDown += OnBrokeDown; crafting.BreakdownFailed += OnBreakFailed; }
             if (gps) gps.SurveyLogged += OnSurvey;
             if (objective) { objective.Message += Toast; objective.Changed += ObjDirty; }
@@ -128,6 +129,7 @@ namespace ASH.UI
         void OnDisable()
         {
             if (inventory) { inventory.Changed -= RefreshInventory; inventory.Changed -= WatchLightSlot; inventory.ItemAdded -= OnItemAdded; }
+            ASHUpgrades.Changed -= RefreshInventory;
             if (crafting) { crafting.Crafted -= OnCrafted; crafting.CraftFailed -= OnCraftFailed; crafting.BrokeDown -= OnBrokeDown; crafting.BreakdownFailed -= OnBreakFailed; }
             if (gps) gps.SurveyLogged -= OnSurvey;
             if (objective) { objective.Message -= Toast; objective.Changed -= ObjDirty; }
@@ -369,15 +371,56 @@ namespace ASH.UI
             {
                 FillSlot(ui);
                 var s = inventory.Slots[ui.index]; var quad = (ASHInventory.CrossQuad)(ui.index - inventory.CrossStart);
-                if (s.IsEmpty) { ui.abbr.text = $"<size=13>{ASHInventory.CrossLabel(quad).ToUpperInvariant()}</size>"; ui.abbr.color = new Color(Gold.r, Gold.g, Gold.b, 0.55f); }
+                OverlayArmed(ui, quad, s);
+                bool empty = s.IsEmpty && !IsArmedOverlay(quad);
+                if (empty) { ui.abbr.text = $"<size=13>{ASHInventory.CrossLabel(quad).ToUpperInvariant()}</size>"; ui.abbr.color = new Color(Gold.r, Gold.g, Gold.b, 0.55f); }
                 bool held = !s.IsEmpty && _equip && (s.item == _equip.Main || s.item == _equip.Off || s.item == _equip.Hip);
-                ui.bg.color = held ? new Color(0.32f, 0.24f, 0.12f, 0.92f) : ui.bg.color;
+                if (held || (_equip && _equip.Main && (quad == ASHInventory.CrossQuad.Weapon || (quad == ASHInventory.CrossQuad.Ammo && _equip.Main.ammoItem))))
+                    ui.bg.color = new Color(0.32f, 0.24f, 0.12f, 0.92f);
             }
             if (_crossCenter)
             {
                 var w = _equip ? _equip.Main : null;
                 _crossCenter.text = w && w.ammoItem ? inventory.Count(w.ammoItem).ToString() : "";
             }
+        }
+
+        bool IsArmedOverlay(ASHInventory.CrossQuad quad)
+        {
+            if (!_equip || !_equip.Main) return false;
+            if (quad == ASHInventory.CrossQuad.Weapon) return true;
+            return quad == ASHInventory.CrossQuad.Ammo && _equip.Main.ammoItem;
+        }
+
+        /// <summary>Armed-and-loaded readout: the weapon quad shows whatever is in hand (including the axe);
+        /// the ammo quad shows that weapon's ammo icon and the total carried count. Display only — slots are not moved.</summary>
+        void OverlayArmed(SlotUI ui, ASHInventory.CrossQuad quad, ASHInventory.Slot s)
+        {
+            if (ui.icon) ui.icon.color = Color.white;
+            if (ui.count) ui.count.color = Color.white;
+            if (!IsArmedOverlay(quad)) return;
+            var main = _equip.Main;
+            if (quad == ASHInventory.CrossQuad.Weapon) ShowCrossItem(ui, main, inventory.Count(main), false);
+            else
+            {
+                var ammo = main.ammoItem;
+                int n = inventory.Count(ammo);
+                ShowCrossItem(ui, ammo, n, n <= 0);
+            }
+        }
+
+        void ShowCrossItem(SlotUI ui, ASHItemDefinition it, int count, bool dim)
+        {
+            if (!it) return;
+            ui.icon.enabled = it.icon != null;
+            if (ui.icon.enabled) { ui.icon.sprite = it.icon; ui.icon.color = dim ? new Color(1f, 1f, 1f, 0.35f) : Color.white; }
+            ui.abbr.text = it.icon != null ? "" : it.displayName.Substring(0, Mathf.Min(2, it.displayName.Length)).ToUpperInvariant();
+            ui.abbr.color = dim ? new Color(1f, 1f, 1f, 0.4f) : Color.Lerp(it.uiTint, Color.white, 0.25f);
+            bool showCount = count > 1 || it.category == ASHItemCategory.Ammo || ASHUpgrades.IsAmmo(it) || dim;
+            ui.count.text = showCount ? count.ToString() : "";
+            ui.count.color = dim ? new Color(1f, 1f, 1f, 0.45f) : Color.white;
+            ui.strip.enabled = true;
+            var c = it.uiTint; c.a = dim ? 0.45f : 0.9f; ui.strip.color = c;
         }
 
         /// <summary>Cross bar key/d-pad: weapon holds/holsters, ammo shows the count (reload stub), light readies or toggles, food eats.</summary>
@@ -387,19 +430,24 @@ namespace ASH.UI
             int idx = inventory.CrossStart + quad; var s = inventory.Slots[idx];
             if (quad < _cross.Count) _cross[quad].pulse = 1f;
             var q = (ASHInventory.CrossQuad)quad;
-            if (s.IsEmpty) { Toast($"Cross bar: drag {CrossHint(q)} onto the {ASHInventory.CrossLabel(q).ToLowerInvariant()} slot [{ASHInput.CrossKeys[quad]}]."); return false; }
             if (!_equip) { _equip = inventory.GetComponent<ASHEquipment>(); if (!_equip) _equip = FindAnyObjectByType<ASHEquipment>(); }
-            var item = s.item; string itemName = item.displayName; // the slot can empty during use (last food eaten)
+            // Armed readout: the weapon / ammo keys act on what is in hand, even if that slot is empty.
+            bool armed = _equip && _equip.Main && (q == ASHInventory.CrossQuad.Weapon || (q == ASHInventory.CrossQuad.Ammo && _equip.Main.ammoItem));
+            if (s.IsEmpty && !armed) { Toast($"Cross bar: drag {CrossHint(q)} onto the {ASHInventory.CrossLabel(q).ToLowerInvariant()} slot [{ASHInput.CrossKeys[quad]}]."); return false; }
+            var item = armed ? (q == ASHInventory.CrossQuad.Ammo ? _equip.Main.ammoItem : _equip.Main) : s.item;
+            string itemName = item ? item.displayName : ""; // the slot can empty during use (last food eaten)
             bool ok;
             switch (q)
             {
                 case ASHInventory.CrossQuad.Ammo:
                     var w = _equip ? _equip.Main : null;
-                    Toast(w && w.ammoItem == item ? $"{w.displayName}: {inventory.Count(item)} {item.displayName} ready." : $"{item.displayName}: {inventory.Count(item)} carried.");
+                    var ammo = (w && w.ammoItem) ? w.ammoItem : item;
+                    if (!ammo) { Toast($"Cross bar: drag {CrossHint(q)} onto the ammo slot [{ASHInput.CrossKeys[quad]}]."); return false; }
+                    Toast(w && w.ammoItem == ammo ? $"{w.displayName}: {inventory.Count(ammo)} {ammo.displayName} ready." : $"{ammo.displayName}: {inventory.Count(ammo)} carried.");
                     ok = true; break;
                 case ASHInventory.CrossQuad.Weapon:
                     // weapon / hatchet: draw it, or put it away if already in hand
-                    if (_equip && item.IsEquippable) ok = _equip.ToggleEquip(item);
+                    if (_equip && item && item.IsEquippable) ok = _equip.ToggleEquip(item);
                     else ok = UseSlot(idx);
                     break;
                 case ASHInventory.CrossQuad.Light:
@@ -742,6 +790,8 @@ namespace ASH.UI
             if (_toolRoot) { _toolRoot.gameObject.SetActive(_hotbarRoot && _hotbarRoot.gameObject.activeSelf); if (_toolRoot.gameObject.activeSelf) RefreshToolIcons(); }
             AnimateSlots(_hotbar); AnimateSlots(_slots); AnimateSlots(_cross);
             if (_equip && (_equip.Main != _lastMain || _equip.Off != _lastOff || _equip.Hip != _lastHip)) { _lastMain = _equip.Main; _lastOff = _equip.Off; _lastHip = _equip.Hip; RefreshCross(); }
+            int ammoNow = (_equip && _equip.Main && _equip.Main.ammoItem && inventory) ? inventory.Count(_equip.Main.ammoItem) : -1;
+            if (ammoNow != _lastArmedAmmo) { _lastArmedAmmo = ammoNow; RefreshCross(); }
             if (_dragFrom >= 0 && !_invPanel.activeSelf) EndSlotDrag();
             if (ContextOpen && (!_invPanel.activeSelf || inventory == null || _ctxSlot >= inventory.Slots.Count || inventory.Slots[_ctxSlot].IsEmpty)) CloseContext();
 
@@ -825,7 +875,7 @@ namespace ASH.UI
             foreach (var ui in _hotbar) FillSlot(ui);
             RefreshCross();
         }
-        ASHItemDefinition _lastMain, _lastOff, _lastHip;
+        ASHItemDefinition _lastMain, _lastOff, _lastHip; int _lastArmedAmmo = int.MinValue;
 
         void FillSlot(SlotUI ui)
         {
@@ -834,10 +884,12 @@ namespace ASH.UI
             bool empty = s.IsEmpty;
             ui.bg.color = empty ? SlotEmpty : SlotFull;
             ui.icon.enabled = !empty && s.item.icon != null;
-            if (ui.icon.enabled) ui.icon.sprite = s.item.icon;
+            if (ui.icon.enabled) { ui.icon.sprite = s.item.icon; ui.icon.color = Color.white; }
+            else if (ui.icon) ui.icon.color = Color.white;
             ui.abbr.text = empty || s.item.icon != null ? "" : s.item.displayName.Substring(0, Mathf.Min(2, s.item.displayName.Length)).ToUpperInvariant();
             if (!empty) ui.abbr.color = Color.Lerp(s.item.uiTint, Color.white, 0.25f);
-            ui.count.text = empty ? "" : s.item.maxStack > 1 ? s.amount.ToString() : s.item.itemId == "water_bottle" ? $"{Mathf.RoundToInt(s.condition * 100f)}%" : ""; // bottle fill lives here (not on the HUD)
+            if (ui.count) ui.count.color = Color.white;
+            ui.count.text = empty ? "" : ASHInventory.StackLimit(s.item) > 1 ? s.amount.ToString() : s.item.itemId == "water_bottle" ? $"{Mathf.RoundToInt(s.condition * 100f)}%" : ""; // bottle fill lives here (not on the HUD)
             ui.strip.enabled = !empty;
             if (!empty) { var c = s.item.uiTint; c.a = 0.9f; ui.strip.color = c; }
         }
@@ -867,7 +919,7 @@ namespace ASH.UI
             if (s.IsEmpty) { HideTip(); return; }
             var it = s.item;
             string hex = ColorUtility.ToHtmlStringRGB(Color.Lerp(it.uiTint, Color.white, 0.35f));
-            _tipTitle.text = $"<color=#{hex}><b>{it.displayName}</b></color>  <size=16><color=#a59e93>{it.category}  ·  {s.amount}/{it.maxStack}</color></size>";
+            _tipTitle.text = $"<color=#{hex}><b>{it.displayName}</b></color>  <size=16><color=#a59e93>{it.category}  ·  {s.amount}/{ASHInventory.StackLimit(it)}</color></size>";
             var sb = new System.Text.StringBuilder(it.description);
             if (it.IsConsumable)
             {

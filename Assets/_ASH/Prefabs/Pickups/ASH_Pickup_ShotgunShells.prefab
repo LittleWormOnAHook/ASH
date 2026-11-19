@@ -158,6 +158,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ASH.Interaction.ASHItemPickup
   item: {fileID: 11400000, guid: c5a122c8c769ca9488e439458ef43ae0, type: 2}
-  amount: 8
+  amount: 50
   condition: 1
   rollCondition: 0

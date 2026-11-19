@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using ASH.Gameplay;
 using UnityEngine;
 
 namespace ASH.Inventory
@@ -76,15 +77,23 @@ namespace ASH.Inventory
         /// <summary>Why a recipe can't be crafted right now (null = craftable).</summary>
         public string MissingReason(ASHRecipe r)
         {
-            if (r == null || r.outputItem == null) return "Invalid recipe";
+            if (r == null || (!r.IsUpgrade && r.outputItem == null)) return "Invalid recipe";
             var gate = RecipeGate?.Invoke(r); if (gate != null) return gate;
             if (IsCrafting) return "Busy";
+            int needLv = Mathf.Max(1, r.requiredCraftingLevel);
+            if (needLv > 1 && ASHSkills.Level(ASHSkills.Crafting) < needLv) return $"Needs Crafting level {needLv}";
+            if (r.IsUpgrade)
+            {
+                int have = ASHUpgrades.Tier(r.upgradeId);
+                if (have >= r.upgradeTier) return "Already crafted";
+                if (have < r.upgradeTier - 1) return "Craft the previous upgrade first";
+            }
             if (!HasIngredients(r)) return "Missing materials";
             if (r.requiredTool != ASHToolType.None && !inventory.HasTool(r.requiredTool)) return "Needs " + ToolName(r.requiredTool);
             if (!NearStation(r.station)) return "Needs a lit campfire nearby";
             if (FireCooks(r)) { var fb = FireCookBlock?.Invoke(this, r); if (fb != null) return fb; }
             if (!HasWaterFor(r)) return WaterPercentAvailable == null ? "Needs a water bottle" : $"Needs {r.waterPercent:0}% water in the bottle";
-            if (!inventory.HasSpaceFor(r.outputItem, r.outputAmount)) return "No space in pack";
+            if (!r.IsUpgrade && !inventory.HasSpaceFor(r.outputItem, r.outputAmount)) return "No space in pack";
             return null;
         }
 
@@ -107,7 +116,13 @@ namespace ASH.Inventory
             {
                 if (r.waterPercent > 0f) ConsumeWater?.Invoke(r.waterPercent);
                 foreach (var ing in r.ingredients) inventory.Remove(ing.item, ing.amount);
-                inventory.AddItem(r.outputItem, r.outputAmount);
+                if (r.IsUpgrade)
+                {
+                    int cap = r.upgradeId == ASHUpgrades.AmmoPouch ? ASHUpgrades.AmmoPouchMaxTier : 8;
+                    ASHUpgrades.Apply(r.upgradeId, r.upgradeTier, cap);
+                }
+                else inventory.AddItem(r.outputItem, r.outputAmount);
+                ASHSkills.AddXp(ASHSkills.Crafting, 8f + 6f * Mathf.Max(0, r.upgradeTier));
                 Crafted?.Invoke(r);
             }
             else CraftFailed?.Invoke(r, "Missing materials");

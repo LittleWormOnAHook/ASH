@@ -14,6 +14,8 @@ namespace ASH.Gameplay
     public static class ASHSkills
     {
         public const string Cooking = "cooking";
+        public const string Crafting = "crafting";
+        public const string Hunting = "hunting";
 
         public struct Curve { public string name; public float baseXp; public float exponent; public int maxLevel; }
 
@@ -29,6 +31,14 @@ namespace ASH.Gameplay
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         static void ResetStatics() { _xp.Clear(); _learned.Clear(); LevelUp = null; Learned = null; Changed = null; }
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterAssembliesLoaded)]
+        static void BuiltinCurves()
+        {
+            // Cooking is registered by ASHFireCooking (live cooking settings). These two are general survival skills.
+            Define(Crafting, () => new Curve { name = "Crafting", baseXp = 30f, exponent = 1.45f, maxLevel = 20 });
+            Define(Hunting, () => new Curve { name = "Hunting", baseXp = 35f, exponent = 1.5f, maxLevel = 20 });
+        }
 
         public static void Define(string id, Func<Curve> curve) { if (!string.IsNullOrEmpty(id) && curve != null) _defs[id] = curve; }
         public static IEnumerable<string> Defined => _defs.Keys;

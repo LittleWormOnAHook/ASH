@@ -29,6 +29,15 @@ namespace ASH.Inventory
         public List<ASHRecipeIngredient> ingredients = new List<ASHRecipeIngredient>();
         public ASHItemDefinition outputItem;
         [Min(1)] public int outputAmount = 1;
+        [Tooltip("Optional icon when there is no output item (upgrade recipes).")]
+        public Sprite icon;
+        [Tooltip("Minimum Crafting skill level. 1 = no extra gate. Upgrade tiers should climb.")]
+        [Range(1, 20)] public int requiredCraftingLevel = 1;
+        [Tooltip("If set, crafting this applies a saved upgrade (e.g. ammo_pouch) instead of adding an item.")]
+        public string upgradeId;
+        [Tooltip("1-based tier applied when crafted. Must be exactly one above the current tier.")]
+        [Range(0, 8)] public int upgradeTier = 0;
+        public bool IsUpgrade => !string.IsNullOrEmpty(upgradeId) && upgradeTier > 0;
         [Tooltip("Seconds the craft takes (0 = instant).")]
         [Range(0f, 20f)] public float craftSeconds = 1.2f;
         public ASHToolType requiredTool = ASHToolType.None;

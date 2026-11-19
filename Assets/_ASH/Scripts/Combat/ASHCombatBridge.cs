@@ -117,6 +117,7 @@ namespace ASH.Combat
                 if (_gun) { _aim.ExternalAiming = _in && _in.IsAiming; _aim.ExternalDraw01 = _gun.chargeWeapon ? _gun.powerCharge : 0f; }
             }
             if (_bowRig) { _bowRig.draw01 = _gun && _gun.chargeWeapon ? Mathf.Clamp01(_gun.powerCharge) : 0f; _bowRig.Apply(); }
+            EnsureIdleRunner();
             if (_gun && _gun.chargeWeapon)
             {
                 bool ch = _gun.powerCharge > 0.02f;
@@ -138,6 +139,7 @@ namespace ASH.Combat
                 _melee.onEnableDamage.RemoveListener(RollMelee);
                 if (_mm) _mm.SetRightWeapon((vMeleeWeapon)null);
             }
+            if (_bowRig) _bowRig.RestoreIdle(_anim);
             _gun = null; _melee = null; CurrentData = null; _wasCharging = false; _bowRig = null;
             _cur = main; _curGo = go;
             if (!main || !go) return;
@@ -349,5 +351,29 @@ namespace ASH.Combat
             if (list != cam.CameraStateList) cam.ChangeStateList(list);
             return true;
         }
+
+        ASHBowIdleRunner _idleRunner;
+        void EnsureIdleRunner()
+        {
+            if (_idleRunner) return;
+            _idleRunner = GetComponent<ASHBowIdleRunner>();
+            if (!_idleRunner) _idleRunner = gameObject.AddComponent<ASHBowIdleRunner>();
+            _idleRunner.bridge = this;
+        }
+
+        public void ApplyBowIdle()
+        {
+            if (!_bowRig) return;
+            bool aiming = _in && _in.IsAiming;
+            _bowRig.ApplyIdle(_anim, aiming);
+        }
+    }
+
+    /// <summary>Runs after Invector's animator/IK so a relaxed bow idle can override the raised-arm equipped pose.</summary>
+    [DefaultExecutionOrder(3000)]
+    public sealed class ASHBowIdleRunner : MonoBehaviour
+    {
+        public ASHCombatBridge bridge;
+        void LateUpdate() { if (bridge) bridge.ApplyBowIdle(); }
     }
 }

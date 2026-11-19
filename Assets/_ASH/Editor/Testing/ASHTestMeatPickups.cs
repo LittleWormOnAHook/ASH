@@ -31,7 +31,12 @@ namespace ASH.EditorTools
             GameObject root = null;
             foreach (var go in scene.GetRootGameObjects()) if (go.name == Root) { root = go; break; }
             if (!root) { root = new GameObject(Root); SceneManager_Move(root, scene); Undo.RegisterCreatedObjectUndo(root, "ASH test pickups"); }
-            for (int i = root.transform.childCount - 1; i >= 0; i--) Undo.DestroyObjectImmediate(root.transform.GetChild(i).gameObject);
+            for (int i = root.transform.childCount - 1; i >= 0; i--)
+            {
+                var ch = root.transform.GetChild(i);
+                if (ch.name == "ASH_DeerSkinPickups") continue; // other harvest test groups live under here
+                Undo.DestroyObjectImmediate(ch.gameObject);
+            }
 
             var c = fire.transform.position;
             var prefabs = new[] { meat, fish, meat, fish };

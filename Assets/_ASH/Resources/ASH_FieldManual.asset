@@ -26,46 +26,58 @@ MonoBehaviour:
     title: Air first
     text: Ash cuts your lungs like glass. Wet cloth over mouth and nose. Stay inside
       when the sky goes brown.
+    sketch: {fileID: 0}
   - number: 2
     title: Clean wounds
     text: Boil it, wrap it, keep it covered. A cheap bandage changed often beats
       a good one left on.
+    sketch: {fileID: 0}
   - number: 3
     title: Fire in the wet
     text: Split the wood, shave the kindling. Dry stuff under the porch. Never trust
       the top of a pile.
+    sketch: {fileID: 0}
   - number: 4
     title: Keep moving
     text: Don't sit down in the open when it's falling heavy. Pick the next roof,
       go to it, rest there.
+    sketch: {fileID: 0}
   - number: 5
     title: A bow from nothing
     text: Ash or willow, the length of you. Two good ropes for the string. Notch,
       bend slow, oil it.
+    sketch: {fileID: 0}
   - number: 6
     title: Water you can trust
     text: Snow melts dirty. Creek water too. If it isn't boiled it isn't water.
+    sketch: {fileID: 0}
   - number: 7
     title: Breathing in the grey
     text: 'Those old masks take a can filter. Pack one yourself: tin shell, cloth,
       charcoal from kindling. Change it before it stinks.'
+    sketch: {fileID: 0}
   - number: 8
     title: Reading the sky
     text: Brown haze from the north-west means ash by the afternoon. Thunder in ash
       means get under cover now.
+    sketch: {fileID: 0}
   - number: 9
     title: Meat and smoke
     text: Cook it through. Dry the berries by the fire, they'll keep for weeks.
+    sketch: {fileID: 0}
   - number: 10
     title: Shelter that seals
     text: Tape the window frames, wet sheet over the door. A lean-to helps, but the
       ash still gets in.
+    sketch: {fileID: 0}
   - number: 11
     title: Night walking
     text: Lanterns carry far. Keep to the trees, count your steps between markers.
+    sketch: {fileID: 0}
   - number: 12
     title: If I don't make it
     text: Head down the valley road. Don't wait for me. Love you, kid.
+    sketch: {fileID: 0}
   entries:
   - recipe: {fileID: 11400000, guid: 41d2eb98ede82f641816564643375414, type: 2}
     basic: 1
@@ -82,6 +94,8 @@ MonoBehaviour:
       item: {fileID: 11400000, guid: 69fac600d6ee7594fb80555a98713444, type: 2}
       quantity: 1
       page: 1
+      upgradeId: 
+      upgradeTier: 1
     requireAll: 1
     hint: 
     column: 1
@@ -95,6 +109,8 @@ MonoBehaviour:
       item: {fileID: 11400000, guid: 8e24c5d37538af54d9c1aafc6ec731cc, type: 2}
       quantity: 1
       page: 1
+      upgradeId: 
+      upgradeTier: 1
     requireAll: 1
     hint: 
     column: 1
@@ -108,10 +124,14 @@ MonoBehaviour:
       item: {fileID: 11400000, guid: 367788899950da34182abdd767a69fd3, type: 2}
       quantity: 1
       page: 1
+      upgradeId: 
+      upgradeTier: 1
     - kind: 2
       item: {fileID: 0}
       quantity: 1
       page: 7
+      upgradeId: 
+      upgradeTier: 1
     requireAll: 1
     hint: 
     column: 2
@@ -133,6 +153,8 @@ MonoBehaviour:
       item: {fileID: 11400000, guid: 74360a7c47ff51e4d9ec2f8250037908, type: 2}
       quantity: 1
       page: 1
+      upgradeId: 
+      upgradeTier: 1
     requireAll: 1
     hint: 
     column: 1
@@ -146,6 +168,8 @@ MonoBehaviour:
       item: {fileID: 11400000, guid: d29c4b6b23e766a47be9b3d63cd9f979, type: 2}
       quantity: 1
       page: 1
+      upgradeId: 
+      upgradeTier: 1
     requireAll: 1
     hint: 
     column: 1
@@ -175,6 +199,8 @@ MonoBehaviour:
       item: {fileID: 11400000, guid: cdf61af5b2170224aa295f116d6ca24d, type: 2}
       quantity: 2
       page: 1
+      upgradeId: 
+      upgradeTier: 1
     requireAll: 1
     hint: 
     column: 1
@@ -204,6 +230,8 @@ MonoBehaviour:
       item: {fileID: 11400000, guid: f545e6f90b132c94988a957c07aa07e6, type: 2}
       quantity: 1
       page: 1
+      upgradeId: 
+      upgradeTier: 1
     requireAll: 1
     hint: 
     column: 1
@@ -217,10 +245,14 @@ MonoBehaviour:
       item: {fileID: 11400000, guid: 2bb36505d94f8914fba669eb78d3e44d, type: 2}
       quantity: 2
       page: 1
+      upgradeId: 
+      upgradeTier: 1
     - kind: 2
       item: {fileID: 0}
       quantity: 1
       page: 5
+      upgradeId: 
+      upgradeTier: 1
     requireAll: 1
     hint: 
     column: 2
@@ -234,6 +266,8 @@ MonoBehaviour:
       item: {fileID: 11400000, guid: ca85a0ffeece51942b4f305b7da5688d, type: 2}
       quantity: 1
       page: 1
+      upgradeId: 
+      upgradeTier: 1
     requireAll: 1
     hint: 
     column: 3
@@ -255,10 +289,14 @@ MonoBehaviour:
       item: {fileID: 11400000, guid: bd04ca413ce93144a853e0da8ee70c00, type: 2}
       quantity: 3
       page: 1
+      upgradeId: 
+      upgradeTier: 1
     - kind: 2
       item: {fileID: 0}
       quantity: 1
       page: 2
+      upgradeId: 
+      upgradeTier: 1
     requireAll: 0
     hint: 
     column: 1
@@ -272,6 +310,8 @@ MonoBehaviour:
       item: {fileID: 11400000, guid: a629bf9703b32c84a987f7760d9a2b2f, type: 2}
       quantity: 1
       page: 1
+      upgradeId: 
+      upgradeTier: 1
     requireAll: 1
     hint: 
     column: 2
@@ -285,6 +325,8 @@ MonoBehaviour:
       item: {fileID: 11400000, guid: f545e6f90b132c94988a957c07aa07e6, type: 2}
       quantity: 1
       page: 1
+      upgradeId: 
+      upgradeTier: 1
     requireAll: 1
     hint: 
     column: 1
@@ -306,6 +348,8 @@ MonoBehaviour:
       item: {fileID: 11400000, guid: 151ffd9b1b592cc4bba57253a3bc9651, type: 2}
       quantity: 1
       page: 1
+      upgradeId: 
+      upgradeTier: 1
     requireAll: 1
     hint: 
     column: 1
@@ -327,6 +371,8 @@ MonoBehaviour:
       item: {fileID: 11400000, guid: 49aeecd77bdc047408ab2bf59e2992fc, type: 2}
       quantity: 1
       page: 1
+      upgradeId: 
+      upgradeTier: 1
     requireAll: 1
     hint: 
     column: 1
@@ -340,6 +386,8 @@ MonoBehaviour:
       item: {fileID: 11400000, guid: 43d1ddae85cd4ac4ab774989f95a30a1, type: 2}
       quantity: 1
       page: 1
+      upgradeId: 
+      upgradeTier: 1
     requireAll: 1
     hint: 
     column: 1
@@ -353,9 +401,71 @@ MonoBehaviour:
       item: {fileID: 11400000, guid: 879abebf5c7aecd48a77b1d3987b6769, type: 2}
       quantity: 1
       page: 1
+      upgradeId: 
+      upgradeTier: 1
     requireAll: 1
     hint: 
     column: 1
     row: 12
     parents:
     - {fileID: 11400000, guid: b99683d183699524da7f4667d45cc33e, type: 2}
+  - recipe: {fileID: 11400000, guid: 92eba6794ea527e4facc8b97d2088e40, type: 2}
+    basic: 0
+    conditions:
+    - kind: 0
+      item: {fileID: 11400000, guid: 2af7fba988aa1c84e811f06aab39c0ca, type: 2}
+      quantity: 1
+      page: 1
+      upgradeId: 
+      upgradeTier: 1
+    requireAll: 1
+    hint: Find a deer skin.
+    column: 3
+    row: 8
+    parents:
+    - {fileID: 11400000, guid: fcebbcf4030a3cf4baa05093b70a89e3, type: 2}
+  - recipe: {fileID: 11400000, guid: 6d8e2a1b6a1a87b4e98d25ec0a52da5d, type: 2}
+    basic: 0
+    conditions:
+    - kind: 3
+      item: {fileID: 0}
+      quantity: 1
+      page: 1
+      upgradeId: ammo_pouch
+      upgradeTier: 1
+    requireAll: 1
+    hint: Craft Ammo Pouch first.
+    column: 3
+    row: 9
+    parents:
+    - {fileID: 11400000, guid: 92eba6794ea527e4facc8b97d2088e40, type: 2}
+  - recipe: {fileID: 11400000, guid: 8f2b0af0e09c1ee4a97a3a60e10e02a2, type: 2}
+    basic: 0
+    conditions:
+    - kind: 3
+      item: {fileID: 0}
+      quantity: 1
+      page: 1
+      upgradeId: ammo_pouch
+      upgradeTier: 2
+    requireAll: 1
+    hint: Craft Ammo Pouch II first.
+    column: 3
+    row: 10
+    parents:
+    - {fileID: 11400000, guid: 6d8e2a1b6a1a87b4e98d25ec0a52da5d, type: 2}
+  - recipe: {fileID: 11400000, guid: 7b23bcc452368d4499a86cf2a08da684, type: 2}
+    basic: 0
+    conditions:
+    - kind: 3
+      item: {fileID: 0}
+      quantity: 1
+      page: 1
+      upgradeId: ammo_pouch
+      upgradeTier: 3
+    requireAll: 1
+    hint: Craft Ammo Pouch III first.
+    column: 3
+    row: 11
+    parents:
+    - {fileID: 11400000, guid: 8f2b0af0e09c1ee4a97a3a60e10e02a2, type: 2}

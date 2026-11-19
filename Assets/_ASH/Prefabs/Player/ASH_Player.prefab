@@ -21688,6 +21688,12 @@ MonoBehaviour:
   anchorOffsetLocal: {x: 0, y: 0, z: 0}
   nockOffsetLocal: {x: 0, y: 0, z: 0}
   restOffsetLocal: {x: 0, y: 0, z: 0}
+  relaxIdleAnimator: 1
+  idleUpperBodyWeight: 0
+  idleRelaxLayers: []
+  idleHangVertical: 1
+  idleHangAxis: {x: 0, y: 1, z: 0}
+  idleHangEuler: {x: 0, y: 0, z: 0}
 --- !u!1 &5244018001361201629
 GameObject:
   m_ObjectHideFlags: 0
@@ -34301,6 +34307,10 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 175d1959d24317743b87ba6da11c0d39, type: 2}
   - {fileID: 11400000, guid: fcebbcf4030a3cf4baa05093b70a89e3, type: 2}
   - {fileID: 11400000, guid: 7414b72c4f456bc4bb20668dacf6dadb, type: 2}
+  - {fileID: 11400000, guid: 92eba6794ea527e4facc8b97d2088e40, type: 2}
+  - {fileID: 11400000, guid: 6d8e2a1b6a1a87b4e98d25ec0a52da5d, type: 2}
+  - {fileID: 11400000, guid: 8f2b0af0e09c1ee4a97a3a60e10e02a2, type: 2}
+  - {fileID: 11400000, guid: 7b23bcc452368d4499a86cf2a08da684, type: 2}
   stationRange: 4
 --- !u!114 &8144788992435636934
 MonoBehaviour:

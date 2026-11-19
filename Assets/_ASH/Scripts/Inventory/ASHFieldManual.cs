@@ -83,6 +83,7 @@ namespace ASH.Inventory
             UI.ASHHud.CraftTabName = Data ? Data.tabName : null;
             if (_inv) { _inv.ItemAdded += OnItemAdded; _inv.Changed += StowJournal; }
             if (_craft) _craft.Crafted += OnCrafted;
+            ASHUpgrades.Changed += OnUpgradeChanged;
         }
 
         /// <summary>Once read, the journal is a permanent tool (J / its HUD icon), not a pack item: any copy in the pack is removed.
@@ -101,6 +102,7 @@ namespace ASH.Inventory
             UI.ASHHud.CraftingAvailable = null; UI.ASHHud.CraftingLockedMessage = null; UI.ASHHud.CraftTabName = null;
             if (_inv) { _inv.ItemAdded -= OnItemAdded; _inv.Changed -= StowJournal; }
             if (_craft) _craft.Crafted -= OnCrafted;
+            ASHUpgrades.Changed -= OnUpgradeChanged;
         }
 
         void OnDestroy() { if (Instance == this) Instance = null; }
@@ -120,10 +122,14 @@ namespace ASH.Inventory
             if (first) Evaluate();
         }
 
+        void OnUpgradeChanged() { Evaluate(); Changed?.Invoke(); }
+
         void OnCrafted(ASHRecipe r)
         {
-            if (!r || !r.outputItem) return;
-            _crafted.TryGetValue(r.outputItem.itemId, out var n); _crafted[r.outputItem.itemId] = n + r.outputAmount;
+            if (r && r.outputItem)
+            {
+                _crafted.TryGetValue(r.outputItem.itemId, out var n); _crafted[r.outputItem.itemId] = n + r.outputAmount;
+            }
             Evaluate();
         }
 
@@ -163,6 +169,7 @@ namespace ASH.Inventory
                 case ASHUnlockKind.FirstPickup: return c.item && _firstPickups.Contains(c.item.itemId);
                 case ASHUnlockKind.Crafted: return c.item && CraftedCount(c.item) >= Mathf.Max(1, c.quantity);
                 case ASHUnlockKind.ManualPage: return _pages.Contains(c.page);
+                case ASHUnlockKind.UpgradeTier: return !string.IsNullOrEmpty(c.upgradeId) && ASHUpgrades.Tier(c.upgradeId) >= Mathf.Max(1, c.upgradeTier);
             }
             return false;
         }
@@ -177,6 +184,7 @@ namespace ASH.Inventory
                 case ASHUnlockKind.FirstPickup: return $"Find {(c.item ? c.item.displayName : "?")}";
                 case ASHUnlockKind.Crafted: return c.quantity > 1 ? $"Craft {c.quantity} {(c.item ? c.item.displayName : "?")}  ({Mathf.Min(CraftedCount(c.item), c.quantity)}/{c.quantity})" : $"Craft {(c.item ? c.item.displayName : "?")}";
                 case ASHUnlockKind.ManualPage: return $"Find manual page {c.page}";
+                case ASHUnlockKind.UpgradeTier: return $"Craft Ammo Pouch tier {Mathf.Max(1, c.upgradeTier)}" + (string.IsNullOrEmpty(c.upgradeId) ? "" : $"  ({ASHUpgrades.Tier(c.upgradeId)}/{Mathf.Max(1, c.upgradeTier)})");
             }
             return "";
         }

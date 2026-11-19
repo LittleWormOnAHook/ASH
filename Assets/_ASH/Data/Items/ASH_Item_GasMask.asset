@@ -16,11 +16,12 @@ MonoBehaviour:
   displayName: Gas Mask
   description: Old rubber respirator. Far better than a rag, if you have filter cartridges
     for it.
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: 1910accd5d50be04dba84faa6a9e3000, type: 3}
   uiTint: {r: 0.3, g: 0.33, b: 0.3, a: 1}
   category: 3
   maxStack: 1
   useVerb: Wear
+  keyItem: 0
   restoreHunger: 0
   restoreThirst: 0
   restoreHealth: 0
@@ -28,6 +29,10 @@ MonoBehaviour:
   requiresOpener: 0
   smashedYield: 0.65
   leftoverItem: {fileID: 0}
+  sicknessChance: 0
+  sicknessHealthLoss: 8
+  sicknessThirstLoss: 10
+  sicknessHungerLoss: 6
   toolType: 0
   breakdownYield: []
   breakdownTool: 0
