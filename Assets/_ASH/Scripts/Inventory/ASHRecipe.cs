@@ -35,5 +35,9 @@ namespace ASH.Inventory
         public ASHCraftStation station = ASHCraftStation.Anywhere;
         [Tooltip("Water drawn from the refillable bottle, in % of a full bottle (e.g. 10 for a wet rag). 0 = none.")]
         [Range(0f, 100f)] public float waterPercent = 0f;
+        [Tooltip("Campfire recipes: GAME minutes the food / water sits on the fire (1 game hour = 2 real minutes at the 48-minute day). " +
+                 "Needs a lit fire with fuel the whole time. 0 = old timed craft in the pack.")]
+        [Range(0f, 720f)] public float cookGameMinutes = 0f;
+        public bool CooksOnFire => station == ASHCraftStation.Campfire && cookGameMinutes > 0f;
     }
 }

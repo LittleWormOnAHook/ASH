@@ -37,7 +37,14 @@ namespace ASH.Inventory
         /// <summary>Water source for recipes with waterPercent (the refillable bottle): % available, and consume(%).</summary>
         public static Func<float> WaterPercentAvailable;
         public static Func<float, bool> ConsumeWater;
-        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)] static void ResetHooks() { RecipeGate = null; WaterPercentAvailable = null; ConsumeWater = null; }
+        /// <summary>Fire cooking (ASHFireCooking): why a cook-on-fire recipe can't go on the nearest fire (null = ok), and start it.</summary>
+        public static Func<ASHCrafting, ASHRecipe, string> FireCookBlock;
+        public static Func<ASHCrafting, ASHRecipe, bool> FireCookStart;
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)] static void ResetHooks() { RecipeGate = null; WaterPercentAvailable = null; ConsumeWater = null; FireCookBlock = null; FireCookStart = null; }
+        public float StationRange => stationRange;
+        /// <summary>Raises Crafted for work finished elsewhere (food cooked on a fire), so the guide, objectives and HUD see it.</summary>
+        public void NotifyCrafted(ASHRecipe r) { if (r) Crafted?.Invoke(r); }
+        static bool FireCooks(ASHRecipe r) => r.CooksOnFire && FireCookStart != null;
         public static bool HasWaterFor(ASHRecipe r) => r == null || r.waterPercent <= 0f || (WaterPercentAvailable != null && WaterPercentAvailable() + 0.01f >= r.waterPercent);
         public ASHInventory Inventory => inventory;
         public bool IsCrafting { get; private set; }
@@ -75,6 +82,7 @@ namespace ASH.Inventory
             if (!HasIngredients(r)) return "Missing materials";
             if (r.requiredTool != ASHToolType.None && !inventory.HasTool(r.requiredTool)) return "Needs " + ToolName(r.requiredTool);
             if (!NearStation(r.station)) return "Needs a lit campfire nearby";
+            if (FireCooks(r)) { var fb = FireCookBlock?.Invoke(this, r); if (fb != null) return fb; }
             if (!HasWaterFor(r)) return WaterPercentAvailable == null ? "Needs a water bottle" : $"Needs {r.waterPercent:0}% water in the bottle";
             if (!inventory.HasSpaceFor(r.outputItem, r.outputAmount)) return "No space in pack";
             return null;
@@ -86,6 +94,7 @@ namespace ASH.Inventory
         {
             string why = MissingReason(r);
             if (why != null) { CraftFailed?.Invoke(r, why); return false; }
+            if (FireCooks(r)) return FireCookStart(this, r); // ingredients go on the fire; output arrives when cooked (game clock)
             StartCoroutine(CraftRoutine(r));
             return true;
         }

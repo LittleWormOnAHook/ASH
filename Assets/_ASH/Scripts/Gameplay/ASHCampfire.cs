@@ -68,6 +68,9 @@ namespace ASH.Gameplay
         public ASHCraftStation StationType => ASHCraftStation.Campfire;
         public bool StationActive => lit && isActiveAndEnabled;
         public Vector3 StationPosition => transform.position;
+        ASHFireCooking _cook;
+        public ASHFireCooking Cooking => _cook ? _cook : (_cook = GetComponent<ASHFireCooking>());
+        private void Awake() { if (!GetComponent<ASHFireCooking>()) _cook = gameObject.AddComponent<ASHFireCooking>(); }
         private void OnEnable() { if (!ASHCrafting.Stations.Contains(this)) ASHCrafting.Stations.Add(this); if (!_all.Contains(this)) _all.Add(this); }
         private void OnDisable() { ASHCrafting.Stations.Remove(this); _all.Remove(this); }
 
@@ -123,6 +126,14 @@ namespace ASH.Gameplay
             if (crackle) { if (on) crackle.Play(); else crackle.Stop(); }
         }
 
+        /// <summary>Extra fuel use (fire cooking). Burns out at zero.</summary>
+        public void ConsumeFuel(float hours)
+        {
+            if (!lit || hours <= 0f) return;
+            fuelHours = Mathf.Max(0f, fuelHours - hours);
+            if (fuelHours <= 0f) BurnOut();
+        }
+
         /// <summary>Save restore: absolute state (works before or after Start).</summary>
         public void RestoreState(bool isLit, float fuel)
         {
@@ -161,11 +172,12 @@ namespace ASH.Gameplay
         }
 
         public float GetUsePriority(in ASHUseContext c) => 30f;
-        public float GetHoldDuration(in ASHUseContext c) => lit && FindFuelIn(c.Inventory, out _) == null ? ASHCampfireSettings.I.putOutHoldSeconds : 0f;
+        public float GetHoldDuration(in ASHUseContext c) => Cooking && Cooking.ReadyCount > 0 ? 0f : lit && FindFuelIn(c.Inventory, out _) == null ? ASHCampfireSettings.I.putOutHoldSeconds : 0f;
 
         public string GetPrompt(in ASHUseContext c)
         {
-            string fuel = $"fuel {ASHGameTimeBridge.Format(FuelHours)} / {ASHGameTimeBridge.Format(MaxFuelHours)}";
+            if (Cooking && Cooking.ReadyCount > 0) return "Take " + Cooking.ReadyLabel;
+            string fuel = $"fuel {ASHGameTimeBridge.Format(FuelHours)} / {ASHGameTimeBridge.Format(MaxFuelHours)}" + (Cooking ? Cooking.StatusSuffix : "");
             var it = FindFuelIn(c.Inventory, out _);
             if (lit) return it ? $"Add {it.displayName} ({fuel})" : $"Put out fire ({fuel})";
             if (FuelHours > 0f) return $"Light fire ({fuel})";
@@ -174,6 +186,7 @@ namespace ASH.Gameplay
 
         public bool TryUse(in ASHUseContext c)
         {
+            if (Cooking && Cooking.ReadyCount > 0) return Cooking.Collect(c.Inventory, c.PlayerTransform) > 0;
             if (lit) { if (TryAddFuel(c.Inventory)) return true; SetLit(false); return true; }
             if (FuelHours > 0f)
             {
