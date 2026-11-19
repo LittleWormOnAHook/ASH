@@ -29,6 +29,7 @@ namespace ASH.Combat
     [DefaultExecutionOrder(1590)]
     public sealed class ASHCombatBridge : MonoBehaviour
     {
+        ASHBowDrawRig _bowRig;
         public static ASHCombatBridge Player { get; private set; }
 
         ASHEquipment _eq; ASHInvectorInput _in; vShooterManager _sm; vMeleeManager _mm; vAmmoManager _am; vThirdPersonController _cc;
@@ -115,6 +116,7 @@ namespace ASH.Combat
                 _aim.ExternalControl = _gun;
                 if (_gun) { _aim.ExternalAiming = _in && _in.IsAiming; _aim.ExternalDraw01 = _gun.chargeWeapon ? _gun.powerCharge : 0f; }
             }
+            if (_bowRig) { _bowRig.draw01 = _gun && _gun.chargeWeapon ? Mathf.Clamp01(_gun.powerCharge) : 0f; _bowRig.Apply(); }
             if (_gun && _gun.chargeWeapon)
             {
                 bool ch = _gun.powerCharge > 0.02f;
@@ -136,7 +138,7 @@ namespace ASH.Combat
                 _melee.onEnableDamage.RemoveListener(RollMelee);
                 if (_mm) _mm.SetRightWeapon((vMeleeWeapon)null);
             }
-            _gun = null; _melee = null; CurrentData = null; _wasCharging = false;
+            _gun = null; _melee = null; CurrentData = null; _wasCharging = false; _bowRig = null;
             _cur = main; _curGo = go;
             if (!main || !go) return;
             CurrentData = ASHWeaponData.For(main);
@@ -148,6 +150,7 @@ namespace ASH.Combat
                 _gunLeft = ASHEquipment.InLeftHand(main) || _gun.isLeftWeapon;
                 if (_gunLeft) _sm.SetLeftWeapon(go); else _sm.SetRightWeapon(go);
                 _gun.onInstantiateProjectile.AddListener(OnProjectile);
+                _bowRig = go.GetComponent<ASHBowDrawRig>();
             }
             else _gun = null;
             if (_melee && _mm) { ApplyMelee(); _mm.SetRightWeapon(_melee); _melee.onEnableDamage.AddListener(RollMelee); }
@@ -230,8 +233,9 @@ namespace ASH.Combat
                     if (_cur.gripStyle == ASHGripStyle.PistolGrip) ASHSfx.Play("pistolShot", b.pistolShot, at, b.gunVolume * b.volume, b.pistolPitch, 0.04f, 0.6f, 250f);
                     else ASHSfx.Play("rifleShot", b.rifleShot, at, b.gunVolume * b.volume, 1f, 0.03f, 0.6f, 400f);
                 }
-                var fx = ASHCombatTuning.Live.muzzleFlash;
-                if (fx && w.muzzle) { var g = Instantiate(fx, w.muzzle.position, w.muzzle.rotation, w.muzzle); Destroy(g, 2f); }
+                // one flash per shot: Invector's own muzzle particles when the weapon has them (shotgun), else the ASH flash
+                bool invFx = w.emittShurykenParticle != null && System.Array.Exists(w.emittShurykenParticle, e => e);
+                if (!invFx && w.muzzle) MuzzleFlash(ASHCombatTuning.Live.muzzleFlash, w.muzzle);
                 if (CurrentData) ASHCameraKick.Kick(CurrentData.cameraKick, Random.Range(-0.4f, 0.4f));
             }
         }
@@ -249,12 +253,62 @@ namespace ASH.Combat
         void OnProjectile(vProjectileControl p)
         {
             if (!p || !_gun) return;
+            StripTracers(p);
             bool bow = CurrentData ? CurrentData.kind == ASHWeaponKind.Bow : _gun.chargeWeapon;
             p.onCastCollider.AddListener(hit => ASHHitMarks.Spawn(hit.point, hit.normal, hit.collider, bow ? ASHHitKind.Arrow : ASHHitKind.Bullet));
             if (!bow) return;
             var arrow = p.GetComponent<vArrow>();
-            if (arrow && CurrentData) arrow.penetration = Mathf.Lerp(CurrentData.minPenetration, CurrentData.maxPenetration, _gun.powerCharge);
-            var rec = p.GetComponentInChildren<ASHArrowRecover>(true); if (rec && _cur) rec.arrowItem = _cur.ammoItem;
+            float pen = CurrentData ? Mathf.Lerp(CurrentData.minPenetration, CurrentData.maxPenetration, _gun.powerCharge) : 0.08f;
+            if (arrow) arrow.penetration = pen;
+            var rec = p.GetComponentInChildren<ASHArrowRecover>(true); var item = _cur ? _cur.ammoItem : null;
+            if (rec) rec.arrowItem = item;
+            // ASH sticks the arrow itself (parented to the hit collider, then a pickup); Invector's vArrow detach is switched off
+            var ev = p.onDestroyProjectile;
+            for (int i = 0; i < ev.GetPersistentEventCount(); i++) if (ev.GetPersistentTarget(i) is vArrow) ev.SetPersistentListenerState(i, UnityEngine.Events.UnityEventCallState.Off);
+            var vis = arrow && arrow.detachObject ? arrow.detachObject : rec ? rec.transform : null;
+            ev.AddListener(hit => StickArrow(p, vis, rec, item, pen, hit));
+        }
+
+        static void StickArrow(vProjectileControl p, Transform vis, ASHArrowRecover rec, ASHItemDefinition item, float pen, RaycastHit hit)
+        {
+            if (!p || !vis || !hit.collider) return;
+            var rb = p.GetComponent<Rigidbody>();
+            var dir = rb && rb.linearVelocity.sqrMagnitude > 1f ? rb.linearVelocity.normalized : p.transform.forward;
+            var turn = Quaternion.FromToRotation(p.transform.forward, dir);
+            vis.SetParent(hit.collider.transform, true);
+            vis.SetPositionAndRotation(hit.point + dir * pen, turn * vis.rotation);   // ASH arrow visual: tip at its origin, pointing +Z
+            if (!rec) rec = vis.GetComponentInChildren<ASHArrowRecover>(true);
+            if (!rec) rec = vis.gameObject.AddComponent<ASHArrowRecover>();
+            rec.Stick(item);
+        }
+
+        /// <summary>No tracer lines: trails, line renderers and particle streams on Invector projectiles are removed at spawn.</summary>
+        static void StripTracers(vProjectileControl p)
+        {
+            p.trail = null;
+            foreach (var tr in p.GetComponentsInChildren<TrailRenderer>(true)) { tr.emitting = false; tr.Clear(); Destroy(tr); }
+            foreach (var lr in p.GetComponentsInChildren<LineRenderer>(true)) Destroy(lr);
+            foreach (var ps in p.GetComponentsInChildren<ParticleSystem>(true)) { ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear); var r = ps.GetComponent<ParticleSystemRenderer>(); if (r) r.enabled = false; }
+        }
+
+        /// <summary>One short muzzle flash: the prefab's particles are emitted once (never looped), its light shows for muzzleFlashSeconds.</summary>
+        static void MuzzleFlash(GameObject fx, Transform muzzle)
+        {
+            if (!fx || !muzzle) return;
+            var t = ASHCombatTuning.Live;
+            var g = Instantiate(fx, muzzle.position, muzzle.rotation, muzzle);
+            foreach (var mb in g.GetComponentsInChildren<MonoBehaviour>(true)) Destroy(mb); // WFX flicker / auto-loop helpers
+            float life = 0.05f;
+            foreach (var ps in g.GetComponentsInChildren<ParticleSystem>(true))
+            {
+                ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+                var m = ps.main; m.loop = false; m.playOnAwake = false;
+                var em = ps.emission; em.enabled = false;
+                ps.Play(false); ps.Emit(Mathf.Max(1, t.muzzleFlashParticles));
+                life = Mathf.Max(life, m.startLifetime.constantMax);
+            }
+            foreach (var l in g.GetComponentsInChildren<Light>(true)) { l.enabled = true; Destroy(l, t.muzzleFlashSeconds); }
+            Destroy(g, Mathf.Clamp(life + 0.05f, 0.1f, 0.6f));
         }
 
         void OnStartDamage(vDamage d)

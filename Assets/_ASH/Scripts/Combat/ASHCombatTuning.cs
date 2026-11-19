@@ -70,9 +70,16 @@ namespace ASH.Combat
         public Color woodMarkColour = new Color(0.16f, 0.1f, 0.05f, 0.9f);
 
         [Header("Arrows")]
-        [Range(0f, 1f)] public float arrowRecoverChance = 0.75f;
+        [Tooltip("Chance a shot arrow breaks on impact (0 = every stuck arrow can be picked back up).")]
+        [Range(0f, 1f)] public float arrowBreakChance = 0f;
         [Range(0, 500)] public int maxStuckArrows = 30;
-        [Range(1f, 3600f)] public float stuckArrowLifetime = 180f;
+        [Tooltip("Seconds a stuck arrow stays in what it hit before it is cleaned up.")]
+        [Range(5f, 7200f)] public float stuckArrowSeconds = 600f;
+
+        [Header("Muzzle flash")]
+        [Tooltip("Flash light time per shot (s); the flash particles are emitted once per shot, never looped.")]
+        [Range(0.01f, 0.5f)] public float muzzleFlashSeconds = 0.06f;
+        [Range(1, 10)] public int muzzleFlashParticles = 1;
 
         [Header("References (set by ASH/Systems/Combat)")]
         [Tooltip("Muzzle flash spawned at the gun muzzle per shot (WarFX if found).")]
@@ -107,16 +114,16 @@ namespace ASH.Combat
             hitStopLightFrames = 2; hitStopHeavyFrames = 6; hitStopCritBonusFrames = 2; hitStopWeightBonusFrames = 2; hitStopHoldSpeed = 0.3f;
             dummyMaxHealth = 500f; dummyResetDelay = 2f;
             playerStaggerChanceMin = 0.2f; playerStaggerChanceMax = 0.4f; playerStaggerImmunitySeconds = 1.5f; playerStaggerStaminaCost = 18f;
-            arrowRecoverChance = 0.75f; humanoidPoiseMax = 80f; dummyPoiseMax = 20f;
+            arrowBreakChance = 0f; humanoidPoiseMax = 80f; dummyPoiseMax = 20f;
             if (p == Preset.Relaxed)
             {
                 outgoingDamage = 1.5f; incomingDamage = 0.5f; playerStaggerChanceMin = 0.05f; playerStaggerChanceMax = 0.15f;
-                playerStaggerImmunitySeconds = 3f; playerStaggerStaminaCost = 8f; arrowRecoverChance = 0.95f;
+                playerStaggerImmunitySeconds = 3f; playerStaggerStaminaCost = 8f; arrowBreakChance = 0f;
             }
             else if (p == Preset.Extreme)
             {
                 outgoingDamage = 0.7f; incomingDamage = 2.5f; playerStaggerChanceMin = 0.4f; playerStaggerChanceMax = 0.75f;
-                playerStaggerImmunitySeconds = 0.6f; playerStaggerStaminaCost = 30f; arrowRecoverChance = 0.35f;
+                playerStaggerImmunitySeconds = 0.6f; playerStaggerStaminaCost = 30f; arrowBreakChance = 0.5f;
                 hitStopLightFrames = 3; hitStopHeavyFrames = 9; humanoidPoiseMax = 140f; dummyMaxHealth = 900f;
             }
         }

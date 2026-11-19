@@ -132,6 +132,9 @@ namespace ASH.Gameplay
             bool axe = !offSlot && _chop && _chop.Chopping;
             bool torchUp = offSlot && _la && _la.TorchRaised && !_la.Aiming;
             bool lightAim = offSlot && _la && _la.Aiming;
+            // Invector shooter owns ranged items (ASH.Combat.ASHCombatBridge sets ExternalControl): its grip, support-hand IK
+            // and aim alignment place the weapon and both hands, so the ASH anchors / Grip IK stay off for them.
+            if ((bow || gun) && _wa.ExternalControl) return;
 
             Transform anchor = null; float want = 0f, draw = 1f;
             if (bow && _wa.Aiming) { anchor = Child(_aimPivot, AimAnchorPrefix + key); draw = Mathf.SmoothStep(0f, 1f, _wa.Draw01); want = draw; }

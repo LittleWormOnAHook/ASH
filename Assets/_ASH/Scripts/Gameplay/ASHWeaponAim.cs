@@ -271,7 +271,7 @@ namespace ASH.Gameplay
                     if (_layer && (IsBowState(_layer.State) || _layer.State == "RifleAim" || _layer.State == "PistolAim" || _layer.State == "RifleShot" || _layer.State == "PistolShot")) _layer.Release();
                 }
                 Aiming = ExternalAiming && !ASHUIState.BlocksGameplay;
-                Draw01 = Aiming && Current == Kind.Bow && HasArrows && Time.time >= _shotUntil ? Mathf.Max(Mathf.Min(1f, handArrowAppearDraw01 + 0.001f), Mathf.Clamp01(ExternalDraw01)) : 0f; // arrow nocked as soon as the bow is raised
+                Draw01 = Aiming && Current == Kind.Bow && HasArrows && Time.time >= _shotUntil ? Mathf.Clamp01(ExternalDraw01) : 0f; // arrow only while drawing (Invector bow power)
                 _kick = 0f;
                 UpdateHandArrow();
                 return;
@@ -604,9 +604,27 @@ namespace ASH.Gameplay
             var aimL = _aimDir.sqrMagnitude > 0.5f ? _aimDir : Root.forward;
             NockWorld = FingerWorld;   // the archery animation brings the drawing fingers to the cheek; the nock sits there
             float n = _bowBlend;
+            if (ExternalControl)
+            {
+                // Invector bow: the nock rides the string (ASHBowDrawRig, pulled back by the bow power) and the arrow lies from
+                // the nock to the arrow rest; it shows only while drawing. The pre-placed hand arrow is never shown.
+                var rig = bowOut ? v.GetComponent<ASH.Combat.ASHBowDrawRig>() : null;
+                if (rig) { NockWorld = rig.NockWorld; ArrowRestWorld = rig.RestWorld; _restValid = true; }
+                if (_restArrow && _restArrow.activeSelf) _restArrow.SetActive(false);
+                if (_arrowShown && bowOut && _restValid && n > 0.01f)
+                {
+                    if (!_nockArrow) _nockArrow = MakeArrowVisual("ASH_NockArrow", true);
+                    if (!_nockArrow.activeSelf) _nockArrow.SetActive(true);
+                    var shaft = ArrowRestWorld - NockWorld; if (shaft.sqrMagnitude < 0.01f) shaft = aimL;
+                    _nockArrow.transform.localScale = _restArrow ? _restArrow.transform.lossyScale : Vector3.one;
+                    _nockArrow.transform.SetPositionAndRotation(NockWorld, Quaternion.LookRotation(shaft.normalized, v.transform.forward));
+                }
+                else if (_nockArrow && _nockArrow.activeSelf) _nockArrow.SetActive(false);
+            }
 
             // arrow: authored rest arrow while idle; while drawing a runtime copy is nocked on the string and rests on the bow
-            if (_arrowShown && _restArrow)
+            if (ExternalControl) { }
+            else if (_arrowShown && _restArrow)
             {
                 if (n > 0.01f && rh && _restValid)
                 {
@@ -849,7 +867,7 @@ namespace ASH.Gameplay
         public void RefreshAfterRig()
         {
             var v = _eq ? _eq.MainVisual : null; if (!v) return;
-            float w = _layer && _layer.Valid ? _layer.Weight : (Aiming ? 1f : 0f);
+            float w = ExternalControl ? (Aiming ? 1f : 0f) : _layer && _layer.Valid ? _layer.Weight : (Aiming ? 1f : 0f);
             UpdateNockAndString(v, w);
         }
         /// <summary>Rifle butt point (world).</summary>
