@@ -82,7 +82,7 @@ namespace ASH.Core
         }
 
         float _nextAuto, _iconUntil, _lastShelterSave = -999f;
-        ASHCoreSave _core; ASHWorldSave _world; ASH.Gameplay.ASHPlacedSave _placed;
+        ASHCoreSave _core; ASHWorldSave _world; ASH.Gameplay.ASHPlacedSave _placed; ASH.Gameplay.ASHSkillSave _skills;
         Canvas _canvas; RectTransform _icon; Image _fade; float _fadeT = -1f;
 
         void Awake()
@@ -91,14 +91,16 @@ namespace ASH.Core
             Instance = this;
             _core = new ASHCoreSave(); _world = new ASHWorldSave(); _world.Snapshot();
             _placed = new ASH.Gameplay.ASHPlacedSave(); _placed.Snapshot();
-            Register(_core); Register(_world); Register(_placed);
+            _skills = new ASH.Gameplay.ASHSkillSave();
+            Register(_core); Register(_world); Register(_placed); Register(_skills);
             BuildUI();
             if (PendingLoad == null && !ASHSceneFlow.ContinuingRun) PlaySeconds = 0f;
+            if (!ASHSceneFlow.ContinuingRun) ASH.Gameplay.ASHSkills.ResetAll(); // a loaded save restores its own "skills" section after this
             ASHSceneFlow.ContinuingRun = false;
             ResetAutosaveTimer();
         }
 
-        void OnDestroy() { if (Instance == this) Instance = null; Unregister(_core); Unregister(_world); Unregister(_placed); }
+        void OnDestroy() { if (Instance == this) Instance = null; Unregister(_core); Unregister(_world); Unregister(_placed); Unregister(_skills); }
 
         void Start() { if (PendingLoad != null) StartCoroutine(RestoreRoutine(PendingLoad)); }
 
