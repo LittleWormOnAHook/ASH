@@ -369,7 +369,9 @@ namespace ASH.EditorTools
                     inst.name = "ASH_Pickup_Shotgun";
                     foreach (var r in inst.GetComponentsInChildren<Renderer>(true)) r.enabled = false;
                     var m = Object.Instantiate(tw.gameObject); m.name = "Model";
-                    foreach (var c in m.GetComponentsInChildren<Component>(true)) if (c && !(c is Transform) && !(c is MeshFilter) && !(c is MeshRenderer) && !(c is SkinnedMeshRenderer)) Object.DestroyImmediate(c);
+                    foreach (var cv in m.GetComponentsInChildren<Canvas>(true)) if (cv && cv.gameObject != m) Object.DestroyImmediate(cv.gameObject);
+                    foreach (var cv in m.GetComponentsInChildren<Canvas>(true)) if (cv) { foreach (var g in cv.GetComponents<UnityEngine.EventSystems.UIBehaviour>()) Object.DestroyImmediate(g); }
+                    foreach (var c in m.GetComponentsInChildren<Component>(true).Reverse()) if (c && !(c is Transform) && !(c is MeshFilter) && !(c is MeshRenderer) && !(c is SkinnedMeshRenderer)) Object.DestroyImmediate(c);
                     m.transform.SetParent(inst.transform, false); m.transform.localPosition = Vector3.up * 0.05f; m.transform.localRotation = Quaternion.Euler(0f, 0f, 90f);
                     PrefabUtility.SaveAsPrefabAsset(inst, pp); Object.DestroyImmediate(inst);
                     sb.Append("ASH_Pickup_Shotgun created; ");
