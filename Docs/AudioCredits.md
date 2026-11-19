@@ -23,6 +23,13 @@ Clips shipped in the repo live in `Assets/_ASH/Audio/`. Vendor libraries (`Asset
 
 Generated at runtime (original, no license needed): the two-tone emergency attention signal (853 + 960 Hz) and the fallback radio static.
 
+## Fire cooking — `Assets/_ASH/Audio/Cooking/` (mono OGG, loudness-normalised)
+
+| ASH file | Source | Author | License |
+|---|---|---|---|
+| ASH_Boil_Loop.ogg | https://opengameart.org/content/boiling-water-loops (cooking_with_cover_01.ogg) | TinyWorlds | CC0 |
+| ASH_Cook_Simmer_Loop.ogg | https://opengameart.org/content/boiling-water-loops (cooking_without_cover_01.ogg) | TinyWorlds | CC0 |
+
 ## Referenced from vendor libraries (not in git)
 | Use | Clip | License / credit |
 |---|---|---|
