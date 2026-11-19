@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f2abf797c9ef86a47b75d7ba6d94398e, type: 3}
+  m_Name: ASH_Weapon_Hatchet
+  m_EditorClassIdentifier: Assembly-CSharp::ASH.Combat.ASHWeaponData
+  item: {fileID: 11400000, guid: 9d969f68cd66efe419e68a447220f35c, type: 2}
+  kind: 0
+  damage: 26
+  damageRandom: 4
+  critChance: 0.12
+  critMultiplier: 2
+  poiseFromDamage: 0.44
+  bodyWeight: 1.1
+  knockback: 2.5
+  reach: 2.4
+  staminaCost: 10
+  staminaRecoveryDelay: 1
+  attackID: 1
+  movesetID: 2
+  hitBoxSize: {x: 0.18, y: 0.2, z: 0.22}
+  hitBoxAlong: 0.82
+  overrideInvectorHandling: 0
+  useInvectorDamage: 0
+  invectorTemplate: Assets/Invector-3rdPersonController/Melee Combat/Prefabs/Weapons/NoInventory/Axe_NOInventory.prefab
+  range: 55
+  projectileSpeed: 220
+  dispersion: 0.3
+  shotInterval: 1.1
+  cameraKick: 1.2
+  drawSeconds: 1.1
+  fullDrawDamageMultiplier: 2.5
+  fullDrawSpeedMultiplier: 2
+  autoLooseAtFullDraw: 0
+  minPenetration: 0.05
+  maxPenetration: 0.2

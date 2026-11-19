@@ -1,0 +1,62 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e9d922b439143b842ab7c38559f429d5, type: 3}
+  m_Name: ASH_CombatTuning
+  m_EditorClassIdentifier: Assembly-CSharp::ASH.Combat.ASHCombatTuning
+  preset: 1
+  outgoingDamage: 1
+  incomingDamage: 1
+  hitStop: 1
+  hitStopLightFrames: 2
+  hitStopHeavyFrames: 6
+  hitStopCritBonusFrames: 2
+  hitStopWeightBonusFrames: 2
+  hitStopHoldSpeed: 0.3
+  hitStopFreezesAttacker: 1
+  heavyWeight: 1.35
+  dummyPoiseMax: 20
+  humanoidPoiseMax: 80
+  maxPoiseFractionPerHit: 0.4
+  poiseRegenPerSecond: 1
+  poiseRegenDelay: 5
+  poiseBreakKickScale: 0.83
+  dummyMaxHealth: 500
+  dummyResetDelay: 2
+  dummyTiltFrequency: 1
+  dummyTiltDampingRatio: 0.79
+  dummyMaxTiltDegrees: 55.8
+  dummyMeleeKick: 275
+  dummyRangedKick: 300
+  dummyKickWindowSeconds: 0.3
+  dummyKickWindowCap: 140
+  dummyMeleeDistance: 3
+  damageNumbers: 1
+  playerStaggerChanceMin: 0.2
+  playerStaggerChanceMax: 0.4
+  playerStaggerImmunitySeconds: 1.5
+  playerStaggerStaminaCost: 18
+  maxMarksPerTarget: 5
+  markLifetime: 90
+  markSize: 0.07
+  fleshHit: {fileID: 100002, guid: 3b1513bcb86426b4795879be6a128ed7, type: 3}
+  woodHit: {fileID: 100002, guid: ac1aa04288fad804ba1cd769f4377aaf, type: 3}
+  stoneHit: {fileID: 100002, guid: 99c73c92ac40473459640b165473206f, type: 3}
+  defaultHit: {fileID: 100002, guid: 56bfc2f4b4a0c534c8ef3d0fd1124c44, type: 3}
+  markMaterial: {fileID: 0}
+  fleshMarkColour: {r: 0.35, g: 0.02, b: 0.02, a: 0.9}
+  woodMarkColour: {r: 0.16, g: 0.1, b: 0.05, a: 0.9}
+  arrowRecoverChance: 0.75
+  maxStuckArrows: 30
+  stuckArrowLifetime: 180
+  muzzleFlash: {fileID: 100006, guid: c888f0c922d622147bbdbe2ca794142b, type: 3}
+  shooterUiPrefab: {fileID: 100756, guid: 041726e4330290b43ac95e1cf84d3636, type: 3}
+  shooterCameraStates: {fileID: 11400000, guid: 8616a8d80006bfb4d9069ea692c278da, type: 2}
