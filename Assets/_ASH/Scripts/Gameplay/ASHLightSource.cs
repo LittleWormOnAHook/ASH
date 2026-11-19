@@ -28,6 +28,8 @@ namespace ASH.Gameplay
         [Tooltip("Extra push along the mesh tip axis, in metres (sits the flame just past the wrapping).")]
         [Range(-0.2f, 0.2f)] public float tipPadding = 0.015f;
         [SerializeField] bool anchorFlameToMeshTip = true;
+        [Tooltip("Flame particle space. Local = the flame stays on the tip while the torch moves (World left the flame behind the moving torch, so it drifted off the top). Custom/World = old look.")]
+        [SerializeField] ParticleSystemSimulationSpace flameSimulationSpace = ParticleSystemSimulationSpace.Local;
 
         bool _on; float _seed; bool _anchored;
 
@@ -42,9 +44,19 @@ namespace ASH.Gameplay
 
         void LateUpdate() { if (keepUpright) keepUpright.rotation = uprightRotation; }
 
-        void Awake() { _seed = Random.value * 100f; AnchorFlameToTip(); Apply(); }
+        void Awake() { _seed = Random.value * 100f; AnchorFlameToTip(); ApplyFlameSpace(); Apply(); }
 
-        void OnEnable() { AnchorFlameToTip(); }
+        void OnEnable() { AnchorFlameToTip(); ApplyFlameSpace(); }
+
+        /// <summary>Torch flame particles follow the tip (Local) unless flameSimulationSpace says otherwise. Lights other than torches are untouched.</summary>
+        void ApplyFlameSpace()
+        {
+            if (Kind != "torch" && keepUpright == null) return;
+            if (effects != null) foreach (var e in effects) SetSpace(e);
+            if (keepUpright) foreach (var e in keepUpright.GetComponentsInChildren<ParticleSystem>(true)) SetSpace(e);
+            if (flameTip) foreach (var e in flameTip.GetComponentsInChildren<ParticleSystem>(true)) SetSpace(e);
+        }
+        void SetSpace(ParticleSystem e) { if (!e) return; var m = e.main; if (m.simulationSpace != flameSimulationSpace && flameSimulationSpace != ParticleSystemSimulationSpace.Custom) m.simulationSpace = flameSimulationSpace; }
 
         public void SetOn(bool on)
         {

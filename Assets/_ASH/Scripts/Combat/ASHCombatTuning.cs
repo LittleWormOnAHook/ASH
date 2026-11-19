@@ -75,6 +75,14 @@ namespace ASH.Combat
         [Range(0, 500)] public int maxStuckArrows = 30;
         [Tooltip("Seconds a stuck arrow stays in what it hit before it is cleaned up.")]
         [Range(5f, 7200f)] public float stuckArrowSeconds = 600f;
+        [Tooltip("Size of the shot / stuck arrow model (1 = the HQ Survival Pack wooden arrow, ~0.83 m).")]
+        [Range(0.25f, 3f)] public float arrowVisualScale = 1f;
+
+        [Header("Aim smoothing (ranged weapons)")]
+        [Tooltip("Run the player Animator every rendered frame while aiming a gun or the bow, so Invector's aim IK updates every frame (fixes the aim jitter). Off = Invector default (physics rate).")]
+        public bool perFrameAnimatorWhileAiming = true;
+        [Tooltip("Also run it every frame whenever a gun or the bow is out, aiming or not.")]
+        public bool perFrameAnimatorWhileRangedOut = false;
 
         [Header("Muzzle flash")]
         [Tooltip("Flash light time per shot (s); the flash particles are emitted once per shot, never looped.")]

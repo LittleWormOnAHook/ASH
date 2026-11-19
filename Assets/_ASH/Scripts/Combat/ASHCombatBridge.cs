@@ -117,6 +117,7 @@ namespace ASH.Combat
                 if (_gun) { _aim.ExternalAiming = _in && _in.IsAiming; _aim.ExternalDraw01 = _gun.chargeWeapon ? _gun.powerCharge : 0f; }
             }
             if (_bowRig) { _bowRig.draw01 = _gun && _gun.chargeWeapon ? Mathf.Clamp01(_gun.powerCharge) : 0f; _bowRig.Apply(); }
+            UpdateAnimatorMode();
             EnsureIdleRunner();
             if (_gun && _gun.chargeWeapon)
             {
@@ -268,6 +269,9 @@ namespace ASH.Combat
             var ev = p.onDestroyProjectile;
             for (int i = 0; i < ev.GetPersistentEventCount(); i++) if (ev.GetPersistentTarget(i) is vArrow) ev.SetPersistentListenerState(i, UnityEngine.Events.UnityEventCallState.Off);
             var vis = arrow && arrow.detachObject ? arrow.detachObject : rec ? rec.transform : null;
+            // the Invector projectile root is scaled 0.1, which shrank the ASH arrow model to ~8 cm (invisible in flight and stuck):
+            // the visual is brought back to real size (ASHCombatTuning.arrowVisualScale x the model's ~0.83 m)
+            if (vis) { float rs = Mathf.Max(1e-4f, vis.parent ? vis.parent.lossyScale.x : 1f); vis.localScale = Vector3.one * (ASHCombatTuning.Live.arrowVisualScale / rs); }
             ev.AddListener(hit => StickArrow(p, vis, rec, item, pen, hit));
         }
 
@@ -277,7 +281,10 @@ namespace ASH.Combat
             var rb = p.GetComponent<Rigidbody>();
             var dir = rb && rb.linearVelocity.sqrMagnitude > 1f ? rb.linearVelocity.normalized : p.transform.forward;
             var turn = Quaternion.FromToRotation(p.transform.forward, dir);
-            vis.SetParent(hit.collider.transform, true);
+            // moving / physics targets carry the arrow; static scenery does not (a non-uniformly scaled parent would shear the arrow mesh)
+            var col = hit.collider; var hitRb = col.attachedRigidbody; Transform parent = hitRb ? hitRb.transform : col.transform;
+            if (!hitRb && (col.gameObject.isStatic || !UniformScale(parent.lossyScale))) parent = null;
+            vis.SetParent(parent, true);
             vis.SetPositionAndRotation(hit.point + dir * pen, turn * vis.rotation);   // ASH arrow visual: tip at its origin, pointing +Z
             if (!rec) rec = vis.GetComponentInChildren<ASHArrowRecover>(true);
             if (!rec) rec = vis.gameObject.AddComponent<ASHArrowRecover>();
@@ -299,7 +306,8 @@ namespace ASH.Combat
             if (!fx || !muzzle) return;
             var t = ASHCombatTuning.Live;
             var g = Instantiate(fx, muzzle.position, muzzle.rotation, muzzle);
-            foreach (var mb in g.GetComponentsInChildren<MonoBehaviour>(true)) Destroy(mb); // WFX flicker / auto-loop helpers
+            // WFX flicker / auto-loop helpers go; URP's light data stays (it requires the Light, so removing either throws)
+            foreach (var mb in g.GetComponentsInChildren<MonoBehaviour>(true)) { var ns = mb ? mb.GetType().Namespace : null; if (mb && (ns == null || !ns.StartsWith("UnityEngine.Rendering"))) Destroy(mb); }
             float life = 0.05f;
             foreach (var ps in g.GetComponentsInChildren<ParticleSystem>(true))
             {
@@ -309,7 +317,9 @@ namespace ASH.Combat
                 ps.Play(false); ps.Emit(Mathf.Max(1, t.muzzleFlashParticles));
                 life = Mathf.Max(life, m.startLifetime.constantMax);
             }
-            foreach (var l in g.GetComponentsInChildren<Light>(true)) { l.enabled = true; Destroy(l, t.muzzleFlashSeconds); }
+            // the flash light is switched off after muzzleFlashSeconds (not destroyed: "Can't remove Light because UniversalAdditionalLightData depends on it")
+            var lights = g.GetComponentsInChildren<Light>(true);
+            if (lights.Length > 0) { foreach (var l in lights) l.enabled = true; g.AddComponent<ASHFlashLightOff>().Init(lights, t.muzzleFlashSeconds); }
             Destroy(g, Mathf.Clamp(life + 0.05f, 0.1f, 0.6f));
         }
 
@@ -352,6 +362,30 @@ namespace ASH.Combat
             return true;
         }
 
+        static bool UniformScale(Vector3 s) { float a = Mathf.Abs(s.x), b = Mathf.Abs(s.y), c = Mathf.Abs(s.z), mx = Mathf.Max(a, Mathf.Max(b, c)); return mx > 1e-5f && Mathf.Min(a, Mathf.Min(b, c)) / mx > 0.98f; }
+
+        // Aim jitter fix: Invector runs the player Animator in the physics step (AnimatorUpdateMode.Fixed) and vShooterMeleeInput
+        // only updates its aim IK on frames that had a physics step, so at render rates above 50 Hz the aimed arms and weapon
+        // stepped against the per-frame camera and interpolated body. While aiming (ASHCombatTuning) the Animator runs per frame
+        // (Normal), which also makes Invector's aim IK run every frame; the old mode comes back when aiming ends (Genesis fix).
+        bool _perFrameAnim; AnimatorUpdateMode _animModeBefore = AnimatorUpdateMode.Fixed;
+        void UpdateAnimatorMode()
+        {
+            if (!_anim) return;
+            var t = ASHCombatTuning.Live;
+            bool want = _gun && (t.perFrameAnimatorWhileRangedOut || (t.perFrameAnimatorWhileAiming && _in && _in.IsAiming));
+            if (want)
+            {
+                if (!_perFrameAnim) { _animModeBefore = _anim.updateMode == AnimatorUpdateMode.Normal ? AnimatorUpdateMode.Fixed : _anim.updateMode; _perFrameAnim = true; }
+                if (_anim.updateMode != AnimatorUpdateMode.Normal) _anim.updateMode = AnimatorUpdateMode.Normal;
+            }
+            else if (_perFrameAnim)
+            {
+                _perFrameAnim = false;
+                if (_anim.updateMode == AnimatorUpdateMode.Normal) _anim.updateMode = _animModeBefore;
+            }
+        }
+
         ASHBowIdleRunner _idleRunner;
         void EnsureIdleRunner()
         {
@@ -367,6 +401,14 @@ namespace ASH.Combat
             bool aiming = _in && _in.IsAiming;
             _bowRig.ApplyIdle(_anim, aiming);
         }
+    }
+
+    /// <summary>Switches a muzzle flash's lights off after a delay (the flash object itself is destroyed shortly after).</summary>
+    public sealed class ASHFlashLightOff : MonoBehaviour
+    {
+        Light[] _l; float _until;
+        public void Init(Light[] lights, float seconds) { _l = lights; _until = Time.time + seconds; }
+        void Update() { if (Time.time < _until || _l == null) return; foreach (var l in _l) if (l) l.enabled = false; _l = null; enabled = false; }
     }
 
     /// <summary>Runs after Invector's animator/IK so a relaxed bow idle can override the raised-arm equipped pose.</summary>

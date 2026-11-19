@@ -200,7 +200,7 @@ namespace ASH.UI
             if (!gameObject.activeSelf) gameObject.SetActive(true);
             bool panels = S.hideWhenPanelsOpen && ASHUIState.BlocksGameplay;
             bool show = !panels && (S.compassAlwaysVisible || HasGps);
-            if (!_group) _group = gameObject.GetComponent<CanvasGroup>() ?? gameObject.AddComponent<CanvasGroup>();
+            if (!_group) _group = GetOrAddGroup();
             if (_visible == show && _group.alpha == (show ? 1f : 0f)) return;
             _visible = show;
             _group.alpha = show ? 1f : 0f;
@@ -246,6 +246,14 @@ namespace ASH.UI
             return degrees < 0f ? degrees + 360f : degrees;
         }
 
+        CanvasGroup GetOrAddGroup()
+        {
+            // Unity fake-null: GetComponent returns a destroyed-looking object, so '??' never adds one.
+            var g = gameObject.GetComponent<CanvasGroup>();
+            if (g == null) g = gameObject.AddComponent<CanvasGroup>();
+            return g;
+        }
+
         // ---------------------------------------------------------------- build
         void Build(RectTransform hudRoot)
         {
@@ -253,7 +261,7 @@ namespace ASH.UI
             _root.SetParent(hudRoot, false);
             gameObject.name = "CompassHud";
             gameObject.SetActive(true);
-            _group = gameObject.GetComponent<CanvasGroup>() ?? gameObject.AddComponent<CanvasGroup>();
+            _group = GetOrAddGroup();
             _group.alpha = 1f; _group.blocksRaycasts = false; _group.interactable = false;
             _visible = true;
             _root.SetAsLastSibling();
