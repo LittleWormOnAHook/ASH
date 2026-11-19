@@ -24,6 +24,8 @@ namespace ASH.Gameplay
             public string recipe; public string output; public int amount = 1; public string label;
             public float done; public float total; public bool ready; public bool boil;   // total/ready: old saves only
             public int v; public string combo; public int count; public int cooked; public float per; public float idle; public int startCount;
+            /// <summary>Water container batches: % of the container used per item (refunded on cancel) and the ingredient it stood in for.</summary>
+            public float bottlePct; public string bottleFor;
             public bool Cooking => count > 0;
         }
         [Serializable] sealed class State { public List<Job> jobs = new List<Job>(); }
@@ -142,13 +144,69 @@ namespace ASH.Gameplay
 
         static bool IsBoil(ASHRecipe r) => (r.outputItem && IsWaterId(r.outputItem.itemId)) || IsWaterId(r.recipeId);
 
+        // ------------------------------------------------------------------ water containers
+        // The refillable water bottle (fill = slot condition) stands in for the water ingredient: boiling (creek water ->
+        // boiled water) and combos with boiled water (stew, broth, tea). Each item cooked uses containerWaterPercentPerItem
+        // of the bottle; the bottle stays in the pack. Untreated (dirty) bottle water only counts as raw water, so it has
+        // to be boiled (cook slot) before it can go into a combo that needs boiled water.
+        public static bool IsWaterContainer(ASHItemDefinition it) => it && it.itemId == ASHFaceProtection.BottleId;
+        public static float ContainerPercent => ASHCrafting.WaterPercentAvailable == null ? 0f : ASHCrafting.WaterPercentAvailable();
+        public static bool ContainerDirty => ASHFaceProtection.Instance && ASHFaceProtection.Instance.BottleDirty;
+        public static float PercentPerItem => Mathf.Max(0.1f, ASHCookingSettings.I.containerWaterPercentPerItem);
+        /// <summary>Items the fullest container can supply water for.</summary>
+        public static int ContainerUses => Mathf.FloorToInt((ContainerPercent + 0.01f) / PercentPerItem);
+        static bool IsCleanWater(ASHItemDefinition it) => it && (it.itemId.Contains("boiled") || it.itemId.Contains("bottled"));
+        /// <summary>A water ingredient a container could stand in for (ignores dirty).</summary>
+        public static bool IsWaterIngredient(ASHItemDefinition it) => it && !IsWaterContainer(it) && IsWaterId(it.itemId);
+        /// <summary>True when the container's water may replace this ingredient now (dirty water only replaces raw water).</summary>
+        public static bool ContainerCanBe(ASHItemDefinition ing) => IsWaterIngredient(ing) && (!IsCleanWater(ing) || !ContainerDirty);
+        static bool UseWater(float pct) => ASHCrafting.ConsumeWater != null && ASHCrafting.ConsumeWater(pct);
+        static void RefundWater(float pct) { if (pct > 0f && ASHFaceProtection.Instance) ASHFaceProtection.Instance.AddWater(pct); }
+
+        /// <summary>Campfire recipe the container can feed (the single water ingredient of a boil recipe).</summary>
+        public static ASHRecipe ContainerRecipe(ASHCrafting cr)
+        {
+            if (!cr) return null;
+            foreach (var r in cr.Recipes)
+            {
+                if (!r || !r.outputItem || r.station != ASHCraftStation.Campfire || !r.CooksOnFire || !IsBoil(r)) continue;
+                foreach (var g in r.ingredients) if (g != null && IsWaterIngredient(g.item) && !IsCleanWater(g.item)) return r;
+            }
+            return null;
+        }
+
+        /// <summary>Combo for this pair when one side is a water container (the container replaces the combo's water ingredient).</summary>
+        public static ASHCookCombo FindCombo(ASHItemDefinition a, ASHItemDefinition b, out ASHItemDefinition waterFor)
+        {
+            waterFor = null;
+            var c = ASHCookCombo.Find(a, b); if (c) return c;
+            bool ca = IsWaterContainer(a), cb = IsWaterContainer(b);
+            if (ca == cb || !a || !b) return null;
+            var other = ca ? b : a;
+            foreach (var x in ASHCookCombo.All)
+            {
+                if (Same(x.ingredientA, other) && IsWaterIngredient(x.ingredientB)) { waterFor = x.ingredientB; return x; }
+                if (Same(x.ingredientB, other) && IsWaterIngredient(x.ingredientA)) { waterFor = x.ingredientA; return x; }
+            }
+            return null;
+        }
+        static bool Same(ASHItemDefinition x, ASHItemDefinition y) => x && y && (x == y || x.itemId == y.itemId);
+
         // ------------------------------------------------------------------ start
         /// <summary>Most of this recipe the pack can cook in one batch.</summary>
-        public static int MaxFor(ASHCrafting cr, ASHRecipe r)
+        public static int MaxFor(ASHCrafting cr, ASHRecipe r) => MaxFor(cr, r, false);
+
+        /// <summary>As MaxFor; useContainer = the water ingredient comes from the water container.</summary>
+        public static int MaxFor(ASHCrafting cr, ASHRecipe r, bool useContainer)
         {
             if (!cr || !cr.Inventory || !r) return 0;
             int n = ASHCookingSettings.I.maxPerBatch;
-            foreach (var g in r.ingredients) { if (g == null || !g.item) return 0; n = Mathf.Min(n, cr.Inventory.Count(g.item) / Mathf.Max(1, g.amount)); }
+            foreach (var g in r.ingredients)
+            {
+                if (g == null || !g.item) return 0;
+                if (useContainer && ContainerCanBe(g.item)) { n = Mathf.Min(n, ContainerUses / Mathf.Max(1, g.amount)); continue; }
+                n = Mathf.Min(n, cr.Inventory.Count(g.item) / Mathf.Max(1, g.amount));
+            }
             if (r.waterPercent > 0f) n = ASHCrafting.WaterPercentAvailable == null ? 0 : Mathf.Min(n, Mathf.FloorToInt((ASHCrafting.WaterPercentAvailable() + 0.01f) / r.waterPercent));
             return Mathf.Max(0, n);
         }
@@ -156,31 +214,56 @@ namespace ASH.Gameplay
         public static int MaxFor(ASHInventory inv, ASHItemDefinition a, ASHItemDefinition b)
         {
             if (!inv || !a || !b) return 0;
-            int n = a == b ? inv.Count(a) / 2 : Mathf.Min(inv.Count(a), inv.Count(b));
+            int n;
+            if (IsWaterContainer(a) != IsWaterContainer(b)) n = Mathf.Min(ContainerUses, inv.Count(IsWaterContainer(a) ? b : a));
+            else n = a == b ? inv.Count(a) / 2 : Mathf.Min(inv.Count(a), inv.Count(b));
             return Mathf.Clamp(n, 0, ASHCookingSettings.I.maxPerBatch);
         }
 
-        public bool Begin(ASHCrafting cr, ASHRecipe r, int count)
+        public bool Begin(ASHCrafting cr, ASHRecipe r, int count) => Begin(cr, r, count, false);
+
+        /// <summary>useContainer: the water ingredient is drawn from the water container (PercentPerItem per item).</summary>
+        public bool Begin(ASHCrafting cr, ASHRecipe r, int count, bool useContainer)
         {
             if (!cr || !r || !r.outputItem || Block() != null) return false;
-            count = Mathf.Min(count, MaxFor(cr, r)); if (count <= 0) return false;
-            var s = ASHCookingSettings.I;
+            count = Mathf.Min(count, MaxFor(cr, r, useContainer)); if (count <= 0) return false;
+            float bottlePct = 0f; string bottleFor = null;
             for (int i = 0; i < count; i++)
             {
                 if (r.waterPercent > 0f) ASHCrafting.ConsumeWater?.Invoke(r.waterPercent);
-                foreach (var ing in r.ingredients) cr.Inventory.Remove(ing.item, ing.amount);
+                foreach (var ing in r.ingredients)
+                {
+                    if (useContainer && ContainerCanBe(ing.item)) { float p = PercentPerItem * Mathf.Max(1, ing.amount); if (UseWater(p)) { bottlePct = p; bottleFor = ing.item.itemId; } continue; }
+                    cr.Inventory.Remove(ing.item, ing.amount);
+                }
             }
-            var j = new Job { v = 2, recipe = r.recipeId, output = r.outputItem.itemId, amount = Mathf.Max(1, r.outputAmount), label = r.outputItem.displayName, boil = IsBoil(r), count = count, startCount = count, per = FinalSeconds(BaseSeconds(r)) };
+            var j = new Job { bottlePct = bottlePct, bottleFor = bottleFor, v = 2, recipe = r.recipeId, output = r.outputItem.itemId, amount = Mathf.Max(1, r.outputAmount), label = r.outputItem.displayName, boil = IsBoil(r), count = count, startCount = count, per = FinalSeconds(BaseSeconds(r)) };
             Add(j, cr);
             return true;
         }
 
-        public bool BeginCombo(ASHCrafting cr, ASHCookCombo c, int count)
+        public bool BeginCombo(ASHCrafting cr, ASHCookCombo c, int count) => BeginCombo(cr, c, count, null);
+
+        /// <summary>waterFor: the combo ingredient the water container replaces (null = both ingredients from the pack).</summary>
+        public bool BeginCombo(ASHCrafting cr, ASHCookCombo c, int count, ASHItemDefinition waterFor)
         {
             if (!cr || !cr.Inventory || !c || !c.Valid || Block() != null) return false;
-            count = Mathf.Min(count, MaxFor(cr.Inventory, c.ingredientA, c.ingredientB)); if (count <= 0) return false;
-            cr.Inventory.Remove(c.ingredientA, count); cr.Inventory.Remove(c.ingredientB, count);
-            var j = new Job { v = 2, combo = c.comboId, output = c.output.itemId, amount = c.outputAmount, label = c.output.displayName, boil = false, count = count, startCount = count, per = FinalSeconds(BaseSeconds(c)) };
+            float bottlePct = 0f;
+            if (waterFor)
+            {
+                if (!ContainerCanBe(waterFor)) return false;
+                var other = Same(c.ingredientA, waterFor) ? c.ingredientB : c.ingredientA;
+                count = Mathf.Min(count, Mathf.Min(ContainerUses, cr.Inventory.Count(other)), ASHCookingSettings.I.maxPerBatch); if (count <= 0) return false;
+                int used = 0; for (int i = 0; i < count; i++) if (UseWater(PercentPerItem)) used++; else break;
+                count = used; if (count <= 0) return false;
+                cr.Inventory.Remove(other, count); bottlePct = PercentPerItem;
+            }
+            else
+            {
+                count = Mathf.Min(count, MaxFor(cr.Inventory, c.ingredientA, c.ingredientB)); if (count <= 0) return false;
+                cr.Inventory.Remove(c.ingredientA, count); cr.Inventory.Remove(c.ingredientB, count);
+            }
+            var j = new Job { bottlePct = bottlePct, bottleFor = waterFor ? waterFor.itemId : null, v = 2, combo = c.comboId, output = c.output.itemId, amount = c.outputAmount, label = c.output.displayName, boil = false, count = count, startCount = count, per = FinalSeconds(BaseSeconds(c)) };
             Add(j, cr);
             return true;
         }
@@ -272,11 +355,21 @@ namespace ASH.Gameplay
             var inv = cr.Inventory; int back = j.count;
             if (back > 0)
             {
-                if (!string.IsNullOrEmpty(j.combo)) { var c = ASHCookCombo.ById(j.combo); if (c) { inv.AddItem(c.ingredientA, back); inv.AddItem(c.ingredientB, back); } }
+                bool fromBottle = !string.IsNullOrEmpty(j.bottleFor);
+                if (fromBottle) RefundWater(j.bottlePct * back);
+                if (!string.IsNullOrEmpty(j.combo))
+                {
+                    var c = ASHCookCombo.ById(j.combo);
+                    if (c)
+                    {
+                        if (!(fromBottle && c.ingredientA && c.ingredientA.itemId == j.bottleFor)) inv.AddItem(c.ingredientA, back);
+                        if (!(fromBottle && c.ingredientB && c.ingredientB.itemId == j.bottleFor)) inv.AddItem(c.ingredientB, back);
+                    }
+                }
                 else
                 {
                     ASHRecipe recipe = null; foreach (var r in cr.Recipes) if (r && r.recipeId == j.recipe) { recipe = r; break; }
-                    if (recipe) foreach (var g in recipe.ingredients) if (g != null && g.item) inv.AddItem(g.item, g.amount * back); // bottle water is not refunded
+                    if (recipe) foreach (var g in recipe.ingredients) if (g != null && g.item && !(fromBottle && g.item.itemId == j.bottleFor)) inv.AddItem(g.item, g.amount * back); // recipe waterPercent is not refunded
                 }
                 j.count = 0; j.done = 0f;
             }

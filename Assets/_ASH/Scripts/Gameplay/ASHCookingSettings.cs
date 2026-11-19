@@ -59,6 +59,10 @@ namespace ASH.Gameplay
         [Tooltip("A wrong pair wastes one of each ingredient (otherwise the items stay in the pack).")]
         public bool wrongGuessWastesItems = false;
 
+        [Header("Water containers (refillable water bottle)")]
+        [Tooltip("Percent of a container's water used for each item cooked when the container stands in for the water (boiling, stews, broths, tea).")]
+        [Range(1f, 100f)] public float containerWaterPercentPerItem = 10f;
+
         [Header("Food safety")]
         [Tooltip("Multiplies every item's sickness chance (raw meat, creek water). 0 = never sick.")]
         [Range(0f, 3f)] public float sicknessChanceMultiplier = 1f;
@@ -86,17 +90,17 @@ namespace ASH.Gameplay
                     secondsDefault = 2f; secondsMeat = 4f; secondsWater = 6f; cookTimeMultiplier = 1f; scaleWithHeat = false; slotsPerFire = 4; maxBatchesPerFire = 10; maxPerBatch = 40;
                     minFuelHoursToStart = 0f; fuelDrawPerCookHour = 0f; burnAfterSeconds = 0f; autoCollectRange = 10f;
                     xpPerItem = 15f; xpPerComboItem = 20f; xpDiscover = 80f; xpBase = 20f; xpExponent = 1.2f; timeCutPerLevel = 0.05f; maxTimeCut = 0.7f; bonusChancePerLevel = 0.03f;
-                    wrongGuessWastesItems = false; sicknessChanceMultiplier = 0.3f; break;
+                    wrongGuessWastesItems = false; sicknessChanceMultiplier = 0.3f; containerWaterPercentPerItem = 5f; break;
                 case 2: // Extreme (stress test)
                     secondsDefault = 30f; secondsMeat = 60f; secondsWater = 90f; cookTimeMultiplier = 1.5f; scaleWithHeat = true; slotsPerFire = 1; maxBatchesPerFire = 2; maxPerBatch = 3;
                     minFuelHoursToStart = 0.75f; fuelDrawPerCookHour = 1.5f; burnAfterSeconds = 20f; autoCollectRange = 0f;
                     xpPerItem = 2f; xpPerComboItem = 4f; xpDiscover = 15f; xpBase = 80f; xpExponent = 1.8f; timeCutPerLevel = 0.02f; maxTimeCut = 0.3f; bonusChancePerLevel = 0f;
-                    wrongGuessWastesItems = true; sicknessChanceMultiplier = 2.5f; break;
+                    wrongGuessWastesItems = true; sicknessChanceMultiplier = 2.5f; containerWaterPercentPerItem = 34f; break;
                 default:
                     secondsDefault = 5f; secondsMeat = 10f; secondsWater = 15f; cookTimeMultiplier = 1f; scaleWithHeat = true; slotsPerFire = 2; maxBatchesPerFire = 6; maxPerBatch = 20;
                     minFuelHoursToStart = 0.1f; fuelDrawPerCookHour = 0f; burnAfterSeconds = 0f; autoCollectRange = 4f;
                     xpPerItem = 6f; xpPerComboItem = 10f; xpDiscover = 40f; xpBase = 30f; xpExponent = 1.35f; timeCutPerLevel = 0.04f; maxTimeCut = 0.6f; bonusChancePerLevel = 0.015f;
-                    wrongGuessWastesItems = false; sicknessChanceMultiplier = 1f; break;
+                    wrongGuessWastesItems = false; sicknessChanceMultiplier = 1f; containerWaterPercentPerItem = 10f; break;
             }
         }
         [ContextMenu("Preset/Relaxed")] void PresetRelaxed() => ApplyPreset(0);

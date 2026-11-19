@@ -226,6 +226,7 @@ namespace ASH.UI
         {
             if (!it) return;
             if (ASHCampfire.FuelHoursOf(it) > 0f) { AddFuel(it); return; }
+            if (ASHFireCooking.IsWaterContainer(it) && (_a != null) != (_b != null)) { if (!_a) _a = it; else _b = it; _cqty = 1; return; }
             if (RecipeFor(it)) { _cookItem = it; _qty = 1; return; }
             if (!_a) { _a = it; _cqty = 1; } else if (!_b) { _b = it; _cqty = 1; } else { _a = _b; _b = it; _cqty = 1; }
         }
@@ -233,6 +234,7 @@ namespace ASH.UI
         ASHRecipe RecipeFor(ASHItemDefinition it)
         {
             if (!it || !_cr) return null;
+            if (ASHFireCooking.IsWaterContainer(it)) return ASHFireCooking.ContainerRecipe(_cr);
             foreach (var r in _cr.Recipes)
             {
                 if (!r || !r.outputItem || r.station != ASHCraftStation.Campfire || !r.CooksOnFire) continue;
@@ -245,7 +247,8 @@ namespace ASH.UI
         {
             var r = RecipeFor(_cookItem); var k = Cook(); if (!r || !k) return;
             var why = CookBlock(r); if (why != null) { Status(why); return; }
-            if (k.Begin(_cr, r, Mathf.Clamp(_qty, 1, ASHFireCooking.MaxFor(_cr, r)))) { _qty = 1; if (ASHFireCooking.MaxFor(_cr, r) <= 0) _cookItem = null; }
+            bool bottle = ASHFireCooking.IsWaterContainer(_cookItem);
+            if (k.Begin(_cr, r, Mathf.Clamp(_qty, 1, ASHFireCooking.MaxFor(_cr, r, bottle)), bottle)) { _qty = 1; if (!bottle && ASHFireCooking.MaxFor(_cr, r) <= 0) _cookItem = null; }
         }
 
         string CookBlock(ASHRecipe r)
@@ -253,6 +256,7 @@ namespace ASH.UI
             if (!r) return "Can't be cooked alone";
             var gate = ASHCrafting.RecipeGate?.Invoke(r); if (gate != null) return gate;
             var b = Cook() ? Cook().Block() : "No fire"; if (b != null) return b;
+            if (ASHFireCooking.IsWaterContainer(_cookItem)) { if (ASHFireCooking.MaxFor(_cr, r, true) <= 0) return $"Not enough water in the bottle ({ASHFireCooking.PercentPerItem:0}% per item)"; return null; }
             if (ASHFireCooking.MaxFor(_cr, r) <= 0) return r.waterPercent > 0f ? "Not enough water" : "Not enough in the pack";
             return null;
         }
@@ -261,12 +265,13 @@ namespace ASH.UI
         {
             var k = Cook(); if (!k || !_a || !_b) return;
             var b = k.Block(); if (b != null) { Status(b); return; }
-            if (ASHFireCooking.MaxFor(_inv, _a, _b) <= 0) { Status("Not enough in the pack"); return; }
-            var c = ASHCookCombo.Find(_a, _b);
+            if (ASHFireCooking.MaxFor(_inv, _a, _b) <= 0) { Status(HasContainer ? $"Not enough water in the bottle ({ASHFireCooking.PercentPerItem:0}% per item)" : "Not enough in the pack"); return; }
+            var c = ASHFireCooking.FindCombo(_a, _b, out var waterFor);
+            if (c && waterFor && !ASHFireCooking.ContainerCanBe(waterFor)) { Status("The bottle's water is untreated: boil it first"); return; }
             var hud = FindAnyObjectByType<ASHHud>();
             if (!c)
             {
-                if (ASHCookingSettings.I.wrongGuessWastesItems) { _inv.Remove(_a, 1); _inv.Remove(_b, 1); if (hud) hud.Toast($"{_a.displayName} and {_b.displayName} don't go together: both ruined."); }
+                if (ASHCookingSettings.I.wrongGuessWastesItems) { Waste(_a); Waste(_b); if (hud) hud.Toast($"{_a.displayName} and {_b.displayName} don't go together: both ruined."); }
                 else if (hud) hud.Toast($"{_a.displayName} and {_b.displayName} don't go together. Try another pair.");
                 Status("Nothing came of that");
                 return;
@@ -276,7 +281,23 @@ namespace ASH.UI
                 ASHSkills.AddXp(ASHSkills.Cooking, ASHCookingSettings.I.xpDiscover);
                 if (hud) hud.Toast($"Discovered a recipe: {c.displayName}!");
             }
-            if (k.BeginCombo(_cr, c, Mathf.Max(1, _cqty))) { _cqty = 1; if (ASHFireCooking.MaxFor(_inv, _a, _b) <= 0) _a = _b = null; }
+            if (k.BeginCombo(_cr, c, Mathf.Max(1, _cqty), waterFor)) { _cqty = 1; if (ASHFireCooking.MaxFor(_inv, _a, _b) <= 0) { if (!ASHFireCooking.IsWaterContainer(_a)) _a = null; if (!ASHFireCooking.IsWaterContainer(_b)) _b = null; } }
+        }
+
+        bool HasContainer => ASHFireCooking.IsWaterContainer(_a) || ASHFireCooking.IsWaterContainer(_b);
+        /// <summary>A wrong guess wastes one item, or one item's worth of water from a container (the bottle itself is kept).</summary>
+        void Waste(ASHItemDefinition it)
+        {
+            if (!it) return;
+            if (ASHFireCooking.IsWaterContainer(it)) ASHCrafting.ConsumeWater?.Invoke(Mathf.Min(ASHFireCooking.PercentPerItem, ASHFireCooking.ContainerPercent));
+            else _inv.Remove(it, 1);
+        }
+        /// <summary>Slot count text: stack count, or the container's water % (and untreated).</summary>
+        string CountText(ASHItemDefinition it)
+        {
+            if (!it) return "";
+            if (ASHFireCooking.IsWaterContainer(it)) return $"{ASHFireCooking.ContainerPercent:0}%{(ASHFireCooking.ContainerDirty ? "!" : "")}";
+            return "x" + _inv.Count(it);
         }
 
         ASHFireCooking Cook() => !_fire ? null : _fire.Cooking ? _fire.Cooking : _fire.gameObject.AddComponent<ASHFireCooking>();
@@ -310,8 +331,9 @@ namespace ASH.UI
         {
             if (_cookItem && _inv.Count(_cookItem) <= 0) _cookItem = null;
             var r = RecipeFor(_cookItem);
-            SetSlot(_cookSlot, _cookItem, _cookItem ? "x" + _inv.Count(_cookItem) : "");
-            int max = r ? ASHFireCooking.MaxFor(_cr, r) : 0;
+            bool bottle = ASHFireCooking.IsWaterContainer(_cookItem);
+            SetSlot(_cookSlot, _cookItem, CountText(_cookItem));
+            int max = r ? ASHFireCooking.MaxFor(_cr, r, bottle) : 0;
             _qty = Mathf.Clamp(_qty, 1, Mathf.Max(1, max));
             _qtyLbl.text = "x" + _qty;
             if (!_cookItem) { SetSlot(_cookOut, null, ""); _cookName.text = ""; _cookInfo.text = "Drop raw meat, fish, creek water or berries in the slot."; _cookStats.text = ""; _cookBtn.interactable = false; return; }
@@ -321,7 +343,8 @@ namespace ASH.UI
             _cookName.text = r.outputItem.displayName;
             float secs = ASHFireCooking.FinalSeconds(ASHFireCooking.BaseSeconds(r));
             var why = CookBlock(r);
-            string need = r.ingredients.Count > 1 || (r.ingredients.Count == 1 && r.ingredients[0].amount > 1) ? "\nUses " + Needs(r) : "";
+            string need = bottle ? $"\nUses {ASHFireCooking.PercentPerItem:0}% of the bottle each · bottle {ASHFireCooking.ContainerPercent:0}%{(ASHFireCooking.ContainerDirty ? " (untreated)" : "")}"
+                : r.ingredients.Count > 1 || (r.ingredients.Count == 1 && r.ingredients[0].amount > 1) ? "\nUses " + Needs(r) : "";
             _cookInfo.text = (why != null ? $"<color=#f2806b>{why}</color>\n" : "") + $"{secs:0.#}s each · {secs * _qty:0.#}s total{need}";
             _cookStats.text = $"{_cookItem.displayName}: {Stats(_cookItem)}\n→ {r.outputItem.displayName}{(per > 1 ? " x" + per : "")}: {Stats(r.outputItem)}";
             _cookBtn.interactable = why == null;
@@ -340,20 +363,22 @@ namespace ASH.UI
         {
             if (_a && _inv.Count(_a) <= 0) _a = null;
             if (_b && _inv.Count(_b) <= 0) _b = null;
-            SetSlot(_slotA, _a, _a ? "x" + _inv.Count(_a) : "");
-            SetSlot(_slotB, _b, _b ? "x" + _inv.Count(_b) : "");
+            SetSlot(_slotA, _a, CountText(_a));
+            SetSlot(_slotB, _b, CountText(_b));
             int max = ASHFireCooking.MaxFor(_inv, _a, _b);
             _cqty = Mathf.Clamp(_cqty, 1, Mathf.Max(1, max));
             _cqtyLbl.text = "x" + _cqty;
             if (!_a || !_b) { SetSlot(_combOut, null, ""); _combName.text = ""; _combStats.text = "<color=#a69e91>Put two foods in to try a combination. A right guess teaches it.</color>"; _combBtn.interactable = false; _combBtnLbl.text = "TRY IT"; return; }
-            var c = ASHCookCombo.Find(_a, _b);
-            var k = Cook(); var why = k ? k.Block() : "No fire"; if (why == null && max <= 0) why = "Not enough in the pack";
+            var c = ASHFireCooking.FindCombo(_a, _b, out var waterFor);
+            var k = Cook(); var why = k ? k.Block() : "No fire";
+            if (why == null && max <= 0) why = HasContainer ? $"Not enough water in the bottle ({ASHFireCooking.PercentPerItem:0}% per item)" : "Not enough in the pack";
+            if (why == null && c && c.Known && waterFor && !ASHFireCooking.ContainerCanBe(waterFor)) why = "The bottle's water is untreated: boil it first";
             if (c && c.Known)
             {
                 SetSlot(_combOut, c.output, "x" + c.outputAmount * _cqty);
                 float secs = ASHFireCooking.FinalSeconds(ASHFireCooking.BaseSeconds(c));
                 _combName.text = $"{c.displayName}  <size=14><color=#a69e91>{secs:0.#}s each</color></size>";
-                _combStats.text = why != null ? $"<color=#f2806b>{why}</color>" : Stats(c.output);
+                _combStats.text = why != null ? $"<color=#f2806b>{why}</color>" : Stats(c.output) + (waterFor ? $"\n<color=#a69e91>{ASHFireCooking.PercentPerItem:0}% of the bottle each · bottle {ASHFireCooking.ContainerPercent:0}%</color>" : "");
                 _combBtnLbl.text = "COOK";
             }
             else
@@ -377,6 +402,7 @@ namespace ASH.UI
             }
             order.Sort((x, y) => { int fx = ASHCampfire.FuelHoursOf(x) > 0f ? 0 : 1, fy = ASHCampfire.FuelHoursOf(y) > 0f ? 0 : 1; return fx != fy ? fx.CompareTo(fy) : string.CompareOrdinal(x.displayName, y.displayName); });
             var sb = new StringBuilder(); foreach (var it in order) sb.Append(it.itemId).Append(':').Append(counts[it]).Append(';');
+            sb.Append(Mathf.RoundToInt(ASHFireCooking.ContainerPercent)).Append(ASHFireCooking.ContainerDirty ? 'd' : 'c');
             string sig = sb.ToString(); if (sig == _packSig) return; _packSig = sig;
             K.Clear(_packList);
             if (order.Count == 0) { K.Layout(K.Text(K.Rect("Empty", _packList), "  Nothing to burn or cook in the pack.", 16, K.Dim), 40); return; }
@@ -387,13 +413,14 @@ namespace ASH.UI
                 var ic = K.Image(K.At("Icon", row, new Vector2(0, 0.5f), new Vector2(6, 0), new Vector2(40, 40)), it.icon ? Color.white : it.uiTint); if (it.icon) { ic.sprite = it.icon; ic.preserveAspect = true; }
                 K.Text(K.Stretch("Name", row, 54, 0, 96, 0), it.displayName, 16, K.Ink);
                 float fh = ASHCampfire.FuelHoursOf(it);
-                string tag = fh > 0f ? $"fuel {ASHGameTime.Format(fh)}" : RecipeFor(it) ? "cook" : "combine";
-                K.Text(K.Stretch("Right", row, 0, 0, 8, 0), $"x{counts[it]}  <size=12><color=#a69e91>{tag}</color></size>", 15, K.Ink, TextAnchor.MiddleRight);
+                bool wc = ASHFireCooking.IsWaterContainer(it);
+                string tag = fh > 0f ? $"fuel {ASHGameTime.Format(fh)}" : wc ? $"water {ASHFireCooking.ContainerPercent:0}%{(ASHFireCooking.ContainerDirty ? " untreated" : "")}" : RecipeFor(it) ? "cook" : "combine";
+                K.Text(K.Stretch("Right", row, 0, 0, 8, 0), wc ? $"<size=12><color=#a69e91>{tag}</color></size>" : $"x{counts[it]}  <size=12><color=#a69e91>{tag}</color></size>", 15, K.Ink, TextAnchor.MiddleRight);
             }
         }
 
         bool Useful(ASHItemDefinition it) =>
-            ASHCampfire.FuelHoursOf(it) > 0f || RecipeFor(it) || ASHCookCombo.IsIngredient(it) ||
+            ASHCampfire.FuelHoursOf(it) > 0f || RecipeFor(it) || ASHCookCombo.IsIngredient(it) || ASHFireCooking.IsWaterContainer(it) ||
             (it.IsConsumable && it.category != ASHItemCategory.Medical && (it.restoreHunger > 0f || it.restoreThirst > 0f));
 
         void RefreshJobs()

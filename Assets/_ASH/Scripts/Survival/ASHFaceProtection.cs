@@ -118,6 +118,16 @@ namespace ASH.Survival
             if (added <= 0) { var pk = ASHItemDrop.Spawn(item, 1, transform); if (pk && item.maxStack == 1) pk.SetCondition(condition); }
         }
 
+        /// <summary>Puts water back into the bottle (a cancelled cook batch). Fills the fullest bottle that isn't full.</summary>
+        public void AddWater(float percent)
+        {
+            var b = Def(BottleId); if (!b || !_inv || percent <= 0f) return;
+            int best = -1; float bc = -1f; var sl = _inv.Slots;
+            for (int i = 0; i < sl.Count; i++) if (!sl[i].IsEmpty && sl[i].item == b && sl[i].condition < 0.999f && sl[i].condition > bc) { bc = sl[i].condition; best = i; }
+            if (best < 0) return;
+            sl[best].condition = Mathf.Clamp01(sl[best].condition + percent / 100f); _inv.NotifyChanged();
+        }
+
         int SlotOf(ASHItemDefinition item, int slot, bool best)
         {
             if (!_inv || !item) return -1;
