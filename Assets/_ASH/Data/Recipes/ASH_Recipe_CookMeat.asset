@@ -24,3 +24,5 @@ MonoBehaviour:
   craftSeconds: 6
   requiredTool: 0
   station: 1
+  waterPercent: 0
+  cookGameMinutes: 30
