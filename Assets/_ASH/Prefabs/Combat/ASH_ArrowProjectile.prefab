@@ -455,25 +455,7 @@ MonoBehaviour:
   layermask:
     serializedVersion: 2
     m_Bits: 32769
-  decalObjects:
-  - tag: Metal
-    impactEffect: {fileID: 0}
-    additionalEffects: []
-  - tag: Wood
-    impactEffect: {fileID: 0}
-    additionalEffects: []
-  - tag: Glass
-    impactEffect: {fileID: 0}
-    additionalEffects: []
-  - tag: Concrete
-    impactEffect: {fileID: 0}
-    additionalEffects: []
-  - tag: Dirt
-    impactEffect: {fileID: 0}
-    additionalEffects: []
-  - tag: Barrel
-    impactEffect: {fileID: 0}
-    additionalEffects: []
+  decalObjects: []
 --- !u!114 &7653751388708607857
 MonoBehaviour:
   m_ObjectHideFlags: 0
