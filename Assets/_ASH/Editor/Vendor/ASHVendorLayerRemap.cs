@@ -40,6 +40,9 @@ namespace ASH.EditorTools.Vendor
             Run(true);
         }
 
+        /// <summary>Bridge / batch entry (no dialog): same as the WRITE menu.</summary>
+        public static void WriteNoPrompt() => Run(true);
+
         /// <summary>Genesis index -> ASH index; -1 = keep the same number (unnamed slot), -2 = missing in ASH.</summary>
         static int[] BuildMap(List<string> missing)
         {
