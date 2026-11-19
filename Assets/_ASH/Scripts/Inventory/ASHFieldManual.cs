@@ -31,6 +31,9 @@ namespace ASH.Inventory
         public int NewCount { get { int n = 0; foreach (var k in _unlocked) if (!_seen.Contains(k)) n++; return n; } }
         public int CraftedCount(ASHItemDefinition it) => it && _crafted.TryGetValue(it.itemId, out var n) ? n : 0;
         public bool PickedUpEver(ASHItemDefinition it) => it && _firstPickups.Contains(it.itemId);
+        public bool PickedUpEver(string itemId) => !string.IsNullOrEmpty(itemId) && _firstPickups.Contains(itemId);
+        /// <summary>Grandpa's journal was found (picked up or read): its HUD icon shows. Old saves with it in the pack count.</summary>
+        public bool JournalFound => IsRead || (Data && Data.journalItem && (PickedUpEver(Data.journalItem) || (_inv && _inv.Count(Data.journalItem) > 0)));
 
         /// <summary>(recipe) newly unlocked.</summary>
         public event Action<ASHRecipe> Unlocked;
@@ -78,8 +81,17 @@ namespace ASH.Inventory
             UI.ASHHud.CraftingAvailable = () => IsRead;
             UI.ASHHud.CraftingLockedMessage = Data ? Data.lockedMessage : null;
             UI.ASHHud.CraftTabName = Data ? Data.tabName : null;
-            if (_inv) _inv.ItemAdded += OnItemAdded;
+            if (_inv) { _inv.ItemAdded += OnItemAdded; _inv.Changed += StowJournal; }
             if (_craft) _craft.Crafted += OnCrafted;
+        }
+
+        /// <summary>Once read, the journal is a permanent tool (J / its HUD icon), not a pack item: any copy in the pack is removed.
+        /// Torn pages still go into it. Also cleans old saves that kept the read journal in the pack.</summary>
+        void StowJournal()
+        {
+            if (!IsRead || !_inv || !Data || !Data.journalItem || _inv.Count(Data.journalItem) <= 0) return;
+            _firstPickups.Add(Data.journalItem.itemId);
+            _inv.RemoveAll(Data.journalItem);
         }
 
         void OnDisable()
@@ -87,7 +99,7 @@ namespace ASH.Inventory
             ASHSaveSystem.Unregister(this);
             if (ASHCrafting.RecipeGate == (Func<ASHRecipe, string>)Gate) ASHCrafting.RecipeGate = null;
             UI.ASHHud.CraftingAvailable = null; UI.ASHHud.CraftingLockedMessage = null; UI.ASHHud.CraftTabName = null;
-            if (_inv) _inv.ItemAdded -= OnItemAdded;
+            if (_inv) { _inv.ItemAdded -= OnItemAdded; _inv.Changed -= StowJournal; }
             if (_craft) _craft.Crafted -= OnCrafted;
         }
 
@@ -121,6 +133,7 @@ namespace ASH.Inventory
             if (IsRead) return;
             IsRead = true;
             Evaluate(true);
+            StowJournal();
             var hud = FindAnyObjectByType<UI.ASHHud>();
             if (hud) hud.Toast($"{(Data ? Data.tabName : "Field manual")} added to your journal  [{"Q"}]");
             ASH.Map.ASHJournalLog.Add("Grandpa's Field Manual", Data ? Data.coverNote : "Grandpa's survival notes.");
@@ -222,6 +235,7 @@ namespace ASH.Inventory
             // found pages are gone from the world
             foreach (var p in FindObjectsByType<ASH.Interaction.ASHManualPagePickup>()) if (_pages.Contains(p.pageNumber)) Destroy(p.gameObject);
             Evaluate(true);
+            StowJournal();
             Changed?.Invoke();
         }
     }

@@ -321,11 +321,27 @@ namespace ASH.Inventory
 
         /// <summary>Starting kit, added once on Start (e.g. the damaged GPS).</summary>
         [SerializeField] private List<ASHRecipeIngredient> startingItems = new List<ASHRecipeIngredient>();
+        [Tooltip("Off: the GPS and Grandpa's journal are never starting items (both are found as pickups), even if listed above.")]
+        public bool startWithGpsAndJournal = false;
         private bool _startingGiven;
         private void Start()
         {
             if (_startingGiven) return; _startingGiven = true;
-            foreach (var s in startingItems) if (s.item != null && Count(s.item) == 0) AddItemSilently(s.item, s.amount);
+            foreach (var s in startingItems)
+            {
+                if (s.item == null || Count(s.item) > 0) continue;
+                if (!startWithGpsAndJournal && (s.item.toolType == ASHToolType.GPS || (ASHFieldManualData.I && ASHFieldManualData.I.journalItem == s.item))) continue;
+                AddItemSilently(s.item, s.amount);
+            }
+        }
+
+        /// <summary>Removes every stack of an item, key items included (the read journal becomes a permanent tool). Returns how many.</summary>
+        public int RemoveAll(ASHItemDefinition item)
+        {
+            if (item == null) return 0; EnsureSlots(); int n = 0;
+            foreach (var s in slots) if (!s.IsEmpty && s.item == item) { n += s.amount; s.Clear(); }
+            if (n > 0) Changed?.Invoke();
+            return n;
         }
 
         private void AddItemSilently(ASHItemDefinition item, int amount)

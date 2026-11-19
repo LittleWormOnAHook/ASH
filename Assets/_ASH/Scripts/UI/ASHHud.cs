@@ -195,7 +195,7 @@ namespace ASH.UI
             _subtitle = Label("Subtitle", _root, new Vector2(0.5f, 0), new Vector2(0, 250), new Vector2(1300, 96), 27, TextAnchor.LowerCenter, Ink);
             AddShadow(_subtitle); _subtitle.enabled = false;
 
-            BuildHotbar(); BuildCross(); BuildInventory();
+            BuildHotbar(); BuildToolIcons(); BuildCross(); BuildInventory();
             _journal = ASHJournalUI.Create(_root, inventory, crafting, UseItem);
             _journal.Objectives = objective;
             if (gps) _map = ASHMapUI.Create(_root, gps);
@@ -248,6 +248,63 @@ namespace ASH.UI
             hl.childControlWidth = hl.childControlHeight = false; hl.childForceExpandWidth = hl.childForceExpandHeight = false; hl.childAlignment = TextAnchor.MiddleCenter;
             for (int i = 0; i < n; i++) _hotbar.Add(MakeSlot(_hotbarRoot, i, size, true));
         }
+
+        // ---------------------------------------------------------------- tool icons (left of the hotbar)
+        // Grandpa's journal and the handheld GPS: no background, the key that opens each, shown once the item was picked up.
+        // The journal leaves the pack once read (it is a permanent tool); the GPS icon dims while the GPS isn't carried.
+        public const string GpsItemId = "damagedgps";
+        RectTransform _toolRoot; Image _jIcon, _gIcon; Text _jKey, _gKey, _jAbbr, _gAbbr;
+        void BuildToolIcons()
+        {
+            if (!_hotbarRoot) return;
+            const float size = 54f, gap = 12f;
+            float hbW = _hotbarRoot.sizeDelta.x, hbH = _hotbarRoot.sizeDelta.y;
+            _toolRoot = Rect("ToolIcons", _root, new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(-hbW * 0.5f - 14f, 30f), new Vector2(size * 2 + gap, hbH));
+            _toolRoot.pivot = new Vector2(1, 0);
+            (Image, Text, Text) Make(string name, float x, System.Action click)
+            {
+                var img = Img(name, _toolRoot, new Vector2(0, 0.5f), new Vector2(0, 0.5f), new Vector2(x + size * 0.5f, 0), new Vector2(size, size), Color.white);
+                img.preserveAspect = true; img.raycastTarget = true;
+                var b = img.gameObject.AddComponent<Button>(); b.targetGraphic = img; var nav = b.navigation; nav.mode = Navigation.Mode.None; b.navigation = nav;
+                b.onClick.AddListener(() => click());
+                var abbr = Label("Abbr", img.rectTransform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(size, size), 18, TextAnchor.MiddleCenter, Ink); abbr.fontStyle = FontStyle.Bold; AddShadow(abbr);
+                var key = Label("Key", img.rectTransform, new Vector2(0, 1), new Vector2(-2, 4), new Vector2(30, 22), 16, TextAnchor.UpperLeft, Gold, pivot: new Vector2(0, 1));
+                key.fontStyle = FontStyle.Bold; AddShadow(key);
+                return (img, key, abbr);
+            }
+            (_jIcon, _jKey, _jAbbr) = Make("JournalIcon", 0f, () => { if (placer && placer.IsPlacing) placer.Cancel(); SetInv(false); SetMap(false); SetJournal(!_journal.IsOpen, _journal.Current); });
+            (_gIcon, _gKey, _gAbbr) = Make("GpsIcon", size + gap, () => { if (placer && placer.IsPlacing) placer.Cancel(); SetInv(false); SetCraft(false); SetMap(!(_map && _map.IsOpen)); });
+            _jIcon.gameObject.SetActive(false); _gIcon.gameObject.SetActive(false);
+        }
+
+        void RefreshToolIcons()
+        {
+            var fm = ASHFieldManual.Instance; var data = ASHFieldManualData.I;
+            var jItem = data ? data.journalItem : null;
+            bool jFound = fm ? fm.JournalFound : (jItem && inventory && inventory.Count(jItem) > 0);
+            SetTool(_jIcon, _jKey, _jAbbr, jFound, true, jItem, "Journal", "J");
+            var gItem = ASHItemRegistry.I ? ASHItemRegistry.I.Find(GpsItemId) : null;
+            bool carried = inventory && inventory.HasTool(ASHToolType.GPS);
+            bool gFound = carried || (fm && fm.PickedUpEver(GpsItemId));
+            SetTool(_gIcon, _gKey, _gAbbr, gFound, carried, gItem, "Map", "M");
+        }
+
+        void SetTool(Image img, Text key, Text abbr, bool show, bool active, ASHItemDefinition it, string action, string fallbackKey)
+        {
+            if (!img) return;
+            if (img.gameObject.activeSelf != show) img.gameObject.SetActive(show);
+            if (!show) return;
+            var sp = it ? it.icon : null;
+            if (img.sprite != sp) img.sprite = sp;
+            var c = sp ? Color.white : new Color(0, 0, 0, 0); c.a = sp ? (active ? 1f : 0.4f) : 0f; img.color = c; // no background: a missing icon shows its initials only
+            abbr.text = sp ? "" : (it ? it.displayName.Substring(0, Mathf.Min(2, it.displayName.Length)).ToUpperInvariant() : fallbackKey);
+            abbr.color = new Color(Ink.r, Ink.g, Ink.b, active ? 1f : 0.4f);
+            string k = input ? input.BindingLabel(action) : fallbackKey; if (string.IsNullOrEmpty(k)) k = fallbackKey;
+            if (key.text != k) key.text = k;
+        }
+
+        /// <summary>Test hook: "journal|gps" visibility as 0/1.</summary>
+        public string ToolIconState => $"{(_jIcon && _jIcon.gameObject.activeSelf ? 1 : 0)}|{(_gIcon && _gIcon.gameObject.activeSelf ? 1 : 0)}";
 
         /// <summary>Drops the dragged stack onto a slot (pack, hotbar or cross bar); cross quadrants enforce their category.</summary>
         public bool DropOn(int idx)
@@ -316,28 +373,29 @@ namespace ASH.UI
             var q = (ASHInventory.CrossQuad)quad;
             if (s.IsEmpty) { Toast($"Cross bar: drag {CrossHint(q)} onto the {ASHInventory.CrossLabel(q).ToLowerInvariant()} slot [{ASHInput.CrossKeys[quad]}]."); return false; }
             if (!_equip) { _equip = inventory.GetComponent<ASHEquipment>(); if (!_equip) _equip = FindAnyObjectByType<ASHEquipment>(); }
+            var item = s.item; string itemName = item.displayName; // the slot can empty during use (last food eaten)
             bool ok;
             switch (q)
             {
                 case ASHInventory.CrossQuad.Ammo:
                     var w = _equip ? _equip.Main : null;
-                    Toast(w && w.ammoItem == s.item ? $"{w.displayName}: {inventory.Count(s.item)} {s.item.displayName} ready." : $"{s.item.displayName}: {inventory.Count(s.item)} carried.");
+                    Toast(w && w.ammoItem == item ? $"{w.displayName}: {inventory.Count(item)} {item.displayName} ready." : $"{item.displayName}: {inventory.Count(item)} carried.");
                     ok = true; break;
                 case ASHInventory.CrossQuad.Weapon:
                     // weapon / hatchet: draw it, or put it away if already in hand
-                    if (_equip && s.item.IsEquippable) ok = _equip.ToggleEquip(s.item);
+                    if (_equip && item.IsEquippable) ok = _equip.ToggleEquip(item);
                     else ok = UseSlot(idx);
                     break;
                 case ASHInventory.CrossQuad.Light:
                     // light: ready it and switch it on; pressing again switches it off and stows it
                     // held (left hand / hip): turn it off and stow it; not held: take it out and turn it on
-                    if (_equip && _equip.IsEquipped(s.item)) { StowLight(s.item); ok = true; }
-                    else if (_equip && s.item.IsEquippable) { ok = _equip.Equip(s.item); if (ok && !_equip.IsLit(s.item)) _equip.SetLight(s.item, true); }
+                    if (_equip && _equip.IsEquipped(item)) { StowLight(item); ok = true; }
+                    else if (_equip && item.IsEquippable) { ok = _equip.Equip(item); if (ok && !_equip.IsLit(item)) _equip.SetLight(item, true); }
                     else ok = UseSlot(idx);
                     break;
                 default: ok = UseSlot(idx); break; // food / water / meds: eat, drink or use
             }
-            ASH.Core.ASHLog.Info($"Cross {ASHInput.CrossKeys[quad]} ({q}): {s.item.displayName} -> {(ok ? "used" : "not used")}");
+            ASH.Core.ASHLog.Info($"Cross {ASHInput.CrossKeys[quad]} ({q}): {itemName} -> {(ok ? "used" : "not used")}");
             return ok;
         }
         /// <summary>Turns a held light off and puts it away (left hand or hip). No orphaned light: Unequip hides/destroys the
@@ -665,6 +723,7 @@ namespace ASH.UI
             // hotbar
             if (_hotbarRoot) _hotbarRoot.gameObject.SetActive(!dead && !ASHUIState.IsOpen(ASHPanels.Pause) && !(_map && _map.IsOpen) && !_journal.IsOpen);
             if (_crossRoot) _crossRoot.gameObject.SetActive(_hotbarRoot && _hotbarRoot.gameObject.activeSelf);
+            if (_toolRoot) { _toolRoot.gameObject.SetActive(_hotbarRoot && _hotbarRoot.gameObject.activeSelf); if (_toolRoot.gameObject.activeSelf) RefreshToolIcons(); }
             AnimateSlots(_hotbar); AnimateSlots(_slots); AnimateSlots(_cross);
             if (_equip && (_equip.Main != _lastMain || _equip.Off != _lastOff || _equip.Hip != _lastHip)) { _lastMain = _equip.Main; _lastOff = _equip.Off; _lastHip = _equip.Hip; RefreshCross(); }
             if (_dragFrom >= 0 && !_invPanel.activeSelf) EndSlotDrag();
