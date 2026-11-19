@@ -20,6 +20,7 @@ MonoBehaviour:
   category: 1
   maxStack: 5
   useVerb: Eat
+  keyItem: 0
   restoreHunger: 8
   restoreThirst: 0
   restoreHealth: -4
@@ -27,6 +28,10 @@ MonoBehaviour:
   requiresOpener: 0
   smashedYield: 0.65
   leftoverItem: {fileID: 0}
+  sicknessChance: 0.35
+  sicknessHealthLoss: 8
+  sicknessThirstLoss: 10
+  sicknessHungerLoss: 6
   toolType: 0
   breakdownYield: []
   breakdownTool: 0

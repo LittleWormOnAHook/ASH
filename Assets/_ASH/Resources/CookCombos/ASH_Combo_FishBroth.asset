@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 31c79b4221ad0c344b8a649263915511, type: 3}
+  m_Name: ASH_Combo_FishBroth
+  m_EditorClassIdentifier: Assembly-CSharp::ASH.Gameplay.ASHCookCombo
+  comboId: fishbroth
+  displayName: Fish Broth
+  hint: Fish and water.
+  ingredientA: {fileID: 11400000, guid: 74935c053a40e5549b10704b3189419d, type: 2}
+  ingredientB: {fileID: 11400000, guid: 43d1ddae85cd4ac4ab774989f95a30a1, type: 2}
+  output: {fileID: 11400000, guid: b775df338dc8d2d45b5d454d5098ad78, type: 2}
+  outputAmount: 1
+  unlockLevel: 4
+  cookSeconds: 0

@@ -12,13 +12,33 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1ca0f72a1ff54be41ab83dae0d8fbb53, type: 3}
   m_Name: ASH_CookingSettings
   m_EditorClassIdentifier: Assembly-CSharp::ASH.Gameplay.ASHCookingSettings
+  secondsDefault: 5
+  secondsMeat: 10
+  secondsWater: 15
   cookTimeMultiplier: 1
   scaleWithHeat: 1
   slotsPerFire: 3
+  maxBatchesPerFire: 6
+  maxPerBatch: 20
   minFuelHoursToStart: 0.1
   fuelDrawPerCookHour: 0
-  burnAfterGameMinutes: 0
+  burnAfterSeconds: 0
   autoCollectRange: 4
+  stoveNamePatterns:
+  - stove
+  - furnace
+  - woodburner
+  xpPerItem: 6
+  xpPerComboItem: 10
+  xpDiscover: 40
+  xpBase: 30
+  xpExponent: 1.35
+  maxLevel: 20
+  timeCutPerLevel: 0.04
+  maxTimeCut: 0.6
+  bonusChancePerLevel: 0.015
+  wrongGuessWastesItems: 0
+  sicknessChanceMultiplier: 1
   cookLoop: {fileID: 8300000, guid: 1b6822e9373402a44b39c291a601923f, type: 3}
   boilLoop: {fileID: 8300000, guid: 1da9da7f7e1f10c40a348f5693465477, type: 3}
   loopVolume: 0.45
