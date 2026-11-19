@@ -239,6 +239,24 @@ namespace ASH.EditorTools
         static IKOffsetTransform Off(IKOffsetTransform o, Quaternion m) => o == null ? new IKOffsetTransform() : new IKOffsetTransform { position = m * o.position, eulerAngles = Conj(m, o.eulerAngles) };
         static Vector3 Conj(Quaternion m, Vector3 euler) => (m * Quaternion.Euler(euler) * Quaternion.Inverse(m)).eulerAngles;
 
+        // Bow model ships with a baked arrow mesh; hide it so an arrow only shows while drawing (nock arrow is runtime).
+        public static void HideBowModelArrow()
+        {
+            var root = PrefabUtility.LoadPrefabContents(PlayerPath); int n = 0;
+            try
+            {
+                foreach (var t in root.GetComponentsInChildren<Transform>(true))
+                {
+                    if (t.name != "Held_WoodenBow") continue;
+                    foreach (var r in t.GetComponentsInChildren<Renderer>(true))
+                        if (r.name.IndexOf("Arrow", System.StringComparison.OrdinalIgnoreCase) >= 0 && r.enabled) { r.enabled = false; n++; }
+                }
+                if (n > 0) PrefabUtility.SaveAsPrefabAsset(root, PlayerPath);
+            }
+            finally { PrefabUtility.UnloadPrefabContents(root); }
+            Debug.Log("[ASH] Grips: bow model arrow renderers hidden " + n);
+        }
+
         static void StripArrowTrail(StringBuilder sb)
         {
             if (!AssetDatabase.LoadAssetAtPath<GameObject>(ArrowOut)) return;
