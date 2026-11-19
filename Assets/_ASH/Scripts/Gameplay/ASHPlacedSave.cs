@@ -11,8 +11,8 @@ namespace ASH.Gameplay
     /// section keep the scene's defaults.</summary>
     public sealed class ASHPlacedSave : IASHSaveable
     {
-        [Serializable] sealed class Fire { public string id; public bool lit; public float fuel; }
-        [Serializable] sealed class Placed { public string item; public Vector3 pos; public Quaternion rot; public bool hasFire; public bool lit; public float fuel; }
+        [Serializable] sealed class Fire { public string id; public bool lit; public float fuel; public string cook; }
+        [Serializable] sealed class Placed { public string item; public Vector3 pos; public Quaternion rot; public bool hasFire; public bool lit; public float fuel; public string cook; }
         [Serializable] sealed class State { public List<Fire> fires = new List<Fire>(); public List<Placed> placed = new List<Placed>(); }
 
         readonly Dictionary<string, ASHCampfire> _sceneFires = new Dictionary<string, ASHCampfire>();
@@ -34,12 +34,12 @@ namespace ASH.Gameplay
         public string CaptureJson()
         {
             var s = new State();
-            foreach (var kv in _sceneFires) if (kv.Value) s.fires.Add(new Fire { id = kv.Key, lit = kv.Value.Lit, fuel = kv.Value.FuelHours });
+            foreach (var kv in _sceneFires) if (kv.Value) s.fires.Add(new Fire { id = kv.Key, lit = kv.Value.Lit, fuel = kv.Value.FuelHours, cook = ASHFireCooking.Capture(kv.Value) });
             foreach (var p in ASHPlacedObject.All)
             {
                 if (!p || string.IsNullOrEmpty(p.itemId)) continue;
                 var f = p.GetComponent<ASHCampfire>();
-                s.placed.Add(new Placed { item = p.itemId, pos = p.transform.position, rot = p.transform.rotation, hasFire = f, lit = f && f.Lit, fuel = f ? f.FuelHours : 0f });
+                s.placed.Add(new Placed { item = p.itemId, pos = p.transform.position, rot = p.transform.rotation, hasFire = f, lit = f && f.Lit, fuel = f ? f.FuelHours : 0f, cook = f ? ASHFireCooking.Capture(f) : null });
             }
             return JsonUtility.ToJson(s);
         }
@@ -47,7 +47,7 @@ namespace ASH.Gameplay
         public void RestoreJson(string json)
         {
             var s = JsonUtility.FromJson<State>(json); if (s == null) return;
-            if (s.fires != null) foreach (var f in s.fires) if (_sceneFires.TryGetValue(f.id, out var c) && c) c.RestoreState(f.lit, f.fuel);
+            if (s.fires != null) foreach (var f in s.fires) if (_sceneFires.TryGetValue(f.id, out var c) && c) { c.RestoreState(f.lit, f.fuel); ASHFireCooking.Restore(c, f.cook); }
             if (s.placed == null) return;
             var reg = ASHItemRegistry.I;
             foreach (var p in s.placed)
@@ -56,7 +56,7 @@ namespace ASH.Gameplay
                 var go = UnityEngine.Object.Instantiate(it.placeablePrefab, p.pos, p.rot);
                 go.name = it.placeablePrefab.name;
                 go.AddComponent<ASHPlacedObject>().itemId = p.item;
-                if (p.hasFire) { var c = go.GetComponent<ASHCampfire>(); if (c) c.RestoreState(p.lit, p.fuel); }
+                if (p.hasFire) { var c = go.GetComponent<ASHCampfire>(); if (c) { c.RestoreState(p.lit, p.fuel); ASHFireCooking.Restore(c, p.cook); } }
             }
         }
     }
