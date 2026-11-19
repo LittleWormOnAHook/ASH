@@ -27,8 +27,17 @@ namespace ASH.Inventory
         [Range(4, 60)] [SerializeField] private int slotCount = MinPackSlots;
         /// <summary>Pack size floor: the original 12, plus 10, plus 10 more. Older saved layouts are migrated up to this.</summary>
         public const int MinPackSlots = 32;
-        /// <summary>Effective pack size (serialized slotCount, raised to MinPackSlots).</summary>
-        int Pack => Mathf.Max(slotCount, MinPackSlots);
+        /// <summary>Hotbar slots [0, Hot): their own slots, not part of the pack grid. An item on the hotbar is not in the pack.</summary>
+        int Hot => Mathf.Clamp(hotbarSize, 0, 10);
+        /// <summary>End of the hotbar + pack range (the cross bar follows): hotbar, then the pack grid (serialized slotCount, raised to MinPackSlots).
+        /// Older layouts had the hotbar as the pack's top row, so their slots [0, hotbar) simply stay on the hotbar.</summary>
+        int Pack => Hot + Mathf.Max(slotCount, MinPackSlots);
+        /// <summary>First pack-grid slot (after the hotbar).</summary>
+        public int PackStart => Hot;
+        /// <summary>Pack-grid slots (hotbar and cross bar excluded).</summary>
+        public int PackSlotCount => Pack - Hot;
+        public int HotbarCount => Hot;
+        public bool IsPack(int i) => i >= Hot && i < Pack;
         [SerializeField] private List<Slot> slots = new List<Slot>();
 
         /// <summary>Slots are created on first access so UI built before this Awake still sees them.</summary>
@@ -97,7 +106,7 @@ namespace ASH.Inventory
                     int ci = CrossIndex((CrossQuad)q);
                     if (slots[ci].IsEmpty && CrossAccepts((CrossQuad)q, item)) { slots[ci].item = item; slots[ci].amount = 1; slots[ci].condition = Mathf.Clamp01(condition); added++; }
                 }
-            for (int i = 0; i < Pack && added < amount; i++)
+            for (int i = Hot; i < Pack && added < amount; i++)
                 if (slots[i].IsEmpty) { slots[i].item = item; slots[i].amount = 1; slots[i].condition = Mathf.Clamp01(condition); added++; }
             if (added > 0) { Changed?.Invoke(); ItemAdded?.Invoke(item, added); }
             return added;
@@ -126,7 +135,30 @@ namespace ASH.Inventory
         public int TotalSlots => Pack + CrossCount;
         public int CrossIndex(CrossQuad q) => Pack + (int)q;
         public bool IsCross(int i) => i >= Pack && i < TotalSlots;
-        public bool IsHotbar(int i) => i >= 0 && i < Mathf.Min(hotbarSize, Pack);
+        public bool IsHotbar(int i) => i >= 0 && i < Hot;
+        /// <summary>Hotbar or cross bar slot (quick slots hold items outside the pack).</summary>
+        public bool IsQuick(int i) => IsHotbar(i) || IsCross(i);
+
+        /// <summary>Moves a hotbar / cross bar stack back into the pack (merging into matching stacks first, then empty pack slots).
+        /// Returns how many did NOT fit (still in the quick slot; the caller drops them). -1 when the slot isn't a quick slot or is empty.</summary>
+        public int ReturnToPack(int i)
+        {
+            EnsureSlots();
+            if (!IsQuick(i) || i >= slots.Count || slots[i].IsEmpty) return -1;
+            var s = slots[i]; var item = s.item;
+            for (int k = Hot; k < Pack && s.amount > 0; k++)
+            {
+                var d = slots[k]; if (d.item != item || d.amount >= item.maxStack || item.maxStack <= 1) continue;
+                int add = Mathf.Min(s.amount, item.maxStack - d.amount); d.amount += add; s.amount -= add;
+            }
+            if (s.amount > 0)
+                for (int k = Hot; k < Pack; k++)
+                    if (slots[k].IsEmpty) { slots[k] = s; slots[i] = new Slot(); break; }
+            int left = slots[i].IsEmpty ? 0 : slots[i].amount;
+            if (left == 0) slots[i].Clear();
+            Changed?.Invoke();
+            return left;
+        }
         public ASHInventory.Slot CrossSlot(CrossQuad q) { EnsureSlots(); return slots[CrossIndex(q)]; }
 
         /// <summary>Slot category rules: pack and hotbar take anything; each cross quadrant takes one kind.</summary>
@@ -181,7 +213,7 @@ namespace ASH.Inventory
                     int add = Mathf.Min(remaining, item.maxStack);
                     slots[ci].item = item; slots[ci].amount = add; slots[ci].condition = 1f; remaining -= add;
                 }
-            for (int i = 0; i < Pack && remaining > 0; i++)
+            for (int i = Hot; i < Pack && remaining > 0; i++)
             {
                 if (!slots[i].IsEmpty) continue;
                 int add = Mathf.Min(remaining, item.maxStack);
@@ -200,7 +232,7 @@ namespace ASH.Inventory
             for (int i = 0; i < slots.Count; i++)
             {
                 var s = slots[i];
-                if (s.IsEmpty) { if (i < Pack || (crossFirst && IsCross(i) && Accepts(i, item))) free += item.maxStack; }
+                if (s.IsEmpty) { if (IsPack(i) || (crossFirst && IsCross(i) && Accepts(i, item))) free += item.maxStack; }
                 else if (s.item == item) free += item.maxStack - s.amount;
                 if (free >= amount) return true;
             }
@@ -231,7 +263,7 @@ namespace ASH.Inventory
         }
 
         public int SlotCount => Pack;
-        /// <summary>Slots [0, HotbarSize) double as the always-visible hotbar (keys 1..N).</summary>
+        /// <summary>Slots [0, HotbarSize) are the always-visible hotbar (keys 1..N), separate from the pack grid.</summary>
         [Range(0, 10)] public int hotbarSize = 6;
 
         /// <summary>Moves/merges slot a onto slot b (stacks merge when the item matches, otherwise they swap).</summary>
@@ -262,7 +294,7 @@ namespace ASH.Inventory
         {
             EnsureSlots();
             if (i < 0 || i >= slots.Count || slots[i].IsEmpty || slots[i].amount < 2 || IsKeyItem(slots[i].item)) return false;
-            int empty = -1; for (int k = 0; k < Pack; k++) if (slots[k].IsEmpty) { empty = k; break; } if (empty < 0) return false;
+            int empty = -1; for (int k = Hot; k < Pack; k++) if (slots[k].IsEmpty) { empty = k; break; } if (empty < 0) return false;
             int half = slots[i].amount / 2;
             slots[empty].item = slots[i].item; slots[empty].amount = half; slots[i].amount -= half;
             Changed?.Invoke();
@@ -299,7 +331,7 @@ namespace ASH.Inventory
         private void AddItemSilently(ASHItemDefinition item, int amount)
         {
             EnsureSlots();
-            for (int i = 0; i < Pack && amount > 0; i++)
+            for (int i = Hot; i < Pack && amount > 0; i++)
                 if (slots[i].IsEmpty) { int add = Mathf.Min(amount, item.maxStack); slots[i].item = item; slots[i].amount = add; amount -= add; }
             Changed?.Invoke();
         }
@@ -309,13 +341,16 @@ namespace ASH.Inventory
 
         /// <summary>Consumes one unit through the consumer (survival stats). Cans without an opener are smashed open:
         /// reduced restores and no empty tin returned.</summary>
-        public bool TryConsume(ASHItemDefinition item, IASHConsumer consumer)
+        public bool TryConsume(ASHItemDefinition item, IASHConsumer consumer) => TryConsume(item, consumer, -1);
+
+        /// <summary>As TryConsume, taking the unit from slot fromSlot when it holds the item (hotbar / cross bar use eats from that stack).</summary>
+        public bool TryConsume(ASHItemDefinition item, IASHConsumer consumer, int fromSlot)
         {
             if (item == null || !item.IsConsumable || consumer == null || Count(item) <= 0) return false;
             bool smashed = item.requiresOpener && !HasOpener;
             LastConsumeSmashed = smashed;
             consumer.Consume(item, smashed ? item.smashedYield : 1f);
-            Remove(item, 1);
+            if (!(fromSlot >= 0 && fromSlot < slots.Count && slots[fromSlot].item == item && RemoveFromSlot(fromSlot, 1))) Remove(item, 1);
             if (item.leftoverItem != null && !smashed) AddItem(item.leftoverItem, 1);
             ItemConsumed?.Invoke(item);
             return true;

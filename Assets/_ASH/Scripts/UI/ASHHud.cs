@@ -99,7 +99,7 @@ namespace ASH.UI
         RectTransform _crossRoot; Text _crossCenter;
         static readonly Color Gold = new Color(0.86f, 0.68f, 0.34f, 0.9f);
         RectTransform _hotbarRoot;
-        Image _dragGhost; int _dragFrom = -1;
+        Image _dragGhost; int _dragFrom = -1; bool _dropHandled;
         Text _tipTitle, _tipBody;
         static readonly Color SlotEmpty = new Color(0.10f, 0.095f, 0.085f, 0.55f);
         static readonly Color SlotFull = new Color(0.17f, 0.155f, 0.14f, 0.88f);
@@ -232,14 +232,14 @@ namespace ASH.UI
             On(EventTriggerType.PointerClick, d => { if (d.button == PointerEventData.InputButton.Right && inventory && _invPanel && _invPanel.activeSelf) OpenContext(idx, d.position); });
             On(EventTriggerType.BeginDrag, d => BeginSlotDrag(idx, d));
             On(EventTriggerType.Drag, d => { if (_dragGhost) _dragGhost.rectTransform.position = d.position; });
-            On(EventTriggerType.EndDrag, _ => EndSlotDrag());
-            On(EventTriggerType.Drop, _ => DropOn(idx));
+            On(EventTriggerType.EndDrag, _ => EndSlotDrag(true));
+            On(EventTriggerType.Drop, _ => { _dropHandled = true; DropOn(idx); });
             return s;
         }
 
         void BuildHotbar()
         {
-            int n = inventory ? Mathf.Min(inventory.hotbarSize, inventory.SlotCount) : 6;
+            int n = inventory ? inventory.HotbarCount : 6;
             const float size = 78f, gap = 8f;
             _hotbarRoot = Rect("Hotbar", _root, new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 30), new Vector2(n * size + (n - 1) * gap + 16, size + 16));
             _hotbarRoot.pivot = new Vector2(0.5f, 0);
@@ -370,7 +370,7 @@ namespace ASH.UI
 
         void BuildInventory()
         {
-            int n = inventory ? inventory.SlotCount : 12; const int cols = 6; const float gap = 10f;
+            int n = inventory ? inventory.PackSlotCount : 32, p0 = inventory ? inventory.PackStart : 0; const int cols = 6; const float gap = 10f;
             int rows = Mathf.CeilToInt(n / (float)cols);
             float cell = rows > 5 ? 84f : 96f;
             float gridW = cols * cell + (cols - 1) * gap, gridH = rows * cell + (rows - 1) * gap;
@@ -378,13 +378,12 @@ namespace ASH.UI
             var rt = (RectTransform)_invPanel.transform;
             var accent = Img("Accent", rt, new Vector2(0, 1), new Vector2(1, 1), Vector2.zero, new Vector2(0, 3), new Color(Accent.r, Accent.g, Accent.b, 0.8f)).rectTransform; accent.pivot = new Vector2(0.5f, 1); accent.anchoredPosition = Vector2.zero; accent.sizeDelta = new Vector2(0, 3);
             Label("Title", rt, new Vector2(0.5f, 1), new Vector2(0, -34), new Vector2(gridW, 40), 30, TextAnchor.MiddleCenter, Accent).text = "Pack";
-            Label("Sub", rt, new Vector2(0.5f, 1), new Vector2(0, -64), new Vector2(gridW, 24), 16, TextAnchor.MiddleCenter, Dim).text = $"{n} slots  ·  top row is the hotbar  ·  cross bar bottom-right";
+            Label("Sub", rt, new Vector2(0.5f, 1), new Vector2(0, -64), new Vector2(gridW, 24), 16, TextAnchor.MiddleCenter, Dim).text = $"{n} slots  ·  hotbar and cross bar items are kept out of the pack";
             var grid = Rect("Grid", rt, new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -90), new Vector2(gridW, gridH));
             grid.pivot = new Vector2(0.5f, 1);
             var g = grid.gameObject.AddComponent<GridLayoutGroup>(); g.cellSize = new Vector2(cell, cell); g.spacing = new Vector2(gap, gap);
             g.constraint = GridLayoutGroup.Constraint.FixedColumnCount; g.constraintCount = cols; g.childAlignment = TextAnchor.UpperCenter;
-            int hb = inventory ? inventory.hotbarSize : 6;
-            for (int i = 0; i < n; i++) _slots.Add(MakeSlot(grid, i, cell, i < hb));
+            for (int i = 0; i < n; i++) _slots.Add(MakeSlot(grid, p0 + i, cell, false));
             _tipTitle = Label("TipTitle", rt, new Vector2(0.5f, 0), new Vector2(0, 140), new Vector2(gridW, 32), 23, TextAnchor.MiddleLeft, Ink);
             _tipBody = Label("TipBody", rt, new Vector2(0.5f, 0), new Vector2(0, 82), new Vector2(gridW, 80), 18, TextAnchor.UpperLeft, Dim);
             _invDesc = Label("Hint", rt, new Vector2(0.5f, 0), new Vector2(0, 26), new Vector2(gridW, 26), 16, TextAnchor.MiddleCenter, Dim);
@@ -413,7 +412,7 @@ namespace ASH.UI
             var ol = panel.gameObject.AddComponent<Outline>(); ol.effectColor = new Color(0.92f, 0.82f, 0.66f, 0.22f); ol.effectDistance = new Vector2(1.5f, -1.5f);
             var acc = Img("Accent", _ctxPanel, new Vector2(0, 1), new Vector2(1, 1), Vector2.zero, new Vector2(0, 3), new Color(Accent.r, Accent.g, Accent.b, 0.8f)).rectTransform;
             acc.pivot = new Vector2(0.5f, 1); acc.anchoredPosition = Vector2.zero; acc.sizeDelta = new Vector2(0, 3);
-            foreach (var id in new[] { "use", "drop1", "dropall", "split" })
+            foreach (var id in new[] { "use", "topack", "drop1", "dropall", "split" })
             {
                 var bg = Img("Item_" + id, _ctxPanel, new Vector2(0, 1), new Vector2(0, 1), Vector2.zero, new Vector2(CtxW - CtxPad * 2, CtxRow - 4), new Color(1, 1, 1, 0.05f));
                 bg.raycastTarget = true; bg.rectTransform.pivot = new Vector2(0, 1);
@@ -444,6 +443,7 @@ namespace ASH.UI
                 switch (e.id)
                 {
                     case "use": label = UseLabel(it); enabled = CanUse(it); break;
+                    case "topack": show = inventory.IsQuick(slot); label = "Move to pack"; break;
                     case "drop1": show = !ASHInventory.IsKeyItem(it); label = s.amount > 1 ? "Drop 1" : "Drop"; break;
                     case "dropall": show = s.amount > 1 && !ASHInventory.IsKeyItem(it); label = $"Drop all  <color=#a59e93>x{s.amount}</color>"; break;
                     case "split": show = s.amount > 1 && !ASHInventory.IsKeyItem(it); label = "Split stack"; break;
@@ -496,6 +496,7 @@ namespace ASH.UI
             switch (id)
             {
                 case "use": return UseSlot(i);
+                case "topack": return ToPack(i);
                 case "drop1": return DropSlot(i, 1) != null;
                 case "dropall": return DropSlot(i, int.MaxValue) != null;
                 case "split": return inventory.Split(i);
@@ -828,10 +829,28 @@ namespace ASH.UI
             _dragGhost.rectTransform.position = d.position;
         }
 
-        void EndSlotDrag()
+        void EndSlotDrag(bool released = false)
         {
+            int from = _dragFrom; bool handled = _dropHandled;
             if (_dragGhost) Destroy(_dragGhost.gameObject);
-            _dragGhost = null; _dragFrom = -1;
+            _dragGhost = null; _dragFrom = -1; _dropHandled = false;
+            // a hotbar / cross bar stack let go anywhere that isn't a slot goes back to the pack (dropped if the pack is full)
+            if (released && !handled && from >= 0 && inventory && inventory.IsQuick(from)) ToPack(from);
+        }
+
+        /// <summary>Hotbar / cross bar slot back into the pack; whatever doesn't fit is dropped on the ground.</summary>
+        public bool ToPack(int i)
+        {
+            if (inventory == null || !inventory.IsQuick(i) || i >= inventory.Slots.Count || inventory.Slots[i].IsEmpty) return false;
+            var it = inventory.Slots[i].item;
+            int left = inventory.ReturnToPack(i);
+            if (left < 0) return false;
+            if (left > 0)
+            {
+                if (ASHInventory.IsKeyItem(it)) { Toast($"Pack is full: {it.displayName} stays on the bar."); return false; }
+                Toast("Pack is full."); DropSlot(i, left);
+            }
+            return true;
         }
 
         /// <summary>Uses the item in a slot: eat consumables, place placeables, hint for materials.</summary>
@@ -842,7 +861,7 @@ namespace ASH.UI
             var item = s.item;
             var hk = HandlerFor(item); if (hk != null) return hk.Use(item, i);
             if (item.toolType == ASHToolType.GPS) { SetInv(false); SetJournal(false, _journal.Current); SetMap(true); return true; }
-            if (item.IsConsumable && stats) return inventory.TryConsume(item, stats);
+            if (item.IsConsumable && stats) return inventory.TryConsume(item, stats, i);
             if (item.IsPlaceable && placer)
             {
                 if (placer.IsPlacing) placer.Cancel();
