@@ -135,7 +135,7 @@ namespace ASH.Interaction
                     continue;
                 }
                 if (h.distance > nearestBlocker + 0.05f) continue;
-                Vector3 closest = h.collider.ClosestPoint(_playerRoot.position + Vector3.up);
+                Vector3 closest = SafeClosest(h.collider, _playerRoot.position + Vector3.up);
                 if (Vector3.Distance(closest, _playerRoot.position + Vector3.up) > useRange) continue;
                 float priority = usable.GetUsePriority(ctx);
                 if (priority < 0f) continue;
@@ -152,6 +152,13 @@ namespace ASH.Interaction
             return best;
         }
     
+        /// <summary>Collider.ClosestPoint only supports primitives and convex meshes; non-convex MeshColliders (rocks, cliffs) and terrain use bounds.</summary>
+        static Vector3 SafeClosest(Collider c, Vector3 p)
+        {
+            if (c is BoxCollider || c is SphereCollider || c is CapsuleCollider || (c is MeshCollider mc && mc.convex)) return c.ClosestPoint(p);
+            return c.bounds.ClosestPoint(p);
+        }
+
         private sealed class HitDistanceComparer : IComparer<RaycastHit>
         {
             public static readonly HitDistanceComparer Instance = new HitDistanceComparer();
