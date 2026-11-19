@@ -1,0 +1,159 @@
+Assets/Invector-3rdPersonController/Add-ons/FreeClimb/Prefabs/ThirdPerson_FreeClimb.prefab
+Assets/Invector-3rdPersonController/Basic Locomotion/3D Models/Particles/DamageEffect/prefabs/Fire.prefab
+Assets/Invector-3rdPersonController/Basic Locomotion/3D Models/Particles/EffectExamples/FireExplosionEffects/Prefabs/FlamesParticleEffect_Damage.prefab
+Assets/Invector-3rdPersonController/Basic Locomotion/Prefabs/Environment/AutoCrouchTrigger_prefab.prefab
+Assets/Invector-3rdPersonController/Basic Locomotion/Prefabs/Environment/Base_vRoom.prefab
+Assets/Invector-3rdPersonController/Basic Locomotion/Prefabs/Environment/Basic_Hive.prefab
+Assets/Invector-3rdPersonController/Basic Locomotion/Prefabs/Environment/ClimbUp_prefab.prefab
+Assets/Invector-3rdPersonController/Basic Locomotion/Prefabs/Environment/HealthItem_prefab.prefab
+Assets/Invector-3rdPersonController/Basic Locomotion/Prefabs/Environment/Hub.prefab
+Assets/Invector-3rdPersonController/Basic Locomotion/Prefabs/Environment/InvectorIcon_prefab.prefab
+Assets/Invector-3rdPersonController/Basic Locomotion/Prefabs/Environment/JumpMultiplier_prefab.prefab
+Assets/Invector-3rdPersonController/Basic Locomotion/Prefabs/Environment/JumpOver_prefrab.prefab
+Assets/Invector-3rdPersonController/Basic Locomotion/Prefabs/Environment/Ladder_Inclined_prefab.prefab
+Assets/Invector-3rdPersonController/Basic Locomotion/Prefabs/Environment/Ladder_prefab.prefab
+Assets/Invector-3rdPersonController/Basic Locomotion/Prefabs/Environment/MovingPlatform_prefab.prefab
+Assets/Invector-3rdPersonController/Basic Locomotion/Prefabs/Environment/Pendulum_prefab.prefab
+Assets/Invector-3rdPersonController/Basic Locomotion/Prefabs/Environment/SimpleDoor_OpenByInput_prefab.prefab
+Assets/Invector-3rdPersonController/Basic Locomotion/Prefabs/Environment/SimpleDoor_prefab.prefab
+Assets/Invector-3rdPersonController/Basic Locomotion/Prefabs/Environment/SlideArea_prefab.prefab
+Assets/Invector-3rdPersonController/Basic Locomotion/Prefabs/Environment/SpikeFixed_prefab.prefab
+Assets/Invector-3rdPersonController/Basic Locomotion/Prefabs/Environment/SpikeFloor_prefab.prefab
+Assets/Invector-3rdPersonController/Basic Locomotion/Prefabs/Environment/SpikeWall_prefab.prefab
+Assets/Invector-3rdPersonController/Basic Locomotion/Prefabs/Environment/StepUp_prefab.prefab
+Assets/Invector-3rdPersonController/Basic Locomotion/Prefabs/Others/_GenericActionExamples.prefab
+Assets/Invector-3rdPersonController/Basic Locomotion/Prefabs/Others/SimpleTriggerAction.prefab
+Assets/Invector-3rdPersonController/Basic Locomotion/Prefabs/Others/Teleporter.prefab
+Assets/Invector-3rdPersonController/Basic Locomotion/Prefabs/Others/ToggleSwitch.prefab
+Assets/Invector-3rdPersonController/Basic Locomotion/Prefabs/Others/TutorialTrigger.prefab
+Assets/Invector-3rdPersonController/Basic Locomotion/Prefabs/vBasicController.prefab
+Assets/Invector-3rdPersonController/Basic Locomotion/Prefabs/vBasicController_Template.prefab
+Assets/Invector-3rdPersonController/Basic Locomotion/Scripts/ObjectDamage/Prefab/ToxicArea.prefab
+Assets/Invector-3rdPersonController/Basic Locomotion/Scripts/vEffect/Examples/Stun/Prefabs/Stun Effect.prefab
+Assets/Invector-3rdPersonController/ItemManager/Invector_InventoryExamples.unity
+Assets/Invector-3rdPersonController/ItemManager/Prefabs/Inventory_MeleeOnly.prefab
+Assets/Invector-3rdPersonController/ItemManager/Prefabs/Inventory_ShooterMelee.prefab
+Assets/Invector-3rdPersonController/ItemManager/Prefabs/Inventory_TesteComDisplay3d.prefab
+Assets/Invector-3rdPersonController/ItemManager/Prefabs/InventoryCameraPreview.prefab
+Assets/Invector-3rdPersonController/ItemManager/Prefabs/Other/CharacterPreview_UI.prefab
+Assets/Invector-3rdPersonController/ItemManager/Prefabs/Other/CollectableEquipment.prefab
+Assets/Invector-3rdPersonController/ItemManager/Prefabs/Other/Door_WithItemCheck.prefab
+Assets/Invector-3rdPersonController/ItemManager/Prefabs/Other/InventoryCheckItem.prefab
+Assets/Invector-3rdPersonController/ItemManager/Prefabs/Other/Painel.prefab
+Assets/Invector-3rdPersonController/Melee Combat/3DModels/Other/Vases/Prefab/Vases.prefab
+Assets/Invector-3rdPersonController/Melee Combat/3DModels/Other/Wires/Prefabs/dynamic_assets/wire_low_c.prefab
+Assets/Invector-3rdPersonController/Melee Combat/Prefabs/Environment/MeleeCombat_Hive.prefab
+Assets/Invector-3rdPersonController/Melee Combat/Prefabs/Environment/Portal.prefab
+Assets/Invector-3rdPersonController/Melee Combat/Prefabs/Environment/PunchingBag.prefab
+Assets/Invector-3rdPersonController/Melee Combat/Prefabs/Items/Inventory_Collectables/Collectable_Axe.prefab
+Assets/Invector-3rdPersonController/Melee Combat/Prefabs/Items/Inventory_Collectables/Collectable_Dual Swords.prefab
+Assets/Invector-3rdPersonController/Melee Combat/Prefabs/Items/Inventory_Collectables/Collectable_Great Katana.prefab
+Assets/Invector-3rdPersonController/Melee Combat/Prefabs/Items/Inventory_Collectables/Collectable_Great Shield.prefab
+Assets/Invector-3rdPersonController/Melee Combat/Prefabs/Items/Inventory_Collectables/Collectable_Great Sword.prefab
+Assets/Invector-3rdPersonController/Melee Combat/Prefabs/Items/Inventory_Collectables/Collectable_PotionHealth.prefab
+Assets/Invector-3rdPersonController/Melee Combat/Prefabs/Items/Inventory_Collectables/Collectable_PotionHealthUp.prefab
+Assets/Invector-3rdPersonController/Melee Combat/Prefabs/Items/Inventory_Collectables/Collectable_PotionStaminaUp.prefab
+Assets/Invector-3rdPersonController/Melee Combat/Prefabs/Items/Inventory_Collectables/Collectable_Short Katana.prefab
+Assets/Invector-3rdPersonController/Melee Combat/Prefabs/Items/Inventory_Collectables/Collectable_Short Sword.prefab
+Assets/Invector-3rdPersonController/Melee Combat/Prefabs/Items/Inventory_Collectables/Collectable_Small Shield.prefab
+Assets/Invector-3rdPersonController/Melee Combat/Prefabs/Items/Inventory_Collectables/Invector-Chest.prefab
+Assets/Invector-3rdPersonController/Melee Combat/Prefabs/Player/vCompanionAI.prefab
+Assets/Invector-3rdPersonController/Melee Combat/Prefabs/Player/vMeleeController_Inventory.prefab
+Assets/Invector-3rdPersonController/Melee Combat/Prefabs/Player/vMeleeController_NoInventory.prefab
+Assets/Invector-3rdPersonController/Melee Combat/Prefabs/Player/vMeleeController_Template.prefab
+Assets/Invector-3rdPersonController/Melee Combat/Prefabs/UI/GameStyleSelector_Melee.prefab
+Assets/Invector-3rdPersonController/Melee Combat/Prefabs/Weapons/NoInventory/Axe_NOInventory.prefab
+Assets/Invector-3rdPersonController/Melee Combat/Prefabs/Weapons/NoInventory/GreatKatana_NOInventory.prefab
+Assets/Invector-3rdPersonController/Melee Combat/Prefabs/Weapons/NoInventory/GreatSword_NOInventory.prefab
+Assets/Invector-3rdPersonController/Melee Combat/Prefabs/Weapons/NoInventory/ShortKatana_NOInventory.prefab
+Assets/Invector-3rdPersonController/Melee Combat/Prefabs/Weapons/NoInventory/ShortSword_NOInventory.prefab
+Assets/Invector-3rdPersonController/Melee Combat/Prefabs/Weapons/NoInventory/SmallShield_NOInventory.prefab
+Assets/Invector-3rdPersonController/Melee Combat/Simple Melee AI/Prefabs/Enemies/BossAI.prefab
+Assets/Invector-3rdPersonController/Melee Combat/Simple Melee AI/Prefabs/Enemies/EnemyAI_A.prefab
+Assets/Invector-3rdPersonController/Melee Combat/Simple Melee AI/Prefabs/Enemies/EnemyAI_B.prefab
+Assets/Invector-3rdPersonController/Melee Combat/Simple Melee AI/Prefabs/Enemies/EnemyAI_C.prefab
+Assets/Invector-3rdPersonController/Melee Combat/Simple Melee AI/Prefabs/Enemies/EnemyAI_D.prefab
+Assets/Invector-3rdPersonController/Melee Combat/Simple Melee AI/Prefabs/Enemies/enemyHealthUI.prefab
+Assets/Invector-3rdPersonController/Melee Combat/Simple Melee AI/Scenes/Invector_SimpleMeleeAI.unity
+Assets/Invector-3rdPersonController/Shooter/3DModels/Weapons/vRifle/Prefabs/vCollectable_vRifle.prefab
+Assets/Invector-3rdPersonController/Shooter/Editor/Resources/ShooterUI.prefab
+Assets/Invector-3rdPersonController/Shooter/Prefabs/Environment/Shooter_Hive.prefab
+Assets/Invector-3rdPersonController/Shooter/Prefabs/Other/SimpleEnemy_TargetPractice.prefab
+Assets/Invector-3rdPersonController/Shooter/Prefabs/Other/vBarrels.prefab
+Assets/Invector-3rdPersonController/Shooter/Prefabs/Player/ShooterAttachments.prefab
+Assets/Invector-3rdPersonController/Shooter/Prefabs/Player/vShooterController_Template.prefab
+Assets/Invector-3rdPersonController/Shooter/Prefabs/Player/vShooterMelee_Inventory.prefab
+Assets/Invector-3rdPersonController/Shooter/Prefabs/Player/vShooterMelee_NoInventory.prefab
+Assets/Invector-3rdPersonController/Shooter/Prefabs/Player/vShooterOnly_Inventory.prefab
+Assets/Invector-3rdPersonController/Shooter/Prefabs/UI/GameStyleSelector_Shooter.prefab
+Assets/Invector-3rdPersonController/Shooter/Prefabs/UI/ShooterUI.prefab
+Assets/Invector-3rdPersonController/Shooter/Prefabs/Weapon/_bullets/vDefaultBullet.prefab
+Assets/Invector-3rdPersonController/Shooter/Prefabs/Weapon/_bullets/vGrenadeRifle.prefab
+Assets/Invector-3rdPersonController/Shooter/Prefabs/Weapon/_bullets/vGrenadeRifle2.prefab
+Assets/Invector-3rdPersonController/Shooter/Prefabs/Weapon/_bullets/vGrenadeRifle3.prefab
+Assets/Invector-3rdPersonController/Shooter/Prefabs/Weapon/_bullets/vGrenadeRifleEnemys.prefab
+Assets/Invector-3rdPersonController/Shooter/Prefabs/Weapon/_bullets/vMiniGuntBullet.prefab
+Assets/Invector-3rdPersonController/Shooter/Prefabs/Weapon/_bullets/vMiniGuntBullet_vLight.prefab
+Assets/Invector-3rdPersonController/Shooter/Prefabs/Weapon/_bullets/vMobileBullet.prefab
+Assets/Invector-3rdPersonController/Shooter/Prefabs/Weapon/_bullets/vRPGAmmo.prefab
+Assets/Invector-3rdPersonController/Shooter/Prefabs/Weapon/_weapons_WITH_Inventory/_ammo/vAmmoAssaultRifle_Inventory.prefab
+Assets/Invector-3rdPersonController/Shooter/Prefabs/Weapon/_weapons_WITH_Inventory/_ammo/vAmmoHandgun_Inventory.prefab
+Assets/Invector-3rdPersonController/Shooter/Prefabs/Weapon/_weapons_WITH_Inventory/_ammo/vAmmoRPG_Inventory.prefab
+Assets/Invector-3rdPersonController/Shooter/Prefabs/Weapon/_weapons_WITH_Inventory/_ammo/vAmmoShotgun_Inventory.prefab
+Assets/Invector-3rdPersonController/Shooter/Prefabs/Weapon/_weapons_WITH_Inventory/_ammo/vAmmoSniper_Inventory.prefab
+Assets/Invector-3rdPersonController/Shooter/Prefabs/Weapon/_weapons_WITH_Inventory/_collectables/vCollectableHandgun.prefab
+Assets/Invector-3rdPersonController/Shooter/Prefabs/Weapon/_weapons_WITH_Inventory/_collectables/vCollectableRPG.prefab
+Assets/Invector-3rdPersonController/Shooter/Prefabs/Weapon/_weapons_WITH_Inventory/_collectables/vCollectableShotgun.prefab
+Assets/Invector-3rdPersonController/Shooter/Prefabs/Weapon/_weapons_WITH_Inventory/_collectables/vCollectableSniper.prefab
+Assets/Invector-3rdPersonController/Shooter/Prefabs/Weapon/_weapons_WITH_Inventory/_collectables/vCollectibleAssaultRifle.prefab
+Assets/Invector-3rdPersonController/Shooter/Prefabs/Weapon/_weapons_WITH_Inventory/_weaponsPrefabs/vSniper_Inventory.prefab
+Assets/Invector-3rdPersonController/Shooter/Prefabs/Weapon/_weapons_WITHOUT_Inventory/_ammo/vAmmoAssaultRifle_NoInventory.prefab
+Assets/Invector-3rdPersonController/Shooter/Prefabs/Weapon/_weapons_WITHOUT_Inventory/_ammo/vAmmoHandgun_NoInventory.prefab
+Assets/Invector-3rdPersonController/Shooter/Prefabs/Weapon/_weapons_WITHOUT_Inventory/_ammo/vAmmoRPG_NoInventory.prefab
+Assets/Invector-3rdPersonController/Shooter/Prefabs/Weapon/_weapons_WITHOUT_Inventory/_ammo/vAmmoShotgun_NoInventory.prefab
+Assets/Invector-3rdPersonController/Shooter/Prefabs/Weapon/_weapons_WITHOUT_Inventory/_ammo/vAmmoSniper_NoInventory.prefab
+Assets/Invector-3rdPersonController/Shooter/Prefabs/Weapon/_weapons_WITHOUT_Inventory/_weaponsPrefabs/vAssaultRifle_NO_Inventory_v2 Variant.prefab
+Assets/Invector-3rdPersonController/Shooter/Prefabs/Weapon/_weapons_WITHOUT_Inventory/_weaponsPrefabs/vHandgun_NO_Inventory Variant.prefab
+Assets/Invector-3rdPersonController/Shooter/Prefabs/Weapon/_weapons_WITHOUT_Inventory/_weaponsPrefabs/vRPG_NO_Inventory Variant.prefab
+Assets/Invector-3rdPersonController/Shooter/Prefabs/Weapon/_weapons_WITHOUT_Inventory/_weaponsPrefabs/vShotgun_NO_Inventory Variant.prefab
+Assets/Invector-3rdPersonController/Shooter/Prefabs/Weapon/_weapons_WITHOUT_Inventory/_weaponsPrefabs/vSniper_NO_Inventory Variant.prefab
+Assets/Invector-3rdPersonController/Shooter/Scripts/ArcherySystem/Prefabs/ArrowProjectile.prefab
+Assets/Invector-3rdPersonController/Shooter/Scripts/ArcherySystem/Prefabs/NoInventory/ArrowProjectile_NoInventory.prefab
+Assets/Invector-3rdPersonController/Shooter/Scripts/ArcherySystem/Prefabs/NoInventory/vArrows_NoInventory.prefab
+Assets/Invector-3rdPersonController/Shooter/Scripts/ArcherySystem/Prefabs/NoInventory/vBow_NoInventory.prefab
+Assets/Invector-3rdPersonController/Shooter/Scripts/ArcherySystem/Prefabs/vAmmoArrows.prefab
+Assets/Invector-3rdPersonController/Shooter/Scripts/ArcherySystem/Prefabs/vCollectableBow.prefab
+Assets/Invector-3rdPersonController/Shooter/Scripts/ThrowSystem/Prefabs/Collectables/vThrowable_Collectable_Base.prefab
+Assets/Invector-3rdPersonController/Shooter/Scripts/ThrowSystem/Prefabs/Effects/Hit Ground SFX.prefab
+Assets/Invector-3rdPersonController/Shooter/Scripts/ThrowSystem/Prefabs/Effects/MolotovEffect.prefab
+Assets/Invector-3rdPersonController/Shooter/Scripts/ThrowSystem/Prefabs/Effects/Throw_End.prefab
+Assets/Invector-3rdPersonController/Shooter/Scripts/ThrowSystem/Prefabs/Grenades/vFragmentedGrenade.prefab
+Assets/Invector-3rdPersonController/Shooter/Scripts/ThrowSystem/Prefabs/Grenades/vGrenade_AI.prefab
+Assets/Invector-3rdPersonController/Shooter/Scripts/ThrowSystem/Prefabs/Grenades/vGrenadeSmoke_AI.prefab
+Assets/Invector-3rdPersonController/Shooter/Scripts/ThrowSystem/Prefabs/Grenades/vMolotov.prefab
+Assets/Invector-3rdPersonController/Shooter/Scripts/ThrowSystem/Prefabs/Grenades/vSmokeGrenade.prefab
+Assets/Invector-3rdPersonController/Shooter/Scripts/ThrowSystem/Prefabs/Grenades/vStunGrenade.prefab
+Assets/Invector-3rdPersonController/Shooter/Scripts/ThrowSystem/Prefabs/ThrowManager-Standalone.prefab
+Assets/Invector-3rdPersonController/Shooter/TargetTrainingMiniGame/Prefabs/Shooter Training Controller.prefab
+Assets/Malbers Animations/Animal Controller/1 - Demos/0 - Forest.unity
+Assets/Malbers Animations/Animal Controller/1 - Demos/1 - PlayGround Human (1 - Holsters).unity
+Assets/Malbers Animations/Animal Controller/1 - Demos/1 - PlayGround Human (2 - External).unity
+Assets/Malbers Animations/Animal Controller/1 - Demos/1 - PlayGround Human (3 - Assasin Creed).unity
+Assets/Malbers Animations/Animal Controller/1 - Demos/1 - Sandbox Utilities.unity
+Assets/Malbers Animations/Animal Controller/1 - Demos/8 - MPath Constraint.unity
+Assets/Malbers Animations/Animal Controller/Empty Controller/Empty Controller.prefab
+Assets/Malbers Animations/Animal Controller/Human/Human Base.prefab
+Assets/Malbers Animations/Animal Controller/Human/States/PickUp Glider.prefab
+Assets/Malbers Animations/Animal Controller/Human/States/PickUp Umbrella.prefab
+Assets/Malbers Animations/Animal Controller/Human/States/PickUp Wings.prefab
+Assets/Malbers Animations/Animal Controller/Wolf Lite/Bolt.prefab
+Assets/Malbers Animations/Animal Controller/Wolf Lite/Wolf Lite.prefab
+Assets/Malbers Animations/Common/Particles/Prefabs/FireBall.prefab
+Assets/Malbers Animations/Common/Particles/Prefabs/Plasma Ball.prefab
+Assets/Malbers Animations/Common/Prefabs/Interactables/Gravity Changer Concave.prefab
+Assets/Malbers Animations/Common/Prefabs/Interactables/Gravity Changer Convex.prefab
+Assets/Malbers Animations/Common/Scripts/Weapons/Prefabs/Bow Main.prefab
+Assets/Malbers Animations/Common/Scripts/Weapons/Prefabs/Projectiles/Arrow.prefab
+Assets/Malbers Animations/Common/Scripts/Weapons/Prefabs/Sword.prefab
+Assets/Malbers Animations/Common/Scripts/Weapons/Prefabs/Throwable FireBall.prefab
+Assets/Malbers Animations/Common/Scripts/Weapons/Prefabs/Throwable.prefab
