@@ -26,6 +26,10 @@ namespace ASH.Opening
         public ASHOpeningProfile profile;
         [Tooltip("Run the opening when Play starts. Off = the scene starts in the director's initial weather.")]
         public bool playOnStart = true;
+        [Tooltip("Testing: NEW games skip the radio dialogue and the earthquake and start just as the cabin door unlocks " +
+                 "(broadcast journal note written, quake over, door unlocked, 'Secure the cabin' active, aftershocks as normal). " +
+                 "Loaded saves are not affected. Off by default.")]
+        public bool skipStartSequence = false;
         [Tooltip("Player is moved here when the opening starts (inside the cabin). The scene spawn is left untouched.")]
         public Transform openingSpawn;
         public ASHWeatherDirector director;
@@ -70,7 +74,20 @@ namespace ASH.Opening
             _cc = FindAnyObjectByType<vThirdPersonController>();
             if (_cc) { _origPos = _cc.transform.position; _origRot = _cc.transform.rotation; _haveOrig = true; }
             if (ASH.Core.ASHSaveSystem.PendingLoad != null) return; // loading a save: RestoreFromSave sets the stage (no replay / skip)
-            if (playOnStart && profile) Begin(); else ReleaseSlice();
+            if (playOnStart && profile) { if (skipStartSequence) SkipStartSequence(); else Begin(); } else ReleaseSlice();
+        }
+
+        /// <summary>New game with Skip Start Sequence: jump to the stage where the cabin door unlocks and unlock it now.
+        /// Uses SkipTo, so the world gets exactly what the skipped stages would have produced (broadcast journal note, quake
+        /// stopped, haze weather, fog, "Secure the cabin" objective) and saves / later objectives see a normal run.</summary>
+        void SkipStartSequence()
+        {
+            var us = UnlockStage;
+            var target = profile.lockDoorsUntil == DoorUnlockAt.Never || us <= Stage.Quiet ? Stage.Quiet : us;
+            SkipTo(target);
+            if (radio) radio.StaticFragments(); // radio after the broadcast: static only (no music / dialogue)
+            UnlockCabin(true);
+            if (logStages) Debug.Log($"[ASH] Opening: start sequence skipped -> {target}, cabin unlocked");
         }
 
         /// <summary>True when "Secure the cabin" was finished early (the stage timers still run until Done).</summary>
