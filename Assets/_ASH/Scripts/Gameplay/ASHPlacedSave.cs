@@ -24,6 +24,7 @@ namespace ASH.Gameplay
         public void Snapshot()
         {
             _sceneFires.Clear();
+            ASHCookStoves.EnsureAll(); // stoves / furnaces become cook stations first, so they are saved like campfires
             foreach (var f in UnityEngine.Object.FindObjectsByType<ASHCampfire>(FindObjectsInactive.Include))
             {
                 if (f.GetComponent<ASHPlacedObject>() || f.name == "ASH_PlacementGhost") continue;

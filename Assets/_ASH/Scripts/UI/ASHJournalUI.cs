@@ -18,7 +18,7 @@ namespace ASH.UI
     /// </summary>
     public sealed class ASHJournalUI : MonoBehaviour
     {
-        public enum Tab { Crafting, Items, Notes, Objectives }
+        public enum Tab { Crafting, Items, Notes, Objectives, Skills }
 
         ASHInventory _inv; ASHCrafting _craft; Func<ASHItemDefinition, bool> _useItem;
         readonly Dictionary<Tab, GameObject> _tabs = new Dictionary<Tab, GameObject>();
@@ -59,6 +59,7 @@ namespace ASH.UI
             if (_craft) { _craft.Crafted += OnCraftEvent; _craft.BrokeDown += OnBreakEvent; }
             var log = ASHJournalLog.Instance; if (log) log.Added += OnNote;
             if (_objectives) _objectives.Changed += MarkDirty;
+            ASH.Gameplay.ASHSkills.Changed += MarkDirty;
             _dirty = true;
         }
         void OnDisable()
@@ -67,6 +68,7 @@ namespace ASH.UI
             if (_craft) { _craft.Crafted -= OnCraftEvent; _craft.BrokeDown -= OnBreakEvent; }
             var log = ASHJournalLog.Instance; if (log) log.Added -= OnNote;
             if (_objectives) _objectives.Changed -= MarkDirty;
+            ASH.Gameplay.ASHSkills.Changed -= MarkDirty;
         }
         void MarkDirty() => _dirty = true;
         void OnCraftEvent(ASHRecipe r) => _dirty = true;
@@ -79,20 +81,62 @@ namespace ASH.UI
             var accent = K.At("Accent", rt, new Vector2(0.5f, 1), Vector2.zero, new Vector2(1200, 3)); K.Image(accent, K.Accent);
             K.Text(K.At("Title", rt, new Vector2(0, 1), new Vector2(28, -18), new Vector2(400, 40)), "JOURNAL", 30, K.Accent, TextAnchor.MiddleLeft, FontStyle.Bold);
             float x = 210;
-            foreach (Tab t in new[] { Tab.Items, Tab.Notes, Tab.Objectives, Tab.Crafting }) // the Survival Guide tab comes last (hidden until unlocked)
+            foreach (Tab t in new[] { Tab.Items, Tab.Notes, Tab.Objectives, Tab.Skills, Tab.Crafting }) // the Survival Guide tab comes last (hidden until unlocked)
             {
                 var tab = t;
-                var b = K.At("Tab" + t, rt, new Vector2(0, 1), new Vector2(x, -20), new Vector2(130, 38)); x += 136;
+                var b = K.At("Tab" + t, rt, new Vector2(0, 1), new Vector2(x, -20), new Vector2(124, 38)); x += 128;
                 K.Button(b, t == Tab.Crafting ? "SURVIVAL GUIDE" : t.ToString().ToUpperInvariant(), 18, () => Show(tab), new Color(1, 1, 1, 0.12f));
                 _tabButtons[t] = b.GetComponent<Image>();
             }
-            K.Text(K.At("Hint", rt, new Vector2(1, 1), new Vector2(-24, -26), new Vector2(360, 26)), "<color=#d9cbb4>J</color> close   <color=#d9cbb4>M</color> GPS map   <color=#d9cbb4>Tab</color> pack", 16, K.Dim, TextAnchor.MiddleRight);
+            K.Text(K.At("Hint", rt, new Vector2(1, 1), new Vector2(-24, -26), new Vector2(270, 26)), "<color=#d9cbb4>J</color> close  <color=#d9cbb4>M</color> map  <color=#d9cbb4>Tab</color> pack", 14, K.Dim, TextAnchor.MiddleRight);
 
             var body = K.Stretch("Body", rt, 20, 20, 20, 76);
             _tabs[Tab.Crafting] = BuildCrafting(body);
             _tabs[Tab.Items] = BuildItems(body);
             _tabs[Tab.Notes] = BuildNotes(body);
             _tabs[Tab.Objectives] = BuildObjectives(body);
+            _tabs[Tab.Skills] = BuildSkills(body);
+        }
+
+        // ------------------------------------------------------------------ skills (ASHSkills; Cooking + its combinations)
+        RectTransform _skillList; Text _sTitle, _sLines; string _selSkill = ASH.Gameplay.ASHSkills.Cooking;
+        GameObject BuildSkills(RectTransform body)
+        {
+            var root = K.Stretch("Skills", body);
+            _skillList = K.ScrollList(K.Stretch("List", root, 0, 0, 640, 0));
+            var det = K.Stretch("Detail", root, 540, 0, 0, 0);
+            K.Image(det, new Color(1, 1, 1, 0.04f));
+            _sTitle = K.Text(K.At("Name", det, new Vector2(0, 1), new Vector2(24, -22), new Vector2(590, 40)), "", 28, K.Ink, TextAnchor.MiddleLeft, FontStyle.Bold);
+            _sLines = K.Text(K.At("Lines", det, new Vector2(0, 1), new Vector2(24, -72), new Vector2(590, 540)), "", 18, K.Ink, TextAnchor.UpperLeft);
+            return root.gameObject;
+        }
+
+        void RebuildSkills()
+        {
+            K.Clear(_skillList);
+            var ids = new List<string>(ASH.Gameplay.ASHSkills.Defined);
+            if (ids.Count == 0) { K.Layout(K.Text(K.Rect("Empty", _skillList), "No skills yet.", 20, K.Dim), 60); _sTitle.text = ""; _sLines.text = ""; return; }
+            if (!ids.Contains(_selSkill)) _selSkill = ids[0];
+            foreach (var id in ids)
+            {
+                var sid = id; ASH.Gameplay.ASHSkills.Progress(id, out int l, out _, out _);
+                Row(_skillList, null, ASH.Gameplay.ASHSkills.NameOf(id), "Lv " + l, id == _selSkill, () => { _selSkill = sid; _dirty = true; });
+            }
+            ASH.Gameplay.ASHSkills.Progress(_selSkill, out int lvl, out float into, out float need);
+            _sTitle.text = $"{ASH.Gameplay.ASHSkills.NameOf(_selSkill)}  <color=#e8a35a>Lv {lvl}</color>";
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine(need > 0f ? $"{into:0} / {need:0} XP to level {lvl + 1}" : "Max level");
+            if (_selSkill == ASH.Gameplay.ASHSkills.Cooking)
+            {
+                var cs = ASH.Gameplay.ASHCookingSettings.I;
+                sb.AppendLine($"<color=#a69e91>Learn by cooking at a campfire or stove. Cook time -{Mathf.RoundToInt((1f - cs.SkillTimeFactor(lvl)) * 100f)}%, extra-portion chance {cs.SkillBonusChance(lvl) * 100f:0}%.</color>");
+                var all = ASH.Gameplay.ASHCookCombo.All; int known = 0; foreach (var c in all) if (c.Known) known++;
+                sb.AppendLine(); sb.AppendLine($"<b>Combinations</b>  <color=#a69e91>{known} / {all.Count} learned</color>");
+                foreach (var c in all)
+                    sb.AppendLine(c.Known ? $"<color=#9fd39b>√ {c.displayName}</color>  <color=#a69e91>{c.ingredientA.displayName} + {c.ingredientB.displayName}</color>"
+                                          : $"<color=#857d72>?  ???   {(c.unlockLevel > 0 ? $"(Cooking Lv {c.unlockLevel}, or discover it)" : "(discover it by combining)")}</color>");
+            }
+            _sLines.text = sb.ToString();
         }
 
         GameObject BuildObjectives(RectTransform body)
@@ -423,6 +467,7 @@ namespace ASH.UI
             if (_tab == Tab.Crafting) RebuildCrafting();
             else if (_tab == Tab.Items) RebuildItems();
             else if (_tab == Tab.Objectives) RebuildObjectives();
+            else if (_tab == Tab.Skills) RebuildSkills();
             else RebuildNotes();
         }
 

@@ -586,7 +586,8 @@ namespace ASH.UI
                 if (subEsc) { ASH.Core.ASHGameSettings.Apply(false); _settingsPanel.gameObject.SetActive(false); _slotsPanel.gameObject.SetActive(false); _pauseMenu.gameObject.SetActive(true); }
                 if (!ctxEsc && !subEsc && input.PausePressed && !(placer && placer.LastCancelFrame == Time.frameCount) && !placing && !ASHDeathScreen.Active && EscConsumedFrame != Time.frameCount && !ASHUIState.IsOpen("manualCover"))
                 {
-                    if (AnyPanelOpen) { SetInv(false); SetCraft(false); SetMap(false); }
+                    if (ASHCookMenu.IsOpen) ASHCookMenu.CloseIfOpen();
+                    else if (AnyPanelOpen) { SetInv(false); SetCraft(false); SetMap(false); }
                     else SetPause(!ASHUIState.IsOpen(ASHPanels.Pause));
                 }
                 if (!ASHUIState.IsOpen(ASHPanels.Pause) && !ASHUIState.IsOpen("manualCover"))

@@ -22,8 +22,9 @@ namespace ASH.Gameplay
         Vector3 FirePosition { get; }
     }
 
-    /// <summary>Placed campfire: flickering light, fire/smoke particles, fuel that burns down on the game clock.
-    /// Wood or kindling from the pack adds fuel (tap Interact); a lit fire with no fuel to add is put out by holding Interact.
+    /// <summary>Placed campfire (or a stove, see ASHCookStoves): flickering light, fire/smoke particles, fuel that burns down on the game clock.
+    /// Tap Interact opens the cook menu (fuel, light / put out, cooking, combining; ASH.UI.ASHCookMenu).
+    /// Without the menu: wood or kindling from the pack adds fuel (tap); a lit fire with no fuel to add is put out by holding Interact.
     /// When the fuel runs out the fire goes out, so its warmth (ASHHeatSource) and the Campfire crafting station stop too.
     /// Tuning: Resources/ASH_CampfireSettings (ASH/Systems/Campfire Fuel Settings).</summary>
     public sealed class ASHCampfire : MonoBehaviour, IASHUsable, IASHCraftStation, IASHFireState
@@ -37,6 +38,13 @@ namespace ASH.Gameplay
         [SerializeField] private bool lit = true;
         [Tooltip("Starting fuel in game hours. -1 = settings default (placed fires vs scene fires).")]
         [SerializeField] private float fuelHours = -1f;
+        [Tooltip("Name in the cook menu and prompts (Campfire, Stove, Fireplace).")]
+        [SerializeField] private string stationName = "Campfire";
+
+        /// <summary>Cook menu hook (set by ASH.UI.ASHCookMenu): opens the menu for this fire. Null = old tap/hold behaviour.</summary>
+        public static System.Func<ASHCampfire, ASHInventory, Transform, bool> OpenMenu;
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)] static void ResetHook() => OpenMenu = null;
+        public string StationName => string.IsNullOrEmpty(stationName) ? "Campfire" : stationName;
 
         public bool Lit => lit;
         public float FuelHours => Mathf.Max(0f, fuelHours);
@@ -162,20 +170,68 @@ namespace ASH.Gameplay
         /// <summary>Takes one fuel item from the pack and adds its burn time (clamped to max). Does not light the fire.</summary>
         public bool TryAddFuel(ASHInventory inv)
         {
-            var it = FindFuelIn(inv, out float h);
-            if (!it || !inv.Remove(it, 1)) return false;
-            fuelHours = Mathf.Min(ASHCampfireSettings.I.maxFuelHours, FuelHours + h);
+            var it = FindFuelIn(inv, out _);
+            return it && TryAddFuel(inv, it);
+        }
+
+        /// <summary>Game hours one of this item burns (0 = not fuel).</summary>
+        public static float FuelHoursOf(ASHItemDefinition item)
+        {
+            if (!item) return 0f;
+            foreach (var f in ASHCampfireSettings.I.fuels) if (f != null && f.itemId == item.itemId) return Mathf.Max(0f, f.hours);
+            return 0f;
+        }
+
+        public bool HasRoomForFuel => fuelHours < ASHCampfireSettings.I.maxFuelHours - 0.01f;
+
+        /// <summary>Adds one specific fuel item from the pack (cook menu). Does not light the fire.</summary>
+        public bool TryAddFuel(ASHInventory inv, ASHItemDefinition it)
+        {
+            float h = FuelHoursOf(it);
+            if (inv == null || h <= 0f || !HasRoomForFuel || !inv.Remove(it, 1)) return false;
             var s = ASHCampfireSettings.I;
+            fuelHours = Mathf.Min(s.maxFuelHours, FuelHours + h);
             ASHSfx.Play("campfire_fuel", s.addFuelClips, transform.position, s.sfxVolume);
             FuelAdded?.Invoke(this, it, h);
             return true;
         }
 
+        /// <summary>Lights it (needs fuel) with the light sound. Cook menu / tap.</summary>
+        public bool Light()
+        {
+            if (lit) return true;
+            if (FuelHours <= 0f) return false;
+            SetLit(true);
+            if (lit) ASHSfx.Play("campfire_light", ASHSoundBank.Instance ? ASHSoundBank.Instance.torchOn : null, transform.position, ASHCampfireSettings.I.sfxVolume);
+            return lit;
+        }
+
+        /// <summary>Puts it out (keeps the remaining fuel).</summary>
+        public void PutOut()
+        {
+            if (!lit) return;
+            SetLit(false);
+            ASHSfx.Play("campfire_out", ASHSoundBank.Instance ? ASHSoundBank.Instance.torchOff : null, transform.position, ASHCampfireSettings.I.sfxVolume);
+        }
+
+        /// <summary>Runtime stove setup (ASHCookStoves): name, unlit with no fuel, optional fire light. Call right after AddComponent.</summary>
+        public void ConfigureStation(string name, Light light, bool startLit, float startFuelHours)
+        {
+            stationName = name; fireLight = light; lit = startLit; fuelHours = Mathf.Max(0f, startFuelHours);
+            if (light) baseIntensity = Mathf.Max(0.5f, light.intensity);
+        }
+
         public float GetUsePriority(in ASHUseContext c) => 30f;
-        public float GetHoldDuration(in ASHUseContext c) => Cooking && Cooking.ReadyCount > 0 ? 0f : lit && FindFuelIn(c.Inventory, out _) == null ? ASHCampfireSettings.I.putOutHoldSeconds : 0f;
+        public float GetHoldDuration(in ASHUseContext c) => OpenMenu != null ? 0f : Cooking && Cooking.ReadyCount > 0 ? 0f : lit && FindFuelIn(c.Inventory, out _) == null ? ASHCampfireSettings.I.putOutHoldSeconds : 0f;
 
         public string GetPrompt(in ASHUseContext c)
         {
+            if (OpenMenu != null)
+            {
+                string st = lit ? $"lit, fuel {ASHGameTimeBridge.Format(FuelHours)}" : FuelHours > 0f ? $"out, fuel {ASHGameTimeBridge.Format(FuelHours)}" : "out, no fuel";
+                string ready = Cooking && Cooking.ReadyCount > 0 ? $"Take {Cooking.ReadyLabel} · " : "";
+                return $"{ready}Use {StationName} ({st}{(Cooking ? Cooking.StatusSuffix : "")})";
+            }
             if (Cooking && Cooking.ReadyCount > 0) return "Take " + Cooking.ReadyLabel;
             string fuel = $"fuel {ASHGameTimeBridge.Format(FuelHours)} / {ASHGameTimeBridge.Format(MaxFuelHours)}" + (Cooking ? Cooking.StatusSuffix : "");
             var it = FindFuelIn(c.Inventory, out _);
@@ -186,6 +242,11 @@ namespace ASH.Gameplay
 
         public bool TryUse(in ASHUseContext c)
         {
+            if (OpenMenu != null)
+            {
+                if (Cooking && Cooking.ReadyCount > 0) Cooking.Collect(c.Inventory, c.PlayerTransform);
+                if (OpenMenu(this, c.Inventory, c.PlayerTransform)) return true;
+            }
             if (Cooking && Cooking.ReadyCount > 0) return Cooking.Collect(c.Inventory, c.PlayerTransform) > 0;
             if (lit) { if (TryAddFuel(c.Inventory)) return true; SetLit(false); return true; }
             if (FuelHours > 0f)
