@@ -38,6 +38,8 @@ namespace ASH.Inventory
         [Tooltip("Campfire recipes: GAME minutes the food / water sits on the fire (1 game hour = 2 real minutes at the 48-minute day). " +
                  "Needs a lit fire with fuel the whole time. 0 = old timed craft in the pack.")]
         [Range(0f, 720f)] public float cookGameMinutes = 0f;
+        [Tooltip("Campfire / stove cook menu: REAL seconds per item before the Cooking skill. 0 = ASH_CookingSettings default by type (food 5, meat 10, water 15).")]
+        [Range(0f, 600f)] public float cookSeconds = 0f;
         public bool CooksOnFire => station == ASHCraftStation.Campfire && cookGameMinutes > 0f;
     }
 }

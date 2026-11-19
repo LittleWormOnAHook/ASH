@@ -48,6 +48,16 @@ namespace ASH.Inventory
         [Tooltip("Given back after use (e.g. empty tin can). Not returned when a can is smashed open.")]
         public ASHItemDefinition leftoverItem;
 
+        [Header("Food safety (raw meat, creek water)")]
+        [Range(0f, 1f)] [Tooltip("Chance eating / drinking this makes you sick. 0 = safe (cooked food, boiled water). Scaled by ASH_CookingSettings.sicknessChanceMultiplier.")]
+        public float sicknessChance;
+        [Range(0f, 100f)] [Tooltip("Health lost when it makes you sick.")]
+        public float sicknessHealthLoss = 8f;
+        [Range(0f, 100f)] [Tooltip("Thirst lost when it makes you sick (vomiting).")]
+        public float sicknessThirstLoss = 10f;
+        [Range(0f, 100f)] [Tooltip("Hunger lost when it makes you sick.")]
+        public float sicknessHungerLoss = 6f;
+
         [Header("Tool")]
         public ASHToolType toolType = ASHToolType.None;
 

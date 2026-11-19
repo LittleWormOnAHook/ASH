@@ -120,8 +120,26 @@ namespace ASH.Survival
             Hunger = Mathf.Min(MaxHunger, Hunger + item.restoreHunger * factor);
             Thirst = Mathf.Min(MaxThirst, Thirst + item.restoreThirst * factor);
             Health = Mathf.Min(MaxHealth, Health + item.restoreHealth * factor);
+            TrySickness(item, factor);
             Changed?.Invoke();
             Consumed?.Invoke(item);
+        }
+
+        /// <summary>(item, health lost) when raw / dirty food made the player sick.</summary>
+        public static event Action<ASHItemDefinition, float> Sickened;
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)] static void ResetSickness() => Sickened = null;
+
+        void TrySickness(ASHItemDefinition item, float factor)
+        {
+            if (item.sicknessChance <= 0f || factor <= 0f) return;
+            float chance = Mathf.Clamp01(item.sicknessChance * ASH.Gameplay.ASHCookingSettings.I.sicknessChanceMultiplier);
+            if (UnityEngine.Random.value >= chance) return;
+            Hunger = Mathf.Max(0f, Hunger - item.sicknessHungerLoss);
+            Thirst = Mathf.Max(0f, Thirst - item.sicknessThirstLoss);
+            Damage(item.sicknessHealthLoss);
+            Sickened?.Invoke(item, item.sicknessHealthLoss);
+            var hud = FindAnyObjectByType<ASH.UI.ASHHud>();
+            if (hud) hud.Toast($"The {item.displayName.ToLowerInvariant()} made you sick (-{item.sicknessHealthLoss:0} health). Cook it first.");
         }
 
         public void Drink(float amount) { if (IsDead) return; Thirst = Mathf.Min(MaxThirst, Thirst + amount); Changed?.Invoke(); }

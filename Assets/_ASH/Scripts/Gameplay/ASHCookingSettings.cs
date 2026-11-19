@@ -25,6 +25,10 @@ namespace ASH.Gameplay
         [Tooltip("When something finishes and the player is within this many metres it goes straight into the pack. 0 = always take it at the fire.")]
         [Range(0f, 30f)] public float autoCollectRange = 4f;
 
+        [Header("Food safety")]
+        [Tooltip("Multiplies every item's sickness chance (raw meat, creek water). 0 = never sick.")]
+        [Range(0f, 3f)] public float sicknessChanceMultiplier = 1f;
+
         [Header("Audio (CC0, Docs/AudioCredits.md; assigned by the setup menu)")]
         public AudioClip cookLoop;
         public AudioClip boilLoop;
