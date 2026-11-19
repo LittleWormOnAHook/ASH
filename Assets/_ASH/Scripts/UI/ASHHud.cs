@@ -33,6 +33,8 @@ namespace ASH.UI
         [SerializeField] private ASHDayNightClock clock;
         [SerializeField] private ASHGpsMap gps;
         [Range(0.5f, 2f)] public float uiScale = 1f;
+        [Tooltip("Pixels between the GPS/journal icons (right edge) and the left edge of the hotbar. Default is about one icon width more than the first pass.")]
+        [Range(0f, 240f)] public float toolIconGapFromHotbar = 68f;
         [Range(1f, 15f)] public float toastSeconds = 5f;
 
         static readonly Color Panel = new Color(0.06f, 0.055f, 0.05f, 0.82f);
@@ -199,6 +201,7 @@ namespace ASH.UI
             _journal = ASHJournalUI.Create(_root, inventory, crafting, UseItem);
             _journal.Objectives = objective;
             if (gps) _map = ASHMapUI.Create(_root, gps);
+            ASHCompass.Ensure(_root, inventory, gps);
             BuildPause(); BuildDeath();
             RefreshInventory();
         }
@@ -259,7 +262,7 @@ namespace ASH.UI
             if (!_hotbarRoot) return;
             const float size = 54f, gap = 12f;
             float hbW = _hotbarRoot.sizeDelta.x, hbH = _hotbarRoot.sizeDelta.y;
-            _toolRoot = Rect("ToolIcons", _root, new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(-hbW * 0.5f - 14f, 30f), new Vector2(size * 2 + gap, hbH));
+            _toolRoot = Rect("ToolIcons", _root, new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(-hbW * 0.5f - toolIconGapFromHotbar, 30f), new Vector2(size * 2 + gap, hbH));
             _toolRoot.pivot = new Vector2(1, 0);
             (Image, Text, Text) Make(string name, float x, System.Action click)
             {
@@ -299,8 +302,21 @@ namespace ASH.UI
             var c = sp ? Color.white : new Color(0, 0, 0, 0); c.a = sp ? (active ? 1f : 0.4f) : 0f; img.color = c; // no background: a missing icon shows its initials only
             abbr.text = sp ? "" : (it ? it.displayName.Substring(0, Mathf.Min(2, it.displayName.Length)).ToUpperInvariant() : fallbackKey);
             abbr.color = new Color(Ink.r, Ink.g, Ink.b, active ? 1f : 0.4f);
-            string k = input ? input.BindingLabel(action) : fallbackKey; if (string.IsNullOrEmpty(k)) k = fallbackKey;
+            string k = fallbackKey;
+            if (input)
+            {
+                string looked = input.BindingLabel(action);
+                if (IsRealKeyLabel(looked)) k = looked;
+            }
             if (key.text != k) key.text = k;
+        }
+
+        static bool IsRealKeyLabel(string k)
+        {
+            if (string.IsNullOrWhiteSpace(k)) return false;
+            k = k.Trim();
+            for (int i = 0; i < k.Length; i++) if (k[i] != '?') return true;
+            return false;
         }
 
         /// <summary>Test hook: "journal|gps" visibility as 0/1.</summary>
