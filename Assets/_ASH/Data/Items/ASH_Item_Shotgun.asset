@@ -16,7 +16,7 @@ MonoBehaviour:
   displayName: Pump Shotgun
   description: 'Bolt-action .30-06 with a worn scope. Loud, heavy, and rounds are
     scarce. [hold: hotbar or cross bar, LMB fires]'
-  icon: {fileID: 21300000, guid: 14439e0bf7eb67844ba8af1fd301e8b0, type: 3}
+  icon: {fileID: 21300000, guid: 06985103dbd93a342975ad86ef17bf40, type: 3}
   uiTint: {r: 0.3, g: 0.28, b: 0.26, a: 1}
   category: 7
   maxStack: 1

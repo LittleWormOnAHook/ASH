@@ -15,7 +15,7 @@ MonoBehaviour:
   itemId: shotgunshells
   displayName: 12 Gauge Shells
   description: Hunting rifle cartridges.
-  icon: {fileID: 21300000, guid: 14439e0bf7eb67844ba8af1fd301e8b0, type: 3}
+  icon: {fileID: 21300000, guid: 012f131997b6a64468c6539beaf93522, type: 3}
   uiTint: {r: 0.75, g: 0.6, b: 0.3, a: 1}
   category: 8
   maxStack: 50
