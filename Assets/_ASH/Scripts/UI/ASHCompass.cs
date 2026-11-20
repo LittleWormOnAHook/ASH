@@ -199,7 +199,8 @@ namespace ASH.UI
             // would never come back after the intro / a journal / the pause menu. Hide with a CanvasGroup.
             if (!gameObject.activeSelf) gameObject.SetActive(true);
             bool panels = S.hideWhenPanelsOpen && ASHUIState.BlocksGameplay;
-            bool show = !panels && (S.compassAlwaysVisible || HasGps);
+            // gated on the Compass item (ASHCompassUnlock); compassAlwaysOn bypasses it for testing
+            bool show = !panels && (S.compassAlwaysOn || ASHCompassUnlock.Unlocked) && (S.compassAlwaysVisible || HasGps);
             if (!_group) _group = GetOrAddGroup();
             if (_visible == show && _group.alpha == (show ? 1f : 0f)) return;
             _visible = show;

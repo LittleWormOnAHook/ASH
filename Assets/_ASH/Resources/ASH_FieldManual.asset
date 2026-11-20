@@ -224,20 +224,13 @@ MonoBehaviour:
     row: 6
     parents: []
   - recipe: {fileID: 11400000, guid: 175d1959d24317743b87ba6da11c0d39, type: 2}
-    basic: 0
-    conditions:
-    - kind: 0
-      item: {fileID: 11400000, guid: f545e6f90b132c94988a957c07aa07e6, type: 2}
-      quantity: 1
-      page: 1
-      upgradeId: 
-      upgradeTier: 1
+    basic: 1
+    conditions: []
     requireAll: 1
     hint: 
     column: 1
     row: 6
-    parents:
-    - {fileID: 11400000, guid: e3544ec2c47e15b4780a9ddaa973dee9, type: 2}
+    parents: []
   - recipe: {fileID: 11400000, guid: 7414b72c4f456bc4bb20668dacf6dadb, type: 2}
     basic: 0
     conditions:

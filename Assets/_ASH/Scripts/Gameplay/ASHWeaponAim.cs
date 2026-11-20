@@ -39,6 +39,27 @@ namespace ASH.Gameplay
         [Range(-30f, 30f)] public float bowTiltDeg = 8f;
 
         [Header("Bow body aim (the archery clip aims to the archer's side: turn the body so its arrow line meets the crosshair)")]
+        [Tooltip("Invector bow: after the aim IK, turn the upper chest so the arrow line (nock to rest) points at the crosshair hit (camera-centre ray), at any distance.")]
+        public bool bowCrosshairAlign = true;
+        [Range(0f, 1f)] public float bowCrosshairWeight = 1f;
+        [Tooltip("Largest chest correction (degrees) used to put the arrow line on the crosshair.")]
+        [Range(0f, 60f)] public float bowCrosshairMaxDeg = 30f;
+        /// <summary>Arrow line vs crosshair hit before / after the correction (degrees, -1 when not aiming the Invector bow).</summary>
+        [Tooltip("Invector bow aim: straightens the spine (bow arm line still meets the crosshair) so the archer does not bend over. 0 = Invector pose.")]
+        [Range(0f, 1f)] public float bowUprightTorso = 1f;
+        [Tooltip("Forward lean (degrees) kept while aiming the bow after bowUprightTorso.")]
+        [Range(-20f, 40f)] public float bowTorsoLean = 4f;
+        [Tooltip("Invector bow aim camera: metres moved LEFT from aimCameraRight (closer in line with the arrow). Crosshair stays the screen centre.")]
+        [Range(-0.6f, 0.8f)] public float bowCameraLeft = 0.15f;
+        [Tooltip("Invector bow aim camera: metres moved DOWN from aimCameraHeight.")]
+        [Range(-0.5f, 0.8f)] public float bowCameraDown = 0.1f;
+        /// <summary>Spine forward lean (degrees) before / after the upright correction (bow aim, -1 when off).</summary>
+        public float BowLeanBefore { get; private set; } = -1f;
+        public float BowLeanAfter { get; private set; } = -1f;
+        public float BowCrosshairErrorBefore { get; private set; } = -1f;
+        public float BowCrosshairErrorAfter { get; private set; } = -1f;
+        float _xhW;
+
         public bool bowBodyAim = true;
         [Tooltip("Share of the residual pitch put on the spine (0 = arms level, 1 = full pitch to the aim point).")]
         [Range(0f, 1f)] public float bowSpinePitch = 1f;
@@ -503,6 +524,8 @@ namespace ASH.Gameplay
         {
             // no arrow in the hand at rest: the draw clip reaches to the back quiver, the arrow shows from that point of the draw
             _arrowShown = Current == Kind.Bow && HasArrows && Aiming && Draw01 > 0f && Draw01 >= handArrowAppearDraw01 && !(Time.time < _shotUntil && Draw01 < 0.05f);
+            // Invector bow: an arrow sits nocked on the string the whole time the bow is aimed (drawn or not), gone for a moment after a shot
+            if (ExternalControl) _arrowShown = Current == Kind.Bow && HasArrows && Aiming && Time.time >= _shotUntil;
             var rh = _anim ? _anim.GetBoneTransform(HumanBodyBones.RightHand) : null;
             if (!_restArrow && _eq) { var placed = _eq.Placed(ASHEquipment.HandArrowName); if (placed) { _restArrow = placed; _restPlaced = true; } }
             if (_arrowShown && !_restArrow && rh)
@@ -616,7 +639,8 @@ namespace ASH.Gameplay
                     if (!_nockArrow) _nockArrow = MakeArrowVisual("ASH_NockArrow", true);
                     if (!_nockArrow.activeSelf) _nockArrow.SetActive(true);
                     var shaft = ArrowRestWorld - NockWorld; if (shaft.sqrMagnitude < 0.01f) shaft = aimL;
-                    _nockArrow.transform.localScale = _restArrow ? _restArrow.transform.lossyScale : Vector3.one;
+                    // same size as the flying arrow (the WoodenBow arrow model at ASHCombatTuning.arrowVisualScale, ~0.83 m)
+                    _nockArrow.transform.localScale = Vector3.one * ASH.Combat.ASHCombatTuning.Live.arrowVisualScale;
                     _nockArrow.transform.SetPositionAndRotation(NockWorld, Quaternion.LookRotation(shaft.normalized, v.transform.forward));
                 }
                 else if (_nockArrow && _nockArrow.activeSelf) _nockArrow.SetActive(false);
@@ -680,6 +704,45 @@ namespace ASH.Gameplay
             }
         }
 
+        /// <summary>Invector bow: Invector aims the bow from its own aim reference, which leaves the arrow line (nock to rest) off the
+        /// crosshair. Turn the upper chest (both arms follow) so the line from the nock through the rest meets the camera-centre hit.</summary>
+        void BowCrosshairAlign(GameObject ev)
+        {
+            BowCrosshairErrorBefore = -1f; BowCrosshairErrorAfter = -1f;
+            var rig = ev ? ev.GetComponent<ASH.Combat.ASHBowDrawRig>() : null;
+            float want = bowCrosshairAlign && rig && ExternalAiming ? bowCrosshairWeight : 0f;
+            _xhW = Mathf.MoveTowards(_xhW, want, Mathf.Max(0.5f, bowBodyBlendSpeed) * Time.deltaTime);
+            if (!rig) return;
+            var aimPt = AimPoint(out _);
+            float Err() { var l = rig.RestWorld - rig.NockWorld; var t = aimPt - rig.NockWorld; return l.sqrMagnitude > 1e-4f && t.sqrMagnitude > 1e-4f ? Vector3.Angle(l, t) : -1f; }
+            if (!ExternalAiming) return;
+            BowCrosshairErrorBefore = Err();
+            BowLeanBefore = BowLeanAfter = -1f;
+            {
+                var hips = _anim.GetBoneTransform(HumanBodyBones.Hips); var sp = _anim.GetBoneTransform(HumanBodyBones.Spine); var nk = _anim.GetBoneTransform(HumanBodyBones.Neck);
+                if (hips && sp && nk)
+                {
+                    var right = Root.right;
+                    float Lean() => Vector3.SignedAngle(Vector3.up, Vector3.ProjectOnPlane(nk.position - hips.position, right), right);
+                    BowLeanBefore = Lean();
+                    float fix = (BowLeanBefore - bowTorsoLean) * bowUprightTorso * _xhW;
+                    if (Mathf.Abs(fix) > 0.05f) sp.rotation = Quaternion.AngleAxis(-Mathf.Clamp(fix, -45f, 45f), right) * sp.rotation;
+                    BowLeanAfter = Lean();
+                }
+            }
+            var chest = _anim.GetBoneTransform(HumanBodyBones.UpperChest); if (!chest) chest = _anim.GetBoneTransform(HumanBodyBones.Chest); if (!chest) chest = _anim.GetBoneTransform(HumanBodyBones.Spine);
+            if (chest && _xhW > 0.001f)
+                for (int i = 0; i < 3; i++)
+                {
+                    var line = rig.RestWorld - rig.NockWorld; var to = aimPt - rig.NockWorld;
+                    if (line.sqrMagnitude < 1e-4f || to.sqrMagnitude < 0.04f) break;
+                    Quaternion.FromToRotation(line, to).ToAngleAxis(out float a, out var axis); if (a > 180f) a -= 360f;
+                    if (Mathf.Abs(a) < 0.05f || axis.sqrMagnitude < 0.5f) break;
+                    chest.rotation = Quaternion.AngleAxis(Mathf.Clamp(a, -bowCrosshairMaxDeg, bowCrosshairMaxDeg) * _xhW, axis) * chest.rotation;
+                }
+            BowCrosshairErrorAfter = Err();
+        }
+
         void LateUpdate()
         {
             if (ExternalControl)
@@ -690,6 +753,7 @@ namespace ASH.Gameplay
                     _aimDir = (AimPoint(out _) - ev.transform.position).normalized;
                     var lh = _anim.GetBoneTransform(HumanBodyBones.LeftHand);
                     if (lh) EnsureBowGeometry(ev, lh);
+                    BowCrosshairAlign(ev);
                 }
                 UpdateNockAndString(ev, Aiming ? 1f : 0f);
                 return;

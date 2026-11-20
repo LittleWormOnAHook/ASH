@@ -70,6 +70,10 @@ namespace ASH.EditorTools
         static bool Tracked(Transform t, Transform root)
         {
             if (!t || !root || t == root || !t.IsChildOf(root)) return false;
+            // the bow rig drives its Model (idle hang) and the draw-hand IK target every frame: never a hand edit, never saved
+            // (saving the hung Model rotation made it the rest pose, which turned the aimed bow sideways)
+            var bowRig = t.parent ? t.parent.GetComponent<ASH.Combat.ASHBowDrawRig>() : null;
+            if (bowRig && (t.name == "Model" || t == bowRig.handTarget)) return false;
             for (var x = t; x && x != root; x = x.parent)
             {
                 if (x.name.EndsWith("(Clone)") || x.name.StartsWith("ASH_NockArrow") || x.name.StartsWith("ASH_HandArrow")) return false;

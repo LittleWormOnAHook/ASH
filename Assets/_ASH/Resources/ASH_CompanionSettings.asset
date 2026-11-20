@@ -1,0 +1,212 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1a871b2eedceffe48b7eba0a11e20c34, type: 3}
+  m_Name: ASH_CompanionSettings
+  m_EditorClassIdentifier: Assembly-CSharp::ASH.Companion.ASHCompanionSettings
+  dogName: Scout
+  dogCompassMarker: 1
+  dogMarkerColor: {r: 0.55, g: 0.85, b: 1, a: 1}
+  callCooldown: 8
+  callTeleportBeyond: 14
+  callArriveDistance: 3
+  callOutOfView: 1
+  autoTeleportWhenFar: 1
+  walkSpeed: 1
+  trotSpeed: 2
+  runSpeed: 5
+  turnSpeed: 300
+  acceleration: 6
+  animSpeedScale: 1
+  turnSmoothTime: 0.18
+  turnInPlaceAngle: 100
+  turnInPlaceDone: 30
+  arcTurnSlow: 0.55
+  turnBlendFullRate: 160
+  walkClipSpeed: 0.46714166
+  trotClipSpeed: 0.8702864
+  runClipSpeed: 1.5680122
+  animRateMin: 0.6
+  animRateMax: 1.6
+  pawPrints: 1
+  pawPrintRadius: 0.07
+  pawPrintDepth: 0.75
+  pawBottomOffset: 0.03
+  pawStepSounds: 1
+  pawStepVolume: 0.075
+  pawStepPitch: 1.35
+  pawPlantHeight: 0.015
+  pawLiftHeight: 0.03
+  pawStepClips:
+  - {fileID: 8300000, guid: 007e4d5db4ae6d6459bbb92594bd43e1, type: 3}
+  - {fileID: 8300000, guid: 2b8b220439fc5644a875e4a6f39dc4e0, type: 3}
+  - {fileID: 8300000, guid: f1d75a8d84643164183b74a7b1f5771e, type: 3}
+  - {fileID: 8300000, guid: 6f021ad766931ea429ec16057a538e02, type: 3}
+  - {fileID: 8300000, guid: 08c6b4a5c4afcc1438a44a9295fc4f0d, type: 3}
+  maxSlope: 45
+  maxStepUp: 0.45
+  environmentLayers:
+    serializedVersion: 2
+    m_Bits: 4294967259
+  bodyRadius: 0.24
+  bodyLength: 0.6
+  bodyHeight: 0.45
+  whiskerLength: 1.3
+  whiskerAngle: 35
+  depenetrate: 1
+  followDistance: 2.6
+  followSlack: 1.2
+  trotDistance: 7
+  runDistance: 13
+  teleportDistance: 45
+  stuckTeleportSeconds: 4
+  wanderAfterIdle: 4
+  wanderRadius: 6
+  wanderPause: 5
+  sitAfterIdle: 25
+  lieAfterIdle: 60
+  idleRadius: 7
+  idleMinRing: 2
+  patrolPoints: 3
+  patrolPause: {x: 1, y: 3}
+  minActivitySeconds: 3
+  settleSeconds: {x: 1, y: 2.5}
+  wPatrol: 3
+  patrolSeconds: {x: 10, y: 25}
+  wSniff: 2
+  sniffSeconds: {x: 3, y: 6}
+  wLook: 2
+  lookSeconds: {x: 3, y: 6}
+  wSit: 2
+  sitSeconds: {x: 8, y: 20}
+  wLie: 0.6
+  lieSeconds: {x: 15, y: 40}
+  wSleep: 0.8
+  sleepSeconds: {x: 20, y: 60}
+  wDig: 1
+  digSeconds: {x: 4, y: 8}
+  wFidget: 1.5
+  peeEnabled: 1
+  wPee: 0.15
+  peeCooldown: 420
+  peeOnTrees: 1
+  peeOnCampfires: 1
+  peeStandOff: 0.35
+  peeSeconds: 4.5
+  peeLegRight: 1
+  peeStream: 1
+  peeStreamHeight: 0.42
+  peeStreamColor: {r: 1, g: 0.86, b: 0.25, a: 0.85}
+  peeDecalSeconds: 120
+  peeDecalSize: 0.45
+  peeDecalColor: {r: 0.95, g: 0.78, b: 0.15, a: 0.65}
+  peeHissClip: {fileID: 8300000, guid: b6416950508392c4582e801fc02d1ef9, type: 3}
+  peeHissVolume: 0.8
+  peeSteam: 1
+  peeExtinguishChance: 0
+  peeFuelHoursLost: 0
+  faceDeadzone: 35
+  digFindChance: 0.04
+  digFindPerLevel: 0.002
+  digFindKeenMul: 1.5
+  digFindCooldown: 240
+  xpDigFind: 8
+  digJunk:
+  - {fileID: 11400000, guid: 2ac367e93865467469e14999a5e1381d, type: 2}
+  - {fileID: 11400000, guid: 989157cb882048048b4a9e266e80ae0b, type: 2}
+  - {fileID: 11400000, guid: 9a6dc9f58269ee94d859d5d6fbac3e27, type: 2}
+  - {fileID: 11400000, guid: e41cb949bf0dc8c449185c01c95162f6, type: 2}
+  stayLieAfter: 20
+  growlClips:
+  - {fileID: 8300000, guid: bec3d3e739bb345428fc2befc36620b0, type: 3}
+  - {fileID: 8300000, guid: d06887859c9a26249bfbd57198616606, type: 3}
+  - {fileID: 8300000, guid: a7c9a08e731d2af4e986ce8462c5ddbf, type: 3}
+  playGrowlClips:
+  - {fileID: 8300000, guid: fa76ebd91533bf0468ddea09f1badceb, type: 3}
+  - {fileID: 8300000, guid: 4718a8597eadf56429739826435b17c5, type: 3}
+  - {fileID: 8300000, guid: 77695d1315b73e04eae001ed8093a899, type: 3}
+  growlVolume: 0.9
+  growlPitchVariance: 0.08
+  growlCooldown: 4
+  growlOnWarn: 1
+  growlOnDefendApproach: 1
+  growlBeforeAttackChance: 0.6
+  growlOnHurtChance: 0.4
+  digGrowlChance: 0.12
+  digGrowlVolume: 0.35
+  digGrowlCooldown: 5
+  findLoot: 0
+  findCrates: 1
+  detectRadius: 14
+  leashRadius: 20
+  ignoreCloserThan: 2.5
+  scanInterval: 1.5
+  findCooldown: 10
+  refindCooldown: 240
+  pointSeconds: 4
+  markerSeconds: 20
+  lootMarkerColor: {r: 1, g: 0.82, b: 0.35, a: 1}
+  crateMarkerColor: {r: 0.75, g: 0.95, b: 0.55, a: 1}
+  warnDanger: 1
+  dangerRadius: 16
+  warnCooldown: 12
+  warnSeconds: 2
+  dangerCompassMarkers: 1
+  dummyIsThreat: 0
+  enemyTags:
+  - Enemy
+  maxHealth: 100
+  healthRegen: 1
+  defendRadius: 14
+  defendFollowDistance: 1.8
+  attackRange: 1.5
+  biteDamage: 18
+  attackCooldown: 1.4
+  attackHitDelay: 0.35
+  retreatAt: 0.25
+  downedNotDead: 1
+  reviveHoldSeconds: 2.5
+  reviveHealth: 0.35
+  selfReviveSeconds: 0
+  hunger: 1
+  hungerPerGameHour: 3
+  realSecondsPerGameHour: 120
+  feedFactor: 1.5
+  starvingBelow: 15
+  bond: 1
+  bondPerPet: 3
+  bondPerFeed: 5
+  petCooldown: 45
+  bondLossStarving: 2
+  bondBonus: 0.2
+  maxLevel: 20
+  xpBase: 60
+  xpExponent: 1.45
+  xpPerFollowMinute: 2
+  xpFindLoot: 6
+  xpFindCrate: 12
+  xpWarn: 8
+  xpBite: 4
+  xpKill: 30
+  xpPet: 2
+  xpFeed: 4
+  detectPerLevel: 0.04
+  healthPerLevel: 6
+  damagePerLevel: 0.05
+  basePackSlots: 6
+  extraSlotLevels: 050000000a0000000f000000
+  crateFindLevel: 1
+  keenNoseLevel: 7
+  keenNoseMul: 1.35
+  sentinelLevel: 4
+  sentinelMul: 1.4
+  toughLevel: 12
+  toughMul: 0.7

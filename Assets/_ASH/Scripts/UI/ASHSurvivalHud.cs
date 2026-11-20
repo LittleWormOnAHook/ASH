@@ -18,7 +18,7 @@ namespace ASH.UI
         static readonly Color Amber = new Color(1f, 0.72f, 0.3f), Red = new Color(1f, 0.36f, 0.3f), Green = new Color(0.62f, 0.83f, 0.6f), Water = new Color(0.4f, 0.66f, 0.9f);
 
         ASHExposure _exp; ASHFaceProtection _face; ASHHud _hud;
-        const float StatusW = 170f, RowH = 34f, RowGap = 6f;
+        const float StatusW = 170f, RowH = 34f, RowGap = 6f, TimerH = 42f;
         RectTransform _root, _status, _timer, _protW, _airW;
         Text _airText, _protText, _timerText, _timerLabel, _timerAbbr; Image _protFill, _timerIcon, _timerBack, _edge, _airDot;
         RectTransform _tempW; Text _tempText; Image _tempFill, _tempBack, _frost; float _frostA;
@@ -130,14 +130,19 @@ namespace ASH.UI
             _airDot = K.Image(K.At("Dot", _airW, new Vector2(0, 0.5f), new Vector2(10, 0), new Vector2(12, 12)), Green);
             _airText = K.Text(K.Stretch("T", _airW, 30, 0, 6, 0), "", 16, K.Ink); K.Shadow(_airText);
 
-            // countdown above the hotbar
-            _timer = K.At("WornTimer", _root, new Vector2(0.5f, 0), S.timerOffset, new Vector2(196, 46));
-            _timerBack = K.Image(_timer, new Color(0, 0, 0, 0.42f));
-            var ib = K.At("IconBox", _timer, new Vector2(0, 0.5f), new Vector2(5, 0), new Vector2(36, 36)); K.Image(ib, new Color(0, 0, 0, 0.35f));
+            // worn rag / mask countdown: a row of the status column, stacked right above the air / SHELTERED row (t346: no panel,
+            // icon left, time on top, label on its own line underneath)
+            _timer = K.At("WornTimer", _status, new Vector2(0, 0), new Vector2(0, (RowH + RowGap) * 3), new Vector2(StatusW, TimerH));
+            _timerBack = K.Image(_timer, Color.clear); _timerBack.raycastTarget = false;
+            var ib = K.At("IconBox", _timer, new Vector2(0, 0.5f), new Vector2(6, 0), new Vector2(36, 36));
             _timerIcon = K.Image(K.Stretch("Icon", ib, 2, 2, 2, 2), Color.white); _timerIcon.preserveAspect = true;
             _timerAbbr = K.Text(K.Stretch("Abbr", ib), "", 14, K.Ink, TextAnchor.MiddleCenter, FontStyle.Bold);
-            _timerText = K.Text(K.Stretch("Time", _timer, 48, 0, 8, 12), "", 24, K.Ink, TextAnchor.MiddleLeft, FontStyle.Bold); K.Shadow(_timerText);
-            _timerLabel = K.Text(K.Stretch("Label", _timer, 48, 2, 8, 28), "", 12, K.Dim, TextAnchor.LowerLeft); K.Shadow(_timerLabel);
+            _timerText = K.Text(K.Stretch("Time", _timer, 50, 15, 4, 0), "", 22, K.Ink, TextAnchor.MiddleLeft, FontStyle.Bold); K.Shadow(_timerText);
+            _timerText.horizontalOverflow = HorizontalWrapMode.Overflow; _timerText.verticalOverflow = VerticalWrapMode.Overflow;
+            _timerLabel = K.Text(K.Stretch("Label", _timer, 50, 0, 4, TimerH - 15), "", 13, K.Ink, TextAnchor.MiddleLeft, FontStyle.Bold); K.Shadow(_timerLabel);
+            _timerLabel.horizontalOverflow = HorizontalWrapMode.Overflow; _timerLabel.verticalOverflow = VerticalWrapMode.Overflow;
+            { var o = _timerLabel.gameObject.AddComponent<Outline>(); o.effectColor = new Color(0, 0, 0, 0.85f); o.effectDistance = new Vector2(1f, -1f); }
+            { var o = _timerText.gameObject.AddComponent<Outline>(); o.effectColor = new Color(0, 0, 0, 0.7f); o.effectDistance = new Vector2(1f, -1f); }
             _timer.gameObject.SetActive(false);
         }
 
@@ -155,7 +160,7 @@ namespace ASH.UI
             if (!_exp) { Destroy(gameObject); return; }
             if (!_face) _face = _exp.GetComponent<ASHFaceProtection>();
             bool hidden = HudHidden();
-            _status.anchoredPosition = S.statusOffset; _timer.anchoredPosition = S.timerOffset;
+            _status.anchoredPosition = S.statusOffset;
 
             // red edge
             float target = _exp.Warning ? S.edgeMaxAlpha * (0.55f + 0.45f * Mathf.Sin(Time.unscaledTime * S.edgePulseSpeed * Mathf.PI)) : 0f;
@@ -206,6 +211,7 @@ namespace ASH.UI
             float y = _tempW.gameObject.activeSelf ? RowH + RowGap : 0f;
             if (worn) { _protW.anchoredPosition = new Vector2(0, y); y += RowH + RowGap; }
             _airW.anchoredPosition = new Vector2(0, y);
+            _timer.anchoredPosition = new Vector2(0, y + RowH + RowGap); // directly above the air / SHELTERED row
         }
 
         static readonly Color Cold = new Color(0.55f, 0.78f, 1f), Freezing = new Color(0.4f, 0.6f, 1f);
@@ -258,9 +264,8 @@ namespace ASH.UI
             _timerText.fontSize = mask && rem <= 0f ? 18 : 24;
             _timerText.color = col;
             _timerLabel.text = mask ? "FILTER" : "WET RAG";
-            _timerLabel.color = col == K.Ink ? K.Dim : col;
-            bool urgent = col == Red;
-            _timerBack.color = urgent ? new Color(0.35f, 0.04f, 0.03f, 0.45f + 0.15f * Mathf.Sin(Time.unscaledTime * 6f)) : new Color(0, 0, 0, 0.42f);
+            _timerLabel.color = col == K.Ink ? new Color(0.85f, 0.85f, 0.85f) : col;
+            _timerBack.color = Color.clear; // no panel for now (t346)
         }
     }
 }

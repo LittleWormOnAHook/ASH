@@ -101,6 +101,7 @@ namespace ASH.Combat
         void Update()
         {
             if (!_camDone) _camDone = EnsureCameraStates();
+            else BowCameraOffsets();
             if (_eq)
             {
                 var main = _eq.Main; var go = _eq.MainVisual;
@@ -118,6 +119,7 @@ namespace ASH.Combat
             }
             if (_bowRig) { _bowRig.draw01 = _gun && _gun.chargeWeapon ? Mathf.Clamp01(_gun.powerCharge) : 0f; _bowRig.Apply(); }
             UpdateAnimatorMode();
+            UpdateBowLegs();
             EnsureIdleRunner();
             if (_gun && _gun.chargeWeapon)
             {
@@ -154,6 +156,8 @@ namespace ASH.Combat
                 if (_gunLeft) _sm.SetLeftWeapon(go); else _sm.SetRightWeapon(go);
                 _gun.onInstantiateProjectile.AddListener(OnProjectile);
                 _bowRig = go.GetComponent<ASHBowDrawRig>();
+                // bow move set: -1 keeps Invector's bow set (its aim pose needs it); the bent knees are fixed by ASHBowUprightLegs
+                if (_bowRig && ASHCombatTuning.Live.bowAimMoveSet >= 0) _gun.moveSetID = ASHCombatTuning.Live.bowAimMoveSet;
             }
             else _gun = null;
             if (_melee && _mm) { ApplyMelee(); _mm.SetRightWeapon(_melee); _melee.onEnableDamage.AddListener(RollMelee); }
@@ -342,6 +346,17 @@ namespace ASH.Combat
 
         /// <summary>Adds Invector's Aiming / CrouchingAiming / AimingScopeView camera states to a runtime copy of the player's
         /// camera list (framed like ASH's over-the-shoulder aim). The Invector assets are never edited.</summary>
+        Invector.vThirdPersonCameraState _camAimSt, _camCrouchAimSt; Invector.vThirdPersonCameraListData _camList;
+        /// <summary>Bow aim camera: aimCameraRight / aimCameraHeight minus the bow offsets (left / down) while the bow is held; guns keep the base.</summary>
+        void BowCameraOffsets()
+        {
+            var cam = _in ? _in.tpCamera : null; if (!cam || !cam.CameraStateList || !_aim) return;
+            if (_camList != cam.CameraStateList) { _camList = cam.CameraStateList; _camAimSt = _camList.tpCameraStates.Find(s => s.Name == "Aiming"); _camCrouchAimSt = _camList.tpCameraStates.Find(s => s.Name == "CrouchingAiming"); }
+            bool bow = _bowRig && _gun;
+            float r = _aim.aimCameraRight - (bow ? _aim.bowCameraLeft : 0f), h = _aim.aimCameraHeight - (bow ? _aim.bowCameraDown : 0f);
+            if (_camAimSt != null) { _camAimSt.right = r; _camAimSt.height = h; }
+            if (_camCrouchAimSt != null) { _camCrouchAimSt.right = r; _camCrouchAimSt.height = h * 0.7f; }
+        }
         bool EnsureCameraStates()
         {
             var cam = _in ? _in.tpCamera : null; if (!cam || !cam.CameraStateList) return false;
@@ -368,6 +383,18 @@ namespace ASH.Combat
         // only updates its aim IK on frames that had a physics step, so at render rates above 50 Hz the aimed arms and weapon
         // stepped against the per-frame camera and interpolated body. While aiming (ASHCombatTuning) the Animator runs per frame
         // (Normal), which also makes Invector's aim IK run every frame; the old mode comes back when aiming ends (Genesis fix).
+        ASH.Player.ASHBowUprightLegs _legs;
+        /// <summary>Stands the legs up while the bow is aimed and the player is still (Invector's bow aim idle bends the knees).</summary>
+        void UpdateBowLegs()
+        {
+            if (!_anim) return;
+            if (!_legs) { _legs = _anim.GetComponent<ASH.Player.ASHBowUprightLegs>(); if (!_legs) _legs = _anim.gameObject.AddComponent<ASH.Player.ASHBowUprightLegs>(); }
+            var cc = _cc;
+            bool still = cc && cc.isGrounded && !cc.isCrouching && cc.input.sqrMagnitude < 0.01f;
+            _legs.standingStill = still;
+            _legs.targetWeight = _bowRig && _gun && _in && _in.IsAiming && still ? ASHCombatTuning.Live.bowUprightLegs : 0f;
+        }
+
         bool _perFrameAnim; AnimatorUpdateMode _animModeBefore = AnimatorUpdateMode.Fixed;
         void UpdateAnimatorMode()
         {

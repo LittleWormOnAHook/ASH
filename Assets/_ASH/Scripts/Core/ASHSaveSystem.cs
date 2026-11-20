@@ -250,7 +250,7 @@ namespace ASH.Core
             var sc = cgo.GetComponent<CanvasScaler>(); sc.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize; sc.referenceResolution = new Vector2(1920, 1080); sc.matchWidthOrHeight = 0.5f;
             var root = (RectTransform)cgo.transform;
             _fade = ASH.UI.ASHUIKit.Image(ASH.UI.ASHUIKit.Stretch("Fade", root), Color.black); _fade.raycastTarget = false; SetFade(0f);
-            _icon = ASH.UI.ASHUIKit.At("Saving", root, new Vector2(1, 0), new Vector2(-36, 36), new Vector2(210, 44));
+            _icon = ASH.UI.ASHUIKit.At("Saving", root, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(210, 44)); // t354: centre screen (same size / spin)
             var ring = ASH.UI.ASHUIKit.At("Ring", _icon, new Vector2(0, 0.5f), new Vector2(0, 0), new Vector2(34, 34));
             ring.pivot = new Vector2(0.5f, 0.5f); ring.anchoredPosition = new Vector2(17, 0);
             var ri = ASH.UI.ASHUIKit.Image(ring, ASH.UI.ASHUIKit.Accent); ri.sprite = ASH.UI.ASHUIKit.Ring;
@@ -259,6 +259,8 @@ namespace ASH.Core
             ASH.UI.ASHUIKit.Shadow(t);
             _icon.gameObject.SetActive(false);
         }
+        /// <summary>Test hook: shows the saving icon for a few seconds without saving.</summary>
+        public static void PreviewSavingIcon(float seconds = 5f) { var i = FindAnyObjectByType<ASHSaveSystem>(); if (i) i._iconUntil = Time.unscaledTime + seconds; }
         void SetFade(float a) { if (_fade) { _fade.color = new Color(0, 0, 0, a); _fade.enabled = a > 0.001f; } }
     }
 

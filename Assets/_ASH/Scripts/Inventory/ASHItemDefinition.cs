@@ -31,6 +31,7 @@ namespace ASH.Inventory
         public Color uiTint = new Color(0.85f, 0.8f, 0.7f);
         public ASHItemCategory category = ASHItemCategory.Resource;
         [Min(1)] public int maxStack = 20;
+        [Tooltip("Vendor price for one (future buy/sell vendor). 0 = can't be sold.")] [Min(0)] public int sellValue;
         [Tooltip("Verb shown when used, e.g. Eat, Drink, Apply.")]
         public string useVerb = "Use";
         [Tooltip("Key item (Grandpa's journal): stays in the pack. It can only be moved between slots, never dropped, consumed, split or destroyed.")]

@@ -33,8 +33,8 @@ MonoBehaviour:
       head: {x: 0, y: 0}
   - name: StandingAiming
     weaponHandOffset:
-      position: {x: -0.09619337, y: 0.014412078, z: 0.021550866}
-      eulerAngles: {x: 0.036729585, y: 336.1576, z: 358.66254}
+      position: {x: -0.11619337, y: -0.065587922, z: 0.037550866}
+      eulerAngles: {x: 0.036729585, y: 343.1576, z: 5.66254}
     weaponHintOffset:
       position: {x: -0, y: 0, z: 0}
       eulerAngles: {x: -0, y: 0, z: 0}
@@ -65,8 +65,8 @@ MonoBehaviour:
       head: {x: 0, y: 0}
   - name: CrouchingAiming
     weaponHandOffset:
-      position: {x: -0.008686282, y: 0.062656686, z: -0.0518459}
-      eulerAngles: {x: -0, y: 0, z: 0}
+      position: {x: -0.028686282, y: -0.017343314, z: -0.0358459}
+      eulerAngles: {x: 0, y: 7, z: 7}
     weaponHintOffset:
       position: {x: -4.9774276e-22, y: -5.021637e-22, z: -3.6400688e-22}
       eulerAngles: {x: -0, y: 0, z: 0}

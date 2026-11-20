@@ -18,7 +18,7 @@ namespace ASH.UI
     /// </summary>
     public sealed class ASHJournalUI : MonoBehaviour
     {
-        public enum Tab { Crafting, Items, Notes, Objectives, Skills }
+        public enum Tab { Crafting, Items, Notes, Objectives, Skills, Pets }
 
         ASHInventory _inv; ASHCrafting _craft; Func<ASHItemDefinition, bool> _useItem;
         readonly Dictionary<Tab, GameObject> _tabs = new Dictionary<Tab, GameObject>();
@@ -81,11 +81,11 @@ namespace ASH.UI
             var accent = K.At("Accent", rt, new Vector2(0.5f, 1), Vector2.zero, new Vector2(1200, 3)); K.Image(accent, K.Accent);
             K.Text(K.At("Title", rt, new Vector2(0, 1), new Vector2(28, -18), new Vector2(400, 40)), "JOURNAL", 30, K.Accent, TextAnchor.MiddleLeft, FontStyle.Bold);
             float x = 210;
-            foreach (Tab t in new[] { Tab.Items, Tab.Notes, Tab.Objectives, Tab.Skills, Tab.Crafting }) // the Survival Guide tab comes last (hidden until unlocked)
+            foreach (Tab t in new[] { Tab.Items, Tab.Notes, Tab.Objectives, Tab.Skills, Tab.Pets, Tab.Crafting }) // the Survival Guide tab comes last (hidden until unlocked)
             {
                 var tab = t;
-                var b = K.At("Tab" + t, rt, new Vector2(0, 1), new Vector2(x, -20), new Vector2(124, 38)); x += 128;
-                K.Button(b, t == Tab.Crafting ? "SURVIVAL GUIDE" : t.ToString().ToUpperInvariant(), 18, () => Show(tab), new Color(1, 1, 1, 0.12f));
+                var b = K.At("Tab" + t, rt, new Vector2(0, 1), new Vector2(x, -20), new Vector2(t == Tab.Crafting ? 150 : 104, 38)); x += t == Tab.Crafting ? 154 : 108;
+                K.Button(b, t == Tab.Crafting ? "SURVIVAL GUIDE" : t.ToString().ToUpperInvariant(), 16, () => Show(tab), new Color(1, 1, 1, 0.12f));
                 _tabButtons[t] = b.GetComponent<Image>();
             }
             K.Text(K.At("Hint", rt, new Vector2(1, 1), new Vector2(-24, -26), new Vector2(270, 26)), "<color=#d9cbb4>J</color> close  <color=#d9cbb4>M</color> map  <color=#d9cbb4>Tab</color> pack", 14, K.Dim, TextAnchor.MiddleRight);
@@ -96,6 +96,58 @@ namespace ASH.UI
             _tabs[Tab.Notes] = BuildNotes(body);
             _tabs[Tab.Objectives] = BuildObjectives(body);
             _tabs[Tab.Skills] = BuildSkills(body);
+            _tabs[Tab.Pets] = BuildPets(body);
+        }
+
+        // ------------------------------------------------------------------ pets (ASH.Companion.ASHDogCompanion)
+        RectTransform _petList; Text _pTitle, _pLines, _pRight; RectTransform _pXpFill;
+
+        GameObject BuildPets(RectTransform body)
+        {
+            var root = K.Stretch("Pets", body);
+            _petList = K.ScrollList(K.Stretch("List", root, 0, 0, 640, 0));
+            var det = K.Stretch("Detail", root, 540, 0, 0, 0);
+            K.Image(det, new Color(1, 1, 1, 0.04f));
+            _pTitle = K.Text(K.At("Name", det, new Vector2(0, 1), new Vector2(24, -22), new Vector2(590, 40)), "", 28, K.Ink, TextAnchor.MiddleLeft, FontStyle.Bold);
+            var xbg = K.At("XpBar", det, new Vector2(0, 1), new Vector2(24, -50), new Vector2(330, 8)); K.Image(xbg, new Color(1, 1, 1, 0.1f));
+            _pXpFill = K.Stretch("Fill", xbg); K.Image(_pXpFill, K.Accent); _pXpFill.anchorMax = new Vector2(0, 1);
+            _pLines = K.Text(K.At("Lines", det, new Vector2(0, 1), new Vector2(24, -64), new Vector2(330, 560)), "", 17, K.Ink, TextAnchor.UpperLeft);
+            _pRight = K.Text(K.At("Abilities", det, new Vector2(0, 1), new Vector2(370, -64), new Vector2(250, 560)), "", 15, K.Ink, TextAnchor.UpperLeft);
+            K.Button(K.At("Call", det, new Vector2(1, 1), new Vector2(-24, -18), new Vector2(150, 40)), "CALL (C)", 17, () => { var d = ASH.Companion.ASHDogCompanion.Active; if (d) d.Call(); _dirty = true; });
+            return root.gameObject;
+        }
+
+        void RebuildPets()
+        {
+            K.Clear(_petList);
+            var d = ASH.Companion.ASHDogCompanion.Active; var S = ASH.Companion.ASHCompanionSettings.I;
+            if (!d) { K.Layout(K.Text(K.Rect("Empty", _petList), "No companion yet.", 20, K.Dim), 60); _pTitle.text = ""; _pLines.text = ""; _pRight.text = ""; _pXpFill.anchorMax = new Vector2(0, 1); return; }
+            Row(_petList, null, d.DogName, "Lv " + d.Level, true, () => { });
+            float need = d.XpNeed;
+            _pXpFill.anchorMax = new Vector2(need > 0f ? Mathf.Clamp01(d.Xp / need) : 1f, 1); _pXpFill.offsetMin = _pXpFill.offsetMax = Vector2.zero;
+            _pTitle.text = $"{d.DogName}  <color=#e8a35a>Lv {d.Level}</color>";
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine(need > 0f ? $"<color=#a69e91>{d.Xp:0} / {need:0} XP to level {d.Level + 1}</color>" : "<color=#a69e91>Max level</color>");
+            sb.AppendLine();
+            sb.AppendLine($"Mode  <b>{d.Mode}</b>   <color=#a69e91>{d.Activity}</color>");
+            sb.AppendLine(d.Dead ? "<color=#f2806b>Dead</color>" : d.Downed ? "<color=#f2806b>Down, needs help (hold E on it)</color>" : $"Health  {Mathf.CeilToInt(d.Health)} / {Mathf.CeilToInt(d.MaxHealth)}");
+            if (S.hunger) sb.AppendLine($"Hunger  {d.Hunger:0}%{(d.Hunger < S.starvingBelow ? "  <color=#f2806b>starving</color>" : "")}");
+            if (S.bond) sb.AppendLine($"Bond  {d.Bond:0}%");
+            if (d.CallReadyIn > 0f) sb.AppendLine($"<color=#a69e91>Call ready in {d.CallReadyIn:0} s</color>");
+            sb.AppendLine($"Finds within {S.DetectRadius(d.Level):0} m, senses danger at {S.DangerRadius(d.Level):0} m, bite {S.Damage(d.Level):0}");
+            sb.AppendLine();
+            int used = 0; foreach (var p in d.Pack) if (!p.IsEmpty) used++;
+            sb.AppendLine($"<b>Pack</b>  <color=#a69e91>{used} / {d.PackSlots}</color>");
+            foreach (var p in d.Pack) if (!p.IsEmpty) sb.AppendLine($"  {p.item.displayName}  x{p.amount}");
+            if (used == 0) sb.AppendLine("  <color=#857d72>empty</color>");
+            _pLines.text = sb.ToString();
+            var ab = new System.Text.StringBuilder(); ab.AppendLine("<b>Abilities</b>"); bool next = false;
+            foreach (var a in S.Abilities())
+            {
+                if (d.Level >= a.level) ab.AppendLine($"<color=#9fd39b>√ {a.name}</color>\n<color=#a69e91>  {a.desc}</color>");
+                else { ab.AppendLine($"<color={(next ? "#857d72" : "#e8a35a")}>Lv {a.level}  {a.name}</color>\n<color=#857d72>  {a.desc}</color>"); next = true; }
+            }
+            _pRight.text = ab.ToString();
         }
 
         // ------------------------------------------------------------------ skills (ASHSkills; Cooking + its combinations)
@@ -449,7 +501,7 @@ namespace ASH.UI
 
         void Update()
         {
-            if (_tab == Tab.Objectives && Time.unscaledTime >= _objRefresh) { _objRefresh = Time.unscaledTime + 0.5f; _dirty = true; } // live progress / distances
+            if ((_tab == Tab.Objectives || _tab == Tab.Pets) && Time.unscaledTime >= _objRefresh) { _objRefresh = Time.unscaledTime + 0.5f; _dirty = true; } // live progress / distances
             HookManual();
             if (_dirty) { _dirty = false; RefreshTabs(); Rebuild(); }
             if (_tab == Tab.Crafting && _craft)
@@ -468,6 +520,7 @@ namespace ASH.UI
             else if (_tab == Tab.Items) RebuildItems();
             else if (_tab == Tab.Objectives) RebuildObjectives();
             else if (_tab == Tab.Skills) RebuildSkills();
+            else if (_tab == Tab.Pets) RebuildPets();
             else RebuildNotes();
         }
 

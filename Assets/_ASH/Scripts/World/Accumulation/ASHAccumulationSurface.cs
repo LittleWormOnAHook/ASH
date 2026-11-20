@@ -55,9 +55,17 @@ namespace ASH.World.Accumulation
         [Tooltip("Noise breakup scale (1/m): higher = smaller lumps along the bank.")] [Range(0.05f, 10f)] public float bankNoiseScale = 1.3f;
         [Tooltip("Noise breakup strength: varies bank height and reach (0 = perfectly even).")] [Range(0f, 1f)] public float bankNoiseStrength = 0.45f;
         [Tooltip("Layer depth (m) at which banks reach full height; thinner layers get proportionally smaller banks.")] [Range(0.005f, 1f)] public float bankFullAtDepth = 0.06f;
+        [Tooltip("Contact Footprint: solid objects (rocks, logs, boxes, convex colliders) cut the layer only where they touch the ground (below Bank Footprint Height), so the bank runs right up to the base instead of stopping under the widest overhang (the sunken ring around rocks). Hollow mesh colliders (cabins, tables) keep the full Collider Footprint Height.")] public bool contactFootprint = true;
+        [Tooltip("Bank Footprint Height: collider geometry above this (m over the ground) is ignored for solid banking objects.")] [Range(0.02f, 2f)] public float bankFootprintHeight = 0.3f;
         [Tooltip("Colliders smaller than this (largest bounds side, metres) don't bank: grass, small props, pickups keep the collider fade.")] [Range(0f, 10f)] public float bankMinColliderSize = 0.6f;
         [Tooltip("Light dusting on the bottom of objects standing in the layer (ASH Accumulation Lit materials).")] public bool baseDusting = true;
         [Tooltip("Dusting height above the bank / layer top, metres (varies with noise).")] [Range(0f, 0.5f)] public float dustHeight = 0.04f;
+        [Tooltip("Contact curve: extra height (m) the snow curves UP against an object's base (concave fillet on the ground, matching band on the object). 0 = off.")]
+        [Range(0f, 0.6f)] public float contactCurveHeight = 0.1f;
+        [Tooltip("Contact curve falloff: how far out from the object (m) the fillet starts rising (capped at bankReach).")]
+        [Range(0.02f, 2f)] public float contactCurveFalloff = 0.3f;
+        [Tooltip("Contact curve noise: uneven height / reach and a ragged upper edge on the object band (0 = even).")]
+        [Range(0f, 1f)] public float contactCurveNoise = 0.6f;
         [Tooltip("Dusting fade width, metres.")] [Range(0.005f, 0.5f)] public float dustFade = 0.04f;
         [Tooltip("Dusting strength.")] [Range(0f, 1f)] public float dustStrength = 0.75f;
 
@@ -66,7 +74,7 @@ namespace ASH.World.Accumulation
         Mesh _cube, _sphere, _capsule;
         static readonly int ID_HM = Shader.PropertyToID("_ASH_Heightmap"), ID_HP = Shader.PropertyToID("_ASH_HeightParams"), ID_SR = Shader.PropertyToID("_ASH_SurfaceRect"),
             ID_CM = Shader.PropertyToID("_ASH_ColliderMask"), ID_CMR = Shader.PropertyToID("_ASH_ColliderMaskRect"), ID_GS = Shader.PropertyToID("_ASH_GridStep"), ID_SQ = Shader.PropertyToID("_ASH_SurfQuality"), ID_SN = Shader.PropertyToID("_ASH_SurfNormal"), ID_Thin = Shader.PropertyToID("_ASH_Thin"),
-            ID_Bank = Shader.PropertyToID("_ASH_Bank"), ID_Bank2 = Shader.PropertyToID("_ASH_Bank2"), ID_Dust = Shader.PropertyToID("_ASH_Dust"), ID_CFMBank = Shader.PropertyToID("_ASH_CFM_Bank");
+            ID_Bank = Shader.PropertyToID("_ASH_Bank"), ID_Bank2 = Shader.PropertyToID("_ASH_Bank2"), ID_Dust = Shader.PropertyToID("_ASH_Dust"), ID_Contact = Shader.PropertyToID("_ASH_Contact"), ID_CFMBank = Shader.PropertyToID("_ASH_CFM_Bank");
         bool BankOn => banking && bankHeight > 0f && colliderFade;
 
         public void ApplyPreset(Preset p)
@@ -118,7 +126,7 @@ namespace ASH.World.Accumulation
         {
             if (_go) Destroy(_go); if (_mesh) Destroy(_mesh); if (_mat) Destroy(_mat); _go = null; _mesh = null; _mat = null;
             ReleaseMask(); if (_maskMat) Destroy(_maskMat); _maskMat = null; _cb?.Release(); _cb = null;
-            Shader.SetGlobalVector(ID_CMR, Vector4.zero); Shader.SetGlobalVector(ID_Bank, Vector4.zero); Shader.SetGlobalVector(ID_Dust, Vector4.zero);
+            Shader.SetGlobalVector(ID_CMR, Vector4.zero); Shader.SetGlobalVector(ID_Bank, Vector4.zero); Shader.SetGlobalVector(ID_Dust, Vector4.zero); Shader.SetGlobalVector(ID_Contact, Vector4.zero);
         }
         void ReleaseMask() { foreach (var r in new[] { _maskRaw, _maskRow, _mask }) if (r) { r.Release(); Destroy(r); } _maskRaw = _maskRow = _mask = null; _maskRes = 0; _maskValid = false; _colsPending = false; }
 
@@ -147,6 +155,7 @@ namespace ASH.World.Accumulation
             float mtx = _maskRes > 0 ? _maskSize / _maskRes : colliderMaskTexel;
             Shader.SetGlobalVector(ID_Bank, new Vector4(bankHeight, bankReach, bankCurve, BankOn ? 1f : 0f));
             Shader.SetGlobalVector(ID_Bank2, new Vector4(bankNoiseScale, bankNoiseStrength, bankFullAtDepth, mtx));
+            Shader.SetGlobalVector(ID_Contact, new Vector4(contactCurveHeight, Mathf.Min(contactCurveFalloff, bankReach), contactCurveNoise, BankOn && contactCurveHeight > 0f ? 1f : 0f));
             Shader.SetGlobalVector(ID_Dust, new Vector4(dustHeight, dustFade, dustStrength, BankOn && baseDusting ? 1f : 0f));
             if (BankOn != _builtBank) _nextBlock = 0f; // rebuild the mask when banking is toggled
             if (_colsPending) { FinishMask(); return; } // second half of a rebuild (spread over two frames)
@@ -220,7 +229,7 @@ namespace ASH.World.Accumulation
             unchecked
             {
                 sig = sig * 31 + _maskMin.GetHashCode(); sig = sig * 31 + res; sig = sig * 31 + (bank ? 1 : 0);
-                sig = sig * 31 + colliderFadePadding.GetHashCode(); sig = sig * 31 + colliderFadeSoftness.GetHashCode(); sig = sig * 31 + colliderFootprintHeight.GetHashCode();
+                sig = sig * 31 + colliderFadePadding.GetHashCode(); sig = sig * 31 + colliderFadeSoftness.GetHashCode(); sig = sig * 31 + colliderFootprintHeight.GetHashCode(); sig = sig * 31 + bankFootprintHeight.GetHashCode(); sig = sig * 31 + (contactFootprint ? 1 : 0);
                 sig = sig * 31 + bankReach.GetHashCode(); sig = sig * 31 + bankNoiseStrength.GetHashCode(); sig = sig * 31 + bankMinColliderSize.GetHashCode();
                 foreach (var col in _cols) { var b = col.bounds; sig = sig * 31 + col.GetHashCode(); sig = sig * 31 + Vector3Int.RoundToInt(b.center * 50f).GetHashCode(); sig = sig * 31 + Vector3Int.RoundToInt(b.size * 50f).GetHashCode(); }
             }
@@ -245,6 +254,7 @@ namespace ASH.World.Accumulation
             {
                 var cb = col.bounds; bool banks = bank && Mathf.Max(cb.size.x, cb.size.y, cb.size.z) >= bankMinColliderSize && CanBank(col);
                 _cb.SetGlobalFloat(ID_CFMBank, banks ? 1f : 0f);
+                _cb.SetGlobalVector("_ASH_CFM_Rect", new Vector4(_maskMin.x, _maskMin.y, 1f / _maskSize, banks && contactFootprint && Solid(col) ? bankFootprintHeight : colliderFootprintHeight));
                 DrawCollider(col);
             }
             _cb.SetGlobalTexture("_ASH_CFM_Src", _maskRaw); _cb.SetRenderTarget(_maskRow); _cb.DrawProcedural(Matrix4x4.identity, _maskMat, 1, MeshTopology.Triangles, 3);
@@ -268,6 +278,18 @@ namespace ASH.World.Accumulation
 
         // Banks only form against visible, static-ish things: not invisible helpers (no renderer / Ignore Raycast layer, e.g.
         // the opening's exit blockers), not swinging doors, not pickups. Cached per collider.
+        static readonly string[] SolidWords = { "rock", "stone", "boulder", "cliff", "log", "stump", "crate", "barrel" };
+        readonly Dictionary<Collider, bool> _solid = new Dictionary<Collider, bool>();
+        // solid = no inside to keep clear: primitives, convex meshes, or rock / log style names
+        bool Solid(Collider col)
+        {
+            if (_solid.TryGetValue(col, out var s)) return s;
+            s = !(col is MeshCollider mc) || mc.convex;
+            if (!s) { var n = (col.name + " " + col.transform.root.name).ToLowerInvariant(); foreach (var w in SolidWords) if (n.Contains(w)) { s = true; break; } }
+            if (_solid.Count > 4096) _solid.Clear();
+            _solid[col] = s; return s;
+        }
+
         bool CanBank(Collider col)
         {
             if (_bankable.TryGetValue(col, out var ok)) return ok;

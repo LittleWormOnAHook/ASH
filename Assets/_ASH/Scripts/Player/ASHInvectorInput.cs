@@ -36,7 +36,12 @@ namespace ASH.Player
         [Tooltip("Raw scroll units per wheel click (Windows mice report 120; 0 = auto-detect 120 or 1).")]
         [Range(0f, 240f)] [SerializeField] private float scrollPerClick = 0f;
 
+        [Tooltip("After aiming (any weapon or light), ease back to the free-look distance you had scrolled to before the aim.")]
+        [SerializeField] private bool restoreZoomAfterAim = true;
         float _zTarget, _zEased, _zVel, _zLastSet = -1f; bool _zInit;
+        bool _zAiming, _zHaveSaved; float _zSaved, _zRestoreUntil;
+        /// <summary>Free-look distance the scroll zoom is easing to (diagnostics / tests).</summary>
+        public float ZoomTarget => _zTarget;
 
         protected override void Start()
         {
@@ -55,6 +60,7 @@ namespace ASH.Player
             if (switchCameraSideInput != null) switchCameraSideInput.useInput = false;
             if (scopeViewInput != null) scopeViewInput.useInput = false;
             if (strafeInput != null) strafeInput.useInput = false;
+            if (crouchInput != null) crouchInput.useInput = false;   // crouch is ASHInput (Left Ctrl); C is the dog call key
             ASHUIState.ApplyCursor();
         }
 
@@ -77,11 +83,21 @@ namespace ASH.Player
         {
             if (ShooterAllowed != null && !ShooterAllowed()) { isAimingByInput = false; return; }
             base.AimInput();
+            // test harness (ASHInput.SimSecondaryHeld): Invector reads RMB through its own GenericInput, so simulated aim never reached it
+            if (ashInput && ashInput.SimSecondaryHeld == true && shooterManager && CurrentActiveWeapon && !isEquipping && !cc.ragdolled && !cc.customAction) isAimingByInput = true;
         }
 
         public override void ShotInput()
         {
             if (ShooterAllowed != null && !ShooterAllowed()) return;
+            // test harness (ASHInput.SimDraw): hold the bow at a set draw
+            var w = CurrentActiveWeapon;
+            if (ashInput && ashInput.SimDraw >= 0f && IsAiming && w && w.chargeWeapon)
+            {
+                w.powerCharge = Mathf.Clamp01(ashInput.SimDraw);
+                if (cc && cc.animator) cc.animator.SetFloat("PowerCharger", w.powerCharge);
+                return;
+            }
             base.ShotInput();
         }
 
@@ -128,6 +144,30 @@ namespace ASH.Player
         public override void StrafeInput() { }
         public override void RollInput() { }
 
+        ASHAimPoseRestore _poseRestore; ASH.Combat.ASHAimCameraSync _aimSync;
+
+        /// <summary>
+        /// Aim jitter fix. Invector only reads camera input and runs its aim IK on frames that had a physics step (its Animator is
+        /// on Fixed), so with a gun or the bow aimed the arms/weapon and the mouse look stepped at physics rate against the
+        /// per-frame camera. On the other frames this reads the camera input (ASHCombatTuning.perFrameCameraInput) and, while a
+        /// ranged weapon is out, runs the aim IK too (perFrameAimIK) on the raw animated pose that ASHAimPoseRestore puts back.
+        /// The Animator itself stays on Fixed (running it per frame made the jitter much worse).
+        /// </summary>
+        protected override void LateUpdate()
+        {
+            if (cc == null) return;
+            var t = ASH.Combat.ASHCombatTuning.Live;
+            bool fixedAnim = animator && animator.updateMode == AnimatorUpdateMode.Fixed;
+            bool ranged = shooterManager && CurrentActiveWeapon != null;
+            bool aimEveryFrame = t.perFrameAimIK && ranged && fixedAnim;
+            if (!_poseRestore && animator) { _poseRestore = animator.GetComponent<ASHAimPoseRestore>(); if (!_poseRestore) _poseRestore = animator.gameObject.AddComponent<ASHAimPoseRestore>(); }
+            if (_poseRestore) _poseRestore.restoreOnStaleFrames = aimEveryFrame;
+            if (!_aimSync && animator) { _aimSync = animator.GetComponent<ASH.Combat.ASHAimCameraSync>(); if (!_aimSync) _aimSync = animator.gameObject.AddComponent<ASH.Combat.ASHAimCameraSync>(); }
+            if (updateIK || !fixedAnim) { base.LateUpdate(); return; } // physics-step frame: Invector's own path
+            if (t.perFrameCameraInput) { CameraInput(); UpdateCameraStates(); }
+            if (aimEveryFrame && !cc.isDead) UpdateAimBehaviour();
+        }
+
         public override void CameraInput()
         {
             if (!cameraMain || tpCamera == null) return;
@@ -148,12 +188,24 @@ namespace ASH.Player
             var st = tpCamera.currentState;
             bool aim = st != null && !string.IsNullOrEmpty(st.Name) &&
                        (st.Name.IndexOf("Aim", System.StringComparison.OrdinalIgnoreCase) >= 0 || st.Name.IndexOf("Scope", System.StringComparison.OrdinalIgnoreCase) >= 0);
-            if (aim) { _zInit = false; return; }
+            if (aim)
+            {
+                if (!_zAiming) { _zAiming = true; _zHaveSaved = _zInit; _zSaved = _zTarget; } // remember the scrolled distance
+                _zInit = false; return;
+            }
+            bool restoring = false;
+            if (_zAiming) { _zAiming = false; if (restoreZoomAfterAim && _zHaveSaved) { _zRestoreUntil = Time.unscaledTime + 0.75f; restoring = true; } }
             tpCamera.Zoom(0f); // lets Invector set up the free-look zoom range on this state (no movement)
             float min = Mathf.Min(zoomMinDistance, zoomFarDistance - 0.1f), max = Mathf.Max(zoomFarDistance, min + 0.1f);
             if (st != null && (min < st.minDistance || max > st.maxDistance)) { st.minDistance = Mathf.Min(st.minDistance, min); st.maxDistance = Mathf.Max(st.maxDistance, max); } // only when widened past Invector's 1.5-12 m
             float cur = tpCamera.CurrentZoom;
-            if (!_zInit || Mathf.Abs(cur - _zLastSet) > 0.05f) { _zTarget = _zEased = Mathf.Clamp(cur, min, max); _zVel = 0f; _zInit = true; }
+            if (restoring || (Time.unscaledTime < _zRestoreUntil && _zHaveSaved))
+            {
+                // Invector snapped the zoom to the state's default when the aim ended: ease from there back to the saved distance
+                if (restoring || Mathf.Abs(cur - _zLastSet) > 0.05f) { _zEased = Mathf.Clamp(cur, min, max); _zVel = 0f; }
+                _zTarget = Mathf.Clamp(_zSaved, min, max); _zInit = true;
+            }
+            else if (!_zInit || Mathf.Abs(cur - _zLastSet) > 0.05f) { _zTarget = _zEased = Mathf.Clamp(cur, min, max); _zVel = 0f; _zInit = true; }
 
             float raw = ashInput.Zoom * 1200f; // ASHInput divides by 1200 and zeroes it while UI blocks gameplay
             if (Mathf.Abs(raw) > 1e-4f)

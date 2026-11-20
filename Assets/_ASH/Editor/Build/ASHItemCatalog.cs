@@ -72,6 +72,7 @@ namespace ASH.EditorTools.Build
                 D("CanOpener", "Can Opener", ASHItemCategory.Tool, "Opens cans cleanly and keeps the tin.", new Color(0.65f, 0.65f, 0.6f), Shape.Box, new Vector3(0.05f, 0.02f, 0.14f), 1, "Use", it => it.toolType = ASHToolType.CanOpener),
                 D("ImprovisedKnife", "Improvised Knife", ASHItemCategory.Tool, "Scrap blade wrapped in cloth. Works as a knife.", new Color(0.5f, 0.5f, 0.48f), Shape.Box, new Vector3(0.04f, 0.03f, 0.24f), 1, "Use", it => it.toolType = ASHToolType.Knife, pickup: false),
                 D("DamagedGPS", "Damaged GPS", ASHItemCategory.Tool, "Trailmate 40. Cracked screen, corrupt map data, a rough fix at best. Log viewpoints from high ground to rebuild the map. [M]", new Color(0.4f, 0.55f, 0.45f), Shape.Box, new Vector3(0.07f, 0.03f, 0.13f), 1, "Open map", it => it.toolType = ASHToolType.GPS, pickup: false),
+                D("Compass", "Compass", ASHItemCategory.Tool, "Grandpa's old brass compass. Use it to keep a heading at the top of the screen.", new Color(0.78f, 0.62f, 0.35f), Shape.Cyl, new Vector3(0.07f, 0.03f, 0.07f), 1, "Use", pickup: false), // used: unlocks the compass HUD (ASHCompassUnlock); placed by ASH/Systems/Items/Cabin Compass Pickup
                 // salvage
                 D("OldShirt", "Old Flannel Shirt", ASHItemCategory.Salvage, "Too torn to wear. Cut it into cloth (a knife gets more).", new Color(0.55f, 0.25f, 0.2f), Shape.Box, new Vector3(0.35f, 0.05f, 0.3f), 5, "Use",
                     it => Breakdown(it, ASHToolType.Knife, false, 3f, 0.5f, ("Cloth", 2))),
@@ -91,6 +92,7 @@ namespace ASH.EditorTools.Build
             };
             defs.AddRange(WoodDefs());
             defs.AddRange(PackDefs());
+            defs.AddRange(JunkDefs());
 
             // pass 1: create assets so cross references resolve; pass 2: configure
             foreach (var d in defs) ASHBuildUtil.Asset<ASHItemDefinition>($"{d.dir}/ASH_Item_{d.file}.asset");
@@ -115,6 +117,35 @@ namespace ASH.EditorTools.Build
             d.extra?.Invoke(it);
             EditorUtility.SetDirty(it);
             PickupPrefab(d, it); // every item gets a prefab (icon source); 'pickup' only marks world placement
+        }
+
+        // ------------------------------------------------------------------ dog dig junk (t338): sellable, for the future vendor
+        static void Sell(ASHItemDefinition it, int v) => it.sellValue = v;
+        static List<Def> JunkDefs() => new List<Def>
+        {
+            D("PocketWatch", "Old Pocket Watch", ASHItemCategory.Salvage, "Brass case, stopped at 4:17. Someone would pay for it.", new Color(0.78f, 0.66f, 0.38f), Shape.Cyl, new Vector3(0.06f, 0.012f, 0.06f), 5, "Use", it => Sell(it, 45)),
+            D("SilverRing", "Tarnished Silver Ring", ASHItemCategory.Salvage, "Black with tarnish, but it's real silver.", new Color(0.62f, 0.62f, 0.66f), Shape.Cyl, new Vector3(0.025f, 0.006f, 0.025f), 10, "Use", it => Sell(it, 60)),
+            D("CoinTin", "Rusty Coin Tin", ASHItemCategory.Salvage, "A rusted tobacco tin that rattles with old coins.", new Color(0.55f, 0.36f, 0.22f), Shape.Box, new Vector3(0.09f, 0.025f, 0.06f), 5, "Use", it => Sell(it, 35)),
+            D("AntiqueButton", "Antique Button", ASHItemCategory.Salvage, "A carved bone button. Collectors like these.", new Color(0.82f, 0.78f, 0.66f), Shape.Cyl, new Vector3(0.025f, 0.005f, 0.025f), 20, "Use", it => Sell(it, 15)),
+        };
+
+        /// <summary>Creates / updates only the dog dig junk items (asset, pickup prefab, baked icon) and lists them in ASH_CompanionSettings.digJunk.</summary>
+        [MenuItem("ASH/Systems/Items/Dog Dig Junk Items")]
+        public static void BuildJunk()
+        {
+            var defs = JunkDefs();
+            foreach (var d in defs) ASHBuildUtil.Asset<ASHItemDefinition>($"{d.dir}/ASH_Item_{d.file}.asset");
+            ASHBuildUtil.SaveOwn();
+            foreach (var d in defs) ConfigureDef(d);
+            AssetDatabase.SaveAssets();
+            var files = new List<string>(); foreach (var d in defs) files.Add("ASH_Item_" + d.file);
+            try { ASHIconBaker.BakeAll(files); } catch (System.Exception e) { Debug.LogException(e); }
+            var s = AssetDatabase.LoadAssetAtPath<ASH.Companion.ASHCompanionSettings>("Assets/_ASH/Resources/ASH_CompanionSettings.asset");
+            if (s) { s.digJunk.Clear(); foreach (var d in defs) { var it = I(d.file); if (it) s.digJunk.Add(it); } EditorUtility.SetDirty(s); }
+            AssetDatabase.SaveAssets();
+            var sb = new System.Text.StringBuilder("[ASH] Dog dig junk:");
+            foreach (var d in defs) { var it = I(d.file); sb.Append($" {d.file} (value {(it ? it.sellValue : -1)}, icon {(it && it.icon ? "ok" : "MISSING")});"); }
+            Debug.Log(sb.Append(s ? " listed in companion settings." : " companion settings missing.").ToString());
         }
 
         // ------------------------------------------------------------------ wood (axe harvesting)

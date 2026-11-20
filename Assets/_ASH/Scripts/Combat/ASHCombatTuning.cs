@@ -78,11 +78,26 @@ namespace ASH.Combat
         [Tooltip("Size of the shot / stuck arrow model (1 = the HQ Survival Pack wooden arrow, ~0.83 m).")]
         [Range(0.25f, 3f)] public float arrowVisualScale = 1f;
 
+        [Tooltip("Invector locomotion move set override with the bow out. -1 = keep the bow's own set (4; its aim pose and IK need it). 1 = the guns' set (breaks the bow aim pose: bow turned left, draw hand off the string).")]
+        [Range(-1, 10)] public int bowAimMoveSet = -1;
+        [Tooltip("While aiming the bow standing still: 1 = legs and hips fully upright (standing pose), 0 = Invector's bent-knee bow aim stance.")]
+        [Range(0f, 1f)] public float bowUprightLegs = 1f;
+
         [Header("Aim smoothing (ranged weapons)")]
-        [Tooltip("Run the player Animator every rendered frame while aiming a gun or the bow, so Invector's aim IK updates every frame (fixes the aim jitter). Off = Invector default (physics rate).")]
-        public bool perFrameAnimatorWhileAiming = true;
-        [Tooltip("Also run it every frame whenever a gun or the bow is out, aiming or not.")]
+        [Tooltip("Run Invector's aim IK every rendered frame while a gun or the bow is out (the Animator stays on physics rate; the raw pose is restored first). EXPERIMENTAL: measured 30-70x MORE held-weapon jerk than off (ASHJitterTest). Off = Invector default (physics-step frames only).")]
+        public bool perFrameAimIK = false;
+        [Tooltip("Read mouse / stick look every rendered frame (Invector read it only on physics-step frames, so look input stepped and some mouse movement was dropped). EXPERIMENTAL, off = Invector default.")]
+        public bool perFrameCameraInput = false;
+        [Tooltip("NOT recommended (measured 50-100x more held-weapon jerk): run the whole player Animator per frame while aiming.")]
+        public bool perFrameAnimatorWhileAiming = false;
+        [Tooltip("NOT recommended: run the whole player Animator per frame whenever a gun or the bow is out.")]
         public bool perFrameAnimatorWhileRangedOut = false;
+        [Tooltip("Rifle / pistol only (never the bow): draw the arms and gun at the same interpolated physics time as the body (ASHAimCameraSync), so they stop stepping against it when a frame has zero or two physics steps. Off = Invector default.")]
+        public bool aimPoseInterpolation = true;
+        [Tooltip("Also while the rifle / pistol is just held (not aiming).")]
+        public bool aimPoseInterpolationWhileHeld = true;
+        [Tooltip("Pose interpolation in every state (empty hands, idle, held items; not the aimed bow). Fixes the arms stepping against the interpolated body while standing idle.")]
+        public bool poseInterpolationAlways = true;
 
         [Header("Muzzle flash")]
         [Tooltip("Flash light time per shot (s); the flash particles are emitted once per shot, never looped.")]

@@ -710,6 +710,7 @@ namespace ASH.UI
                 if (!ctxEsc && !subEsc && input.PausePressed && !(placer && placer.LastCancelFrame == Time.frameCount) && !placing && !ASHDeathScreen.Active && EscConsumedFrame != Time.frameCount && !ASHUIState.IsOpen("manualCover"))
                 {
                     if (ASHCookMenu.IsOpen) ASHCookMenu.CloseIfOpen();
+                    else if (ASH.Companion.ASHDogMenu.IsOpen) ASH.Companion.ASHDogMenu.CloseIfOpen();
                     else if (AnyPanelOpen) { SetInv(false); SetCraft(false); SetMap(false); }
                     else SetPause(!ASHUIState.IsOpen(ASHPanels.Pause));
                 }

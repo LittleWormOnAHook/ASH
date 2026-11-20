@@ -17,6 +17,20 @@ namespace ASH.DebugTools
     public sealed class ASHJitterTest : MonoBehaviour
     {
         public static void Run() { if (Application.isPlaying) new GameObject("ASH_JitterTest").AddComponent<ASHJitterTest>(); }
+        /// <summary>Ranged-only comparison: per-frame aim IK forced on / off (restored after), camera still or turning at SpinInput per frame.</summary>
+        public static bool RangedOnly; public static int PerFrame = -1; public static float SpinInput;
+        public static void RunRangedFixed() { RangedOnly = true; PerFrame = 0; SpinInput = 0f; Run(); }
+        public static void RunRangedPerFrame() { RangedOnly = true; PerFrame = 1; SpinInput = 0f; Run(); }
+        public static void RunRangedFixedSpin() { RangedOnly = true; PerFrame = 0; SpinInput = 0.6f; Run(); }
+        public static void RunRangedPerFrameSpin() { RangedOnly = true; PerFrame = 1; SpinInput = 0.6f; Run(); }
+        /// <summary>t336: aimed spin with ASHAimCameraSync forced off / on (prev = 1 uses the previous-frame camera for the solve, 0 this frame's).</summary>
+        public static void RunSpinSyncOff() { ASH.Combat.ASHAimCameraSync.ForceMode = 0; RunRangedFixedSpin(); }
+        public static void RunSpinSyncOn() { ASH.Combat.ASHAimCameraSync.ForceMode = 1; RunRangedFixedSpin(); }
+        /// <summary>Longer sample (frames per weapon).</summary>
+        public static int Frames = 150;
+        public static void RunSpinSyncOffLong() { Frames = 600; RunSpinSyncOff(); }
+        public static void RunSpinSyncOnLong() { Frames = 600; RunSpinSyncOn(); }
+        bool _pfWas; bool _pfSet;
         public static float MaxJerkMm = 6f, MaxRotJerkDeg = 1.0f;
         int _pass, _fail; readonly StringBuilder _sum = new StringBuilder();
         void Check(string n, bool ok, string d) { if (ok) _pass++; else _fail++; var l = $"JITTER {(ok ? "PASS" : "FAIL")} {n}: {d}"; _sum.AppendLine(l); Debug.Log("[ASH] " + l); }
@@ -41,6 +55,10 @@ namespace ASH.DebugTools
             var tp = cc.GetComponent<vThirdPersonInput>(); bool lock0 = tp && tp.lockCameraInput; if (tp) tp.lockCameraInput = true;
             input.SimSecondaryHeld = false; eq.Unequip(ASHEquipSlot.MainHand); eq.Unequip(ASHEquipSlot.OffHand);
             var cases = new (string item, bool aim, bool off)[] { ("HuntingRifle", true, false), ("Pistol", true, false), ("WoodenBow", true, false), ("Hatchet", false, false), ("Torch", false, true), ("Flashlight", true, true) };
+            if (RangedOnly) cases = new (string item, bool aim, bool off)[] { ("HuntingRifle", true, false), ("Pistol", true, false), ("WoodenBow", true, false) };
+            var tun = ASH.Combat.ASHCombatTuning.Live;
+            if (PerFrame >= 0) { _pfWas = tun.perFrameAimIK; _pfSet = true; tun.perFrameAimIK = PerFrame == 1; }
+            Check("mode", true, $"perFrameAimIK={tun.perFrameAimIK} spin={SpinInput} fixedDt={Time.fixedDeltaTime:F4} vSync={QualitySettings.vSyncCount} targetFps={Application.targetFrameRate}");
             var ammo = new[] { Item("RifleRounds"), Item("PistolRounds"), Item("WoodenArrow") };
             foreach (var a in ammo) if (a && inv.Count(a) < 5) inv.AddItem(a, 5);
             foreach (var c in cases)
@@ -52,8 +70,9 @@ namespace ASH.DebugTools
                 yield return new WaitForSeconds(1.6f);
                 var v = c.off ? eq.OffVisual : eq.MainVisual;
                 var ps = new List<Vector3>(); var rs = new List<Quaternion>(); int frames = 0, restored0 = Restored(guard); float t0 = Time.unscaledTime;
-                while (frames < 150 && v)
+                while (frames < Frames && v)
                 {
+                    if (SpinInput != 0f && tp && tp.tpCamera) tp.tpCamera.RotateCamera(SpinInput, 0f);
                     yield return new WaitForEndOfFrame();
                     ps.Add(cam.transform.InverseTransformPoint(v.transform.position)); rs.Add(Quaternion.Inverse(cam.transform.rotation) * v.transform.rotation); frames++;
                 }
@@ -76,6 +95,6 @@ namespace ASH.DebugTools
 
         static int Restored(Component g) { var p = g ? g.GetType().GetProperty("RestoredTotal") : null; return p != null ? (int)p.GetValue(g) : 0; }
 
-        void Finish() { Debug.Log($"[ASH] JITTER SUMMARY pass={_pass} fail={_fail}\n{_sum}"); Destroy(gameObject); }
+        void Finish() { ASH.Combat.ASHAimCameraSync.ForceMode = -1; Frames = 150; if (_pfSet) ASH.Combat.ASHCombatTuning.Live.perFrameAimIK = _pfWas; RangedOnly = false; PerFrame = -1; SpinInput = 0f; Debug.Log($"[ASH] JITTER SUMMARY pass={_pass} fail={_fail}\n{_sum}"); Destroy(gameObject); }
     }
 }

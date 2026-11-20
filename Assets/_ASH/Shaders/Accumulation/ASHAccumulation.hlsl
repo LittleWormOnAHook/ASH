@@ -16,6 +16,7 @@ float4 _ASH_Layers;       // x ash amount 0..1, y snow amount 0..1, z total 0..1
 float4 _ASH_Surface;      // x coverage 0..2, y normal threshold, z blend width, w wind redistribution 0..1
 float4 _ASH_Weather;      // x wetness 0..1, y melt 0..1 (snow only), z windDir.x, w windDir.z
 float4 _ASH_Noise;        // x scale, y strength, z ash tiling (m), w snow tiling (m)
+float  _ASH_TrailKeep;     // share of the colour kept in footprints / trails (deform only dents the layer)
 float4 _ASH_AccumColor;   // ash tint (rgb), a = ash darkness when wet
 float4 _ASH_SnowColor;    // snow tint (rgb)
 float4 _ASH_TexNorm;      // x = 1 / mean linear luminance of the ash texture; y = path depth reduction; z = path coverage reduction (drift mask A = path factor)
@@ -26,6 +27,7 @@ float4 _ASH_TerrainRect;  // x minX, y minZ, z 1/sizeX, w 1/sizeZ
 float4 _ASH_DeformRect;   // phase 2: x minX, y minZ, z 1/size, w enabled
 float4 _ASH_Edge;         // x coverage edge softness, y patch noise scale (1/m), z patch noise strength, w smooth (bicubic) drift sampling 0/1
 float4 _ASH_DriftTexel;   // x 1/width, y 1/height, z width, w height (drift mask)
+float4 _ASH_PropMul;      // objects (ASH/Accumulation Lit, ASH_ACCUM_PROP): x ash, y snow multiplier of the terrain amount (0..4; default 0.5)
 // Deformable surface + banking (set by ASHAccumulationSurface while the visible-depth surface runs)
 TEXTURE2D(_ASH_Heightmap);
 float4 _ASH_HeightParams;   // x heightmap res, y height scale (size.y / kMaxHeight), z terrain y, w unused
@@ -34,6 +36,7 @@ TEXTURE2D(_ASH_ColliderMask); // R collider fade (1 = cleared; small / non-banki
 float4 _ASH_ColliderMaskRect; // x minX, y minZ, z 1/size (square), w enabled
 float4 _ASH_Bank;           // x bank height m, y bank reach m, z curve exponent, w enabled
 float4 _ASH_Bank2;          // x noise scale 1/m, y noise strength 0..1, z layer depth (m) for a full-height bank, w mask texel m
+float4 _ASH_Contact;        // x contact curve height m (extra concave fillet against the object), y falloff m, z noise 0..1, w enabled
 float4 _ASH_Dust;           // x dusting height above the bank/layer top m, y fade m, z strength 0..1, w enabled
 
 float ASH_Hash(float2 p) { p = frac(p * float2(123.34, 456.21)); p += dot(p, p + 45.32); return frac(p.x * p.y); }
@@ -150,7 +153,14 @@ float ASH_BankProfile(float2 xz, float dist)
     float reach = max(_ASH_Bank.y * lerp(1.0, 0.6 + 0.8 * n, k), 0.01);
     float t = saturate(1.0 - dist / reach);
     t = t * t * (3.0 - 2.0 * t);
-    return _ASH_Bank.x * pow(t, max(_ASH_Bank.z, 0.05)) * lerp(1.0, 0.5 + n, k);
+    float b = _ASH_Bank.x * pow(t, max(_ASH_Bank.z, 0.05)) * lerp(1.0, 0.5 + n, k);
+    // contact curve: a concave fillet in the last Contact.y metres, so the snow curves UP onto the object's base
+    if (_ASH_Contact.w > 0.5 && _ASH_Contact.x > 0.0)
+    {
+        float c = saturate(1.0 - dist / max(_ASH_Contact.y * lerp(1.0, 0.7 + 0.6 * n, saturate(_ASH_Contact.z)), 0.01));
+        b += _ASH_Contact.x * c * c * lerp(1.0, 0.45 + 1.1 * n, saturate(_ASH_Contact.z));
+    }
+    return b;
 }
 
 // Bank height (m) added on top of the layer: grows with the material lying there (full at Bank2.z depth) and is pressed
@@ -170,14 +180,17 @@ void ASH_BaseDust(float3 positionWS, inout half3 albedo, inout half3 normalWS, i
     float2 xz = positionWS.xz;
     float edge = ASH_SurfaceEdge(xz); if (edge <= 0.0) return;
     float ground = ASH_TerrainHeight(xz);
-    if (positionWS.y - ground > 2.0 * _ASH_Depth.x + _ASH_Bank.x * 1.5 + _ASH_Dust.x * 1.6 + _ASH_Dust.y) return; // above any possible dust line (most object pixels): one tap
+    if (positionWS.y - ground > 2.0 * _ASH_Depth.x + (_ASH_Bank.x + _ASH_Contact.x) * 1.6 + (_ASH_Dust.x + 0.5 * _ASH_Contact.x) * 1.7 + _ASH_Dust.y + _ASH_Contact.x) return; // above any possible dust line (most object pixels): one tap
     half4 drift = ASH_DriftAt(positionWS); half deform = ASH_DeformAt(positionWS);
     float base = ASH_DepthMetres(drift, 0); if (base <= 0.001) return;
     float2 cm = ASH_ColliderMaskAt(xz);
     float top = ground + (ASH_DepthMetres(drift, deform) + ASH_BankAt(xz, drift, deform, cm.y)) * edge;
     float n = ASH_Fbm(xz * 4.3 + positionWS.y * 3.1);
-    float h0 = _ASH_Dust.x * (0.4 + 1.2 * n);
-    half k = (half)((1.0 - smoothstep(h0, h0 + max(_ASH_Dust.y, 0.005), positionWS.y - top)) * saturate(_ASH_Dust.z) * edge * saturate(base / max(_ASH_Bank2.z, 0.005)));
+    // band on the object from the snow top: dusting plus half the contact curve, a noisy upper edge, fading upward
+    float cOn = _ASH_Contact.w > 0.5 ? 1.0 : 0.0;
+    float h0 = (_ASH_Dust.x + 0.5 * _ASH_Contact.x * cOn) * lerp(0.4 + 1.2 * n, lerp(1.0, 0.3 + 1.4 * n, saturate(_ASH_Contact.z)), cOn);
+    float fadeW = max(_ASH_Dust.y + 0.5 * _ASH_Contact.x * cOn, 0.005);
+    half k = (half)((1.0 - smoothstep(h0, h0 + fadeW, positionWS.y - top)) * saturate(_ASH_Dust.z) * edge * saturate(base / max(_ASH_Bank2.z, 0.005)));
     if (k <= 0.001) return;
     float2 uvS = xz / max(_ASH_Noise.w, 0.01);
     half3 snowAlb = SAMPLE_TEXTURE2D_LOD(_ASH_SnowTex, sampler_ASH_SnowTex, uvS, 0).rgb * _ASH_SnowColor.rgb;
@@ -211,7 +224,11 @@ void ASH_ApplyAccumulation(float3 positionWS, half3 geomNormalWS, half4 drift, h
     half scale = depthMask * (1.0 - _ASH_TexNorm.y * pathF) * (1.0 - windLoss) * up * _ASH_Surface.x;
     half ashT = _ASH_Layers.x * scale;
     half snowT = _ASH_Layers.y * (1.0 - _ASH_Weather.y) * scale;
-    half remove = deform * (ashT + snowT);
+#ifdef ASH_ACCUM_PROP
+    // objects build up with the terrain (same amounts, rate, drift, melt) scaled by the controller's prefab multipliers
+    ashT *= _ASH_PropMul.x; snowT *= _ASH_PropMul.y;
+#endif
+    half remove = deform * (1.0 - saturate(_ASH_TrailKeep)) * (ashT + snowT);
     half ashLeft = max(0, ashT - remove);
     half snowLeft = max(0, snowT - max(0, remove - ashT));
 

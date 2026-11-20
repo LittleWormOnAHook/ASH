@@ -1,0 +1,15 @@
+ASH dog growl clips (Assets/_ASH/Audio/Companion)
+
+Source: "Medium Dog Growl.wav" by lukofinc
+https://freesound.org/people/lukofinc/sounds/246227/
+"My dog Leela, a German Shepherd cross playing tug of war."
+License: Creative Commons 0 (CC0 1.0, public domain dedication) - no attribution required; credited anyway.
+
+Edits (2026-11-19): cut into short growls, 60 Hz high-pass, fades, peak-normalised to -1 dBFS.
+  ASH_DogGrowl_Warn_1..3 : pitched/slowed to 0.82x for a lower, larger-dog warning growl (src 5.4s, 87.3s, 71.85s).
+  ASH_DogGrowl_Play_1..3 : original pitch, soft playful growls used while digging (src 13.8s, 24.25s, 70.35s).
+
+ASH_DogPee_FireHiss.wav
+Source: "Water Poured onto a Burning Fireplace - Hissing Steam and Sizzling Embers" by bassimat
+https://freesound.org/people/bassimat/sounds/870180/
+License: CC0 1.0. Edits: 1.0-5.0 s cut, fades, peak-normalised to -2 dBFS.

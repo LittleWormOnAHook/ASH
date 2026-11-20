@@ -37,6 +37,10 @@ namespace ASH.Combat
         [Range(-0.25f, 0.5f)] public float anchorIn = 0.10f;
         [Tooltip("Extra full-draw hand offset (bow local) after anchorIn. Y = sideways off the string plane, Z = along the limbs.")]
         public Vector3 anchorOffsetLocal;
+        [Tooltip("Pulls the full-draw hand sideways onto the arrow line (string plane, behind the nock). 0 = authored hand position, 1 = on the line.")]
+        [Range(0f, 1f)] public float handOnArrowLine = 1f;
+        [Tooltip("Sideways offset of the draw hand from the arrow line after handOnArrowLine (metres, bow local Y; flip the sign for the other side).")]
+        [Range(-0.2f, 0.2f)] public float handLineSide = 0.07f;
 
         [Header("Arrow nock and rest offsets (bow local, added to the computed points)")]
         [Tooltip("Nock point offset. X = along the draw (toward the archer), Y = sideways off the string plane, Z = along the limbs.")]
@@ -53,24 +57,33 @@ namespace ASH.Combat
         public string[] idleRelaxLayers;
         [Tooltip("Hang the Model child so the bow points down beside the leg. Grip_L is not moved.")]
         public bool idleHangVertical = true;
-        [Tooltip("Bow-local axis that should point world-down when hanging (limb axis).")]
-        public Vector3 idleHangAxis = Vector3.up;
+        [Tooltip("Model-local axis that should point world-down when hanging. The pack bow's limbs run along Z (0,0,1); Y is the sideways axis off the string plane (that left the bow horizontal).")]
+        public Vector3 idleHangAxis = Vector3.forward;
+        [Tooltip("Use whichever end of idleHangAxis is already lower, so the bow takes the smallest turn to hang down.")]
+        public bool idleHangAutoFlip = true;
         [Tooltip("Extra Euler on the Model after hanging (degrees).")]
         public Vector3 idleHangEuler;
+        [Tooltip("Authored local rotation of the Model child (the bow mesh). The aim pose puts the Model back to this; the idle hang starts from it. Never captured at runtime, so a hung pose saved by mistake cannot leak into the aim pose.")]
+        public Vector3 modelRestEuler = Vector3.zero;
 
         [System.NonSerialized] public float draw01;
+
+        /// <summary>Set by the editor (ASHBowTuning): keeps this rig's values after Play by writing them to ASH_Player.prefab.</summary>
+        public static System.Action<ASHBowDrawRig> SaveTuningHook;
+        /// <summary>Tune the fields above live in Play, then use this (component menu) or ASH/Systems/Combat/Bow Tuning Window.</summary>
+        [ContextMenu("Save Bow Tuning (keep after Play)")]
+        void SaveBowTuning() { if (SaveTuningHook != null) SaveTuningHook(this); else Debug.LogWarning("[ASH] Save Bow Tuning works in the Editor only."); }
 
         Animator _idleAnim;
         float[] _baseWeights;
         bool _weightsCaptured, _idleOn;
         Transform _model;
-        Quaternion _modelBaseLocal;
-        bool _modelCaptured;
+        Quaternion ModelRest => Quaternion.Euler(modelRestEuler);
 
         Vector3 Back => backLocal.sqrMagnitude > 1e-8f ? backLocal.normalized : Vector3.right;
 
         /// <summary>Full-draw hand bone in bow local (authored String_R, pulled in to the cheek by anchorIn).</summary>
-        public Vector3 HandFullEffective => handFullLocal - Back * anchorIn + anchorOffsetLocal;
+        public Vector3 HandFullEffective { get { var h = handFullLocal - Back * anchorIn + anchorOffsetLocal; h.y = Mathf.Lerp(h.y, NockRestEffective.y + handLineSide, Mathf.Clamp01(handOnArrowLine)); return h; } }
         public Vector3 NockRestEffective => nockRestLocal + nockOffsetLocal;
         public Vector3 RestEffective => restLocal + restOffsetLocal;
 
@@ -81,8 +94,77 @@ namespace ASH.Combat
         public void Apply()
         {
             if (!handTarget) return;
-            handTarget.localPosition = HandFullEffective - Back * (drawLength * (1f - Mathf.Clamp01(draw01)));
-            handTarget.localRotation = handRotLocal;
+            bool helper = useRightHandHelper && helperTransform && helperTransform.parent == handTarget.parent;
+            var full = helper ? helperTransform.localPosition : HandFullEffective;
+            handTarget.localPosition = full - Back * (drawLength * (1f - Mathf.Clamp01(draw01)));
+            handTarget.localRotation = helper ? helperTransform.localRotation : handRotLocal;
+        }
+
+        // ---- Right-hand helper (t353): a draggable full-draw hand pose, tuned in Play (paused or running) ----
+        /// <summary>While on, the draw-hand IK target follows RightHand_Helper (full-draw pose; the draw still slides it along the string).</summary>
+        [System.NonSerialized] public bool useRightHandHelper;
+        [System.NonSerialized] public Transform helperTransform;
+
+        /// <summary>Creates (or re-places at the current rig values when reset) the helper next to the hand IK target.</summary>
+        public Transform EnsureHelper(bool reset = false)
+        {
+            if (!handTarget) return null;
+            if (!helperTransform) { helperTransform = new GameObject("RightHand_Helper").transform; reset = true; }
+            if (helperTransform.parent != handTarget.parent) { helperTransform.SetParent(handTarget.parent, false); reset = true; }
+            if (reset) { helperTransform.localPosition = HandFullEffective; helperTransform.localRotation = handRotLocal; helperTransform.localScale = Vector3.one; }
+            return helperTransform;
+        }
+
+        /// <summary>Writes the helper pose into the rig fields (anchorOffsetLocal / handLineSide, handRotLocal) so the rig reproduces it without the helper.</summary>
+        public void BakeHelper()
+        {
+            if (!helperTransform) return;
+            var want = helperTransform.localPosition;
+            var baseP = handFullLocal - Back * anchorIn;
+            float w = Mathf.Clamp01(handOnArrowLine);
+            var off = want - baseP;
+            if (w > 0.999f) { handLineSide = want.y - NockRestEffective.y; off.y = anchorOffsetLocal.y; }
+            else off.y = (want.y - w * (NockRestEffective.y + handLineSide)) / (1f - w) - baseP.y;
+            anchorOffsetLocal = off;
+            handRotLocal = helperTransform.localRotation;
+        }
+
+        /// <summary>Paused-Play preview: moves the hand IK target and solves the right arm (two-bone) to it so the pose updates live.</summary>
+        public void PreviewArm(Animator anim)
+        {
+            Apply();
+            if (!anim || !anim.isHuman || !handTarget) return;
+            var a = anim.GetBoneTransform(HumanBodyBones.RightUpperArm); var b = anim.GetBoneTransform(HumanBodyBones.RightLowerArm); var c = anim.GetBoneTransform(HumanBodyBones.RightHand);
+            if (!a || !b || !c) return;
+            var t = handTarget.position; float la = Vector3.Distance(a.position, b.position), lb = Vector3.Distance(b.position, c.position);
+            float d = Mathf.Clamp(Vector3.Distance(a.position, t), Mathf.Abs(la - lb) + 1e-3f, la + lb - 1e-3f);
+            float want = Mathf.Acos(Mathf.Clamp((la * la + lb * lb - d * d) / (2f * la * lb), -1f, 1f)) * Mathf.Rad2Deg;
+            var axis = Vector3.Cross(a.position - b.position, c.position - b.position);
+            if (axis.sqrMagnitude < 1e-8f) axis = anim.transform.up; axis.Normalize();
+            float cur = Vector3.Angle(a.position - b.position, c.position - b.position);
+            var r0 = b.rotation; float best = float.MaxValue; Quaternion bestR = r0;
+            foreach (var sgn in new[] { 1f, -1f })
+            {
+                b.rotation = Quaternion.AngleAxis(sgn * (want - cur), axis) * r0;
+                float e = Mathf.Abs(Vector3.Distance(a.position, c.position) - d); if (e < best) { best = e; bestR = b.rotation; }
+            }
+            b.rotation = bestR;
+            a.rotation = Quaternion.FromToRotation(c.position - a.position, t - a.position) * a.rotation;
+            c.rotation = handTarget.rotation;
+        }
+
+        void OnDrawGizmos()
+        {
+            if (!useRightHandHelper || !helperTransform) return;
+            var h = helperTransform; float s = 0.06f;
+            Gizmos.color = new Color(1f, 0.55f, 0.1f, 0.9f); Gizmos.DrawWireSphere(h.position, 0.03f);
+            Gizmos.color = Color.red; Gizmos.DrawLine(h.position, h.position + h.right * s);
+            Gizmos.color = Color.green; Gizmos.DrawLine(h.position, h.position + h.up * s);
+            Gizmos.color = Color.blue; Gizmos.DrawLine(h.position, h.position + h.forward * s);
+            if (handTarget) { Gizmos.color = new Color(1f, 1f, 1f, 0.5f); Gizmos.DrawLine(h.position, handTarget.position); }
+#if UNITY_EDITOR
+            UnityEditor.Handles.Label(h.position + Vector3.up * 0.05f, "Right Hand Helper (full draw)");
+#endif
         }
 
         public void RestoreIdle(Animator anim)
@@ -92,7 +174,7 @@ namespace ASH.Combat
                 int n = Mathf.Min(_baseWeights.Length, anim.layerCount);
                 for (int i = 0; i < n; i++) anim.SetLayerWeight(i, _baseWeights[i]);
             }
-            if (_model && _modelCaptured) _model.localRotation = _modelBaseLocal;
+            if (FindModel()) _model.localRotation = ModelRest;
             _idleOn = false;
         }
 
@@ -111,6 +193,20 @@ namespace ASH.Combat
         }
 
         void OnDisable() { if (_idleOn) RestoreIdle(_idleAnim); }
+
+        bool FindModel()
+        {
+            if (_model) return true;
+            _model = transform.Find("Model");
+            if (!_model)
+                foreach (Transform t in transform)
+                {
+                    string n = t.name;
+                    if (n.StartsWith("Grip") || n.StartsWith("String") || n.StartsWith("Arrow") || n.StartsWith("Nock") || n.StartsWith("ASH_") || (handTarget && t == handTarget)) continue;
+                    _model = t; break;
+                }
+            return _model;
+        }
 
         void CaptureWeights(Animator anim)
         {
@@ -137,25 +233,12 @@ namespace ASH.Combat
 
         void HangModel()
         {
-            if (!idleHangVertical) { if (_model && _modelCaptured) _model.localRotation = _modelBaseLocal; return; }
-            if (!_model)
-            {
-                _model = transform.Find("Model");
-                if (!_model)
-                {
-                    foreach (Transform t in transform)
-                    {
-                        string n = t.name;
-                        if (n.StartsWith("Grip") || n.StartsWith("String") || n.StartsWith("Arrow") || n.StartsWith("Nock") || (handTarget && t == handTarget)) continue;
-                        _model = t; break;
-                    }
-                }
-                if (_model && !_modelCaptured) { _modelBaseLocal = _model.localRotation; _modelCaptured = true; }
-            }
-            if (!_model) return;
-            if (_modelCaptured) _model.localRotation = _modelBaseLocal;
-            Vector3 axis = idleHangAxis.sqrMagnitude > 1e-8f ? idleHangAxis.normalized : Vector3.up;
+            if (!FindModel()) return;
+            _model.localRotation = ModelRest;
+            if (!idleHangVertical) return;
+            Vector3 axis = idleHangAxis.sqrMagnitude > 1e-8f ? idleHangAxis.normalized : Vector3.forward;
             Vector3 axisWorld = _model.TransformDirection(axis);
+            if (idleHangAutoFlip && Vector3.Dot(axisWorld, Vector3.down) < 0f) axisWorld = -axisWorld;
             _model.rotation = Quaternion.FromToRotation(axisWorld, Vector3.down) * _model.rotation;
             if (idleHangEuler.sqrMagnitude > 1e-8f) _model.Rotate(idleHangEuler, Space.Self);
         }

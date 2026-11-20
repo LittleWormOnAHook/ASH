@@ -59,7 +59,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 0.5, y: 0.5, z: 0.5}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 5172339349373764632}
@@ -80,20 +80,20 @@ MonoBehaviour:
   kind: 0
   displayName: Dead Fir
   requiredTool: 1
-  hits: 8
+  hits: 5
   holdPerHit: 0.75
   finalYield:
   - item: {fileID: 11400000, guid: cdf61af5b2170224aa295f116d6ca24d, type: 2}
-    amount: 1
+    amount: 2
   chipItem: {fileID: 11400000, guid: cdf61af5b2170224aa295f116d6ca24d, type: 2}
   chipChance: 0.2
   logPrefab: {fileID: 7431534890675112891, guid: 2c32ff272ab49df46a4799cb9f5f22f4, type: 3}
   logLength: 2.5
-  maxLogs: 4
+  maxLogs: 6
   usableHeight: 0.6
   stumpPrefab: {fileID: 5866013472944805187, guid: 55f391d3139174349a8839d3edb3af5e, type: 3}
   fallSeconds: 2.6
-  respawnSeconds: 0
+  respawnSeconds: 120
   visualRoot: {fileID: 7643976966798601382}
   chopClips:
   - {fileID: 8300000, guid: 1d685ca1072aa514fbd7ed0b444e7484, type: 3}

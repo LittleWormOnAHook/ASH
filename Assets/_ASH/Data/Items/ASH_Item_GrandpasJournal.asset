@@ -20,8 +20,9 @@ MonoBehaviour:
   uiTint: {r: 0.62, g: 0.46, b: 0.3, a: 1}
   category: 6
   maxStack: 1
+  sellValue: 0
   useVerb: Read
-  keyItem: 0
+  keyItem: 1
   restoreHunger: 0
   restoreThirst: 0
   restoreHealth: 0

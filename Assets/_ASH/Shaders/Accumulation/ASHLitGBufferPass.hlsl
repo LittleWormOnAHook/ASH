@@ -6,6 +6,7 @@
 #ifndef REQUIRES_WORLD_SPACE_POS_INTERPOLATOR
 #define REQUIRES_WORLD_SPACE_POS_INTERPOLATOR 1 // accumulation needs positionWS
 #endif
+#define ASH_ACCUM_PROP 1 // objects: prefab multipliers (_ASH_PropMul)
 #include "ASHAccumulation.hlsl"
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/GBufferOutput.hlsl"
 #if defined(LOD_FADE_CROSSFADE)

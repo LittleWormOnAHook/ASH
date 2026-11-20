@@ -26,6 +26,12 @@ namespace ASH.World.Accumulation
         [Tooltip("Typical (ankle) depth in metres where the drift mask is average; drifts rise toward Max Depth (knee).")]
         [Range(0.01f, 1f)] public float ankleDepthMetres = 0.12f;
 
+        [Header("Prefabs / objects (ASH/Accumulation Lit) - follow the terrain build-up")]
+        [Tooltip("Snow on objects as a multiple of the terrain snow (same build-up rate, melt, drift and presets). 0.5 = half the terrain amount. Presets never change this.")]
+        [Range(0f, 4f)] public float prefabSnowMultiplier = 0.5f;
+        [Tooltip("Ash on objects as a multiple of the terrain ash (same build-up rate, decay, drift and presets). 0.5 = half the terrain amount. Presets never change this.")]
+        [Range(0f, 4f)] public float prefabAshMultiplier = 0.5f;
+
         [Header("1. Accumulation rate")]
         [Tooltip("Relative depth gained per minute at fall intensity 1.")]
         [Range(0f, 2f)] public float accumulationRate = 0.05f;
@@ -91,6 +97,7 @@ namespace ASH.World.Accumulation
         [Header("Look")]
         public Color ashColor = new Color(0.44f, 0.44f, 0.46f);
         [Range(0.1f, 1f)] public float wetAshDarkness = 0.5f;
+        [Tooltip("Trail Coverage Keep: how much snow/ash colour stays in footprints and trails (0 = bare dark ground, the old look; 1 = trails only dent, never darken).")] [Range(0f, 1f)] public float trailCoverageKeep = 0.75f;
         public Color snowColor = new Color(0.93f, 0.94f, 0.96f);
 
         // Surface Texture: the look of the TOP of the ash/snow. Independent of Deformation Quality: the deformation presets
@@ -173,6 +180,9 @@ namespace ASH.World.Accumulation
             float mask = Mathf.Lerp(0.5f, dm.r, EffectiveWind()) * (1f - pathDepthReduction * dm.a) * coverage;
             ash = ashAmount * mask; snow = snowAmount * (1f - extraMelt) * mask;
         }
+
+        /// <summary>Relative ash / snow on an object (ASH/Accumulation Lit) at a position: terrain layers x the prefab multipliers.</summary>
+        public void GetObjectLayers(Vector3 worldPos, out float ash, out float snow) { GetLayers(worldPos, out ash, out snow); ash *= prefabAshMultiplier; snow *= prefabSnowMultiplier; }
 
         /// <summary>One-shot disturbance (explosion, dropped object, tire): pushes material aside around a point.</summary>
         public void Deform(Vector3 worldPos, float radius, float strength) { if (Field) Field.AddStamp(worldPos, worldPos, radius, strength); }
@@ -300,6 +310,7 @@ namespace ASH.World.Accumulation
 
         float EffectiveWind() => Mathf.Clamp01(windRedistribution * (0.5f + (Application.isPlaying ? _inputs.windStrength : ambientWeather.windStrength)));
 
+        static readonly int ID_PropMul = Shader.PropertyToID("_ASH_PropMul");
         static readonly int ID_Layers = Shader.PropertyToID("_ASH_Layers"), ID_Surface = Shader.PropertyToID("_ASH_Surface"), ID_Weather = Shader.PropertyToID("_ASH_Weather"),
             ID_Noise = Shader.PropertyToID("_ASH_Noise"), ID_AshCol = Shader.PropertyToID("_ASH_AccumColor"), ID_SnowCol = Shader.PropertyToID("_ASH_SnowColor"), ID_TexNorm = Shader.PropertyToID("_ASH_TexNorm"),
             ID_Rect = Shader.PropertyToID("_ASH_TerrainRect"), ID_DRect = Shader.PropertyToID("_ASH_DeformRect"),
@@ -339,11 +350,13 @@ namespace ASH.World.Accumulation
         {
             var wd = (Application.isPlaying ? _inputs.windDirection : prevailingWind); if (wd.sqrMagnitude < 1e-4f) wd = prevailingWind; wd.Normalize();
             Shader.SetGlobalVector(ID_Layers, new Vector4(ashAmount, snowAmount, Mathf.Clamp01(ashAmount + snowAmount), enabled ? 1f : 0f));
+            Shader.SetGlobalVector(ID_PropMul, new Vector4(prefabAshMultiplier, prefabSnowMultiplier, 0f, 0f));
             Shader.SetGlobalVector(ID_Surface, new Vector4(coverage, normalThreshold, normalBlend, EffectiveWind()));
             Shader.SetGlobalVector(ID_Weather, new Vector4(wetness, extraMelt, wd.x, wd.y));
             Shader.SetGlobalVector(ID_Noise, new Vector4(noiseScale, noiseStrength, ashTiling, snowTiling));
             Shader.SetGlobalColor(ID_AshCol, new Color(ashColor.r, ashColor.g, ashColor.b, wetAshDarkness));
             Shader.SetGlobalColor(ID_SnowCol, snowColor);
+            Shader.SetGlobalFloat("_ASH_TrailKeep", trailCoverageKeep);
             Shader.SetGlobalVector(ID_TexNorm, new Vector4(1f / Mathf.Max(ashTextureMean, 0.005f), driftMask ? pathDepthReduction : 0f, driftMask ? pathCoverageReduction : 0f, 0f));
             Shader.SetGlobalTexture(ID_AshTex, ashTexture ? ashTexture : Texture2D.grayTexture);
             Shader.SetGlobalTexture(ID_SnowTex, snowTexture ? snowTexture : Texture2D.whiteTexture);

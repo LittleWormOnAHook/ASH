@@ -122,9 +122,29 @@
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": true
+                },
+                {
+                    "name": "CallPet",
+                    "type": "Button",
+                    "id": "5d7c2a61-0b3e-4c4a-9e51-6a2f3b8d9c10",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
                 }
             ],
             "bindings": [
+                {
+                    "name": "",
+                    "id": "8e1f4b27-6c3d-4f9a-a2b5-0d7e9c4a1f36",
+                    "path": "<Keyboard>/c",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "CallPet",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
                 {
                     "name": "2DVector",
                     "id": "040ea12d-cee2-425b-a3c7-3b59cc16c7ce",
@@ -316,17 +336,6 @@
                     "name": "",
                     "id": "1c5962b1-353f-4d3b-a74a-0dbb003064d5",
                     "path": "<Keyboard>/leftCtrl",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": "",
-                    "action": "Crouch",
-                    "isComposite": false,
-                    "isPartOfComposite": false
-                },
-                {
-                    "name": "",
-                    "id": "61469f2a-c6ca-4910-9446-c65f32ac0db9",
-                    "path": "<Keyboard>/c",
                     "interactions": "",
                     "processors": "",
                     "groups": "",

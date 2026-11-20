@@ -4331,6 +4331,7 @@ MonoBehaviour:
   tipOffset: {x: 0, y: 0, z: 0}
   tipPadding: 0.015
   anchorFlameToMeshTip: 1
+  flameSimulationSpace: 0
   playToggleSound: 1
 --- !u!1 &2182513464156687530
 GameObject:
@@ -5312,6 +5313,7 @@ MonoBehaviour:
   tipOffset: {x: 0, y: 0, z: 0}
   tipPadding: 0.015
   anchorFlameToMeshTip: 1
+  flameSimulationSpace: 0
   playToggleSound: 1
 --- !u!1 &3296605908935084893
 GameObject:
@@ -5591,7 +5593,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3792566825144103799}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.6293738, y: 0, z: 0.65871733, w: 0.4122865}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -21380,8 +21382,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 5195798018617803048}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.47150472, y: 0.30755484, z: 0.6731105, w: -0.47959942}
-  m_LocalPosition: {x: -0.07409206, y: -0.044690996, z: -0.051657733}
+  m_LocalRotation: {x: -0.5516702, y: 0.24468313, z: 0.7297449, w: -0.3213449}
+  m_LocalPosition: {x: -0.091, y: 0.005, z: -0.105}
   m_LocalScale: {x: 0.978064, y: 0.9780653, z: 0.97806334}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -21678,22 +21680,26 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ASH.Combat.ASHBowDrawRig
   handTarget: {fileID: 5114762658580262298}
   handFullLocal: {x: 0.654, y: -0.02299958, z: 0.0560003}
-  handRotLocal: {x: -0.0035395664, y: -0.3450379, z: -0.71763194, w: -0.6049319}
+  handRotLocal: {x: -0.23331065, y: 0.18234842, z: -0.7418283, w: -0.6016694}
   nockRestLocal: {x: 0.14803818, y: 0.0029819473, z: 0.041}
   restLocal: {x: -0.14796282, y: 0.0029819473, z: 0.041}
   backLocal: {x: 1, y: 0, z: 0}
   bowScale: 0.88
   drawLength: 0.304304
   anchorIn: 0.1
-  anchorOffsetLocal: {x: 0, y: 0, z: 0}
+  anchorOffsetLocal: {x: 0.016000032, y: 0, z: -0.0010003}
+  handOnArrowLine: 1
+  handLineSide: 0.055018052
   nockOffsetLocal: {x: 0, y: 0, z: 0}
   restOffsetLocal: {x: 0, y: 0, z: 0}
   relaxIdleAnimator: 1
   idleUpperBodyWeight: 0
   idleRelaxLayers: []
   idleHangVertical: 1
-  idleHangAxis: {x: 0, y: 1, z: 0}
+  idleHangAxis: {x: 0, y: 0, z: 1}
+  idleHangAutoFlip: 1
   idleHangEuler: {x: 0, y: 0, z: 0}
+  modelRestEuler: {x: 0, y: 0, z: 0}
 --- !u!1 &5244018001361201629
 GameObject:
   m_ObjectHideFlags: 0
@@ -27091,6 +27097,7 @@ MonoBehaviour:
   tipOffset: {x: 0, y: 0, z: 0}
   tipPadding: 0.015
   anchorFlameToMeshTip: 1
+  flameSimulationSpace: 0
   playToggleSound: 1
 --- !u!1 &5944467909580507464
 GameObject:
@@ -33853,6 +33860,7 @@ MonoBehaviour:
   zoomFarDistance: 6
   zoomSmoothTime: 0.18
   scrollPerClick: 0
+  restoreZoomAfterAim: 1
 --- !u!54 &7329733969315753242
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -34196,11 +34204,14 @@ MonoBehaviour:
   SimCraft: 0
   SimHotbar: -1
   SimCross: -1
+  SimZoomRaw: 0
   SimPauseFrame: -1
+  SimDraw: -1
   SimJournal: 0
   SimMap: 0
   SimBreakDown: 0
   SimLight: 0
+  SimCallPet: 0
 --- !u!114 &3206216333396108928
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -34591,6 +34602,13 @@ MonoBehaviour:
   gunAimEuler: {x: 0, y: 0, z: 0}
   bowAimTrimEuler: {x: 0, y: 0, z: 0}
   bowTiltDeg: 8
+  bowCrosshairAlign: 1
+  bowCrosshairWeight: 0.62
+  bowCrosshairMaxDeg: 30
+  bowUprightTorso: 1
+  bowTorsoLean: -0.5
+  bowCameraLeft: 0.1
+  bowCameraDown: 0.1
   bowBodyAim: 1
   bowSpinePitch: 1
   bowMaxBodyYaw: 120
@@ -35264,7 +35282,7 @@ Transform:
   m_GameObject: {fileID: 8110703721304338976}
   serializedVersion: 2
   m_LocalRotation: {x: 0.47150457, y: -0.30755487, z: -0.6731106, w: -0.47959948}
-  m_LocalPosition: {x: -0.107, y: -0.02, z: -0.004}
+  m_LocalPosition: {x: -0.246, y: -0.071, z: -0.014}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -50356,6 +50374,34 @@ PrefabInstance:
     - target: {fileID: 4562056672544642, guid: bd34c9699654ac44ea1bb6d756264e11, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4619118305630168, guid: bd34c9699654ac44ea1bb6d756264e11, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -0.036
+      objectReference: {fileID: 0}
+    - target: {fileID: 4619118305630168, guid: bd34c9699654ac44ea1bb6d756264e11, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -0.001
+      objectReference: {fileID: 0}
+    - target: {fileID: 4619118305630168, guid: bd34c9699654ac44ea1bb6d756264e11, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -0.014
+      objectReference: {fileID: 0}
+    - target: {fileID: 4619118305630168, guid: bd34c9699654ac44ea1bb6d756264e11, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 0.9982836
+      objectReference: {fileID: 0}
+    - target: {fileID: 4619118305630168, guid: bd34c9699654ac44ea1bb6d756264e11, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: -0.0040292693
+      objectReference: {fileID: 0}
+    - target: {fileID: 4619118305630168, guid: bd34c9699654ac44ea1bb6d756264e11, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0.051370908
+      objectReference: {fileID: 0}
+    - target: {fileID: 4619118305630168, guid: bd34c9699654ac44ea1bb6d756264e11, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0.027834821
       objectReference: {fileID: 0}
     - target: {fileID: 23260227601688864, guid: bd34c9699654ac44ea1bb6d756264e11, type: 3}
       propertyPath: m_Enabled

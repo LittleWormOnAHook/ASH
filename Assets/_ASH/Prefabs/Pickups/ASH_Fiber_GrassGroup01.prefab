@@ -60,7 +60,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 2.2586, y: 2.2586, z: 2.2586}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 7390439104434575461}
@@ -101,11 +101,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ASH.Interaction.ASHResourceNode
   item: {fileID: 11400000, guid: f545e6f90b132c94988a957c07aa07e6, type: 2}
   verb: Pull fiber
-  yieldMin: 1
-  yieldMax: 2
+  yieldMin: 2
+  yieldMax: 5
   gathers: 2
   holdSeconds: 1.2
-  respawnSeconds: 0
+  respawnSeconds: 60
   requiredTool: 0
   bonusTool: 2
   bonusYieldMultiplier: 2

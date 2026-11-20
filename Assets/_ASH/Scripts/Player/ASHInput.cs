@@ -20,7 +20,7 @@ namespace ASH.Player
         [Range(0.1f, 10f)] [SerializeField] private float gamepadLookSpeed = 2.2f;
         [SerializeField] private bool invertY;
 
-        private InputAction _journal, _map, _breakDown, _lightToggle;
+        private InputAction _journal, _map, _breakDown, _lightToggle, _callPet;
         private InputAction _move, _look, _jump, _sprint, _crouch, _walk, _interact, _inventory, _craft, _pause, _primary, _secondary, _zoom;
 
         // Automated test overrides (ASH editor play tests). Null = use real input.
@@ -48,7 +48,7 @@ namespace ASH.Player
             _primary = map.FindAction("Primary", true);
             _secondary = map.FindAction("Secondary", true);
             _zoom = map.FindAction("Zoom", true);
-            _journal = map.FindAction("Journal", false); _map = map.FindAction("Map", false); _breakDown = map.FindAction("BreakDown", false); _lightToggle = map.FindAction("Light", false);
+            _journal = map.FindAction("Journal", false); _map = map.FindAction("Map", false); _breakDown = map.FindAction("BreakDown", false); _lightToggle = map.FindAction("Light", false); _callPet = map.FindAction("CallPet", false);
         }
 
         private void OnEnable() { if (actions != null) actions.Enable(); EnsureCrossMap(); if (_cross != null && !_cross.enabled) _cross.Enable(); }
@@ -135,7 +135,9 @@ namespace ASH.Player
         }
 
         public bool SuppressZoom { get; set; }
-        public float Zoom => GameplayBlocked || SuppressZoom ? 0f : _zoom.ReadValue<Vector2>().y / 1200f;
+        /// <summary>Test hook: raw scroll units (120 = one wheel click, negative = zoom out), consumed on the next Zoom read.</summary>
+        public float SimZoomRaw;
+        public float Zoom { get { if (SimZoomRaw != 0f) { float z = SimZoomRaw / 1200f; SimZoomRaw = 0f; return z; } return GameplayBlocked || SuppressZoom ? 0f : _zoom.ReadValue<Vector2>().y / 1200f; } }
         public bool SprintHeld => SimSprint ?? (!GameplayBlocked && _sprint.IsPressed());
         public bool JumpPressed => Consume(ref SimJump) || (!GameplayBlocked && _jump.WasPressedThisFrame());
         public bool CrouchPressed => Consume(ref SimCrouch) || (!GameplayBlocked && _crouch.WasPressedThisFrame());
@@ -150,6 +152,8 @@ namespace ASH.Player
         public bool PrimaryPressed => Consume(ref SimPrimary) || (!IgnoreDevices && _primary.WasPressedThisFrame());
         public bool SecondaryPressed => Consume(ref SimSecondary) || (!IgnoreDevices && _secondary.WasPressedThisFrame());
         public bool? SimSecondaryHeld;
+        /// <summary>Test harness: 0..1 holds an Invector charge weapon (bow) at that draw while aimed; -1 = off (going to -1 releases = shot).</summary>
+        public float SimDraw = -1f;
         /// <summary>Held Secondary (RMB): aim a torch/flashlight.</summary>
         public bool SecondaryHeld => SimSecondaryHeld ?? (!GameplayBlocked && (_secondary.IsPressed() || (_aimAlt != null && _aimAlt.IsPressed())));
         /// <summary>Index of a hotbar key (1..9 -> 0..8) pressed this frame, or -1.</summary>
@@ -163,7 +167,9 @@ namespace ASH.Player
                 return -1;
             }
         }
-        public bool SimJournal, SimMap, SimBreakDown, SimLight;
+        public bool SimJournal, SimMap, SimBreakDown, SimLight, SimCallPet;
+        /// <summary>Call / whistle the dog companion to you (C; ASH_InputActions CallPet).</summary>
+        public bool CallPetPressed => Consume(ref SimCallPet) || (!GameplayBlocked && KeyHit(_callPet, UnityEngine.InputSystem.Key.C));
         /// <summary>Toggle the held light (lantern/torch/flashlight). L by default.</summary>
         public bool LightPressed => Consume(ref SimLight) || (!GameplayBlocked && KeyHit(_lightToggle, UnityEngine.InputSystem.Key.L));
         public bool JournalPressed => Consume(ref SimJournal) || KeyHit(_journal, UnityEngine.InputSystem.Key.J);
@@ -200,7 +206,7 @@ namespace ASH.Player
             look.AddBinding("<Pointer>/delta"); look.AddBinding("<Gamepad>/rightStick");
             map.AddAction("Jump", InputActionType.Button, "<Keyboard>/space").AddBinding("<Gamepad>/buttonSouth");
             map.AddAction("Sprint", InputActionType.Button, "<Keyboard>/leftShift").AddBinding("<Gamepad>/leftStickPress");
-            var crouch = map.AddAction("Crouch", InputActionType.Button, "<Keyboard>/leftCtrl"); crouch.AddBinding("<Keyboard>/c"); crouch.AddBinding("<Gamepad>/rightStickPress");
+            var crouch = map.AddAction("Crouch", InputActionType.Button, "<Keyboard>/leftCtrl"); /* Ctrl only (C is not crouch) */ crouch.AddBinding("<Gamepad>/rightStickPress");
             map.AddAction("WalkToggle", InputActionType.Button, "<Keyboard>/capsLock");
             map.AddAction("Interact", InputActionType.Button, "<Keyboard>/e").AddBinding("<Gamepad>/buttonWest");
             var inv = map.AddAction("Inventory", InputActionType.Button, "<Keyboard>/tab"); inv.AddBinding("<Keyboard>/i"); inv.AddBinding("<Gamepad>/buttonNorth");
@@ -213,6 +219,7 @@ namespace ASH.Player
             map.AddAction("Primary", InputActionType.Button, "<Mouse>/leftButton").AddBinding("<Gamepad>/rightTrigger");
             map.AddAction("Secondary", InputActionType.Button, "<Mouse>/rightButton").AddBinding("<Gamepad>/buttonEast");
             var zoom = map.AddAction("Zoom", InputActionType.Value, expectedControlLayout: "Vector2"); zoom.AddBinding("<Mouse>/scroll");
+            map.AddAction("CallPet", InputActionType.Button, "<Keyboard>/c");
             return asset;
         }
 

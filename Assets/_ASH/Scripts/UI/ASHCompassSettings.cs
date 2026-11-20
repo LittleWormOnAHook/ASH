@@ -64,6 +64,8 @@ namespace ASH.UI
         [Header("GPS gating")]
         [Tooltip("On: the compass strip always shows. Off: the whole compass waits until the GPS is carried.")]
         public bool compassAlwaysVisible = true;
+        [Tooltip("TESTING: show the compass without using the Compass item (the cabin pickup). Off = hidden until the Compass item is used (saved with the game). Presets never change this.")]
+        public bool compassAlwaysOn = false;
         [Tooltip("Known POI, survey and campfire dots only appear while the GPS is in the pack, hotbar or a quick slot.")]
         public bool poiMarkersRequireGps = true;
         [Tooltip("Registered enemy (red) markers require the GPS. Off: they show whenever the compass is up.")]

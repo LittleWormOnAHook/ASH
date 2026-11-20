@@ -97,7 +97,10 @@ namespace ASH.EditorTools.Systems
             E(Recipe("Torch"), 0, 5, true, null, true);
             // cloth, rope, hunting
             E(Recipe("ClothFromShirt"), 0, 6, true, null, true);
-            E(Recipe("Rope"), 1, 6, false, P("ClothFromShirt"), true, Pick("PlantFiber"));
+            // t348: rope is a starter recipe (arrives with the manual; no Cloth from Shirt / plant fiber gate). Existing entries are
+            // upgraded in place, and old saves pick it up on load (Evaluate unlocks basics silently).
+            E(Recipe("Rope"), 1, 6, true, null, true);
+            { var re = d.Find(Recipe("Rope")); if (re != null && (!re.basic || re.parents.Count > 0 || re.conditions.Count > 0)) { re.basic = true; re.parents.Clear(); re.conditions.Clear(); added++; } }
             E(Recipe("WoodenBow"), 2, 6, false, P("Rope"), true, Made("Rope", 2), Page(5));
             E(Recipe("WoodenArrows"), 3, 6, false, P("WoodenBow"), true, Made("WoodenBow"));
             // medical

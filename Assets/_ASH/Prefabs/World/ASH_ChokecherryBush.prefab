@@ -385,11 +385,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ASH.Interaction.ASHResourceNode
   item: {fileID: 11400000, guid: 879abebf5c7aecd48a77b1d3987b6769, type: 2}
   verb: Pick
-  yieldMin: 1
-  yieldMax: 2
+  yieldMin: 3
+  yieldMax: 5
   gathers: 2
   holdSeconds: 0.8
-  respawnSeconds: 0
+  respawnSeconds: 45
   requiredTool: 0
   bonusTool: 0
   bonusYieldMultiplier: 2
