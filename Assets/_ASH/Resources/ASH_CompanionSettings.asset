@@ -187,6 +187,16 @@ MonoBehaviour:
   petCooldown: 45
   bondLossStarving: 2
   bondBonus: 0.2
+  bedColliderName: Bed collider
+  bedEdgeMargin: 0.12
+  bedHeightOffset: 0
+  bedBehaviourSeconds: {x: 5, y: 12}
+  bedWeightStand: 1
+  bedWeightSit: 1
+  bedWeightLie: 1.2
+  bedTurnSpeed: 220
+  bedMaxTurn: 70
+  passengerSeatChance: 0.25
   maxLevel: 20
   xpBase: 60
   xpExponent: 1.45

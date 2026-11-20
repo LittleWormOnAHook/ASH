@@ -21,7 +21,7 @@ namespace ASH.Companion
     /// 6+ slots, goes down instead of dying (hold E to revive). Everything saved with the game. Tunables: ASH_CompanionSettings.
     /// </summary>
     [DisallowMultipleComponent]
-    public sealed class ASHDogCompanion : MonoBehaviour, IASHUsable, IASHSaveable, vIDamageReceiver
+    public sealed partial class ASHDogCompanion : MonoBehaviour, IASHUsable, IASHSaveable, vIDamageReceiver
     {
         public static ASHDogCompanion Active { get; private set; }
         public static event Action Changed;
@@ -207,6 +207,8 @@ namespace ASH.Companion
             Needs(dt);
             Markers();
             if (Dead || Downed) { DownedUpdate(dt); Animate(dt); return; }
+            if (RideUpdate(dt)) { Animate(dt); return; }
+            if (VehicleWait()) { Animate(dt); return; }
 
             if ((_threatScanT -= dt) <= 0f) { _threatScanT = 0.4f; ScanThreats(); }
             if ((_findScanT -= dt) <= 0f) { _findScanT = S.scanInterval; ScanFinds(); }
@@ -1016,13 +1018,13 @@ namespace ASH.Companion
         [Serializable] sealed class State
         {
             public string name; public int mode, level = 1; public float xp, health = -1f, hunger = 80f, bond = 20f; public bool downed, dead;
-            public bool hasPos; public Vector3 pos, stay; public float yaw; public List<SlotState> pack = new List<SlotState>();
+            public bool hasPos, riding; public Vector3 pos, stay; public float yaw; public List<SlotState> pack = new List<SlotState>();
         }
         public string SaveKey => "dogCompanion";
         public int RestoreOrder => 30;
         public string CaptureJson()
         {
-            var s = new State { name = _name, mode = (int)Mode, level = Level, xp = Xp, health = Health, hunger = Hunger, bond = Bond, downed = Downed, dead = Dead, hasPos = true, pos = transform.position, stay = _stayPos, yaw = _yaw };
+            var s = new State { name = _name, mode = (int)Mode, level = Level, xp = Xp, health = Health, hunger = Hunger, bond = Bond, downed = Downed, dead = Dead, hasPos = true, pos = transform.position, stay = _stayPos, yaw = _yaw, riding = Riding };
             foreach (var p in _pack) s.pack.Add(p.IsEmpty ? new SlotState() : new SlotState { id = p.item.itemId, amount = p.amount, condition = p.condition });
             return JsonUtility.ToJson(s);
         }
@@ -1036,7 +1038,7 @@ namespace ASH.Companion
             if (s.hasPos) { transform.position = s.pos; _stayPos = s.stay; _yaw = s.yaw; ApplyRotation(); }
             _pack.Clear();
             if (s.pack != null) foreach (var p in s.pack) { var it = p == null || string.IsNullOrEmpty(p.id) ? null : ASHItemRegistry.I.Find(p.id); _pack.Add(it ? new PackSlot { item = it, amount = p.amount, condition = p.condition } : new PackSlot()); }
-            EnsurePack(); _pose = Downed ? Pose.Down : Pose.None; Notify();
+            EnsurePack(); _pose = Downed ? Pose.Down : Pose.None; _ride = RidePhase.None; _rideFromSave = s.riding; Notify();
         }
     }
 }

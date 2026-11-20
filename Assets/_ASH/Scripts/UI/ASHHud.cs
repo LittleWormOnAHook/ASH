@@ -711,6 +711,7 @@ namespace ASH.UI
                 {
                     if (ASHCookMenu.IsOpen) ASHCookMenu.CloseIfOpen();
                     else if (ASH.Companion.ASHDogMenu.IsOpen) ASH.Companion.ASHDogMenu.CloseIfOpen();
+                    else if (ASH.Vehicles.ASHVehicleMenu.IsOpen) ASH.Vehicles.ASHVehicleMenu.CloseIfOpen();
                     else if (AnyPanelOpen) { SetInv(false); SetCraft(false); SetMap(false); }
                     else SetPause(!ASHUIState.IsOpen(ASHPanels.Pause));
                 }
@@ -890,7 +891,7 @@ namespace ASH.UI
             ui.abbr.text = empty || s.item.icon != null ? "" : s.item.displayName.Substring(0, Mathf.Min(2, s.item.displayName.Length)).ToUpperInvariant();
             if (!empty) ui.abbr.color = Color.Lerp(s.item.uiTint, Color.white, 0.25f);
             if (ui.count) ui.count.color = Color.white;
-            ui.count.text = empty ? "" : ASHInventory.StackLimit(s.item) > 1 ? s.amount.ToString() : s.item.itemId == "water_bottle" ? $"{Mathf.RoundToInt(s.condition * 100f)}%" : ""; // bottle fill lives here (not on the HUD)
+            ui.count.text = empty ? "" : ASHInventory.StackLimit(s.item) > 1 ? s.amount.ToString() : s.item.itemId == "water_bottle" ? $"{Mathf.RoundToInt(s.condition * 100f)}%" : SlotBadge != null ? (SlotBadge(s) ?? "") : ""; // bottle fill lives here (not on the HUD)
             ui.strip.enabled = !empty;
             if (!empty) { var c = s.item.uiTint; c.a = 0.9f; ui.strip.color = c; }
         }
@@ -913,6 +914,9 @@ namespace ASH.UI
             }
         }
 
+        /// <summary>Extra slot badge / tooltip line for special items (fuel cans: litres). Null = default.</summary>
+        public static System.Func<ASHInventory.Slot, string> SlotBadge, TipExtra;
+
         void ShowTip(int i)
         {
             if (inventory == null || i >= inventory.Slots.Count || _tipTitle == null) return;
@@ -931,6 +935,7 @@ namespace ASH.UI
                 if (it.restoreStamina > 0) sb.Append($"+{it.restoreStamina:0} stamina");
                 sb.Append("</color>  <color=#a59e93>LMB to eat</color>");
             }
+            else if (TipExtra != null && TipExtra(s) is string extra && extra.Length > 0) sb.Append("\n" + extra);
             else if (it.IsPlaceable) sb.Append("\n<color=#a59e93>LMB to place</color>");
             else if (it.toolType == ASHToolType.GPS) sb.Append("\n<color=#a59e93>LMB or [M] to open the map</color>");
             else if (it.toolType != ASHToolType.None) sb.Append("\n<color=#a59e93>Tool  ·  used automatically</color>");

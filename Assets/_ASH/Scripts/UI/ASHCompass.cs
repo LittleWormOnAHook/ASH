@@ -9,7 +9,7 @@ using K = ASH.UI.ASHUIKit;
 
 namespace ASH.UI
 {
-    public enum ASHCompassMarkerKind { Poi, Survey, Campfire, Custom, Enemy }
+    public enum ASHCompassMarkerKind { Poi, Survey, Campfire, Custom, Enemy, Objective }
 
     /// <summary>A registered compass marker. Call <see cref="Unregister"/> (or <see cref="ASHCompass.Unregister"/>) to remove it.</summary>
     public sealed class ASHCompassMarker
@@ -39,6 +39,13 @@ namespace ASH.UI
         const string AutoPoi = "auto:poi:";
         const string AutoSurvey = "auto:survey:";
         const string AutoFire = "auto:campfire:";
+        public const string AutoObjective = "auto:objective:"; ASHObjectiveTracker _tracker;
+        /// <summary>Test hook: strip x (px from centre) of a shown marker, null if not shown.</summary>
+        public float? MarkerX(string id) => _views.TryGetValue(id, out var v) && v.Rect ? v.Rect.anchoredPosition.x : (float?)null;
+        public Color? MarkerColor(string id) => _views.TryGetValue(id, out var v) && v.Icon ? v.Icon.color : (Color?)null;
+        public float HalfStripWidth => _strip ? _strip.rect.width * 0.5f : 0f;
+        public bool IsVisible => _visible;
+        public Vector3 DebugPlayerPos => PlayerPosition();
 
         ASHInventory _inventory;
         ASHGpsMap _gps;
@@ -214,12 +221,13 @@ namespace ASH.UI
 
         bool KindAllowed(ASHCompassMarkerKind kind)
         {
+            if (kind == ASHCompassMarkerKind.Objective) return true; // t411: the tracked main objective never needs the GPS
             bool needGps = kind == ASHCompassMarkerKind.Enemy ? S.enemyMarkersRequireGps : S.poiMarkersRequireGps;
             return !needGps || HasGps;
         }
 
         Color ColorFor(ASHCompassMarkerKind kind) =>
-            kind == ASHCompassMarkerKind.Enemy ? S.enemyColor : S.poiColor;
+            kind == ASHCompassMarkerKind.Objective ? S.objectiveColor : kind == ASHCompassMarkerKind.Enemy ? S.enemyColor : S.poiColor;
 
         static float HeadingDegrees()
         {
@@ -469,6 +477,15 @@ namespace ASH.UI
                 }
             }
 
+            // t411: the currently tracked MAIN objective with a world target = gold dot
+            if (S.showTrackedObjective)
+            {
+                if (!_tracker) _tracker = FindAnyObjectByType<ASHObjectiveTracker>();
+                var o = _tracker ? _tracker.Tracked : null;
+                var tp = o != null && o.Main && !o.Completed && o.Target != null ? o.Target() : null;
+                if (tp.HasValue) PlaceAuto(AutoObjective + o.Id, tp.Value, ASHCompassMarkerKind.Objective);
+            }
+
             _stale.Clear();
             foreach (var pair in _markers)
             {
@@ -512,14 +529,15 @@ namespace ASH.UI
                 Vector3 pos = m.Position;
                 Vector3 flat = pos - playerPos; flat.y = 0f;
                 float dist = flat.magnitude;
-                if (dist > maxDist) continue;
+                bool obj = m.Kind == ASHCompassMarkerKind.Objective;
+                if (dist > maxDist && !obj) continue;
 
                 float bearing = BearingTo(playerPos, pos);
                 float delta = Mathf.DeltaAngle(heading, bearing);
                 bool off = Mathf.Abs(delta) > halfFov;
-                if (off && !S.clampOffArcToEdge) continue;
+                if (off && !S.clampOffArcToEdge && !(obj && S.objectiveClampToEdge)) continue;
                 if (off) delta = Mathf.Sign(delta) * halfFov;
-                if (shown >= S.maxVisibleMarkers) continue;
+                if (shown >= S.maxVisibleMarkers && !obj) continue;
                 shown++;
                 _seen.Add(m.Id);
 
@@ -530,7 +548,7 @@ namespace ASH.UI
                 }
 
                 Color col = m.Color.a > 0f ? m.Color : ColorFor(m.Kind);
-                if (S.fadeByDistance)
+                if (S.fadeByDistance && !obj)
                 {
                     float t = dist / maxDist;
                     float fade = t <= S.fadeStartNormalized ? 1f
@@ -538,7 +556,10 @@ namespace ASH.UI
                     col.a *= fade;
                 }
                 view.Icon.color = col;
-                view.Icon.rectTransform.sizeDelta = new Vector2(S.markerSize, S.markerSize);
+                float ms = obj ? S.objectiveMarkerSize : S.markerSize;
+                if (obj) { view.Rect.SetAsLastSibling(); if (off) col.a *= S.objectiveEdgeAlpha; }
+                view.Icon.color = col;
+                view.Icon.rectTransform.sizeDelta = new Vector2(ms, ms);
                 if (view.Distance)
                 {
                     bool show = S.showDistanceText;

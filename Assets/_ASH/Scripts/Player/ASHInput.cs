@@ -139,39 +139,46 @@ namespace ASH.Player
         public float SimZoomRaw;
         public float Zoom { get { if (SimZoomRaw != 0f) { float z = SimZoomRaw / 1200f; SimZoomRaw = 0f; return z; } return GameplayBlocked || SuppressZoom ? 0f : _zoom.ReadValue<Vector2>().y / 1200f; } }
         public bool SprintHeld => SimSprint ?? (!GameplayBlocked && _sprint.IsPressed());
-        public bool JumpPressed => Consume(ref SimJump) || (!GameplayBlocked && _jump.WasPressedThisFrame());
-        public bool CrouchPressed => Consume(ref SimCrouch) || (!GameplayBlocked && _crouch.WasPressedThisFrame());
+        public bool JumpPressed => Consume(ref SimJump) || (!GameplayBlocked && !VehicleMode && _jump.WasPressedThisFrame());
+        public bool CrouchPressed => Consume(ref SimCrouch) || (!GameplayBlocked && !VehicleMode && _crouch.WasPressedThisFrame());
         public bool WalkTogglePressed => !GameplayBlocked && _walk.WasPressedThisFrame();
         public bool InteractPressed => Consume(ref SimInteractPressed) || (!GameplayBlocked && _interact.WasPressedThisFrame());
         public bool InteractHeld => SimInteractHeld ?? (!GameplayBlocked && _interact.IsPressed());
-        public bool InventoryPressed => Consume(ref SimInventory) || _inventory.WasPressedThisFrame();
+        public bool InventoryPressed => Consume(ref SimInventory) || (_inventory.WasPressedThisFrame() && !(VehicleMode && Keyboard.current != null && Keyboard.current.tabKey.wasPressedThisFrame));
+        /// <summary>Set while driving a vehicle (ASHVehicle): Tab = camera view instead of inventory, L = headlights instead of the held light,
+        /// weapons / hotbar / jump / call-pet are off.</summary>
+        public static bool VehicleMode;
+        /// <summary>Driving: Tab switches 3rd / 1st person.</summary>
+        public bool VehicleCameraPressed => VehicleMode && !GameplayBlocked && Keyboard.current != null && Keyboard.current.tabKey.wasPressedThisFrame;
+        /// <summary>Driving: the light key (L) toggles the headlights.</summary>
+        public bool VehicleLightsPressed => VehicleMode && !GameplayBlocked && KeyHit(_lightToggle, UnityEngine.InputSystem.Key.L);
         public bool CraftPressed => Consume(ref SimCraft) || _craft.WasPressedThisFrame();
         /// <summary>Test hook: Esc counts as pressed on this frame number (every reader sees it that frame).</summary>
         public int SimPauseFrame = -1;
         public bool PausePressed => SimPauseFrame == Time.frameCount || _pause.WasPressedThisFrame();
-        public bool PrimaryPressed => Consume(ref SimPrimary) || (!IgnoreDevices && _primary.WasPressedThisFrame());
-        public bool SecondaryPressed => Consume(ref SimSecondary) || (!IgnoreDevices && _secondary.WasPressedThisFrame());
+        public bool PrimaryPressed => Consume(ref SimPrimary) || (!IgnoreDevices && !VehicleMode && _primary.WasPressedThisFrame());
+        public bool SecondaryPressed => Consume(ref SimSecondary) || (!IgnoreDevices && !VehicleMode && _secondary.WasPressedThisFrame());
         public bool? SimSecondaryHeld;
         /// <summary>Test harness: 0..1 holds an Invector charge weapon (bow) at that draw while aimed; -1 = off (going to -1 releases = shot).</summary>
         public float SimDraw = -1f;
         /// <summary>Held Secondary (RMB): aim a torch/flashlight.</summary>
-        public bool SecondaryHeld => SimSecondaryHeld ?? (!GameplayBlocked && (_secondary.IsPressed() || (_aimAlt != null && _aimAlt.IsPressed())));
+        public bool SecondaryHeld => SimSecondaryHeld ?? (!GameplayBlocked && !VehicleMode && (_secondary.IsPressed() || (_aimAlt != null && _aimAlt.IsPressed())));
         /// <summary>Index of a hotbar key (1..9 -> 0..8) pressed this frame, or -1.</summary>
         public int HotbarPressed
         {
             get
             {
                 if (SimHotbar >= 0) { int s = SimHotbar; SimHotbar = -1; return s; }
-                var kb = Keyboard.current; if (kb == null || ASHUIState.IsOpen(ASHPanels.Pause)) return -1;
+                var kb = Keyboard.current; if (kb == null || VehicleMode || ASHUIState.IsOpen(ASHPanels.Pause)) return -1;
                 for (int i = 0; i < 9; i++) if (kb[Key.Digit1 + i].wasPressedThisFrame || kb[Key.Numpad1 + i].wasPressedThisFrame) return i;
                 return -1;
             }
         }
         public bool SimJournal, SimMap, SimBreakDown, SimLight, SimCallPet;
         /// <summary>Call / whistle the dog companion to you (C; ASH_InputActions CallPet).</summary>
-        public bool CallPetPressed => Consume(ref SimCallPet) || (!GameplayBlocked && KeyHit(_callPet, UnityEngine.InputSystem.Key.C));
+        public bool CallPetPressed => Consume(ref SimCallPet) || (!GameplayBlocked && !VehicleMode && KeyHit(_callPet, UnityEngine.InputSystem.Key.C));
         /// <summary>Toggle the held light (lantern/torch/flashlight). L by default.</summary>
-        public bool LightPressed => Consume(ref SimLight) || (!GameplayBlocked && KeyHit(_lightToggle, UnityEngine.InputSystem.Key.L));
+        public bool LightPressed => Consume(ref SimLight) || (!GameplayBlocked && !VehicleMode && KeyHit(_lightToggle, UnityEngine.InputSystem.Key.L));
         public bool JournalPressed => Consume(ref SimJournal) || KeyHit(_journal, UnityEngine.InputSystem.Key.J);
         public bool MapPressed => Consume(ref SimMap) || KeyHit(_map, UnityEngine.InputSystem.Key.M);
         public bool BreakDownPressed => Consume(ref SimBreakDown) || KeyHit(_breakDown, UnityEngine.InputSystem.Key.B);

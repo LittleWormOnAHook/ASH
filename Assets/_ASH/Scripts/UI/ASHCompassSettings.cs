@@ -53,6 +53,12 @@ namespace ASH.UI
         [Header("Colors")]
         public Color poiColor = new Color(0.38f, 0.72f, 1f, 1f);
         public Color enemyColor = new Color(0.95f, 0.28f, 0.24f, 1f);
+        [Header("Tracked objective (t411)")]
+        [Tooltip("Gold dot for the currently tracked MAIN objective (needs a world target).")] public bool showTrackedObjective = true;
+        [Tooltip("Gold #FFC83D by default.")] public Color objectiveColor = new Color(1f, 0.784f, 0.239f, 1f);
+        [Range(4f, 48f)] public float objectiveMarkerSize = 14f;
+        [Tooltip("Pin the objective dot to the strip edge when it is behind you (other markers follow clampOffArcToEdge).")] public bool objectiveClampToEdge = true;
+        [Tooltip("Dot alpha while pinned to the edge.")] [Range(0f, 1f)] public float objectiveEdgeAlpha = 0.6f;
         public Color cardinalColor = new Color(0.95f, 0.78f, 0.42f, 1f);
         public Color northColor = new Color(0.95f, 0.5f, 0.42f, 1f);
         public Color tickColor = new Color(0.93f, 0.9f, 0.84f, 0.7f);

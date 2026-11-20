@@ -116,6 +116,7 @@ namespace ASH.EditorTools.Build
             it.toolType = ASHToolType.None; it.requiresOpener = false; it.leftoverItem = null; it.breakdownYield = new List<ASHRecipeIngredient>();
             d.extra?.Invoke(it);
             EditorUtility.SetDirty(it);
+            if (ASHVehicleItems.IsVehicleItem(d.file)) { ASHVehicleItems.ConfigureAll(); return; } // vehicle parts keep their own names + models (t362)
             PickupPrefab(d, it); // every item gets a prefab (icon source); 'pickup' only marks world placement
         }
 

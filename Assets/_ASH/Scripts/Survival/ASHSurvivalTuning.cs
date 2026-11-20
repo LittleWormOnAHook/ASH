@@ -41,6 +41,11 @@ namespace ASH.Survival
         [Range(0f, 100f)] public float sprintDrainPerSecond = 12f;
         [Range(0f, 100f)] public float staminaRecoveryPerSecond = 16f;
         [Range(0f, 100f)] public float jumpStaminaCost = 12f;
+        [Header("Exertion (t412): stamina spent drains needs, thirst more than hunger; regen never counts")]
+        [Tooltip("Hunger lost per stamina point spent. 0.008 = a full 100-point bar costs 0.8 hunger.")]
+        [Range(0f, 0.5f)] public float staminaHungerPerPoint = 0.008f;
+        [Tooltip("Thirst lost per stamina point spent. 0.02 = a full 100-point bar costs 2 thirst (non-stop sprinting adds ~8 thirst/min on top of normal decay).")]
+        [Range(0f, 0.5f)] public float staminaThirstPerPoint = 0.02f;
         [Tooltip("Recovery multiplier when hunger or thirst is low.")]
         [Range(0f, 1f)] public float lowNeedsRecoveryMultiplier = 0.5f;
 

@@ -95,6 +95,10 @@ namespace ASH.Gameplay
         public sealed class Objective
         {
             public string Id, Title; public bool Completed, Priority; public int Order;
+            /// <summary>t411: main (story) objective - the tracked one shows as a gold compass dot. Side objectives: false.</summary>
+            public bool Main;
+            /// <summary>t411: optional world target for the compass (null / returns null = no dot).</summary>
+            public Func<Vector3?> Target;
             public Func<IEnumerable<(string text, bool done)>> Lines;
             internal List<(string text, bool done)> Frozen;
             public IEnumerable<(string text, bool done)> GetLines() { if (Frozen != null) return Frozen; return Lines != null ? Lines() : Array.Empty<(string, bool)>(); }
@@ -111,7 +115,7 @@ namespace ASH.Gameplay
         void EnsureSlice()
         {
             if (_slice != null) return;
-            _slice = new Objective { Id = "slice", Order = _order++, Lines = SliceLines };
+            _slice = new Objective { Id = "slice", Order = _order++, Lines = SliceLines, Main = true, Target = SliceTarget };
             _objectives.Add(_slice);
         }
 
@@ -141,11 +145,11 @@ namespace ASH.Gameplay
         }
 
         /// <summary>Add or update an objective (other systems / future quests). New ones become the newest.</summary>
-        public Objective Register(string id, string title, Func<IEnumerable<(string text, bool done)>> lines, bool takeFocus = false)
+        public Objective Register(string id, string title, Func<IEnumerable<(string text, bool done)>> lines, bool takeFocus = false, bool main = false, Func<Vector3?> target = null)
         {
             var o = Find(id);
             if (o == null) { o = new Objective { Id = id, Order = _order++ }; _objectives.Add(o); if (takeFocus) { TrackedId = id; PlayerPicked = false; } }
-            o.Title = title; o.Lines = lines; o.Completed = false; o.Frozen = null;
+            o.Title = title; o.Lines = lines; o.Completed = false; o.Frozen = null; o.Main = main; o.Target = target;
             Changed?.Invoke(); return o;
         }
         public void Complete(string id, string message = null)
@@ -177,7 +181,7 @@ namespace ASH.Gameplay
         Objective ActivePriority() { foreach (var o in _objectives) if (o.Priority && !o.Completed) return o; return null; }
         public bool HasPriority => ActivePriority() != null;
         public string PriorityTitle => ActivePriority()?.Title;
-        public void SetPriority(string title, Func<IEnumerable<(string text, bool done)>> lines, string message = null)
+        public void SetPriority(string title, Func<IEnumerable<(string text, bool done)>> lines, string message = null, Func<Vector3?> target = null)
         {
             EnsureSlice();
             var o = ActivePriority();
@@ -186,7 +190,7 @@ namespace ASH.Gameplay
                 o = new Objective { Id = "story-" + _order, Order = _order++, Priority = true }; _objectives.Add(o);
                 TrackedId = o.Id; PlayerPicked = false; TrackedChanged?.Invoke(TrackedId); // story beats take the focus when they start
             }
-            o.Title = title; o.Lines = lines;
+            o.Title = title; o.Lines = lines; o.Main = true; if (target != null) o.Target = target;
             ASHLog.Info("Objective (priority) -> " + title);
             if (!string.IsNullOrEmpty(message)) Message?.Invoke(message);
             Changed?.Invoke();
@@ -322,6 +326,13 @@ namespace ASH.Gameplay
             }
             else if (Current == Stage.MakeCamp) yield return ("Place the campfire at the old campsite", false);
             else yield return ("Night falls on the prairie. Thanks for playing the slice.", true);
+        }
+
+        /// <summary>t411: world target of the slice step for the compass (survey point / overlook / campsite; none while gathering or crafting).</summary>
+        Vector3? SliceTarget()
+        {
+            var t = Current == Stage.Survey ? firstSurveyPoint : Current == Stage.Travel ? overlook : Current == Stage.MakeCamp ? campsite : null;
+            return t ? t.position : (Vector3?)null;
         }
 
         public float DistanceToGoal()

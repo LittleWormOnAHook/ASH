@@ -13,13 +13,16 @@ MonoBehaviour:
   m_Name: ASH_Item_FanBelt
   m_EditorClassIdentifier: Assembly-CSharp::ASH.Inventory.ASHItemDefinition
   itemId: fanbelt
-  displayName: Fan Belt (optional)
-  description: 'Optional truck content: undecided.'
+  displayName: Fan Belt
+  description: A ribbed rubber engine belt. Without one the engine won't run. Fit
+    it from a vehicle's Repair menu.
   icon: {fileID: 21300000, guid: 8bd9d12b88bac4e4c88da1ab05f6e863, type: 3}
-  uiTint: {r: 0.18, g: 0.16, b: 0.14, a: 1}
-  category: 6
+  uiTint: {r: 0.2, g: 0.18, b: 0.16, a: 1}
+  category: 4
   maxStack: 2
+  sellValue: 6
   useVerb: Use
+  keyItem: 0
   restoreHunger: 0
   restoreThirst: 0
   restoreHealth: 0
@@ -27,6 +30,10 @@ MonoBehaviour:
   requiresOpener: 0
   smashedYield: 0.65
   leftoverItem: {fileID: 0}
+  sicknessChance: 0
+  sicknessHealthLoss: 8
+  sicknessThirstLoss: 10
+  sicknessHungerLoss: 6
   toolType: 0
   breakdownYield: []
   breakdownTool: 0
@@ -44,6 +51,7 @@ MonoBehaviour:
   gripStyle: 0
   heldScale: 1
   ammoItem: {fileID: 0}
+  containerLitres: 0
   fuelItem: {fileID: 0}
   fuelSecondsPerUnit: 480
   fuelCapacityUnits: 2

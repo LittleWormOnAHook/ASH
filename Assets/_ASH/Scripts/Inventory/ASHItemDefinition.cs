@@ -94,6 +94,8 @@ namespace ASH.Inventory
         [Range(0.1f, 3f)] public float heldScale = 1f;
         [Tooltip("Weapons: ammo consumed by a shot (rifle rounds, pistol rounds, arrows).")]
         public ASHItemDefinition ammoItem;
+        [Header("Fuel container (t362)")]
+        [Tooltip("Fuel container (jerry can): litres it holds; the slot's condition is how full it is. 0 = not a fuel can.")] [Min(0f)] public float containerLitres;
 
         [Header("Light source (lantern, torch, flashlight)")]
         [Tooltip("Fuel item poured in from the pack (rubbing alcohol, battery). None = the item burns itself (torch).")]

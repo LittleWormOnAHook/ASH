@@ -111,10 +111,12 @@ namespace ASH.Interaction
             // Ray must reach past the camera boom: camera-to-player distance + use range.
             float camToPlayer = Vector3.Distance(ctx.ViewRay.origin, _playerRoot.position + Vector3.up * 1.4f);
             float maxDist = camToPlayer + useRange + 1f;
+            // t385: vehicle bodies live on Ignore Raycast (so their wheels can't stand on them); include it, but only usables count there
+            int mask = interactMask | (1 << 2);
 
-            IASHUsable best = Probe(ctx, Physics.RaycastNonAlloc(ctx.ViewRay, _hits, maxDist, interactMask, QueryTriggerInteraction.Collide));
+            IASHUsable best = Probe(ctx, Physics.RaycastNonAlloc(ctx.ViewRay, _hits, maxDist, mask, QueryTriggerInteraction.Collide));
             if (best == null && aimAssistRadius > 0f)
-                best = Probe(ctx, Physics.SphereCastNonAlloc(ctx.ViewRay, aimAssistRadius, _hits, maxDist, interactMask, QueryTriggerInteraction.Collide));
+                best = Probe(ctx, Physics.SphereCastNonAlloc(ctx.ViewRay, aimAssistRadius, _hits, maxDist, mask, QueryTriggerInteraction.Collide));
             return best;
         }
 
@@ -131,7 +133,7 @@ namespace ASH.Interaction
                 var usable = h.collider.GetComponentInParent<IASHUsable>();
                 if (usable == null)
                 {
-                    if (!h.collider.isTrigger && h.distance > 0f) nearestBlocker = Mathf.Min(nearestBlocker, h.distance);
+                    if (!h.collider.isTrigger && h.distance > 0f && (interactMask & (1 << h.collider.gameObject.layer)) != 0) nearestBlocker = Mathf.Min(nearestBlocker, h.distance);
                     continue;
                 }
                 if (h.distance > nearestBlocker + 0.05f) continue;

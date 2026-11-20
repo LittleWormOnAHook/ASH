@@ -37,7 +37,7 @@ namespace ASH.UI
         {
             _title.text = _mode == Mode.Save ? "SAVE GAME" : "LOAD GAME";
             K.Clear(_list);
-            if (_mode == Mode.Load) Slot(ASHSaveSystem.AutoSlot, "Autosave");
+            Slot(ASHSaveSystem.AutoSlot, "Autosave"); // t413: always on top; written only by autosave (slot_auto.json)
             int n = ASHSaveSettings.I.manualSlots;
             for (int i = 1; i <= n; i++) Slot(i.ToString(), $"Slot {i}");
         }
@@ -53,7 +53,9 @@ namespace ASH.UI
             string info = d == null ? "<color=#857d72>Empty</color>"
                 : $"{d.location}   ·   {d.weather}{(string.IsNullOrEmpty(d.timeOfDay) ? "" : "   ·   " + d.timeOfDay)}\n<color=#a59e93>Played {W.PlayTime(d.playSeconds)}   ·   saved {d.savedAt}</color>";
             K.Text(K.At("Info", row, new Vector2(0, 1), new Vector2(20, -44), new Vector2(900, 50)), info, 18, K.Ink, TextAnchor.UpperLeft);
-            bool ok = _mode == Mode.Save ? ASHSaveSystem.Instance != null : d != null;
+            bool auto = slot == ASHSaveSystem.AutoSlot;
+            if (auto && _mode == Mode.Save) K.Text(K.At("Note", row, new Vector2(1, 1), new Vector2(-320, -10), new Vector2(300, 34)), "<color=#857d72>Saved automatically</color>", 16, K.Ink, TextAnchor.MiddleRight);
+            bool ok = _mode == Mode.Save ? ASHSaveSystem.Instance != null && !auto : d != null;
             b.interactable = ok;
             b.onClick.AddListener(() => Pick(slot, d));
         }
@@ -63,6 +65,7 @@ namespace ASH.UI
             var host = (RectTransform)transform.parent;
             if (_mode == Mode.Save)
             {
+                if (slot == ASHSaveSystem.AutoSlot) return;
                 void DoSave() { if (ASHSaveSystem.Instance && ASHSaveSystem.Instance.Save(slot)) Rebuild(); }
                 if (d != null) W.Confirm(host, $"Overwrite {(slot == ASHSaveSystem.AutoSlot ? "the autosave" : "slot " + slot)}?\n<size=18><color=#a59e93>{d.location} · {d.savedAt}</color></size>", "OVERWRITE", "CANCEL", DoSave);
                 else DoSave();

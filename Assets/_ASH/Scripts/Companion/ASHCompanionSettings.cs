@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -188,6 +188,18 @@ namespace ASH.Companion
         [Range(1f, 600f)] public float petCooldown = 45f;
         [Tooltip("Bond lost per game hour while starving.")] [Range(0f, 20f)] public float bondLossStarving = 2f;
         [Tooltip("At full bond the dog runs this much faster to catch up and gains this much more XP.")] [Range(0f, 1f)] public float bondBonus = 0.2f;
+
+        [Header("Truck ride: bed poses (t389/t391: stand, sit, lie; no pacing / paws up)")]
+        [Tooltip("Name of the collider the dog stands on in the pickup bed (searched under the vehicle, then the scene).")] public string bedColliderName = "Bed collider";
+        [Tooltip("Keep the dog's body this far inside the bed edges, metres.")] [Range(0f, 0.8f)] public float bedEdgeMargin = 0.12f;
+        [Tooltip("Raise / lower the dog above the bed collider's top, metres.")] [Range(-0.3f, 0.3f)] public float bedHeightOffset = 0f;
+        [Tooltip("Seconds each bed behaviour lasts (random in range).")] public Vector2 bedBehaviourSeconds = new Vector2(5f, 12f);
+        [Range(0f, 10f)] public float bedWeightStand = 1f;
+        [Range(0f, 10f)] public float bedWeightSit = 1f;
+        [Range(0f, 10f)] public float bedWeightLie = 1.2f;
+        [Tooltip("Turn speed in the bed, degrees/s.")] [Range(30f, 720f)] public float bedTurnSpeed = 220f;
+        [Tooltip("Standing / sitting: random facing within this many degrees of forward when the pose changes.")] [Range(0f, 180f)] public float bedMaxTurn = 70f;
+        [Tooltip("Chance (0-1) the dog rides in the truck's passenger seat instead of the bed.")] [Range(0f, 1f)] public float passengerSeatChance = 0.25f;
 
         [Header("Levels")]
         [Range(1, 100)] public int maxLevel = 20;

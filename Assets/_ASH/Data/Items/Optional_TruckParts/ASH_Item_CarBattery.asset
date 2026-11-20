@@ -13,13 +13,16 @@ MonoBehaviour:
   m_Name: ASH_Item_CarBattery
   m_EditorClassIdentifier: Assembly-CSharp::ASH.Inventory.ASHItemDefinition
   itemId: carbattery
-  displayName: Car Battery (optional)
-  description: 'Optional truck content: undecided.'
+  displayName: Car Battery
+  description: A 12 volt lead-acid battery, still holding a charge. Fit it from a
+    vehicle's Repair menu.
   icon: {fileID: 21300000, guid: c205001498fecda468ae6f71ffd08aeb, type: 3}
-  uiTint: {r: 0.2, g: 0.2, b: 0.22, a: 1}
-  category: 6
+  uiTint: {r: 0.25, g: 0.25, b: 0.27, a: 1}
+  category: 4
   maxStack: 1
+  sellValue: 25
   useVerb: Use
+  keyItem: 0
   restoreHunger: 0
   restoreThirst: 0
   restoreHealth: 0
@@ -27,6 +30,10 @@ MonoBehaviour:
   requiresOpener: 0
   smashedYield: 0.65
   leftoverItem: {fileID: 0}
+  sicknessChance: 0
+  sicknessHealthLoss: 8
+  sicknessThirstLoss: 10
+  sicknessHungerLoss: 6
   toolType: 0
   breakdownYield: []
   breakdownTool: 0
@@ -44,6 +51,7 @@ MonoBehaviour:
   gripStyle: 0
   heldScale: 1
   ammoItem: {fileID: 0}
+  containerLitres: 0
   fuelItem: {fileID: 0}
   fuelSecondsPerUnit: 480
   fuelCapacityUnits: 2

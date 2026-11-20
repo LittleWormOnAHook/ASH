@@ -103,7 +103,23 @@ namespace ASH.Survival
 
         public void SetStaminaFromMotor(float current, float max)
         {
-            Stamina = max > 0f ? Mathf.Clamp(current / max * MaxStamina, 0f, MaxStamina) : 0f;
+            float next = max > 0f ? Mathf.Clamp(current / max * MaxStamina, 0f, MaxStamina) : 0f;
+            // t412: stamina SPENT (drops only; regen never counts) drains hunger a little and thirst more
+            float spent = Mathf.Min(Stamina - next, MaxStamina);
+            if (spent > 0f && !IsDead && !Paused && Time.timeScale > 0f) ApplyExertion(spent);
+            Stamina = next;
+        }
+
+        /// <summary>Total hunger / thirst taken by stamina use this session (debug).</summary>
+        public float ExertionHunger { get; private set; }
+        public float ExertionThirst { get; private set; }
+        /// <summary>t412: drain needs for stamina points spent (sprint, attacks, jumps, rolls...).</summary>
+        public void ApplyExertion(float staminaSpent)
+        {
+            if (staminaSpent <= 0f) return;
+            float h = staminaSpent * tuning.staminaHungerPerPoint, t = staminaSpent * tuning.staminaThirstPerPoint;
+            Hunger = Mathf.Max(0f, Hunger - h); Thirst = Mathf.Max(0f, Thirst - t);
+            ExertionHunger += h; ExertionThirst += t;
         }
 
         public void Damage(float amount, bool resetsRegen = true)

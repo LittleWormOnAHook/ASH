@@ -52,6 +52,10 @@ TagManager:
   - Walkable
   - Bullet
   - Climbable
+  - charaVoiceOverAudioSource
+  - Head
+  - a_Listener
+  - Trailer
   layers:
   - Default
   - TransparentFX
