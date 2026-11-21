@@ -56,6 +56,14 @@ namespace ASH.Wildlife.Birds
             [Range(0.5f, 120f)] public float callIntervalMin = 4f;
             [Range(0.5f, 240f)] public float callIntervalMax = 14f;
 
+            [Header("Attack (bigger birds only)")]
+            [Tooltip("This type can be an attacker (crows / ravens). Small songbirds should stay off.")]
+            public bool canAttack;
+            [Tooltip("Share of this type's ambient birds that are attackers (the rest just flee).")]
+            [Range(0f, 1f)] public float attackerChance = 0.25f;
+            [Tooltip("Set by Setup Birds once; untick to re-apply attack defaults for this type.")]
+            public bool attackDefaultsApplied;
+
             [Header("Harvest")]
             [Range(0, 20)] public int feathersMin = 2;
             [Range(0, 20)] public int feathersMax = 4;
@@ -145,12 +153,48 @@ namespace ASH.Wildlife.Birds
         [Range(5f, 300f)] public float audioMaxDistance = 70f;
         [Range(1, 16)] public int audioVoices = 6;
 
+        [Header("Attack birds (crows / ravens; Play-editable)")]
+        public bool attackBirdsEnabled = true;
+        [Tooltip("Chance an attacker actually attacks when triggered (shot at / near miss / flock-mate shot).")]
+        [Range(0f, 1f)] public float attackOnShotChance = 0.85f;
+        [Tooltip("A shot fired within this distance of an attacker counts as being shot at.")]
+        [Range(5f, 200f)] public float attackTriggerMeters = 45f;
+        [Tooltip("Chance the attacker goes for the dog instead of the player (when the dog is around and not downed).")]
+        [Range(0f, 1f)] public float dogTargetChance = 0.35f;
+        [Range(0f, 50f)] public float playerDamage = 4f;
+        [Range(0f, 50f)] public float dogDamage = 2f;
+        [Range(1, 12)] public int passesMin = 2;
+        [Range(1, 12)] public int passesMax = 4;
+        [Tooltip("Flight speed multiplier while attacking.")]
+        [Range(0.5f, 4f)] public float attackSpeedMul = 1.6f;
+        [Tooltip("Height above the target to climb to before each dive.")]
+        [Range(2f, 30f)] public float climbHeight = 7f;
+        [Tooltip("How far out to the side each climb point is.")]
+        [Range(2f, 30f)] public float climbRadius = 9f;
+        [Range(0.3f, 4f)] public float hitRadius = 1.1f;
+        [Range(1f, 15f)] public float diveTimeout = 5f;
+        [Tooltip("Seconds before the same bird can attack again.")]
+        [Range(0f, 900f)] public float attackCooldown = 60f;
+        [Tooltip("Played at the start of each dive (empty = take-off flaps). The bird also caws.")]
+        public AudioClip[] swoopClips;
+        [Range(0f, 1.5f)] public float swoopVolume = 0.9f;
+
+        [Header("Bird spots (ASH_Bird_AggressiveCrowSpot prefab)")]
+        [Tooltip("Spots spawn their group when the player is within the spot's activate distance.")]
+        [Range(0.2f, 10f)] public float spotCheckInterval = 1f;
+
         [Header("Death / harvest")]
         [Range(1f, 40f)] public float gravity = 14f;
         [Range(10f, 3600f)] public float deadLifetime = 600f;
         [Range(0.2f, 10f)] public float harvestHold = 1.4f;
         public ASHItemDefinition featherItem;
         public ASHItemDefinition meatItem;
+
+        public BirdType Find(string id)
+        {
+            foreach (var t in types) if (t != null && t.id == id) return t;
+            return null;
+        }
 
         public BirdType Pick(System.Random rng)
         {

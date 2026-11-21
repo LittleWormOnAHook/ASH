@@ -45,8 +45,10 @@ namespace ASH.EditorTools
             var prefab = BuildPrefab(mat, ctrl);
             var items = EnsureItemsAndRecipes();
             var s = EnsureSettings(prefab, items.feather, items.meat);
+            EnsureSpotPrefab("ASH_Bird_AggressiveCrowSpot", "crow");
+            EnsureSpotPrefab("ASH_Bird_AggressiveRavenSpot", "raven");
             AssetDatabase.SaveAssets();
-            Debug.Log($"[ASH] Birds ready: prefab {PrefabPath}, {s.types.Count} types, settings {SettingsPath}. Items: feather, rawsmallmeat, cookedsmallmeat. Recipes: cooksmallmeat, fletchedarrows.");
+            Debug.Log($"[ASH] Birds ready: prefab {PrefabPath}, {s.types.Count} types, settings {SettingsPath}. Items: feather, rawsmallmeat, cookedsmallmeat. Recipes: cooksmallmeat, fletchedarrows. Spots: {PrefabDir}/ASH_Bird_AggressiveCrowSpot / RavenSpot.");
         }
 
         // ------------------------------------------------------------------ import
@@ -227,6 +229,24 @@ namespace ASH.EditorTools
             return b;
         }
 
+        /// <summary>Drag-in roost spot: spawns a resident group of attacker birds of one type around itself (no scene edits by setup).</summary>
+        static void EnsureSpotPrefab(string name, string typeId)
+        {
+            ASHMenuInstaller.Folder(PrefabDir);
+            string path = PrefabDir + "/" + name + ".prefab";
+            if (AssetDatabase.LoadAssetAtPath<GameObject>(path)) return; // keep his tuning
+            var go = new GameObject(name);
+            try
+            {
+                var spot = go.AddComponent<ASHBirdSpot>();
+                spot.typeId = typeId;
+                spot.countMin = 2; spot.countMax = typeId == "raven" ? 3 : 4;
+                spot.aggressiveFraction = 1f;
+                PrefabUtility.SaveAsPrefabAsset(go, path);
+            }
+            finally { Object.DestroyImmediate(go); }
+        }
+
         // ------------------------------------------------------------------ items + recipes
         static (ASHItemDefinition feather, ASHItemDefinition meat) EnsureItemsAndRecipes()
         {
@@ -318,6 +338,15 @@ namespace ASH.EditorTools
             if (s.takeOffClips == null || s.takeOffClips.Length == 0 || s.takeOffClips.All(c => !c))
                 s.takeOffClips = A("Assets/Malbers Animations/Common/Audio/Wings/Flap Wing 1.wav", "Assets/Malbers Animations/Common/Audio/Wings/Flap Wing 2.wav",
                                    "Assets/Malbers Animations/Common/Audio/Wings/Wing Flap 02.wav");
+            foreach (var t in s.types)
+            {
+                if (t == null || t.attackDefaultsApplied) continue;
+                t.canAttack = t.id == "crow" || t.id == "raven";
+                t.attackerChance = t.id == "raven" ? 0.35f : (t.id == "crow" ? 0.2f : 0f);
+                t.attackDefaultsApplied = true;
+            }
+            if (s.swoopClips == null || s.swoopClips.Length == 0 || s.swoopClips.All(c => !c))
+                s.swoopClips = A("Assets/Malbers Animations/Common/Audio/Wings/Wing Flap Big1.wav", "Assets/Malbers Animations/Common/Audio/Wings/wing-flap-Big.wav");
             if (s.deathClips == null || s.deathClips.Length == 0 || s.deathClips.All(c => !c))
                 s.deathClips = A("Assets/Malbers Animations/Common/Audio/Wings/Wing Flap 02.wav");
             EditorUtility.SetDirty(s);

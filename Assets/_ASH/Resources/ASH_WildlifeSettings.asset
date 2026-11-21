@@ -114,6 +114,9 @@ MonoBehaviour:
     surpriseBurstMul: 1.15
     surpriseState: 
     m3SurpriseApplied: 1
+    temperamentMin: 0.15
+    temperamentMax: 0.9
+    m4TemperamentApplied: 1
     drops:
     - item: {fileID: 11400000, guid: 49aeecd77bdc047408ab2bf59e2992fc, type: 2}
       min: 1
@@ -225,6 +228,9 @@ MonoBehaviour:
     surpriseBurstMul: 1.1
     surpriseState: 
     m3SurpriseApplied: 1
+    temperamentMin: 0.2
+    temperamentMax: 0.65
+    m4TemperamentApplied: 1
     drops:
     - item: {fileID: 11400000, guid: 49aeecd77bdc047408ab2bf59e2992fc, type: 2}
       min: 2
@@ -336,6 +342,9 @@ MonoBehaviour:
     surpriseBurstMul: 1.6
     surpriseState: 
     m3SurpriseApplied: 1
+    temperamentMin: 0
+    temperamentMax: 1
+    m4TemperamentApplied: 0
     drops:
     - item: {fileID: 11400000, guid: 49aeecd77bdc047408ab2bf59e2992fc, type: 2}
       min: 1
@@ -451,6 +460,9 @@ MonoBehaviour:
     surpriseBurstMul: 1.3
     surpriseState: 
     m3SurpriseApplied: 1
+    temperamentMin: 0
+    temperamentMax: 1
+    m4TemperamentApplied: 0
     drops:
     - item: {fileID: 11400000, guid: 49aeecd77bdc047408ab2bf59e2992fc, type: 2}
       min: 1
@@ -566,6 +578,9 @@ MonoBehaviour:
     surpriseBurstMul: 1.3
     surpriseState: 
     m3SurpriseApplied: 1
+    temperamentMin: 0
+    temperamentMax: 1
+    m4TemperamentApplied: 0
     drops:
     - item: {fileID: 11400000, guid: 49aeecd77bdc047408ab2bf59e2992fc, type: 2}
       min: 1
@@ -681,6 +696,9 @@ MonoBehaviour:
     surpriseBurstMul: 1.25
     surpriseState: 
     m3SurpriseApplied: 1
+    temperamentMin: 0
+    temperamentMax: 1
+    m4TemperamentApplied: 0
     drops:
     - item: {fileID: 11400000, guid: 49aeecd77bdc047408ab2bf59e2992fc, type: 2}
       min: 2
@@ -800,6 +818,9 @@ MonoBehaviour:
     surpriseBurstMul: 1.2
     surpriseState: 
     m3SurpriseApplied: 1
+    temperamentMin: 0
+    temperamentMax: 1
+    m4TemperamentApplied: 0
     drops:
     - item: {fileID: 11400000, guid: 49aeecd77bdc047408ab2bf59e2992fc, type: 2}
       min: 1
@@ -915,6 +936,9 @@ MonoBehaviour:
     surpriseBurstMul: 1.2
     surpriseState: 
     m3SurpriseApplied: 1
+    temperamentMin: 0
+    temperamentMax: 0.55
+    m4TemperamentApplied: 1
     drops:
     - item: {fileID: 11400000, guid: 49aeecd77bdc047408ab2bf59e2992fc, type: 2}
       min: 2
@@ -1034,6 +1058,9 @@ MonoBehaviour:
     surpriseBurstMul: 1.3
     surpriseState: 
     m3SurpriseApplied: 1
+    temperamentMin: 0.55
+    temperamentMax: 1
+    m4TemperamentApplied: 1
     drops:
     - item: {fileID: 11400000, guid: 49aeecd77bdc047408ab2bf59e2992fc, type: 2}
       min: 2
@@ -1110,6 +1137,18 @@ MonoBehaviour:
   headZoneScale: 1.1
   heartZoneScale: 0.9
   personalityEnabled: 1
+  temperamentEnabled: 1
+  aggressiveBufferMul: 0.7
+  aggressiveHoldMul: 0.45
+  aggressiveCooldownMul: 0.75
+  aggressiveEagerness: 0.5
+  passiveProvokeMeters: 7
+  passiveWarnCooldown: 12
+  passiveRetreatMul: 1.8
+  passiveHoldMul: 1.4
+  sneakyWithdrawMul: 1.7
+  sneakyRestalkChance: 0.6
+  temperamentSurpriseBias: 1
   surprisesEnabled: 1
   surpriseChanceMul: 1
   surpriseTendencyMin: 0.4

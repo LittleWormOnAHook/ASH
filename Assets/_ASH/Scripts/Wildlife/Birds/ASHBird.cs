@@ -5,7 +5,7 @@ using UnityEngine;
 
 namespace ASH.Wildlife.Birds
 {
-    public enum ASHBirdState { Pooled, Fly, Approach, Landed, Falling, Dead }
+    public enum ASHBirdState { Pooled, Fly, Approach, Landed, Falling, Dead, Attack }
 
     /// <summary>
     /// One pooled bird. ASHBirdManager moves it (boids, landing, pecking). Any hit kills it (one shot from any weapon);
@@ -29,6 +29,13 @@ namespace ASH.Wildlife.Birds
         internal bool perchGround, gliding;
         internal float speedMul = 1f, stateAt, launchAt, nextAnimSwap, deadAt, groundY, groundCheckAt, avoidAt, tickAcc, targetYaw;
         internal int perchFails;
+        // attack birds
+        internal bool aggressive;
+        internal Transform atkTarget;
+        internal Vector3 atkPoint;
+        internal int atkPasses, atkPhase;
+        internal float atkPhaseAt, attackReadyAt;
+        public bool Aggressive => aggressive;
 
         string _anim;
         Renderer[] _renderers;
@@ -57,9 +64,12 @@ namespace ASH.Wildlife.Birds
         }
 
         /// <summary>Applies a type's look (tint, scale) and resets per-life state.</summary>
-        internal void Apply(ASHBirdSettings.BirdType t, System.Random rng)
+        internal void Apply(ASHBirdSettings.BirdType t, System.Random rng, float aggressiveShare = -1f)
         {
             type = t;
+            float share = aggressiveShare >= 0f ? aggressiveShare : (t != null ? t.attackerChance : 0f);
+            aggressive = t != null && t.canAttack && rng.NextDouble() < share;
+            atkTarget = null; attackReadyAt = 0f;
             float sc = t != null ? t.scale : 1f;
             sc *= 1f + ((float)rng.NextDouble() - 0.5f) * 0.12f;
             transform.localScale = Vector3.one * Mathf.Max(0.05f, sc);

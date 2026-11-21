@@ -50,6 +50,9 @@ MonoBehaviour:
     callPitch: 1.22
     callIntervalMin: 4
     callIntervalMax: 12
+    canAttack: 1
+    attackerChance: 0.2
+    attackDefaultsApplied: 1
     feathersMin: 2
     feathersMax: 4
     meatMin: 1
@@ -86,6 +89,9 @@ MonoBehaviour:
     callPitch: 0.95
     callIntervalMin: 6
     callIntervalMax: 16
+    canAttack: 1
+    attackerChance: 0.35
+    attackDefaultsApplied: 1
     feathersMin: 3
     feathersMax: 5
     meatMin: 1
@@ -118,6 +124,9 @@ MonoBehaviour:
     callPitch: 1
     callIntervalMin: 3
     callIntervalMax: 10
+    canAttack: 0
+    attackerChance: 0
+    attackDefaultsApplied: 1
     feathersMin: 1
     feathersMax: 2
     meatMin: 1
@@ -150,6 +159,9 @@ MonoBehaviour:
     callPitch: 1
     callIntervalMin: 3
     callIntervalMax: 9
+    canAttack: 0
+    attackerChance: 0
+    attackDefaultsApplied: 1
     feathersMin: 1
     feathersMax: 2
     meatMin: 1
@@ -182,6 +194,9 @@ MonoBehaviour:
     callPitch: 1
     callIntervalMin: 3
     callIntervalMax: 9
+    canAttack: 0
+    attackerChance: 0
+    attackDefaultsApplied: 1
     feathersMin: 1
     feathersMax: 2
     meatMin: 1
@@ -213,6 +228,9 @@ MonoBehaviour:
     callPitch: 1
     callIntervalMin: 4
     callIntervalMax: 12
+    canAttack: 0
+    attackerChance: 0
+    attackDefaultsApplied: 1
     feathersMin: 1
     feathersMax: 3
     meatMin: 1
@@ -242,6 +260,9 @@ MonoBehaviour:
     callPitch: 1.1
     callIntervalMin: 2.5
     callIntervalMax: 8
+    canAttack: 0
+    attackerChance: 0
+    attackDefaultsApplied: 1
     feathersMin: 1
     feathersMax: 1
     meatMin: 1
@@ -300,6 +321,25 @@ MonoBehaviour:
   - {fileID: 8300000, guid: f059f51c270dd6d479ad8b8338a7079f, type: 3}
   audioMaxDistance: 70
   audioVoices: 6
+  attackBirdsEnabled: 1
+  attackOnShotChance: 0.85
+  attackTriggerMeters: 45
+  dogTargetChance: 0.35
+  playerDamage: 4
+  dogDamage: 2
+  passesMin: 2
+  passesMax: 4
+  attackSpeedMul: 1.6
+  climbHeight: 7
+  climbRadius: 9
+  hitRadius: 1.1
+  diveTimeout: 5
+  attackCooldown: 60
+  swoopClips:
+  - {fileID: 8300000, guid: 867ba3f2495c1cc4ea7e2ba3cec14107, type: 3}
+  - {fileID: 8300000, guid: 1b7be1853723ee64eb6cf485ca3fed8a, type: 3}
+  swoopVolume: 0.9
+  spotCheckInterval: 1
   gravity: 14
   deadLifetime: 600
   harvestHold: 1.4

@@ -39,8 +39,13 @@ namespace ASH.Wildlife
 
         [Tooltip("0 = derive from spawn seed + species + placed position (stable across sessions).")]
         public int personalitySeed;
+
+        [Header("Temperament (aggressive species): 0 = Aggressive, 0.5 = Passive-aggressive, 1 = Sneaky")]
+        [Tooltip("Tick to use the slider below. Unticked, the slider shows this animal's seeded roll (species range in ASH_WildlifeSettings).")]
+        public bool overrideTemperament;
+        [Range(0f, 1f)] public float temperament = 0.5f;
         /// <summary>Seed-rolled traits inside the species' ranges (see ASH_WildlifeSettings > species > personality).</summary>
-        public struct Personality { public float bold, aggr, speed, flee, wander, graze, cohesion, standOff, surprise; public int seed; public bool circleLeft; }
+        public struct Personality { public float bold, aggr, speed, flee, wander, graze, cohesion, standOff, surprise, temper; public int seed; public bool circleLeft; }
         Personality _p = new Personality { bold = 0.5f, aggr = 0.5f, speed = 1f, flee = 1f, wander = 1f, graze = 1f, cohesion = 1f, standOff = 1f, surprise = 1f };
         float _pAt = -99f;
         public Personality Traits => _p;
@@ -269,7 +274,7 @@ namespace ASH.Wildlife
 
             // Hostiles / stalkers
             if (PackMateAggro()) { _aware = true; if (!_focus) _focus = _player; _mode = RushMode(); return; }
-            if (_alert >= Mathf.Lerp(0.75f, 0.4f, _p.bold) && (senseP || senseD || _aware))
+            if (_alert >= Mathf.Lerp(0.75f, 0.4f, _p.bold) * (1f - TA() * (W != null ? W.aggressiveEagerness : 0f) * 0.6f) && (senseP || senseD || _aware))
             {
                 bool engagedBefore = _mode == ASHAnimalMode.Chase || _mode == ASHAnimalMode.Stalk || _mode == ASHAnimalMode.Retreat;
                 _aware = true;
@@ -277,9 +282,25 @@ namespace ASH.Wildlife
                 if (!engagedBefore && Sp.surprise != ASHSurpriseKind.None && Sp.surprise != ASHSurpriseKind.FreezeThenBolt &&
                     Sp.surprise != ASHSurpriseKind.PlayDead && Sp.surprise != ASHSurpriseKind.Pounce && Focus() && TrySurprise())
                 { StartSurprise(Sp.surprise, Focus().position); return; }
+                // Passive-aggressive: warn / bluff and keep distance unless provoked or crowded
+                if (PaGate() && !Provoked(engagedBefore))
+                {
+                    if (Time.time >= _warnReadyAt) { _warnReadyAt = Time.time + W.passiveWarnCooldown; StartBluff(); return; }
+                    if (_mode != ASHAnimalMode.Curious)
+                    {
+                        _mode = ASHAnimalMode.Curious; _idleUntil = Time.time + Sp.curiousSeconds; _loco.Stop();
+                        if (_vis.HasCall && Random.value < 0.3f) _vis.PlayCall(); else _vis.PlayIdle();
+                    }
+                    ReleaseToken();
+                    return;
+                }
                 if (Sp.bluffCharge && !_hasBluffed && kind == ASHWildlifeKind.Bear) { StartBluff(); return; }
-                if (Sp.temperament == ASHWildlifeTemperament.Stalk && !_playerHitMe && _focus == _player)
+                bool stalk = (Sp.temperament == ASHWildlifeTemperament.Stalk || SneakGate()) && !AggGate() && !_playerHitMe && _focus == _player;
+                if (stalk)
+                {
+                    if (_mode != ASHAnimalMode.Stalk) _stalkUntil = Time.time + Random.Range(4f, 10f) * Mathf.Lerp(1.5f, 0.6f, _p.aggr) * (1f + TS());
                     _mode = ASHAnimalMode.Stalk;
+                }
                 else
                     _mode = RushMode();
             }
@@ -353,7 +374,49 @@ namespace ASH.Wildlife
         }
 
         bool UseStandOff => W != null && W.standOffEnabled && Sp != null && Sp.standOffMeters > 0.2f && Sp.temperament != ASHWildlifeTemperament.Passive;
-        float StandOff => Mathf.Max(Sp.attackRange + 1f, Sp.standOffMeters * _p.standOff * Mathf.Sqrt(W.Scale(Sp, size)));
+        float StandOff => Mathf.Max(Sp.attackRange + 1f, Sp.standOffMeters * _p.standOff * Mathf.Sqrt(W.Scale(Sp, size)) * Mathf.Lerp(1f, W.aggressiveBufferMul, TA()));
+
+        // ------------------------------------------------------------------ temperament blend (0 aggressive .. 0.5 passive-aggressive .. 1 sneaky)
+        float _warnReadyAt, _restalkUntil;
+        bool _restalk;
+        bool TemperOn => W != null && W.temperamentEnabled && Sp != null && Sp.temperament != ASHWildlifeTemperament.Passive;
+        /// <summary>Aggressive weight (1 at slider 0).</summary>
+        float TA() => TemperOn ? Mathf.Clamp01(1f - 2f * _p.temper) : 0f;
+        /// <summary>Passive-aggressive weight (1 at slider 0.5).</summary>
+        float TP() => TemperOn ? Mathf.Clamp01(1f - Mathf.Abs(2f * _p.temper - 1f)) : 0f;
+        /// <summary>Sneaky weight (1 at slider 1).</summary>
+        float TS() => TemperOn ? Mathf.Clamp01(2f * _p.temper - 1f) : 0f;
+        bool AggGate() => TA() >= 0.5f;
+        bool PaGate() => TP() >= 0.5f;
+        bool SneakGate() => TS() >= 0.3f;
+        public float TemperamentValue => _p.temper;
+        public string TemperamentLabel => !TemperOn ? "n/a" : (_p.temper < 0.25f ? "Aggressive" : _p.temper <= 0.65f ? "Passive-aggressive" : "Sneaky");
+
+        /// <summary>Hit by the player or dog, or the target came inside the provoke distance (wider once already engaged).</summary>
+        bool Provoked(bool engaged)
+        {
+            if (_playerHitMe || _dogHitMe) return true;
+            var t = Focus();
+            if (!t || W == null) return false;
+            return Flat(transform.position, t.position) <= W.passiveProvokeMeters * (engaged ? 1.4f : 1f);
+        }
+
+#if UNITY_EDITOR
+        void OnValidate()
+        {
+            // preview the seeded temperament on placed instances (edit mode only; nothing else is touched)
+            if (Application.isPlaying || overrideTemperament) return;
+            try
+            {
+                if (!settings && !ASHWildlifeSettings.I) return;
+                var keep = _home;
+                _home = transform.position;
+                RollPersonality();
+                _home = keep;
+            }
+            catch { /* settings not loaded yet */ }
+        }
+#endif
 
         // ------------------------------------------------------------------ speeds / personality
         float Walk() => W.Walk(Sp, size) * _p.speed;
@@ -373,7 +436,13 @@ namespace ASH.Wildlife
         {
             _pAt = Time.time;
             var neutral = new Personality { bold = 0.5f, aggr = 0.5f, speed = 1f, flee = 1f, wander = 1f, graze = 1f, cohesion = 1f, standOff = 1f, surprise = 1f };
-            if (W == null || Sp == null || !W.personalityEnabled) { _p = neutral; return; }
+            if (W == null || Sp == null || !W.personalityEnabled)
+            {
+                _p = neutral;
+                _p.temper = overrideTemperament ? Mathf.Clamp01(temperament) : (Sp != null ? (Sp.temperamentMin + Sp.temperamentMax) * 0.5f : 0.5f);
+                if (!overrideTemperament) temperament = _p.temper;
+                return;
+            }
             int seed = personalitySeed;
             if (seed == 0)
             {
@@ -408,6 +477,9 @@ namespace ASH.Wildlife
             };
             // rolled last so the earlier traits stay identical to before surprises existed
             _p.surprise = R(W.surpriseTendencyMin, W.surpriseTendencyMax);
+            float rolledTemper = R(Sp.temperamentMin, Sp.temperamentMax);
+            _p.temper = overrideTemperament ? Mathf.Clamp01(temperament) : rolledTemper;
+            if (!overrideTemperament) temperament = _p.temper;
         }
 
         // ------------------------------------------------------------------ attack turns (one or few attackers per target)
@@ -583,7 +655,7 @@ namespace ASH.Wildlife
             if (Time.time >= _idleUntil)
             {
                 if (_alert >= 0.85f && Sp.temperament == ASHWildlifeTemperament.Passive) BeginFlee(_lastSense, true);
-                else if (_alert >= 0.55f && Sp.temperament != ASHWildlifeTemperament.Passive) { _aware = true; _mode = RushMode(); }
+                else if (_alert >= 0.55f && Sp.temperament != ASHWildlifeTemperament.Passive && !(PaGate() && !Provoked(false))) { _aware = true; _mode = RushMode(); }
                 else { _mode = ASHAnimalMode.Wander; _alert *= 0.5f; }
             }
         }
@@ -665,7 +737,7 @@ namespace ASH.Wildlife
         {
             var t = Focus() ?? _player;
             if (!t) { WanderTick(false); return; }
-            if (_playerHitMe) { _mode = RushMode(); ChaseTick(); return; }
+            if (_playerHitMe && Time.time >= _restalkUntil) { _mode = RushMode(); ChaseTick(); return; }
             float d = Flat(transform.position, t.position);
             if (d <= Sp.attackRange * 1.1f)
             {
@@ -674,7 +746,7 @@ namespace ASH.Wildlife
             }
             // Cougar: stay behind the target, close when line of sight breaks (ambush).
             Vector3 dest;
-            if (Sp.ambush)
+            if (Sp.ambush || SneakGate())
             {
                 var behind = t.position - t.forward * Mathf.Clamp(d * 0.35f, 4f, 12f);
                 dest = behind;
@@ -715,7 +787,13 @@ namespace ASH.Wildlife
                 _loco.Stop();
             if (Time.time < _bluffUntil) return;
             // Territorial warning, then either a real rush or they break off if the player backs away.
-            if (t && Flat(transform.position, t.position) < Sp.detectRange * 0.9f && Random.value < Mathf.Lerp(0.4f, 0.92f, _p.aggr))
+            bool rush = false;
+            if (t)
+            {
+                if (PaGate()) rush = Provoked(false); // passive-aggressive: the warning was the point; only a provoked one follows through
+                else rush = Flat(transform.position, t.position) < Sp.detectRange * 0.9f && Random.value < Mathf.Lerp(0.4f, 0.92f, _p.aggr) * (1f - 0.7f * TP());
+            }
+            if (rush)
                 _mode = RushMode();
             else { _aware = false; _alert = 0.3f; _mode = ASHAnimalMode.Wander; }
         }
@@ -809,7 +887,12 @@ namespace ASH.Wildlife
                 default: // BackOff
                 {
                     bool arrived = _loco.MoveTo(_backOff, Trot(), 0.8f);
-                    if (arrived || Time.time > _phaseUntil || _loco.StuckTime > 0.8f) EnterHold();
+                    if (arrived || Time.time > _phaseUntil || _loco.StuckTime > 0.8f)
+                    {
+                        // Sneaky: melt away and stalk in again instead of circling in the open
+                        if (_restalk) { _restalk = false; ReleaseToken(); _restalkUntil = Time.time + 8f; _stalkUntil = Time.time + Random.Range(3f, 7f); _mode = ASHAnimalMode.Stalk; return; }
+                        EnterHold();
+                    }
                     return;
                 }
             }
@@ -819,14 +902,17 @@ namespace ASH.Wildlife
         {
             _phase = Engage.Hold;
             float a = Mathf.Lerp(1.5f, 0.6f, _p.aggr);
+            if (W != null) a *= Mathf.Lerp(1f, W.aggressiveHoldMul, TA()) * Mathf.Lerp(1f, W.passiveHoldMul, TP());
             _holdUntil = Time.time + Random.Range(Sp.standOffHoldMin, Mathf.Max(Sp.standOffHoldMin, Sp.standOffHoldMax)) * a;
         }
 
-        void StartBackOff(Transform t)
+        void StartBackOff(Transform t, bool afterStrike = false)
         {
             _phase = Engage.BackOff;
             _mode = ASHAnimalMode.Chase;
-            _backOff = Ring(t, StandOff);
+            float ring = StandOff * (afterStrike && W != null ? Mathf.Lerp(1f, W.sneakyWithdrawMul, TS()) : 1f);
+            _restalk = afterStrike && SneakGate() && W != null && Random.value < W.sneakyRestalkChance * TS() * 2f;
+            _backOff = Ring(t, ring);
             _phaseUntil = Time.time + (W != null ? W.backOffMaxSeconds : 2.4f);
         }
 
@@ -849,13 +935,13 @@ namespace ASH.Wildlife
             if (UseStandOff)
             {
                 // the strike has finished: give up the turn and retreat to the buffer
-                if (_attackUntil > 0f && Time.time >= _attackUntil) { _attackUntil = 0f; ReleaseToken(); StartBackOff(t); return; }
+                if (_attackUntil > 0f && Time.time >= _attackUntil) { _attackUntil = 0f; ReleaseToken(); StartBackOff(t, true); return; }
                 if (!TryToken(t)) { StartBackOff(t); return; }
             }
             if (d > Sp.attackRange * 1.3f) { _mode = RushMode(); return; }
             _loco.Stop();
             if (Time.time < _nextAttack) return;
-            _nextAttack = Time.time + Sp.attackCooldown * Mathf.Lerp(1.35f, 0.75f, _p.aggr);
+            _nextAttack = Time.time + Sp.attackCooldown * Mathf.Lerp(1.35f, 0.75f, _p.aggr) * (W != null ? Mathf.Lerp(1f, W.aggressiveCooldownMul, TA()) : 1f);
             _vis.PlayAttack();
             _attackHit = false;
             float wind = Mathf.Clamp(Sp.attackHitNormalized, 0.18f, 0.8f);
@@ -1018,6 +1104,12 @@ namespace ASH.Wildlife
             if (W == null || Sp == null || !W.surprisesEnabled || Sp.surprise == ASHSurpriseKind.None) return false;
             if (Time.time < _surpriseReadyAt) return false;
             float chance = Sp.surpriseChance * W.surpriseChanceMul * (W.personalityEnabled ? _p.surprise : 1f);
+            if (TemperOn)
+            {
+                float bias = W.temperamentSurpriseBias;
+                if (Sp.surprise == ASHSurpriseKind.StalkFromCover || Sp.surprise == ASHSurpriseKind.CircleBehind) chance *= Mathf.Max(0f, 1f + bias * (TS() - TA() * 0.5f));
+                else if (Sp.surprise == ASHSurpriseKind.FalseCharge || Sp.surprise == ASHSurpriseKind.StandAndHuff) chance *= Mathf.Max(0f, 1f + bias * (TP() - TS() * 0.5f));
+            }
             if (Random.value >= Mathf.Clamp01(chance))
             {
                 _surpriseReadyAt = Time.time + 4f; // don't re-roll every sense tick
@@ -1344,7 +1436,7 @@ namespace ASH.Wildlife
                 else
                 {
                     _aware = true;
-                    if (_hpMax > 0f && _hp / _hpMax <= Sp.retreatHealth && Random.value < Sp.retreatChance * Mathf.Lerp(1.4f, 0.6f, _p.bold))
+                    if (_hpMax > 0f && _hp / _hpMax <= Sp.retreatHealth && Random.value < Sp.retreatChance * Mathf.Lerp(1.4f, 0.6f, _p.bold) * (W != null ? Mathf.Lerp(1f, W.passiveRetreatMul, TP()) : 1f))
                         BeginRetreat(_lastSense);
                     else
                         _mode = RushMode();

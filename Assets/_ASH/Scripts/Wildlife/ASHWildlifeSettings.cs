@@ -173,6 +173,13 @@ namespace ASH.Wildlife
             [Tooltip("Set by defaults once; untick to re-apply this species' surprise defaults.")]
             public bool m3SurpriseApplied;
 
+            [Header("Temperament (aggressive species): 0 = Aggressive, 0.5 = Passive-aggressive, 1 = Sneaky")]
+            [Tooltip("Each placed animal rolls its temperament in this range from its seed (unless the instance overrides it).")]
+            [Range(0f, 1f)] public float temperamentMin = 0f;
+            [Range(0f, 1f)] public float temperamentMax = 1f;
+            [Tooltip("Set by defaults once; untick to re-apply this species' temperament range.")]
+            public bool m4TemperamentApplied;
+
             public List<Drop> drops = new List<Drop>();
         }
 
@@ -287,6 +294,31 @@ namespace ASH.Wildlife
         [Header("Seeded personality")]
         public bool personalityEnabled = true;
 
+        [Header("Temperament blend (Play-editable). Aggressive -> Passive-aggressive -> Sneaky")]
+        public bool temperamentEnabled = true;
+        [Tooltip("Aggressive: stand-off buffer multiplier (smaller = presses closer).")]
+        [Range(0.3f, 1.5f)] public float aggressiveBufferMul = 0.7f;
+        [Tooltip("Aggressive: hold/circle time multiplier between attacks (smaller = attacks more often).")]
+        [Range(0.1f, 1.5f)] public float aggressiveHoldMul = 0.45f;
+        [Tooltip("Aggressive: attack cooldown multiplier.")]
+        [Range(0.3f, 1.5f)] public float aggressiveCooldownMul = 0.75f;
+        [Tooltip("Aggressive: lowers the alert needed to engage (0 = no change, 1 = engages on first notice).")]
+        [Range(0f, 1f)] public float aggressiveEagerness = 0.5f;
+        [Tooltip("Passive-aggressive: only engages if provoked (hit) or the target comes this close; otherwise warns / bluffs.")]
+        [Range(1f, 30f)] public float passiveProvokeMeters = 7f;
+        [Tooltip("Passive-aggressive: seconds between warnings / bluffs.")]
+        [Range(1f, 120f)] public float passiveWarnCooldown = 12f;
+        [Tooltip("Passive-aggressive: retreat-chance multiplier when hurt.")]
+        [Range(1f, 4f)] public float passiveRetreatMul = 1.8f;
+        [Tooltip("Passive-aggressive: hold time multiplier between attacks.")]
+        [Range(0.5f, 3f)] public float passiveHoldMul = 1.4f;
+        [Tooltip("Sneaky: back-off distance multiplier after each strike.")]
+        [Range(1f, 4f)] public float sneakyWithdrawMul = 1.7f;
+        [Tooltip("Sneaky: chance after a strike to melt away and stalk again instead of circling.")]
+        [Range(0f, 1f)] public float sneakyRestalkChance = 0.6f;
+        [Tooltip("How strongly temperament reshapes surprise chances (sneaky -> cover / circle-behind, passive-aggressive -> false charge / stand and huff).")]
+        [Range(0f, 2f)] public float temperamentSurpriseBias = 1f;
+
         [Header("Surprise behaviours (Play-editable)")]
         public bool surprisesEnabled = true;
         [Tooltip("Multiplies every species' surprise chance (0 = off, 2 = twice as often).")]
@@ -394,6 +426,18 @@ namespace ASH.Wildlife
             ApplySurprise(fox,     ASHSurpriseKind.Pounce,         0.3f,  25f, 70f,  0.9f, 2.4f, 1.6f);
             ApplySurprise(raccoon, ASHSurpriseKind.PlayDead,       0.45f, 60f, 150f, 6f,   4f,   1.3f);
             ApplySurprise(cougar,  ASHSurpriseKind.StalkFromCover, 0.5f,  60f, 160f, 3.5f, 18f,  1.3f);
+            //                         min   max   (0 aggressive .. 0.5 passive-aggressive .. 1 sneaky)
+            ApplyTemperament(wolf,    0.15f, 0.9f);
+            ApplyTemperament(bear,    0.2f,  0.65f);
+            ApplyTemperament(boar,    0f,    0.55f);
+            ApplyTemperament(cougar,  0.55f, 1f);
+        }
+
+        static void ApplyTemperament(Species sp, float min, float max)
+        {
+            if (sp == null || sp.m4TemperamentApplied) return;
+            sp.temperamentMin = min; sp.temperamentMax = max;
+            sp.m4TemperamentApplied = true;
         }
 
         static void ApplySurprise(Species sp, ASHSurpriseKind k, float chance, float cdMin, float cdMax, float secs, float meters, float burst)

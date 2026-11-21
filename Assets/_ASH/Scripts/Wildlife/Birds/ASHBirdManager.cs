@@ -1,5 +1,7 @@
 using System.Collections.Generic;
+using ASH.Companion;
 using ASH.Inventory;
+using Invector;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -22,6 +24,7 @@ namespace ASH.Wildlife.Birds
             public bool landed, landing;
             public Vector3 target, home;
             public float flyUntil, landedUntil, callAt, scareAt;
+            public ASHBirdSpot spot;
         }
 
         readonly List<ASHBird> _all = new List<ASHBird>();
@@ -31,7 +34,7 @@ namespace ASH.Wildlife.Birds
         System.Random _rng;
         Transform _player;
         Camera _cam;
-        float _spawnAt, _findAt, _gunSeen = -999f;
+        float _spawnAt, _findAt, _gunSeen = -999f, _spotAt;
         AudioSource[] _voices;
         int _voice;
         int _mask = ~0;
@@ -56,7 +59,7 @@ namespace ASH.Wildlife.Birds
         {
             if (Active) return;
             var s = S;
-            if (!s || !s.birdsEnabled || !s.autoSpawn || !s.birdPrefab) return;
+            if (!s || !s.birdsEnabled || (!s.autoSpawn && ASHBirdSpot.All.Count == 0) || !s.birdPrefab) return;
             if (!Terrain.activeTerrain) return;
             if (s.sceneNames != null && s.sceneNames.Count > 0 && !s.sceneNames.Contains(SceneManager.GetActiveScene().name)) return;
             new GameObject("ASH_Birds").AddComponent<ASHBirdManager>();
@@ -89,14 +92,16 @@ namespace ASH.Wildlife.Birds
             Vector3 eye = _cam ? _cam.transform.position : _player.position;
 
             GunshotCheck(s);
-            if (Time.time >= _spawnAt) { _spawnAt = Time.time + s.spawnInterval; TrySpawn(s); }
+            if (Time.time >= _spawnAt) { _spawnAt = Time.time + s.spawnInterval; if (s.autoSpawn) TrySpawn(s); }
+            if (Time.time >= _spotAt) { _spotAt = Time.time + s.spotCheckInterval; SpotTick(s); }
 
             for (int i = _flocks.Count - 1; i >= 0; i--)
             {
                 var f = _flocks[i];
                 f.m.RemoveAll(b => !b || b.IsDead || b.state == ASHBirdState.Pooled);
-                if (f.m.Count == 0) { _flocks.RemoveAt(i); continue; }
-                if (Flat(Centroid(f), _player.position) > s.despawnDistance) { foreach (var b in f.m) Release(b); _flocks.RemoveAt(i); continue; }
+                if (f.m.Count == 0) { if (f.spot) { f.spot.flock = null; f.spot.respawnAt = Time.time + f.spot.respawnSeconds; } _flocks.RemoveAt(i); continue; }
+                if (Flat(Centroid(f), _player.position) > Mathf.Max(s.despawnDistance, f.spot ? f.spot.activateDistance * 1.2f : 0f))
+                { foreach (var b in f.m) Release(b); if (f.spot) { f.spot.flock = null; f.spot.respawnAt = 0f; } _flocks.RemoveAt(i); continue; }
                 FlockTick(f, s);
                 for (int k = 0; k < f.m.Count; k++)
                 {
@@ -136,8 +141,15 @@ namespace ASH.Wildlife.Birds
             _gunSeen = t;
             var at = ASHWildlifeStimulus.LastGunshotPos;
             float range = ASHWildlifeStimulus.LastGunshotLoud ? s.gunshotScareMeters : Mathf.Min(s.gunshotScareMeters, ASHWildlifeStimulus.LastGunshotRange * 1.5f);
-            foreach (var f in _flocks)
+            for (int i = 0; i < _flocks.Count; i++)
+            {
+                var f = _flocks[i];
+                // shot at / near miss: attackers within trigger range go for the shooter (or the dog)
+                if (s.attackBirdsEnabled)
+                    foreach (var b in f.m)
+                        if (b.aggressive && b.state != ASHBirdState.Attack && (b.transform.position - at).magnitude <= s.attackTriggerMeters) TryStartAttack(b, s);
                 if ((f.landed || f.landing) && Flat(Centroid(f), at) <= range) TakeOff(f, at, true);
+            }
         }
 
         // ------------------------------------------------------------------ spawning / pooling
@@ -156,17 +168,21 @@ namespace ASH.Wildlife.Birds
             float r = Rng(s.spawnRadiusMin, Mathf.Max(s.spawnRadiusMin, s.spawnRadiusMax));
             var c = _player.position + new Vector3(Mathf.Cos(ang), 0f, Mathf.Sin(ang)) * r;
             c.y = GroundY(c, s);
-            var f = new Flock { type = t, home = c, callAt = Time.time + Rng(1f, 6f) };
-            bool landed = R01() < s.startLandedChance;
+            SpawnFlock(s, t, c, n, R01() < s.startLandedChance, null, -1f, s.landingSearchRadius * 0.6f);
+        }
+
+        Flock SpawnFlock(ASHBirdSettings s, ASHBirdSettings.BirdType t, Vector3 c, int n, bool landed, ASHBirdSpot spot, float aggressiveShare, float perchRadius)
+        {
+            var f = new Flock { type = t, home = c, callAt = Time.time + Rng(1f, 6f), spot = spot };
 
             for (int i = 0; i < n; i++)
             {
                 var b = Get(s);
                 if (!b) break;
-                b.Apply(t, _rng);
+                b.Apply(t, _rng, aggressiveShare);
                 b.flock = f;
                 f.m.Add(b);
-                if (landed && FindPerch(c, s.landingSearchRadius * 0.6f, t, s, out var p, out var fwd, out bool ground))
+                if (landed && FindPerch(c, perchRadius, t, s, out var p, out var fwd, out bool ground))
                 {
                     Place(b, p, fwd, ground);
                     continue;
@@ -180,7 +196,7 @@ namespace ASH.Wildlife.Birds
                 b.stateAt = b.launchAt = Time.time;
                 b.groundCheckAt = 0f;
             }
-            if (f.m.Count == 0) return;
+            if (f.m.Count == 0) return null;
             bool anyLanded = false;
             foreach (var b in f.m) if (b.state == ASHBirdState.Landed) anyLanded = true;
             if (anyLanded)
@@ -199,7 +215,28 @@ namespace ASH.Wildlife.Birds
                 f.home = f.target;
                 f.flyUntil = Time.time + Rng(s.flyMinSeconds, Mathf.Max(s.flyMinSeconds, s.flyMaxSeconds));
             }
+            if (spot) f.home = c;
             _flocks.Add(f);
+            return f;
+        }
+
+        // ------------------------------------------------------------------ resident spots (e.g. aggressive crow roosts)
+        void SpotTick(ASHBirdSettings s)
+        {
+            foreach (var spot in ASHBirdSpot.All)
+            {
+                if (!spot || !spot.isActiveAndEnabled) continue;
+                if (spot.flock != null) { if (!_flocks.Contains(spot.flock)) spot.flock = null; else continue; }
+                if (Time.time < spot.respawnAt) continue;
+                var pos = spot.transform.position;
+                float d = Flat(pos, _player.position);
+                var t = s.Find(spot.typeId);
+                if (t == null || d > spot.activateDistance || d < t.takeOffDistance * 1.5f) continue;
+                int free = s.maxBirds - ActiveBirds;
+                int n = Mathf.Min(free, _rng.Next(Mathf.Max(1, spot.countMin), Mathf.Max(spot.countMin, spot.countMax) + 1));
+                if (n <= 0) return;
+                spot.flock = SpawnFlock(s, t, pos, n, true, spot, spot.aggressiveFraction, spot.radius);
+            }
         }
 
         ASHBird Get(ASHBirdSettings s)
@@ -277,7 +314,7 @@ namespace ASH.Wildlife.Birds
                 if (f.landing)
                 {
                     bool all = true, any = false;
-                    foreach (var m in f.m) { if (m.state == ASHBirdState.Landed) any = true; else all = false; }
+                    foreach (var m in f.m) { if (m.state == ASHBirdState.Attack) continue; if (m.state == ASHBirdState.Landed) any = true; else all = false; }
                     if (all)
                     {
                         f.landing = false; f.landed = true;
@@ -296,7 +333,7 @@ namespace ASH.Wildlife.Birds
                 var c = Centroid(f);
                 if ((c - f.target).sqrMagnitude < 100f)
                 {
-                    var w = f.home + Random3(s.wanderRadius);
+                    var w = f.home + Random3(f.spot ? Mathf.Max(10f, f.spot.radius * 3f) : s.wanderRadius);
                     f.target = new Vector3(w.x, GroundY(w, s) + Rng(t.altitudeMin, t.altitudeMax), w.z);
                 }
                 if (Time.time >= f.flyUntil) BeginLanding(f, s);
@@ -321,15 +358,16 @@ namespace ASH.Wildlife.Birds
         {
             var c = Centroid(f);
             var v = AvgVel(f); v.y = 0f;
-            var area = c + (v.sqrMagnitude > 0.1f ? v.normalized : Random3(1f).normalized) * Rng(10f, 25f);
+            var area = f.spot ? f.spot.transform.position : c + (v.sqrMagnitude > 0.1f ? v.normalized : Random3(1f).normalized) * Rng(10f, 25f);
+            float searchR = f.spot ? f.spot.radius : s.landingSearchRadius;
             // don't pick a landing area right next to the player
             if (_player && Flat(area, _player.position) < f.type.takeOffDistance * 1.8f)
                 area = _player.position + (area - _player.position).normalized * f.type.takeOffDistance * 2.2f;
             int ok = 0;
-            foreach (var m in f.m) if (AssignPerch(m, area, s.landingSearchRadius, s)) ok++;
+            foreach (var m in f.m) { if (m.state == ASHBirdState.Attack) continue; if (AssignPerch(m, area, searchR, s)) ok++; }
             if (ok == 0)
             {
-                foreach (var m in f.m) m.state = ASHBirdState.Fly;
+                foreach (var m in f.m) if (m.state != ASHBirdState.Attack) m.state = ASHBirdState.Fly;
                 f.flyUntil = Time.time + 5f;
                 return;
             }
@@ -360,12 +398,13 @@ namespace ASH.Wildlife.Birds
             away = away.sqrMagnitude > 0.01f ? away.normalized : Vector3.forward;
             var dest = c + away * (scared ? s.fleeDistance : Rng(s.fleeDistance * 0.4f, s.fleeDistance));
             f.target = new Vector3(dest.x, GroundY(dest, s) + Rng(t.altitudeMin, t.altitudeMax), dest.z);
-            f.home = f.target;
+            f.home = f.spot ? f.spot.transform.position : f.target;
             f.landed = false; f.landing = false;
-            f.flyUntil = Time.time + Rng(s.flyMinSeconds, Mathf.Max(s.flyMinSeconds, s.flyMaxSeconds));
+            f.flyUntil = Time.time + Rng(s.flyMinSeconds, Mathf.Max(s.flyMinSeconds, s.flyMaxSeconds)) * (f.spot ? 0.5f : 1f);
             bool any = false;
             foreach (var b in f.m)
             {
+                if (b.state == ASHBirdState.Attack) continue;
                 if (b.state != ASHBirdState.Landed && b.state != ASHBirdState.Approach) { b.state = ASHBirdState.Fly; continue; }
                 bool wasLanded = b.state == ASHBirdState.Landed;
                 any |= wasLanded;
@@ -399,6 +438,9 @@ namespace ASH.Wildlife.Birds
                     return;
                 case ASHBirdState.Landed:
                     LandedTick(b, s, t, dt);
+                    return;
+                case ASHBirdState.Attack:
+                    AttackTick(b, f, s, t, dt);
                     return;
             }
         }
@@ -529,6 +571,136 @@ namespace ASH.Wildlife.Birds
             if (Mathf.Abs(Mathf.DeltaAngle(e.y, y)) > 0.01f) tr.rotation = Quaternion.Euler(0f, y, 0f);
         }
 
+        // ------------------------------------------------------------------ attack birds: climb, dive-bomb the player (or harass the dog), a few passes, then leave
+        void TryStartAttack(ASHBird b, ASHBirdSettings s)
+        {
+            if (!b.aggressive || b.IsDead || Time.time < b.attackReadyAt || R01() > s.attackOnShotChance) return;
+            Transform target = null;
+            bool dogOk = ASHDogCompanion.IsValidTarget && ASHDogCompanion.Active;
+            if (dogOk && R01() < s.dogTargetChance) target = ASHDogCompanion.Active.transform;
+            if (!target) target = _player;
+            if (!target) return;
+            b.atkTarget = target;
+            b.atkPasses = _rng.Next(Mathf.Max(1, s.passesMin), Mathf.Max(s.passesMin, s.passesMax) + 1);
+            b.state = ASHBirdState.Attack;
+            b.stateAt = Time.time;
+            b.attackReadyAt = Time.time + s.attackCooldown;
+            if (b.vel.sqrMagnitude < 1f) b.vel = Vector3.up * s.takeOffUpSpeed;
+            BeginClimb(b, s);
+            var t = b.type;
+            if (t != null && t.calls != null && t.calls.Length > 0) PlayAt(t.calls, b.transform.position, t.callVolume, t.callPitch * 1.08f);
+        }
+
+        void BeginClimb(ASHBird b, ASHBirdSettings s)
+        {
+            b.atkPhase = 0;
+            b.atkPhaseAt = Time.time;
+            var tp = b.atkTarget ? b.atkTarget.position : b.transform.position;
+            var side = Random3(1f); side.y = 0f;
+            side = side.sqrMagnitude > 0.01f ? side.normalized : Vector3.forward;
+            b.atkPoint = tp + side * s.climbRadius * Rng(0.7f, 1.2f) + Vector3.up * s.climbHeight * Rng(0.8f, 1.2f);
+        }
+
+        void AttackTick(ASHBird b, Flock f, ASHBirdSettings s, ASHBirdSettings.BirdType t, float dt)
+        {
+            var tr = b.transform;
+            var tgt = b.atkTarget;
+            bool isDog = tgt && ASHDogCompanion.Active && tgt == ASHDogCompanion.Active.transform;
+            if (!tgt || !tgt.gameObject.activeInHierarchy || (isDog && !ASHDogCompanion.IsValidTarget) || !s.attackBirdsEnabled) { EndAttack(b, f, s); return; }
+            float cruise = t.flySpeed * b.speedMul * s.attackSpeedMul;
+            var pos = tr.position;
+            Vector3 aim;
+            float floorAbove = 0.8f;
+            switch (b.atkPhase)
+            {
+                case 0: // climb to a point above and to the side of the target
+                    aim = b.atkPoint;
+                    if ((aim - pos).sqrMagnitude < 9f || Time.time - b.atkPhaseAt > 4f)
+                    {
+                        b.atkPhase = 1; b.atkPhaseAt = Time.time;
+                        var sw = s.swoopClips != null && s.swoopClips.Length > 0 ? s.swoopClips : s.takeOffClips;
+                        if (sw != null && sw.Length > 0) PlayAt(sw, pos, s.swoopVolume, 1.1f);
+                        if (t.calls != null && t.calls.Length > 0) PlayAt(t.calls, pos, t.callVolume, t.callPitch * 1.12f);
+                    }
+                    break;
+                case 1: // dive at head height (dog: back height)
+                {
+                    aim = tgt.position + Vector3.up * (isDog ? 0.45f : 1.5f);
+                    floorAbove = 0.25f;
+                    if ((aim - pos).magnitude <= s.hitRadius)
+                    {
+                        HitTarget(b, tgt, isDog, s);
+                        b.atkPasses--;
+                        PullUp(b, s);
+                    }
+                    else if (Time.time - b.atkPhaseAt > s.diveTimeout) { b.atkPasses--; PullUp(b, s); }
+                    cruise *= 1.25f;
+                    break;
+                }
+                default: // pull up past the target, then climb again or leave
+                    aim = b.atkPoint;
+                    if ((aim - pos).sqrMagnitude < 9f || Time.time - b.atkPhaseAt > 2.5f)
+                    {
+                        if (b.atkPasses > 0) BeginClimb(b, s); else { EndAttack(b, f, s); return; }
+                    }
+                    break;
+            }
+            var desired = (aim - pos).normalized * cruise;
+            var acc = Vector3.ClampMagnitude((desired - b.vel) * 3f, t.maxAccel * 2.2f);
+            b.vel += acc * dt;
+            if (b.vel.magnitude > cruise * 1.15f) b.vel = b.vel.normalized * cruise * 1.15f;
+            pos += b.vel * dt;
+            if (Time.time >= b.groundCheckAt) { b.groundY = GroundY(pos, s); b.groundCheckAt = Time.time + 0.25f; }
+            float floor = b.groundY + floorAbove;
+            if (pos.y < floor) { pos.y = floor; if (b.vel.y < 0f) b.vel.y = 0f; }
+            tr.position = pos;
+            Orient(b, acc, s, dt);
+            b.Play(s.flyState, b.atkPhase == 1 && b.vel.y < -1f ? s.glideAnimSpeed : s.flapAnimSpeed * 1.3f);
+        }
+
+        void PullUp(ASHBird b, ASHBirdSettings s)
+        {
+            b.atkPhase = 2;
+            b.atkPhaseAt = Time.time;
+            var v = b.vel; v.y = 0f;
+            v = v.sqrMagnitude > 0.01f ? v.normalized : b.transform.forward;
+            b.atkPoint = b.transform.position + v * 10f + Vector3.up * s.climbHeight * 0.6f;
+        }
+
+        void HitTarget(ASHBird b, Transform tgt, bool isDog, ASHBirdSettings s)
+        {
+            var hitPos = tgt.position + Vector3.up * (isDog ? 0.45f : 1.5f);
+            if (isDog)
+            {
+                var dog = ASHDogCompanion.Active;
+                if (dog && s.dogDamage > 0f) dog.TakeDamage(new vDamage(Mathf.Max(1, Mathf.RoundToInt(s.dogDamage))) { sender = b.transform, hitPosition = hitPos, damageType = "claw" });
+            }
+            else
+            {
+                var br = ASH.Combat.ASHCombatBridge.Player;
+                if (br && s.playerDamage > 0f) br.HurtFromWorld(s.playerDamage, b.transform, hitPos);
+            }
+            var t = b.type;
+            if (t != null && t.calls != null && t.calls.Length > 0) PlayAt(t.calls, hitPos, t.callVolume, t.callPitch * 1.15f);
+        }
+
+        void EndAttack(ASHBird b, Flock f, ASHBirdSettings s)
+        {
+            b.atkTarget = null;
+            b.state = ASHBirdState.Fly;
+            b.stateAt = Time.time;
+            b.launchAt = Time.time;
+            // done harassing: the whole group leaves the area
+            if (f != null && (f.landed || f.landing)) TakeOff(f, _player ? _player.position : b.transform.position, true);
+            else if (f != null && _player)
+            {
+                var away = Centroid(f) - _player.position; away.y = 0f;
+                away = away.sqrMagnitude > 0.01f ? away.normalized : Random3(1f).normalized;
+                var dest = (f.spot ? f.spot.transform.position : Centroid(f)) + away * s.fleeDistance * (f.spot ? 0.3f : 1f);
+                f.target = new Vector3(dest.x, GroundY(dest, s) + Rng(f.type.altitudeMin, f.type.altitudeMax), dest.z);
+            }
+        }
+
         // ------------------------------------------------------------------ death / harvest
         internal void Kill(ASHBird b, Vector3 push)
         {
@@ -544,7 +716,11 @@ namespace ASH.Wildlife.Birds
             _dead.Add(b);
             var s = S;
             if (s && s.deathClips != null && s.deathClips.Length > 0) PlayAt(s.deathClips, b.transform.position, 0.8f, 1f);
-            if (f != null && f.m.Count > 0) TakeOff(f, b.transform.position, true);
+            if (f != null && f.m.Count > 0)
+            {
+                if (s && s.attackBirdsEnabled) foreach (var m in f.m) if (m.aggressive && m.state != ASHBirdState.Attack) TryStartAttack(m, s);
+                TakeOff(f, b.transform.position, true);
+            }
         }
 
         void FallTick(ASHBird b, ASHBirdSettings s, float dt)
