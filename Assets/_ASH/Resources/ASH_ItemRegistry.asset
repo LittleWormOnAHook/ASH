@@ -13,10 +13,13 @@ MonoBehaviour:
   m_Name: ASH_ItemRegistry
   m_EditorClassIdentifier: Assembly-CSharp::ASH.Inventory.ASHItemRegistry
   items:
+  - {fileID: 11400000, guid: 5abc93b8e4ac5864c96ebb3bc63402b1, type: 2}
+  - {fileID: 11400000, guid: 6a9d317fdb82dd446b8e29aca3f854c4, type: 2}
   - {fileID: 11400000, guid: e41cb949bf0dc8c449185c01c95162f6, type: 2}
   - {fileID: 11400000, guid: bcca8958f020df74cafed5ea1facb623, type: 2}
   - {fileID: 11400000, guid: bd04ca413ce93144a853e0da8ee70c00, type: 2}
   - {fileID: 11400000, guid: f6d8077c5754d9745bd8915897b645e8, type: 2}
+  - {fileID: 11400000, guid: 6e671ec55d5ac0243afd7d2801dc6c4b, type: 2}
   - {fileID: 11400000, guid: 74935c053a40e5549b10704b3189419d, type: 2}
   - {fileID: 11400000, guid: 9788539a33748784b9934ff73ae9466d, type: 2}
   - {fileID: 11400000, guid: 92457dc84a452524194185157d0c7e49, type: 2}
@@ -93,5 +96,6 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 69fac600d6ee7594fb80555a98713444, type: 2}
   - {fileID: 11400000, guid: a629bf9703b32c84a987f7760d9a2b2f, type: 2}
   - {fileID: 11400000, guid: 224a9e9924afe0640865f15f046c4ab0, type: 2}
+  - {fileID: 11400000, guid: 1d05d02e4972300468567f0859f6b7f8, type: 2}
   - {fileID: 11400000, guid: a95128cdc7c3461438a6d741742178a3, type: 2}
   - {fileID: 11400000, guid: ca85a0ffeece51942b4f305b7da5688d, type: 2}

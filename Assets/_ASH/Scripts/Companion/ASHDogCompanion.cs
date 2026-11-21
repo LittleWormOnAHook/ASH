@@ -5,6 +5,7 @@ using ASH.Interaction;
 using ASH.Inventory;
 using ASH.Player;
 using ASH.UI;
+using ASH.Wildlife;
 using Invector;
 using UnityEngine;
 
@@ -72,6 +73,7 @@ namespace ASH.Companion
         Pose _pose; float _poseUntil; Vector3 _stayPos; float _stayT, _idleT;
         Vector3 _wander; bool _hasWander; float _wanderWait; bool _moving;
         Transform _threat; float _threatScanT, _nextWarn, _warnUntil, _nextAttack, _pendingHit = -1f; Transform _pendingTarget; bool _retreat; float _lastHurt = -99f;
+        Transform _assistTarget; float _distractUntil;
         Transform _find; bool _findIsCrate; float _findScanT, _nextFind, _findGiveUp, _pointUntil = -1f; string _findLabel;
         readonly Dictionary<int, float> _seen = new Dictionary<int, float>();
         readonly List<(string id, float until)> _markers = new List<(string, float)>();
@@ -235,7 +237,9 @@ namespace ASH.Companion
                 if (MoveTo(P, S.runSpeed, S.followDistance)) _callRunUntil = 0f;
                 return;
             }
-            // defend
+            // combat assist in Follow or Defend (never Stay); wolf = engage, bear = warn/distract/retreat
+            if (_assistTarget && Mode != ASHDogMode.Stay && !_retreat && AssistStep(P)) return;
+            // defend nearby threats
             if (_threat && Mode == ASHDogMode.Defend && !_retreat && Engage(P)) return;
             // warn
             if (_threat && Time.time < _warnUntil) { Activity = "Growling at danger"; Stop(); Face(_threat.position, dt); SetPose(Pose.Alert); return; }
@@ -731,6 +735,7 @@ namespace ASH.Companion
 
         void ScanThreats()
         {
+            if (Mode != ASHDogMode.Stay && AssistOk(_assistTarget)) { SetThreat(_assistTarget); return; }
             if (!S.warnDanger && Mode != ASHDogMode.Defend) { SetThreat(null); return; }
             float r = Mathf.Max(S.DangerRadius(Level), Mode == ASHDogMode.Defend ? S.defendRadius : 0f);
             int n = Physics.OverlapSphereNonAlloc(transform.position, r, Cols, ~0, QueryTriggerInteraction.Collide);
@@ -907,11 +912,65 @@ namespace ASH.Companion
             if (notify) Notify();
         }
 
+        public void NotifyPlayerCombat(Transform who, bool playerWasHit)
+        {
+            if (!who || Dead || Downed || Mode == ASHDogMode.Stay) return;
+            var animal = who.GetComponentInParent<ASHAnimal>();
+            var root = animal ? animal.transform : who;
+            if (animal && animal.IsDead) return;
+            _assistTarget = root;
+            SetThreat(root);
+        }
+
+        bool AssistOk(Transform t)
+        {
+            if (!t) return false;
+            var animal = t.GetComponentInParent<ASHAnimal>();
+            if (animal && (animal.IsDead || animal.Harvested)) return false;
+            var range = ASHWildlifeSettings.I ? ASHWildlifeSettings.I.dogAssistRange : 28f;
+            if (_player && Flat(t.position, _player.position) > range) return false;
+            return t.gameObject.activeInHierarchy;
+        }
+
+        bool AssistStep(Vector3 P)
+        {
+            if (!AssistOk(_assistTarget)) { _assistTarget = null; return false; }
+            SetThreat(_assistTarget);
+            var animal = _assistTarget.GetComponentInParent<ASHAnimal>();
+            if (animal && animal.DogPolicy == ASHDogWildlifePolicy.WarnDistractRetreat) return Distract(P);
+            return Engage(P);
+        }
+
+        bool Distract(Vector3 P)
+        {
+            var tp = _threat ? _threat.position : _assistTarget.position;
+            Activity = "Distracting";
+            float d = Flat(tp, transform.position);
+            float standOff = ASHWildlifeSettings.I ? ASHWildlifeSettings.I.dogDistractDistance : 5f;
+            float backFor = ASHWildlifeSettings.I ? ASHWildlifeSettings.I.dogDistractRetreatSeconds : 3.5f;
+            if (Time.time < _distractUntil || d < standOff * 0.7f)
+            {
+                if (d < standOff * 0.7f) _distractUntil = Time.time + backFor;
+                MoveTo(P, S.runSpeed, S.defendFollowDistance * 0.8f);
+                if (Time.time >= _nextWarn) { _nextWarn = Time.time + 2.5f; Growl(); }
+                return true;
+            }
+            var side = Vector3.Cross(Vector3.up, (tp - P).normalized);
+            if (side.sqrMagnitude < 0.01f) side = transform.right;
+            var flank = tp + side.normalized * standOff;
+            if (Flat(flank, transform.position) > 1.4f) { MoveTo(flank, S.runSpeed, 1.1f); return true; }
+            Stop(); Face(tp, Time.deltaTime * 2f); SetPose(Pose.Alert);
+            if (Time.time >= _nextWarn) { _nextWarn = Time.time + 2f; Growl(); }
+            _distractUntil = Time.time + backFor;
+            return true;
+        }
+
         public void SetMode(ASHDogMode m)
         {
             if (Dead) return;
             Debug.Log($"[ASH] Dog mode -> {m}");
             Mode = m; _stayPos = transform.position; _stayT = 0f; _find = null; _pointUntil = -1f; _callRunUntil = 0f;
+            if (m == ASHDogMode.Stay) _assistTarget = null;
             Toast(m == ASHDogMode.Stay ? $"{DogName}: stay." : m == ASHDogMode.Follow ? $"{DogName}: follow." : $"{DogName}: defend me.");
             Play(barkClip, 0.5f); Notify();
         }

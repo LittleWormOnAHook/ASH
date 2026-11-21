@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using ASH.Wildlife;
 using UnityEngine;
 using UnityEngine.Rendering;
 
@@ -62,6 +63,8 @@ namespace ASH.Interaction
             if (!t || !t.gameObject.activeInHierarchy) return false;
             if (t is ASHResourceNode n) return !n.Depleted && n.Item;
             if (t is ASHChoppable c) return !c.Done && !c.Busy;
+            var animal = t as ASHAnimal ?? t.GetComponentInParent<ASHAnimal>();
+            if (animal) return animal.IsDead && !animal.Harvested;
             return false;
         }
 

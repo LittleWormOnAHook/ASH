@@ -1,0 +1,88 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bcc659a571fc8054e917299db0da3698, type: 3}
+  m_Name: ASH_WildlifeSettings
+  m_EditorClassIdentifier: Assembly-CSharp::ASH.Wildlife.ASHWildlifeSettings
+  wolf:
+    kind: 0
+    displayName: Wolf
+    maxHealth: 40
+    damage: 8
+    detectRange: 24
+    attackRange: 2.1
+    walkSpeed: 2.4
+    runSpeed: 7.2
+    attackCooldown: 1.5
+    harvestHold: 3.2
+    wanderRadius: 20
+    dogPolicy: 0
+    scaredByTorch: 1
+    torchScareRadius: 8
+    torchScareSeconds: 6
+    drops:
+    - item: {fileID: 11400000, guid: 49aeecd77bdc047408ab2bf59e2992fc, type: 2}
+      min: 1
+      max: 2
+      chance: 1
+    - item: {fileID: 11400000, guid: 1d05d02e4972300468567f0859f6b7f8, type: 2}
+      min: 1
+      max: 1
+      chance: 0.9
+    - item: {fileID: 11400000, guid: 5abc93b8e4ac5864c96ebb3bc63402b1, type: 2}
+      min: 1
+      max: 2
+      chance: 1
+    - item: {fileID: 11400000, guid: 6a9d317fdb82dd446b8e29aca3f854c4, type: 2}
+      min: 0
+      max: 1
+      chance: 0.7
+  bear:
+    kind: 1
+    displayName: Bear
+    maxHealth: 120
+    damage: 16
+    detectRange: 18
+    attackRange: 2.6
+    walkSpeed: 2
+    runSpeed: 5.4
+    attackCooldown: 2.2
+    harvestHold: 5.5
+    wanderRadius: 16
+    dogPolicy: 1
+    scaredByTorch: 0
+    torchScareRadius: 8
+    torchScareSeconds: 6
+    drops:
+    - item: {fileID: 11400000, guid: 49aeecd77bdc047408ab2bf59e2992fc, type: 2}
+      min: 2
+      max: 4
+      chance: 1
+    - item: {fileID: 11400000, guid: 6e671ec55d5ac0243afd7d2801dc6c4b, type: 2}
+      min: 1
+      max: 1
+      chance: 1
+    - item: {fileID: 11400000, guid: 5abc93b8e4ac5864c96ebb3bc63402b1, type: 2}
+      min: 2
+      max: 4
+      chance: 1
+    - item: {fileID: 11400000, guid: 6a9d317fdb82dd446b8e29aca3f854c4, type: 2}
+      min: 1
+      max: 3
+      chance: 1
+  wolfCount: 3
+  bearCount: 1
+  campExclusionMeters: 80
+  packSpacing: 14
+  spawnSeed: 0
+  dogAssistRange: 28
+  dogDistractDistance: 5
+  dogDistractRetreatSeconds: 3.5
