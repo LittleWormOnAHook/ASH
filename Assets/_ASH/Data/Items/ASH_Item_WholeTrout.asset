@@ -15,7 +15,7 @@ MonoBehaviour:
   itemId: wholetrout
   displayName: Whole Trout
   description: Stranded in a drying pool. Gut it (a knife wastes less).
-  icon: {fileID: 21300000, guid: 90d20ef610043464391beded0281fba7, type: 3}
+  icon: {fileID: 21300000, guid: 0180b14da9baf6b4b82c4e7476a03b76, type: 3}
   uiTint: {r: 0.55, g: 0.55, b: 0.45, a: 1}
   category: 4
   maxStack: 3

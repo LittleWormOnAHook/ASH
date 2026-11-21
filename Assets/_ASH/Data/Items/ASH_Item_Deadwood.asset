@@ -15,7 +15,7 @@ MonoBehaviour:
   itemId: deadwood
   displayName: Deadwood
   description: Dry, grey branches. Burns fast.
-  icon: {fileID: 21300000, guid: cf59cbb6e4f0c834788e2a8227e3bc71, type: 3}
+  icon: {fileID: 21300000, guid: 58595f262eb252b4988a4deada1c7093, type: 3}
   uiTint: {r: 0.6, g: 0.5, b: 0.38, a: 1}
   category: 0
   maxStack: 20

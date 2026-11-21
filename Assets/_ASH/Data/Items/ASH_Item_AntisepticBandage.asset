@@ -15,7 +15,7 @@ MonoBehaviour:
   itemId: antisepticbandage
   displayName: Antiseptic Bandage
   description: Bandage soaked in alcohol. Restores more health.
-  icon: {fileID: 21300000, guid: 3db109ed58afcc1448e711929ed8d3ec, type: 3}
+  icon: {fileID: 21300000, guid: 2730692df169245439b40b18899e0c5b, type: 3}
   uiTint: {r: 0.85, g: 0.9, b: 0.85, a: 1}
   category: 5
   maxStack: 10

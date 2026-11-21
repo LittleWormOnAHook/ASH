@@ -24,7 +24,7 @@ namespace ASH.EditorTools
             "PocketWatch", "SilverRing", "FanBelt", "DeerSkin", "ReclaimedWood", "Shotgun", "ScrapMetal" };
         static readonly HashSet<string> SkipRecipes = new HashSet<string> { "ClothFromShirt", "BoilWater", "AmmoPouch1", "AmmoPouch2", "AmmoPouch3", "AmmoPouch4" };
 
-        public static bool IsArtIcon(Sprite s) => s && AssetDatabase.GetAssetPath(s).StartsWith(Root + "/");
+        public static bool IsArtIcon(Sprite s) { if (!s) return false; var p = AssetDatabase.GetAssetPath(s); return p.StartsWith(Root + "/") || p.StartsWith(ASHIconFinalApply.Root + "/"); } // t457: final icons count as art too
 
         [MenuItem("ASH/Art/Apply Art Icons (Icons Inventory)")]
         public static void Apply()

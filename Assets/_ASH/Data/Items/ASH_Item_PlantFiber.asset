@@ -15,7 +15,7 @@ MonoBehaviour:
   itemId: plantfiber
   displayName: Plant Fiber
   description: Dry grass and inner bark, twisted into strands.
-  icon: {fileID: 21300000, guid: 96b58f1ea79b81640a2354bacc3a71b8, type: 3}
+  icon: {fileID: 21300000, guid: a335bfdbf97842a478d09f581ba97b55, type: 3}
   uiTint: {r: 0.66, g: 0.62, b: 0.38, a: 1}
   category: 0
   maxStack: 20

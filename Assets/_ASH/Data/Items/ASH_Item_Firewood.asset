@@ -16,7 +16,7 @@ MonoBehaviour:
   displayName: Firewood
   description: Split dead timber from felled trees, logs and stumps. Burns long and
     hot.
-  icon: {fileID: 21300000, guid: 6ee09c714c910de4c8c84b1dce40425a, type: 3}
+  icon: {fileID: 21300000, guid: d8a20033cdddfd948a5362956325f917, type: 3}
   uiTint: {r: 0.5, g: 0.38, b: 0.26, a: 1}
   category: 0
   maxStack: 20

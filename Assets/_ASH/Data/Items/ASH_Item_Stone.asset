@@ -15,7 +15,7 @@ MonoBehaviour:
   itemId: stone
   displayName: Stone
   description: Fist-sized creek stone. Good for a fire ring.
-  icon: {fileID: 21300000, guid: 45295423900239c4ca3d91e51b70f103, type: 3}
+  icon: {fileID: 21300000, guid: fc6939e03f9316843877a648cfa62846, type: 3}
   uiTint: {r: 0.6, g: 0.6, b: 0.6, a: 1}
   category: 0
   maxStack: 20

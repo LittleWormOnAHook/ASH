@@ -16,7 +16,7 @@ MonoBehaviour:
   displayName: Wet Rag
   description: A damp rag to tie over your mouth and nose. Filters the worst of the
     ash for several hours before it dries out.
-  icon: {fileID: 21300000, guid: 74211c59b19a29644bf8051d8d5fc856, type: 3}
+  icon: {fileID: 21300000, guid: 953957905b0139444af3b7c544a89ce6, type: 3}
   uiTint: {r: 0.55, g: 0.7, b: 0.78, a: 1}
   category: 5
   maxStack: 1

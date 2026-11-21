@@ -15,7 +15,7 @@ MonoBehaviour:
   itemId: cointin
   displayName: Rusty Coin Tin
   description: A rusted tobacco tin that rattles with old coins.
-  icon: {fileID: 21300000, guid: 56235b9fa9bc3ff4f9da81cdcbc569fd, type: 3}
+  icon: {fileID: 21300000, guid: 5a9c608094b218f4187e809751c1abd6, type: 3}
   uiTint: {r: 0.55, g: 0.36, b: 0.22, a: 1}
   category: 4
   maxStack: 5

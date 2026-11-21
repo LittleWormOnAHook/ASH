@@ -16,7 +16,7 @@ MonoBehaviour:
   displayName: Torch
   description: Cloth soaked in alcohol, wrapped on a stick. Burns about five minutes.
     Toggle with [L].
-  icon: {fileID: 21300000, guid: ee9e7d7229e307b4b8618c5439d0ff41, type: 3}
+  icon: {fileID: 21300000, guid: d30ad73635e4c3a419188a79159dacc3, type: 3}
   uiTint: {r: 0.45, g: 0.32, b: 0.2, a: 1}
   category: 9
   maxStack: 3

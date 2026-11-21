@@ -15,11 +15,13 @@ MonoBehaviour:
   itemId: battery
   displayName: Battery
   description: A D-cell with some charge left. Powers the flashlight.
-  icon: {fileID: 21300000, guid: e9c8f5873adbf8a41a069a1a9468cd5b, type: 3}
+  icon: {fileID: 21300000, guid: 22a6a44b6690c0e4db9ec72710da6335, type: 3}
   uiTint: {r: 0.3, g: 0.3, b: 0.25, a: 1}
   category: 0
   maxStack: 10
+  sellValue: 0
   useVerb: Use
+  keyItem: 0
   restoreHunger: 0
   restoreThirst: 0
   restoreHealth: 0
@@ -27,6 +29,10 @@ MonoBehaviour:
   requiresOpener: 0
   smashedYield: 0.65
   leftoverItem: {fileID: 0}
+  sicknessChance: 0
+  sicknessHealthLoss: 8
+  sicknessThirstLoss: 10
+  sicknessHungerLoss: 6
   toolType: 0
   breakdownYield: []
   breakdownTool: 0
@@ -44,6 +50,7 @@ MonoBehaviour:
   gripStyle: 0
   heldScale: 1
   ammoItem: {fileID: 0}
+  containerLitres: 0
   fuelItem: {fileID: 0}
   fuelSecondsPerUnit: 480
   fuelCapacityUnits: 2

@@ -15,7 +15,7 @@ MonoBehaviour:
   itemId: painkillers
   displayName: Painkillers
   description: A few pills rattling in a bottle.
-  icon: {fileID: 21300000, guid: 3657a453e742e724dac02e72e086da91, type: 3}
+  icon: {fileID: 21300000, guid: 1adf78c007c73ab4295230c3cf847181, type: 3}
   uiTint: {r: 0.9, g: 0.85, b: 0.7, a: 1}
   category: 5
   maxStack: 10

@@ -15,11 +15,13 @@ MonoBehaviour:
   itemId: cloth
   displayName: Cloth
   description: Clean strips of fabric. Bandages, repairs, tinder.
-  icon: {fileID: 21300000, guid: a72d0f20659b0da4da02933c530a7107, type: 3}
+  icon: {fileID: 21300000, guid: 279c48c8357171049b1eda82a2718d61, type: 3}
   uiTint: {r: 0.75, g: 0.68, b: 0.55, a: 1}
   category: 0
   maxStack: 10
+  sellValue: 0
   useVerb: Use
+  keyItem: 0
   restoreHunger: 0
   restoreThirst: 0
   restoreHealth: 0
@@ -27,6 +29,10 @@ MonoBehaviour:
   requiresOpener: 0
   smashedYield: 0.65
   leftoverItem: {fileID: 0}
+  sicknessChance: 0
+  sicknessHealthLoss: 8
+  sicknessThirstLoss: 10
+  sicknessHungerLoss: 6
   toolType: 0
   breakdownYield: []
   breakdownTool: 0
@@ -44,6 +50,7 @@ MonoBehaviour:
   gripStyle: 0
   heldScale: 1
   ammoItem: {fileID: 0}
+  containerLitres: 0
   fuelItem: {fileID: 0}
   fuelSecondsPerUnit: 480
   fuelCapacityUnits: 2

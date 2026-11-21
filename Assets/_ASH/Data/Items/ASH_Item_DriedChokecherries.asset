@@ -15,7 +15,7 @@ MonoBehaviour:
   itemId: driedchokecherries
   displayName: Dried Chokecherries
   description: Fire-dried berries. Light and they keep.
-  icon: {fileID: 21300000, guid: a973882c70f8c894dbafe644b1c37e96, type: 3}
+  icon: {fileID: 21300000, guid: 036f3552f5b4dc9498f6ea31188caeb8, type: 3}
   uiTint: {r: 0.35, g: 0.08, b: 0.12, a: 1}
   category: 1
   maxStack: 20

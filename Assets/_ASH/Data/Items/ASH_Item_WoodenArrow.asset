@@ -15,7 +15,7 @@ MonoBehaviour:
   itemId: woodenarrow
   displayName: Wooden Arrow
   description: Straight shaft, scrap-metal head, fiber-bound.
-  icon: {fileID: 21300000, guid: bedc88128323be6479662a3415ff3a16, type: 3}
+  icon: {fileID: 21300000, guid: 644d21c087d58694e990354ccb3946ec, type: 3}
   uiTint: {r: 0.6, g: 0.48, b: 0.3, a: 1}
   category: 8
   maxStack: 100

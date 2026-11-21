@@ -16,7 +16,7 @@ MonoBehaviour:
   displayName: Hatchet
   description: Fells dead trees and chops logs and stumps into firewood and kindling.
     Splits deadwood faster; breaks down crates and furniture. Opens cans.
-  icon: {fileID: 21300000, guid: d39bcf169b58f4f44a16e977fb4688be, type: 3}
+  icon: {fileID: 21300000, guid: 647afd78c19f4664bbd51b370a9249a0, type: 3}
   uiTint: {r: 0.55, g: 0.5, b: 0.45, a: 1}
   category: 3
   maxStack: 1

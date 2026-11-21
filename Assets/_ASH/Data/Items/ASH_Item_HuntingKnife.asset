@@ -15,7 +15,7 @@ MonoBehaviour:
   itemId: huntingknife
   displayName: Hunting Knife
   description: Cuts cloth into strips, harvests meat, opens cans.
-  icon: {fileID: 21300000, guid: 9bcc2241d5b9b6941b01211525212cda, type: 3}
+  icon: {fileID: 21300000, guid: 09a3a21143e8e7442b5964c3e5fcc9c7, type: 3}
   uiTint: {r: 0.6, g: 0.6, b: 0.62, a: 1}
   category: 3
   maxStack: 1
