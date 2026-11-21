@@ -160,6 +160,14 @@ namespace ASH.Survival
 
         public void Drink(float amount) { if (IsDead) return; Thirst = Mathf.Min(MaxThirst, Thirst + amount); Changed?.Invoke(); }
 
+        /// <summary>Removes thirst points (ash exposure and other drains). Clamped at 0.</summary>
+        public void DrainThirst(float amount)
+        {
+            if (IsDead || amount <= 0f) return;
+            Thirst = Mathf.Max(0f, Thirst - amount);
+            Changed?.Invoke();
+        }
+
         /// <summary>Debug / stress helpers.</summary>
         public void DevSetNeeds(float hunger01, float thirst01) { Hunger = MaxHunger * hunger01; Thirst = MaxThirst * thirst01; Changed?.Invoke(); }
     }

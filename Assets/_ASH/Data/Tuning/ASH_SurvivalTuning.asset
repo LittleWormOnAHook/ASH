@@ -16,12 +16,13 @@ MonoBehaviour:
   maxStamina: 100
   maxHunger: 100
   maxThirst: 100
-  startHunger: 0.72
-  startThirst: 0.64
+  startHunger: 0.65
+  startThirst: 0.55
   hungerPerMinute: 1.1
   thirstPerMinute: 1.6
   sprintNeedsMultiplier: 1.75
   needsRateMultiplier: 1
+  survivalRateMultiplier: 1.25
   sprintDrainPerSecond: 12
   staminaRecoveryPerSecond: 16
   jumpStaminaCost: 12

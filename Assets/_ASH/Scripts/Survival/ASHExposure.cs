@@ -7,8 +7,8 @@ using UnityEngine.SceneManagement;
 namespace ASH.Survival
 {
     /// <summary>
-    /// Ash exposure: outside in bad air (strength per weather kind, ASHExposureSettings) health drains a little and stamina
-    /// recovers slower; the wet rag slows it, the gas mask more; shelters (ASHShelterZone, and the cabin interior) cut it by
+    /// Ash exposure: outside in bad air (strength per weather kind, ASHExposureSettings) health, stamina and thirst drain a little
+    /// and stamina recovers slower; the wet rag slows it, the gas mask more; shelters (ASHShelterZone, and the cabin interior) cut it by
     /// their sealing (ash-tight = stops). Rates per GAME hour x the difficulty exposure multiplier (Settings). Near 25% health
     /// while exposed: pulsing red screen edge, "Find shelter quickly", coughing. Muffled breathing while a rag/mask is worn.
     /// Added automatically (with ASHFaceProtection and the survival HUD) to the player (ASHSurvivalStats) on scene load.
@@ -105,6 +105,7 @@ namespace ASH.Survival
             Exposure = airBad ? Air * (1f - prot) * ASHGameSettings.CachedExposure : 0f;
 
             if (Draining && dh > 0f && S.healthDrainPerGameHour > 0f) _stats.Damage(S.healthDrainPerGameHour * Exposure * dh, false);
+            if (Draining && dh > 0f && S.thirstPerGameHour > 0f) _stats.DrainThirst(S.thirstPerGameHour * Exposure * dh);
             _stats.ExposureRecoveryMultiplier = Draining ? 1f - S.staminaRecoveryPenalty * Mathf.Clamp01(Exposure) : 1f;
             Player.ASHInvectorStaminaLink.ExtraDrainPerSecond = Draining && Time.deltaTime > 0f ? S.staminaDrainPerGameHour * Exposure * dh / Time.deltaTime : 0f;
 

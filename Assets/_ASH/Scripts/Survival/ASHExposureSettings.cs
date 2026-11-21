@@ -34,28 +34,30 @@ namespace ASH.Survival
         [Range(0.1f, 50f)] public float weatherBlendPerGameHour = 3f;
 
         [Header("Drain at strength 1, unprotected, outside (per GAME hour)")]
-        [Range(0f, 200f)] public float healthDrainPerGameHour = 10f;
-        [Tooltip("Extra stamina drain (stamina points per game hour).")]
-        [Range(0f, 500f)] public float staminaDrainPerGameHour = 0f;
+        [Range(0f, 200f)] public float healthDrainPerGameHour = 8f;
+        [Tooltip("Extra stamina drain (stamina points per game hour at exposure 1).")]
+        [Range(0f, 500f)] public float staminaDrainPerGameHour = 2f;
+        [Tooltip("Extra thirst drain (thirst points, 0–100 bar) per game hour at exposure 1. Planned start is 0.5; raise it in Play if it feels invisible next to the 1.6/min baseline.")]
+        [Range(0f, 100f)] public float thirstPerGameHour = 0.5f;
         [Tooltip("Stamina recovery is multiplied by (1 - this x exposure).")]
         [Range(0f, 1f)] public float staminaRecoveryPenalty = 0.45f;
         [Tooltip("Exposure below this is ignored (no drain, no icon).")]
         [Range(0f, 0.5f)] public float exposureDeadzone = 0.02f;
 
         [Header("Wet rag (UI only, no screen overlay)")]
-        [Range(0f, 1f)] public float ragProtection = 0.6f;
-        [Range(0.1f, 72f)] public float ragHours = 7f;
+        [Range(0f, 1f)] public float ragProtection = 0.5f;
+        [Range(0.1f, 72f)] public float ragHours = 5f;
         [Tooltip("Drying-out window: full protection until this many game hours remain, then it fades to zero (\"Your rag is drying out\" warning, amber timer).")]
         [Range(0f, 24f)] public float ragDegradeHours = 1.75f;
         [Tooltip("Wet rag + 10% bottle water.")]
         [Range(0f, 100f)] public float rewetWaterPercent = 10f;
 
         [Header("Gas mask + filter cartridges")]
-        [Range(0f, 1f)] public float maskProtection = 0.9f;
+        [Range(0f, 1f)] public float maskProtection = 0.85f;
         [Tooltip("Mask worn with no usable filter.")]
         [Range(0f, 1f)] public float maskNoFilterProtection = 0.15f;
         [Tooltip("Life of a new filter (game hours). Found filters roll a condition = fraction of this.")]
-        [Range(0.1f, 144f)] public float filterHours = 14f;
+        [Range(0.1f, 144f)] public float filterHours = 10f;
         [Tooltip("Protection fades over the last game hours of a filter.")]
         [Range(0f, 24f)] public float filterDegradeHours = 0.875f;
         [Tooltip("Filters wear only outside / in leaky shelters (sealed shelters don't use them).")]

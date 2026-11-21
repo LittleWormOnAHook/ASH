@@ -21,17 +21,18 @@ MonoBehaviour:
   thunderstorm: 0.5
   lightSnowMorning: 0
   weatherBlendPerGameHour: 5.1
-  healthDrainPerGameHour: 10
-  staminaDrainPerGameHour: 0
+  healthDrainPerGameHour: 8
+  staminaDrainPerGameHour: 2
+  thirstPerGameHour: 0.5
   staminaRecoveryPenalty: 0.45
   exposureDeadzone: 0.02
-  ragProtection: 0.6
-  ragHours: 7
+  ragProtection: 0.5
+  ragHours: 5
   ragDegradeHours: 1.75
   rewetWaterPercent: 10
-  maskProtection: 0.9
+  maskProtection: 0.85
   maskNoFilterProtection: 0.15
-  filterHours: 14
+  filterHours: 10
   filterDegradeHours: 0.875
   filterWearsOnlyWhenExposed: 1
   filterLowHours: 3.5

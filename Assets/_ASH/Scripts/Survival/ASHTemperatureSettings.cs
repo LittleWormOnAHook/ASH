@@ -18,7 +18,7 @@ namespace ASH.Survival
 
         [Header("Outdoor drop (warmth per game hour)")]
         [Tooltip("Base drop outdoors in calm clear daytime. 30 -> 6 takes (30-6)/rate game hours (default 2 = 12 game h = 24 real min).")]
-        [Range(0f, 60f)] public float outdoorDropPerGameHour = 2f;
+        [Range(0f, 60f)] public float outdoorDropPerGameHour = 2.5f;
         [Tooltip("Drop multiplier at the coldest hour of the night (blends from 1 at the warmest hour).")]
         [Range(0.2f, 6f)] public float nightMultiplier = 1.6f;
         [Range(0f, 23f)] public float warmestHour = 15f;
@@ -26,7 +26,7 @@ namespace ASH.Survival
         [Range(0f, 6f)] public float clearMul = 1f;
         [Range(0f, 6f)] public float calmHazyMul = 1.1f;
         [Range(0f, 6f)] public float lightAshMul = 1.2f;
-        [Range(0f, 6f)] public float heavyAshMul = 1.4f;
+        [Range(0f, 6f)] public float heavyAshMul = 1.5f;
         [Range(0f, 6f)] public float rainAshMul = 1.6f;
         [Range(0f, 6f)] public float snowstormMul = 2.2f;
         [Range(0f, 6f)] public float thunderstormMul = 1.5f;

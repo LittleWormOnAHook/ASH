@@ -17,8 +17,8 @@ namespace ASH.Survival
         [Range(10f, 1000f)] public float maxThirst = 100f;
 
         [Header("Start values (fraction of max)")]
-        [Range(0f, 1f)] public float startHunger = 0.72f;
-        [Range(0f, 1f)] public float startThirst = 0.64f;
+        [Range(0f, 1f)] public float startHunger = 0.65f;
+        [Range(0f, 1f)] public float startThirst = 0.55f;
 
         [Header("Needs decay (points per minute at the default 48-min day = per half game hour; runs on the game clock)")]
         [Range(0f, 100f)] public float hungerPerMinute = 1.1f;
@@ -30,11 +30,11 @@ namespace ASH.Survival
 
         [Header("Global drain rate")]
         [Tooltip("Speeds hunger, thirst, sprint stamina drain, outdoor temperature loss, and wet rag / filter usage (1 = normal, 1.5 = 50% faster). Does not affect stamina or health regen, warming from fires or shelters, jump cost, or health drain. The worn rag/filter countdown shows effective game time (a 7 h rag lasts ~4.7 h at 1.5). Stacks with Needs Rate Multiplier for hunger and thirst.")]
-        [Range(0f, 10f)] public float survivalRateMultiplier = 1.5f;
+        [Range(0f, 10f)] public float survivalRateMultiplier = 1.25f;
 
         static ASHSurvivalTuning _bound;
-        /// <summary>Active drain-rate multiplier (1.5 if nothing is bound). See <see cref="survivalRateMultiplier"/>.</summary>
-        public static float DrainRate => _bound ? Mathf.Max(0f, _bound.survivalRateMultiplier) : 1.5f;
+        /// <summary>Active drain-rate multiplier (1.25 if nothing is bound). See <see cref="survivalRateMultiplier"/>.</summary>
+        public static float DrainRate => _bound ? Mathf.Max(0f, _bound.survivalRateMultiplier) : 1.25f;
         public static void Bind(ASHSurvivalTuning tuning) => _bound = tuning;
 
         [Header("Stamina (drives the Invector motor)")]
