@@ -78,7 +78,7 @@ namespace ASH.UI
         void Audio()
         {
             W.SliderRow(_list, "Master", 0f, 1f, ASHGameSettings.MasterVolume, Pct, v => { ASHGameSettings.MasterVolume = v; ASHGameSettings.Apply(false); });
-            W.SliderRow(_list, "Music (radio)", 0f, 1f, ASHGameSettings.MusicVolume, Pct, v => { ASHGameSettings.MusicVolume = v; ASHGameSettings.Apply(false); });
+            W.SliderRow(_list, "Music", 0f, 1f, ASHGameSettings.MusicVolume, Pct, v => { ASHGameSettings.MusicVolume = v; ASHGameSettings.Apply(false); });
             W.SliderRow(_list, "Sound effects", 0f, 1f, ASHGameSettings.SfxVolume, Pct, v => { ASHGameSettings.SfxVolume = v; ASHGameSettings.Apply(false); });
             W.SliderRow(_list, "Ambience (wind, rain)", 0f, 1f, ASHGameSettings.AmbienceVolume, Pct, v => { ASHGameSettings.AmbienceVolume = v; ASHGameSettings.Apply(false); });
         }

@@ -237,6 +237,29 @@ namespace ASH.Core
         public static bool Exists(string slot) => File.Exists(SlotPath(slot));
         public static void Delete(string slot) { var p = SlotPath(slot); if (File.Exists(p)) File.Delete(p); }
 
+        /// <summary>Deletes every slot_*.json under the saves folder. Returns how many files were removed.</summary>
+        public static int DeleteAll()
+        {
+            if (!Directory.Exists(Dir)) return 0;
+            int n = 0;
+            foreach (var f in Directory.GetFiles(Dir, "slot_*.json")) { File.Delete(f); n++; }
+            foreach (var f in Directory.GetFiles(Dir, "slot_*.json.tmp")) { try { File.Delete(f); n++; } catch { } }
+            return n;
+        }
+
+        public static string ListSaveNames()
+        {
+            var l = AllSaves();
+            if (l.Count == 0) return "(none)";
+            var sb = new System.Text.StringBuilder();
+            foreach (var d in l)
+            {
+                if (sb.Length > 0) sb.Append(", ");
+                sb.Append(d.slot == AutoSlot ? "autosave" : "slot " + d.slot);
+            }
+            return sb.ToString();
+        }
+
         /// <summary>Reload the game scene and apply the save.</summary>
         public static void Load(ASHSaveData d)
         {

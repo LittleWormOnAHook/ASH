@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2ad0e3e45dbaf6c4981c224fa3a32294, type: 3}
+  m_Name: ASH_AudioSettings
+  m_EditorClassIdentifier: Assembly-CSharp::ASH.Audio.ASHAudioSettings
+  background:
+  - {fileID: 8300000, guid: d9d4ffaa33ba0a64cb5f6701b26b21c6, type: 3}
+  - {fileID: 8300000, guid: fe074538aedae4a4883aef008ad0d891, type: 3}
+  - {fileID: 8300000, guid: f315969bec5da604a988418c44214b60, type: 3}
+  - {fileID: 8300000, guid: 3a3bb33b2ed95304dba04dc1e7cda5c2, type: 3}
+  combat: {fileID: 8300000, guid: cb6b8790c961d9e4a98c2bd044553b71, type: 3}
+  crossfadeSeconds: 3
+  gapMinSeconds: 2
+  gapMaxSeconds: 8
+  backgroundVolume: 0.7
+  combatFadeInSeconds: 1.5
+  combatFadeOutSeconds: 3
+  combatEndDelaySeconds: 6
+  combatVolume: 0.85
+  backgroundDuck: 0.2
+  musicGroup: {fileID: 0}
+  wipeSavesOnNewGameInEditor: 0

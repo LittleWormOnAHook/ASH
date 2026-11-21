@@ -25,7 +25,7 @@ namespace ASH.Wildlife
 
         ASHGroundLocomotion _loco;
         ASHWildlifeAnim _vis;
-        Transform _player;
+        Transform _player, _dog, _focus;
         ASHWildlifeSettings.Species Sp => (settings ? settings : ASHWildlifeSettings.I)?.Of(kind);
         ASHWildlifeSettings W => settings ? settings : ASHWildlifeSettings.I;
 
@@ -41,6 +41,10 @@ namespace ASH.Wildlife
         public bool IsDead => _dead;
         public bool Harvested => _harvested;
         public bool IsTrapped => _mode == ASHAnimalMode.Trapped;
+        /// <summary>True when this hostile is aggro'd on the player or the pet dog (chase, attack, or a live trapped wolf).</summary>
+        public bool IsAggroOnPlayerOrDog =>
+            !_dead && !_harvested && Sp != null && Sp.temperament != ASHWildlifeTemperament.Passive &&
+            (_mode == ASHAnimalMode.Chase || _mode == ASHAnimalMode.Attack || (_mode == ASHAnimalMode.Trapped && IsThreat));
         public ASHAnimalMode Mode => _mode;
         public ASHDogWildlifePolicy DogPolicy => Sp != null ? Sp.dogPolicy : ASHDogWildlifePolicy.Ignore;
         public Transform UseTransform => transform;
@@ -93,6 +97,7 @@ namespace ASH.Wildlife
             if (Sp == null || W == null) return;
             _loco.tune = W.Loco(Sp, size);
             if (!_player) FindPlayer();
+            if (!_dog) FindDog();
 
             if (_mode == ASHAnimalMode.Trapped) { TrappedTick(dt); _loco.Animate(dt); _vis.TickLoco(0f, W.Trot(Sp, size), W.Run(Sp, size), false, 0f, dt); return; }
 
@@ -107,27 +112,43 @@ namespace ASH.Wildlife
             }
 
             float dPlayer = _player ? Flat(transform.position, _player.position) : 999f;
-            bool see = _player && dPlayer <= Mathf.Max(Sp.detectRange, Sp.stalkRange) && HasLos();
+            float dDog = _dog ? Flat(transform.position, _dog.position) : 999f;
+            float range = Mathf.Max(Sp.detectRange, Sp.stalkRange);
+            bool seePlayer = _player && dPlayer <= range && HasLos(_player);
+            bool seeDog = _dog && dDog <= range && HasLos(_dog);
 
             if (Sp.temperament == ASHWildlifeTemperament.Passive)
             {
-                if (see && dPlayer <= Sp.detectRange) BeginFlee(_player.position, Random.value < Sp.shortFleeChance);
+                if (seePlayer && dPlayer <= Sp.detectRange) BeginFlee(_player.position, Random.value < Sp.shortFleeChance);
+                else if (seeDog && dDog <= Sp.detectRange) BeginFlee(_dog.position, Random.value < Sp.shortFleeChance);
                 if (_mode == ASHAnimalMode.Flee) FleeTick();
                 else WanderTick();
             }
             else
             {
-                if (PackAlert(dPlayer, see)) { _aware = true; _mode = ASHAnimalMode.Chase; }
-                if (Sp.temperament == ASHWildlifeTemperament.Stalk && see && !_aware && dPlayer > Sp.detectRange * 0.55f && dPlayer <= Sp.stalkRange)
+                if (PackAlert(dPlayer, seePlayer || seeDog)) { _aware = true; _mode = ASHAnimalMode.Chase; if (!_focus) _focus = NearerThreat(dPlayer, dDog, seePlayer, seeDog); }
+                if (Sp.temperament == ASHWildlifeTemperament.Stalk && seePlayer && !_aware && dPlayer > Sp.detectRange * 0.55f && dPlayer <= Sp.stalkRange)
                 {
                     _mode = ASHAnimalMode.Stalk;
                     _stalkUntil = Time.time + Random.Range(4f, 10f);
+                    _focus = _player;
                 }
-                if (see && dPlayer <= Sp.detectRange) { _aware = true; _mode = dPlayer <= Sp.attackRange ? ASHAnimalMode.Attack : ASHAnimalMode.Chase; }
-                else if (_aware && dPlayer > Mathf.Max(Sp.detectRange, Sp.stalkRange) * 1.7f) { _aware = false; _mode = ASHAnimalMode.Wander; }
+                var threat = NearerThreat(dPlayer, dDog, seePlayer && dPlayer <= Sp.detectRange, seeDog && dDog <= Sp.detectRange);
+                if (threat)
+                {
+                    _focus = threat;
+                    _aware = true;
+                    float d = threat == _dog ? dDog : dPlayer;
+                    _mode = d <= Sp.attackRange ? ASHAnimalMode.Attack : ASHAnimalMode.Chase;
+                }
+                else if (_aware)
+                {
+                    float dFocus = _focus ? Flat(transform.position, _focus.position) : Mathf.Min(dPlayer, dDog);
+                    if (dFocus > Mathf.Max(Sp.detectRange, Sp.stalkRange) * 1.7f) { _aware = false; _focus = null; _mode = ASHAnimalMode.Wander; }
+                }
 
-                if (_mode == ASHAnimalMode.Attack) AttackTick(dPlayer);
-                else if (_mode == ASHAnimalMode.Chase) ChaseTick(dPlayer);
+                if (_mode == ASHAnimalMode.Attack) AttackTick();
+                else if (_mode == ASHAnimalMode.Chase) ChaseTick();
                 else if (_mode == ASHAnimalMode.Stalk) StalkTick(dPlayer);
                 else if (_mode == ASHAnimalMode.Flee) FleeTick();
                 else WanderTick();
@@ -180,33 +201,37 @@ namespace ASH.Wildlife
         void StalkTick(float dPlayer)
         {
             if (!_player) { WanderTick(); return; }
-            if (Time.time >= _stalkUntil) { _aware = true; _mode = ASHAnimalMode.Chase; ChaseTick(dPlayer); return; }
+            if (Time.time >= _stalkUntil) { _aware = true; _focus = _player; _mode = ASHAnimalMode.Chase; ChaseTick(); return; }
             float hold = Mathf.Clamp(Sp.detectRange * 0.8f, 8f, Sp.stalkRange * 0.7f);
             var to = transform.position - _player.position; to.y = 0f;
             var dest = _player.position + (to.sqrMagnitude > 0.2f ? to.normalized : _player.forward) * hold;
             _loco.MoveTo(dest, W.Walk(Sp, size), 2f);
         }
 
-        void ChaseTick(float dPlayer)
+        void ChaseTick()
         {
-            if (!_player) { WanderTick(); return; }
-            if (dPlayer <= Sp.attackRange) { _mode = ASHAnimalMode.Attack; AttackTick(dPlayer); return; }
-            _loco.MoveTo(_player.position, W.Run(Sp, size), Sp.attackRange * 0.7f);
+            var t = Focus();
+            if (!t) { WanderTick(); return; }
+            float d = Flat(transform.position, t.position);
+            if (d <= Sp.attackRange) { _mode = ASHAnimalMode.Attack; AttackTick(); return; }
+            _loco.MoveTo(t.position, W.Run(Sp, size), Sp.attackRange * 0.7f);
         }
 
-        void AttackTick(float dPlayer)
+        void AttackTick()
         {
-            if (!_player) { _mode = ASHAnimalMode.Wander; return; }
-            _loco.Face(_player.position, Time.deltaTime);
-            if (dPlayer > Sp.attackRange * 1.25f) { _mode = ASHAnimalMode.Chase; ChaseTick(dPlayer); return; }
+            var t = Focus();
+            if (!t) { _mode = ASHAnimalMode.Wander; return; }
+            _loco.Face(t.position, Time.deltaTime);
+            float d = Flat(transform.position, t.position);
+            if (d > Sp.attackRange * 1.25f) { _mode = ASHAnimalMode.Chase; ChaseTick(); return; }
             _loco.Stop();
             if (Time.time < _nextAttack) return;
             _nextAttack = Time.time + Sp.attackCooldown;
             _vis.PlayAttack();
             float dmg = W.Damage(Sp, size);
             if (dmg <= 0f) return;
-            var hc = _player.GetComponentInParent<vIHealthController>();
-            if (hc != null) hc.TakeDamage(new vDamage { damageValue = Mathf.RoundToInt(dmg), sender = transform, hitPosition = _player.position });
+            var hc = t.GetComponentInParent<vIHealthController>();
+            if (hc != null) hc.TakeDamage(new vDamage { damageValue = Mathf.RoundToInt(dmg), sender = transform, hitPosition = t.position });
         }
 
         void TrappedTick(float dt)
@@ -272,17 +297,32 @@ namespace ASH.Wildlife
             return false;
         }
 
-        bool HasLos()
+        Transform NearerThreat(float dPlayer, float dDog, bool seePlayer, bool seeDog)
         {
-            if (!_player) return false;
+            if (seePlayer && seeDog) return dDog < dPlayer && _dog ? _dog : _player;
+            if (seeDog) return _dog;
+            if (seePlayer) return _player;
+            return null;
+        }
+
+        Transform Focus()
+        {
+            if (_focus) return _focus;
+            if (_player) return _player;
+            return _dog;
+        }
+
+        bool HasLos(Transform t)
+        {
+            if (!t) return false;
             var origin = transform.position + Vector3.up * 1.0f;
-            var dest = _player.position + Vector3.up * 1.1f;
+            var dest = t.position + Vector3.up * 1.1f;
             var dir = dest - origin;
             float dist = dir.magnitude;
             if (dist < 0.2f) return true;
             if (Physics.Raycast(origin, dir / dist, out var hit, dist, W.environmentLayers, QueryTriggerInteraction.Ignore))
             {
-                if (hit.transform.IsChildOf(_player) || hit.transform == _player) return true;
+                if (hit.transform.IsChildOf(t) || hit.transform == t) return true;
                 return false;
             }
             return true;
@@ -305,6 +345,12 @@ namespace ASH.Wildlife
             if (!_player && ASHCombatBridge.Player) _player = ASHCombatBridge.Player.transform;
         }
 
+        void FindDog()
+        {
+            var d = ASHDogCompanion.Active;
+            _dog = d ? d.transform : null;
+        }
+
         public void TakeDamage(vDamage damage)
         {
             if (_dead || damage == null) return;
@@ -315,6 +361,12 @@ namespace ASH.Wildlife
             _onRecv.Invoke(damage);
             _vis.PlayHit();
             _aware = Sp != null && Sp.temperament != ASHWildlifeTemperament.Passive;
+            if (_aware && damage.sender)
+            {
+                if (_player && (damage.sender == _player || damage.sender.IsChildOf(_player))) _focus = _player;
+                else if (_dog && (damage.sender == _dog || damage.sender.IsChildOf(_dog))) _focus = _dog;
+                else _focus = damage.sender;
+            }
             if (_aware && _mode != ASHAnimalMode.Trapped) _mode = ASHAnimalMode.Chase;
             if (Sp != null && Sp.temperament == ASHWildlifeTemperament.Passive && _mode != ASHAnimalMode.Trapped && damage.sender)
                 BeginFlee(damage.sender.position, false);
