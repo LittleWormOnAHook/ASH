@@ -18,7 +18,7 @@ namespace ASH.UI
     /// </summary>
     public sealed class ASHJournalUI : MonoBehaviour
     {
-        public enum Tab { Crafting, Items, Notes, Objectives, Skills, Pets }
+        public enum Tab { Crafting, Items, Notes, Objectives, Skills, Pets, Character }
 
         ASHInventory _inv; ASHCrafting _craft; Func<ASHItemDefinition, bool> _useItem;
         readonly Dictionary<Tab, GameObject> _tabs = new Dictionary<Tab, GameObject>();
@@ -61,6 +61,7 @@ namespace ASH.UI
             var log = ASHJournalLog.Instance; if (log) log.Added += OnNote;
             if (_objectives) _objectives.Changed += MarkDirty;
             ASH.Gameplay.ASHSkills.Changed += MarkDirty;
+            ASH.Gameplay.ASHCharacterEquipment.Changed += MarkDirty;
             _dirty = true;
         }
         void OnDisable()
@@ -70,6 +71,7 @@ namespace ASH.UI
             var log = ASHJournalLog.Instance; if (log) log.Added -= OnNote;
             if (_objectives) _objectives.Changed -= MarkDirty;
             ASH.Gameplay.ASHSkills.Changed -= MarkDirty;
+            ASH.Gameplay.ASHCharacterEquipment.Changed -= MarkDirty;
         }
         void MarkDirty() => _dirty = true;
         void OnCraftEvent(ASHRecipe r) => _dirty = true;
@@ -82,11 +84,13 @@ namespace ASH.UI
             var accent = K.At("Accent", rt, new Vector2(0.5f, 1), Vector2.zero, new Vector2(1200, 3)); K.Image(accent, K.Accent);
             K.Text(K.At("Title", rt, new Vector2(0, 1), new Vector2(28, -18), new Vector2(400, 40)), "JOURNAL", 30, K.Accent, TextAnchor.MiddleLeft, FontStyle.Bold);
             float x = 210;
-            foreach (Tab t in new[] { Tab.Items, Tab.Notes, Tab.Objectives, Tab.Skills, Tab.Pets, Tab.Crafting }) // the Survival Guide tab comes last (hidden until unlocked)
+            foreach (Tab t in new[] { Tab.Items, Tab.Character, Tab.Notes, Tab.Objectives, Tab.Skills, Tab.Pets, Tab.Crafting }) // the Survival Guide tab comes last (hidden until unlocked)
             {
                 var tab = t;
-                var b = K.At("Tab" + t, rt, new Vector2(0, 1), new Vector2(x, -20), new Vector2(t == Tab.Crafting ? 150 : 104, 38)); x += t == Tab.Crafting ? 154 : 108;
-                K.Button(b, t == Tab.Crafting ? "SURVIVAL GUIDE" : t.ToString().ToUpperInvariant(), 16, () => Show(tab), new Color(1, 1, 1, 0.12f));
+                float w = t == Tab.Crafting ? 150 : t == Tab.Character ? 86 : 96;
+                var b = K.At("Tab" + t, rt, new Vector2(0, 1), new Vector2(x, -20), new Vector2(w, 38)); x += w + 4;
+                string label = t == Tab.Crafting ? "SURVIVAL GUIDE" : t == Tab.Character ? "CHAR" : t.ToString().ToUpperInvariant();
+                K.Button(b, label, 16, () => Show(tab), new Color(1, 1, 1, 0.12f));
                 _tabButtons[t] = b.GetComponent<Image>();
             }
             K.Text(K.At("Hint", rt, new Vector2(1, 1), new Vector2(-24, -26), new Vector2(270, 26)), "<color=#d9cbb4>J</color> close  <color=#d9cbb4>M</color> map  <color=#d9cbb4>Tab</color> pack", 14, K.Dim, TextAnchor.MiddleRight);
@@ -98,6 +102,7 @@ namespace ASH.UI
             _tabs[Tab.Objectives] = BuildObjectives(body);
             _tabs[Tab.Skills] = BuildSkills(body);
             _tabs[Tab.Pets] = BuildPets(body);
+            _tabs[Tab.Character] = ASHCharacterTab.Build(body);
         }
 
         // ------------------------------------------------------------------ pets (ASH.Companion.ASHDogCompanion)
@@ -553,6 +558,7 @@ namespace ASH.UI
             else if (_tab == Tab.Objectives) RebuildObjectives();
             else if (_tab == Tab.Skills) RebuildSkills();
             else if (_tab == Tab.Pets) RebuildPets();
+            else if (_tab == Tab.Character) ASHCharacterTab.Rebuild();
             else RebuildNotes();
         }
 

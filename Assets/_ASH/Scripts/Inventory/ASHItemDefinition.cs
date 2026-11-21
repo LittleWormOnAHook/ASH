@@ -8,6 +8,9 @@ namespace ASH.Inventory
     /// <summary>Where an equippable item goes: main hand (weapons, hatchet), off hand (torch, flashlight) or the left hip (lantern).</summary>
     public enum ASHEquipSlot { None, MainHand, OffHand, Hip }
 
+    /// <summary>Body slot for the Character journal tab. Independent of hand/hip equipment.</summary>
+    public enum ASHWearSlot { None, Head, Face, Outerwear, Torso, Hands, Legs, Feet, Backpack, Accessory }
+
     /// <summary>How a held item sits in the hand (arm hanging): Handle (long axis up out of the fist, head on top: hatchet, torch, bow,
     /// rifle carried upright), PistolGrip (barrel forward: pistol), Hang (hangs from a top handle: lantern), Beam (points forward: flashlight).</summary>
     public enum ASHGripStyle { Handle, PistolGrip, Hang, Beam }
@@ -84,6 +87,8 @@ namespace ASH.Inventory
 
         [Header("Equip / hold (weapons, hatchet, light sources)")]
         public ASHEquipSlot equipSlot = ASHEquipSlot.None;
+        [Tooltip("Character tab body slot (head, face, clothing, backpack, accessory). None = not wearable.")]
+        public ASHWearSlot wearSlot = ASHWearSlot.None;
         [Tooltip("Held visual spawned in the hand (ASH wrapper of the vendor model, no pickup/collider).")]
         public GameObject heldPrefab;
         [Tooltip("Extra grip offset on top of the automatic fist alignment (metres / degrees, grip space). Tune per model.")]
@@ -106,6 +111,7 @@ namespace ASH.Inventory
         public int fuelCapacityUnits = 2;
 
         public bool IsEquippable => equipSlot != ASHEquipSlot.None;
+        public bool IsWearable => wearSlot != ASHWearSlot.None;
         public bool IsLightSource => category == ASHItemCategory.Light;
         public bool IsWeapon => category == ASHItemCategory.Weapon || (equipSlot == ASHEquipSlot.MainHand && toolType == ASHToolType.Axe);
 

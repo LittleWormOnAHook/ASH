@@ -168,6 +168,13 @@ namespace ASH.Survival
             return true;
         }
 
+        /// <summary>Take the rag or mask off the face (Character tab unequip). Hotbar Wear still works.</summary>
+        public void TakeOffFace()
+        {
+            if (Worn == Kind.Rag) ReturnRag();
+            else if (Worn == Kind.Mask) { Worn = Kind.None; Toast("Gas mask off."); }
+        }
+
         public bool FitFilter(int slot, bool quiet = false)
         {
             var f = Def(FilterId); var m = Def(MaskId);
