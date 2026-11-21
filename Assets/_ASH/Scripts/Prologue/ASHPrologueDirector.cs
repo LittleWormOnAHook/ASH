@@ -35,6 +35,8 @@ namespace ASH.Prologue
         public Transform cinematicCamera;
         public ASHGrandpaSupplies supplies;
         public ASHShelterZone cabinShelter;
+        [Tooltip("t462: the cabin front door (locked until Grandpa's key is found). Empty = the door nearest the cabin shelter.")] public ASH.Interaction.ASHDoor cabinDoor;
+        [Tooltip("t462: Grandpa's key pickup (ASH/Systems/Prologue/Set Up Grandpa's Key). Hidden once the key is found.")] public GameObject keyPickup;
         [Header("Debug")]
         public bool logPhases = true;
 
@@ -54,7 +56,7 @@ namespace ASH.Prologue
 
         ASHObjectiveTracker _tracker; vThirdPersonController _cc; ASHVehicle _car, _truck; ASHEruptionSequence _seq; ASHSurvivalStats _stats;
         float _outsideT, _slowT, _warnStart = -1f; bool _killChecked, _treeStarted, _carInspected, _arrivalDone, _homeAgainDone;
-        int _tiresNeeded = 2; bool _refirePending; Quaternion _treePose = Quaternion.identity; bool _deadThisRun;
+        bool _doorTried, _doorUnlocked, _doorApplied; ASHInventory _keyInv; int _tiresNeeded = 2; bool _refirePending; Quaternion _treePose = Quaternion.identity; bool _deadThisRun;
         Func<bool> _autosaveBlocker; Canvas _bannerCanvas; Text _banner, _bannerSub;
 
         // ------------------------------------------------------------------ lifecycle
@@ -68,6 +70,7 @@ namespace ASH.Prologue
             ASHVehicle.DrivingChanged += OnDrivingChanged;
             ASHVehicle.Inspected += OnInspected;
             ASHGrandpaJournal.PageFound += OnPageFound;
+            ASH.Interaction.ASHDoor.LockedTried -= OnDoorLockedTried; ASH.Interaction.ASHDoor.LockedTried += OnDoorLockedTried;
             ASHDeathScreen.RetryAvailable = () => SavesLocked && ASHSaveSystem.Read(S ? S.checkpointSlot : "prologue_checkpoint") != null;
             ASHDeathScreen.Retry = Retry;
             ASHInventory.SuppressStartingItems = () => TakesOverOpening && S.prologueKitOnly && ASHSaveSystem.PendingLoad == null && !ASHSceneFlow.ContinuingRun;
@@ -81,6 +84,7 @@ namespace ASH.Prologue
             ASHVehicle.DrivingChanged -= OnDrivingChanged;
             ASHVehicle.Inspected -= OnInspected;
             ASHGrandpaJournal.PageFound -= OnPageFound;
+            ASH.Interaction.ASHDoor.LockedTried -= OnDoorLockedTried;
             ASHDeathScreen.RetryAvailable = null; ASHDeathScreen.Retry = null; ASHInventory.SuppressStartingItems = null;
             if (_stats) _stats.Died -= OnDied;
         }
@@ -222,6 +226,8 @@ namespace ASH.Prologue
                 case "sheltered": return Current >= Phase.CheckCar;
                 case "carInspected": return _carInspected;
                 case "truckFound": return TruckFound;
+                case "doorTried": return _doorTried;
+                case "doorUnlocked": return !S.lockCabinUntilKey || _doorUnlocked || Current >= Phase.Warning;
                 case "truckReady": return Current == Phase.TruckReady;
                 default: return false;
             }
@@ -233,7 +239,7 @@ namespace ASH.Prologue
             switch (id)
             {
                 case IdHome: lines = () => new[] { ("Drive to Grandpa's cabin and park by it", CarParked()), ("Get out of the car", _arrivalDone) }; target = () => parkingZone ? parkingZone.position : (Vector3?)null; break;
-                case IdHomeAgain: lines = () => new[] { ("Find Grandpa's journal", JournalFound()), ("Take Grandpa's supplies", supplies && supplies.Taken) }; target = () => !JournalFound() && FindJournalPickup() is Transform t ? t.position : (supplies && !supplies.Taken ? supplies.transform.position : (Vector3?)null); break;
+                case IdHomeAgain: lines = () => new[] { ("Get into the cabin", !S.lockCabinUntilKey || _doorUnlocked || InCabin()), ("Find Grandpa's journal", JournalFound()), ("Take Grandpa's supplies", supplies && supplies.Taken) }; target = () => !JournalFound() && FindJournalPickup() is Transform t ? t.position : (supplies && !supplies.Taken ? supplies.transform.position : (Vector3?)null); break;
                 case IdShelter: lines = () => new[] { ("Get inside the cabin, now", PlayerSafe()) }; target = () => cabinShelter ? cabinShelter.transform.position : (Vector3?)null; break;
                 case IdCar: lines = () => new[] { ("Check on the car", _carInspected) }; target = () => _car ? _car.transform.position : (Vector3?)null; break;
                 case IdWayOut: lines = () => new[] { ("Find another way to drive out", TruckFound) }; break;
@@ -303,6 +309,43 @@ namespace ASH.Prologue
             }
             return 0;
         }
+        // ------------------------------------------------------------------ cabin door + Grandpa's key (t462)
+        ASH.Interaction.ASHDoor CabinDoor()
+        {
+            if (cabinDoor) return cabinDoor;
+            float best = float.MaxValue; var c = cabinShelter ? cabinShelter.transform.position : transform.position;
+            foreach (var d in FindObjectsByType<ASH.Interaction.ASHDoor>(FindObjectsInactive.Exclude)) { float m = (d.transform.position - c).sqrMagnitude; if (m < best) { best = m; cabinDoor = d; } }
+            return cabinDoor;
+        }
+        bool HasKey()
+        {
+            if (!_keyInv) _keyInv = FindAnyObjectByType<ASHInventory>();
+            var reg = ASHItemRegistry.I; var def = reg ? reg.Find(S.keyItemId) : null;
+            return _keyInv && def && _keyInv.Count(def) > 0;
+        }
+        /// <summary>Locks the cabin door until the key is found (fresh run / restore before the warning); hides a found key.</summary>
+        void ApplyDoorState()
+        {
+            bool has = HasKey();
+            if (keyPickup) keyPickup.SetActive(!_doorUnlocked && !has);
+            var d = CabinDoor(); if (!d || !S.lockCabinUntilKey) return;
+            if (!_doorUnlocked && !has && Current < Phase.Warning) { d.SnapClosed(); d.Lock(); if (!string.IsNullOrEmpty(S.doorLockedMessage)) d.lockedMessage = S.doorLockedMessage; }
+            else if (d.Locked && Current < Phase.Warning) d.Unlock(false);
+        }
+        void UnlockCabinDoor(bool open, string message)
+        {
+            _doorUnlocked = true;
+            var d = CabinDoor(); if (d) { d.Unlock(true); if (open && !d.IsOpen) d.SetOpen(true, PlayerPos()); }
+            if (keyPickup && !HasKey()) keyPickup.SetActive(false);
+            if (!string.IsNullOrEmpty(message)) { var hud = FindAnyObjectByType<ASHHud>(); if (hud) hud.Toast(message); }
+            if (logPhases) Debug.Log("[ASH] Prologue: cabin door unlocked" + (message == null ? " (warning)" : " (Grandpa's key)"));
+        }
+        void OnDoorLockedTried(ASH.Interaction.ASHDoor d)
+        {
+            if (_doorTried || d != CabinDoor()) return;
+            _doorTried = true; if (logPhases) Debug.Log("[ASH] Prologue: cabin door is locked -> Find Grandpa's key");
+            var r = ASHObjectiveChainRunner.Instance; if (r && !ASHSaveSystem.IsRestoring) r.Tick(true);
+        }
         public int PartNeeded(string itemId, int fallback) => itemId == "tire" ? _tiresNeeded : fallback;
         bool TruckReady() { var c = _truck ? _truck.Condition : null; var f = _truck ? _truck.Fuel : null; return c && c.MissingTireCount == 0 && c.batteryInstalled && c.beltInstalled && (!f || f.litres >= 10f); }
 
@@ -313,7 +356,9 @@ namespace ASH.Prologue
             PerfTick(Current == Phase.Quake ? 8f : 20f);
             HoldNoAsh();
             if (_seq == null) Cache();
+            if (!_doorApplied) { _doorApplied = true; ApplyDoorState(); }
             _slowT -= Time.deltaTime; bool slow = _slowT <= 0f; if (slow) _slowT = 0.25f;
+            if (slow && S.lockCabinUntilKey && !_doorUnlocked && Current < Phase.Warning && HasKey()) UnlockCabinDoor(true, "Grandpa's key. The door's open.");
             if (slow && !TruckFound && _truck && Flat(_truck.transform.position - PlayerPos()).magnitude <= S.truckFoundRadius) MarkTruckFound();
             switch (Current)
             {
@@ -355,6 +400,7 @@ namespace ASH.Prologue
         void StartWarning(bool writeCheckpoint)
         {
             Cache();
+            if (S.lockCabinUntilKey && !_doorUnlocked) UnlockCabinDoor(true, null); // t462: never lock the player out of the only shelter
             SetPhase(Phase.Warning); // phase is part of the checkpoint (restore re-fires the warning)
             _killChecked = false; _treeStarted = false; _warnStart = Time.time;
             if (writeCheckpoint && ASHSaveSystem.Instance)
@@ -548,14 +594,14 @@ namespace ASH.Prologue
         // ------------------------------------------------------------------ save
         [Serializable] sealed class State
         {
-            public int phase; public bool arrivalDone, homeAgainDone, treeFelled, carInspected, truckFound, suppliesTouched;
+            public int phase; public bool arrivalDone, homeAgainDone, treeFelled, carInspected, truckFound, suppliesTouched, doorTried, doorUnlocked;
             public Quaternion treePose; public List<int> suppliesLeft = new List<int>();
         }
         public string SaveKey => "prologue";
         public int RestoreOrder => 45; // after the vehicles (40): the car's destroyed flag is already back
         public string CaptureJson()
         {
-            var s = new State { phase = (int)Current, arrivalDone = _arrivalDone, homeAgainDone = _homeAgainDone, treeFelled = TreeFelled, treePose = _treePose, carInspected = _carInspected, truckFound = TruckFound };
+            var s = new State { phase = (int)Current, arrivalDone = _arrivalDone, homeAgainDone = _homeAgainDone, treeFelled = TreeFelled, treePose = _treePose, carInspected = _carInspected, truckFound = TruckFound, doorTried = _doorTried, doorUnlocked = _doorUnlocked };
             if (supplies) { s.suppliesTouched = supplies.Touched; var l = supplies.Capture(); if (l != null) s.suppliesLeft = l; }
             return JsonUtility.ToJson(s);
         }
@@ -564,7 +610,7 @@ namespace ASH.Prologue
             var s = string.IsNullOrEmpty(json) ? null : JsonUtility.FromJson<State>(json); if (s == null) return;
             Cache();
             StopAllCoroutines(); ShowBanner(false);
-            _arrivalDone = s.arrivalDone; _homeAgainDone = s.homeAgainDone; _carInspected = s.carInspected; TruckFound = s.truckFound;
+            _arrivalDone = s.arrivalDone; _homeAgainDone = s.homeAgainDone; _carInspected = s.carInspected; TruckFound = s.truckFound; _doorTried = s.doorTried; _doorUnlocked = s.doorUnlocked; _doorApplied = false;
             TreeFelled = s.treeFelled; _treePose = s.treePose; _killChecked = false; _treeStarted = false; _outsideT = 0f;
             if (fallingTree) { if (TreeFelled) fallingTree.SetFallen(_treePose); else fallingTree.ResetUpright(); }
             if (supplies) supplies.Restore(s.suppliesLeft, s.suppliesTouched);

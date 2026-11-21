@@ -26,58 +26,58 @@ MonoBehaviour:
     title: Air first
     text: Ash cuts your lungs like glass. Wet cloth over mouth and nose. Stay inside
       when the sky goes brown.
-    sketch: {fileID: 21300000, guid: e72ebb5c688c3524fb5aec0223932e55, type: 3}
+    sketch: {fileID: 21300000, guid: b2d8f939253cfa84689d313c6907d3fe, type: 3}
   - number: 2
     title: Clean wounds
     text: Boil it, wrap it, keep it covered. A cheap bandage changed often beats
       a good one left on.
-    sketch: {fileID: 21300000, guid: 52f7a4659b7d4ad40af2bc3b0e733177, type: 3}
+    sketch: {fileID: 21300000, guid: 006a4b1a55d66f843a1ff3105d3f03f7, type: 3}
   - number: 3
     title: Fire in the wet
     text: Split the wood, shave the kindling. Dry stuff under the porch. Never trust
       the top of a pile.
-    sketch: {fileID: 21300000, guid: 1d9e472bce3692145b8f722f2b54eda4, type: 3}
+    sketch: {fileID: 21300000, guid: 7f648f4212a4e624cbe5a97e61bfd82b, type: 3}
   - number: 4
     title: Keep moving
     text: Don't sit down in the open when it's falling heavy. Pick the next roof,
       go to it, rest there.
-    sketch: {fileID: 21300000, guid: 4bc856c19812a4244ac620006245e976, type: 3}
+    sketch: {fileID: 21300000, guid: 28b6e2f3fba7eac4e981f39b0141b444, type: 3}
   - number: 5
     title: A bow from nothing
     text: Ash or willow, the length of you. Two good ropes for the string. Notch,
       bend slow, oil it.
-    sketch: {fileID: 21300000, guid: 3f7cef8026546394f9794cf90382c939, type: 3}
+    sketch: {fileID: 21300000, guid: 79c8eebdbceb2c84688c03176af1db2f, type: 3}
   - number: 6
     title: Water you can trust
     text: Snow melts dirty. Creek water too. If it isn't boiled it isn't water.
-    sketch: {fileID: 21300000, guid: b5c09d1390df7744cbb50dd08bdb9d6d, type: 3}
+    sketch: {fileID: 21300000, guid: 223a4794d770bc14a9f3c241a5a9ad11, type: 3}
   - number: 7
     title: Breathing in the grey
     text: 'Those old masks take a can filter. Pack one yourself: tin shell, cloth,
       charcoal from kindling. Change it before it stinks.'
-    sketch: {fileID: 21300000, guid: 5cdf580a9039f5747ac241acf99c50de, type: 3}
+    sketch: {fileID: 21300000, guid: 41fa612123f26034092847d5ab65662d, type: 3}
   - number: 8
     title: Reading the sky
     text: Brown haze from the north-west means ash by the afternoon. Thunder in ash
       means get under cover now.
-    sketch: {fileID: 21300000, guid: 851cd2002b41f8f4c964db642bb14571, type: 3}
+    sketch: {fileID: 21300000, guid: d807407da9b10b34b995b9c7f97c4a7f, type: 3}
   - number: 9
     title: Meat and smoke
     text: Cook it through. Dry the berries by the fire, they'll keep for weeks.
-    sketch: {fileID: 21300000, guid: 2d20153908d883948b62ff15427bf778, type: 3}
+    sketch: {fileID: 21300000, guid: 7b702bd5ccb8cd34d982e573cb086bac, type: 3}
   - number: 10
     title: Shelter that seals
     text: Tape the window frames, wet sheet over the door. A lean-to helps, but the
       ash still gets in.
-    sketch: {fileID: 21300000, guid: f4d4250c2ad20184c937e8ed358e4f07, type: 3}
+    sketch: {fileID: 21300000, guid: aa3c6371464f1fe4d91c72d38e906aa5, type: 3}
   - number: 11
     title: Night walking
     text: Lanterns carry far. Keep to the trees, count your steps between markers.
-    sketch: {fileID: 21300000, guid: 3af0e5ec49d30454d83477efbad182f6, type: 3}
+    sketch: {fileID: 21300000, guid: b295d556182226a4d809e9f9fc2710c0, type: 3}
   - number: 12
     title: If I don't make it
     text: Head down the valley road. Don't wait for me. Love you, kid.
-    sketch: {fileID: 21300000, guid: 9fe0fca8ac0db9144b4526744a10ff81, type: 3}
+    sketch: {fileID: 21300000, guid: 9f39f1f23ee6c6a41b979c10d04452b3, type: 3}
   entries:
   - recipe: {fileID: 11400000, guid: 41d2eb98ede82f641816564643375414, type: 2}
     basic: 1
@@ -96,6 +96,8 @@ MonoBehaviour:
       page: 1
       upgradeId: 
       upgradeTier: 1
+      collection: grandpa
+      pageId: 
     requireAll: 1
     hint: 
     column: 1
@@ -111,6 +113,8 @@ MonoBehaviour:
       page: 1
       upgradeId: 
       upgradeTier: 1
+      collection: grandpa
+      pageId: 
     requireAll: 1
     hint: 
     column: 1
@@ -126,12 +130,16 @@ MonoBehaviour:
       page: 1
       upgradeId: 
       upgradeTier: 1
+      collection: grandpa
+      pageId: 
     - kind: 2
       item: {fileID: 0}
       quantity: 1
       page: 7
       upgradeId: 
       upgradeTier: 1
+      collection: grandpa
+      pageId: 
     requireAll: 1
     hint: 
     column: 2
@@ -155,6 +163,8 @@ MonoBehaviour:
       page: 1
       upgradeId: 
       upgradeTier: 1
+      collection: grandpa
+      pageId: 
     requireAll: 1
     hint: 
     column: 1
@@ -170,6 +180,8 @@ MonoBehaviour:
       page: 1
       upgradeId: 
       upgradeTier: 1
+      collection: grandpa
+      pageId: 
     requireAll: 1
     hint: 
     column: 1
@@ -201,6 +213,8 @@ MonoBehaviour:
       page: 1
       upgradeId: 
       upgradeTier: 1
+      collection: grandpa
+      pageId: 
     requireAll: 1
     hint: 
     column: 1
@@ -240,12 +254,16 @@ MonoBehaviour:
       page: 1
       upgradeId: 
       upgradeTier: 1
+      collection: grandpa
+      pageId: 
     - kind: 2
       item: {fileID: 0}
       quantity: 1
       page: 5
       upgradeId: 
       upgradeTier: 1
+      collection: grandpa
+      pageId: 
     requireAll: 1
     hint: 
     column: 2
@@ -261,6 +279,8 @@ MonoBehaviour:
       page: 1
       upgradeId: 
       upgradeTier: 1
+      collection: grandpa
+      pageId: 
     requireAll: 1
     hint: 
     column: 3
@@ -284,12 +304,16 @@ MonoBehaviour:
       page: 1
       upgradeId: 
       upgradeTier: 1
+      collection: grandpa
+      pageId: 
     - kind: 2
       item: {fileID: 0}
       quantity: 1
       page: 2
       upgradeId: 
       upgradeTier: 1
+      collection: grandpa
+      pageId: 
     requireAll: 0
     hint: 
     column: 1
@@ -305,6 +329,8 @@ MonoBehaviour:
       page: 1
       upgradeId: 
       upgradeTier: 1
+      collection: grandpa
+      pageId: 
     requireAll: 1
     hint: 
     column: 2
@@ -320,6 +346,8 @@ MonoBehaviour:
       page: 1
       upgradeId: 
       upgradeTier: 1
+      collection: grandpa
+      pageId: 
     requireAll: 1
     hint: 
     column: 1
@@ -343,6 +371,8 @@ MonoBehaviour:
       page: 1
       upgradeId: 
       upgradeTier: 1
+      collection: grandpa
+      pageId: 
     requireAll: 1
     hint: 
     column: 1
@@ -366,6 +396,8 @@ MonoBehaviour:
       page: 1
       upgradeId: 
       upgradeTier: 1
+      collection: grandpa
+      pageId: 
     requireAll: 1
     hint: 
     column: 1
@@ -381,6 +413,8 @@ MonoBehaviour:
       page: 1
       upgradeId: 
       upgradeTier: 1
+      collection: grandpa
+      pageId: 
     requireAll: 1
     hint: 
     column: 1
@@ -396,6 +430,8 @@ MonoBehaviour:
       page: 1
       upgradeId: 
       upgradeTier: 1
+      collection: grandpa
+      pageId: 
     requireAll: 1
     hint: 
     column: 1
@@ -411,6 +447,8 @@ MonoBehaviour:
       page: 1
       upgradeId: 
       upgradeTier: 1
+      collection: grandpa
+      pageId: 
     requireAll: 1
     hint: Find a deer skin.
     column: 3
@@ -426,6 +464,8 @@ MonoBehaviour:
       page: 1
       upgradeId: ammo_pouch
       upgradeTier: 1
+      collection: grandpa
+      pageId: 
     requireAll: 1
     hint: Craft Ammo Pouch first.
     column: 3
@@ -441,6 +481,8 @@ MonoBehaviour:
       page: 1
       upgradeId: ammo_pouch
       upgradeTier: 2
+      collection: grandpa
+      pageId: 
     requireAll: 1
     hint: Craft Ammo Pouch II first.
     column: 3
@@ -456,6 +498,8 @@ MonoBehaviour:
       page: 1
       upgradeId: ammo_pouch
       upgradeTier: 3
+      collection: grandpa
+      pageId: 
     requireAll: 1
     hint: Craft Ammo Pouch III first.
     column: 3

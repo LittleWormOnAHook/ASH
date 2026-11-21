@@ -38,6 +38,8 @@ namespace ASH.Interaction
         [Range(0f, 1f)] public float volume = 0.8f;
         [Range(1f, 100f)] public float audioRange = 18f;
 
+        /// <summary>t462: raised when someone tries this door while it is locked.</summary>
+        public static event System.Action<ASHDoor> LockedTried;
         public bool IsOpen => _targetAngle != 0f;
         public float Angle => _angle;
         public bool Locked => locked;
@@ -151,7 +153,7 @@ namespace ASH.Interaction
         {
             if (locked)
             {
-                _jiggleT = 0.35f; Sfx("doorLocked", lockedClips, 1f);
+                _jiggleT = 0.35f; Sfx("doorLocked", lockedClips, 1f); LockedTried?.Invoke(this);
                 var hud = FindAnyObjectByType<UI.ASHHud>(); if (hud && !string.IsNullOrEmpty(lockedMessage)) hud.Toast(lockedMessage);
                 return true;
             }

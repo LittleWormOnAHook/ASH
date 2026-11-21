@@ -16,7 +16,7 @@ MonoBehaviour:
   announceMain: 1
   announceSide: 1
   hintSeconds: 6
-  contentVersion: 2
+  contentVersion: 3
   steps:
   - id: p00_home
     title: Returning Home
@@ -48,6 +48,24 @@ MonoBehaviour:
     listRecipeIngredients: 1
     items: []
     hint: Grandpa's journal and his supplies are inside the cabin.
+  - id: p01_key
+    title: Find Grandpa's key
+    kind: 1
+    final: 0
+    prerequisites: []
+    next:
+    - p01_home_again
+    revealFlag: doorTried
+    completeFlag: doorUnlocked
+    recipeName: 
+    completeOnPlace: 0
+    listRecipeIngredients: 1
+    items:
+    - itemId: grandpas_key
+      count: 1
+      label: Grandpa's Key
+      countInstalled: 0
+    hint: The cabin door is locked. Grandpa always kept a spare key close by.
   - id: c01_kindling
     title: Split some kindling
     kind: 2

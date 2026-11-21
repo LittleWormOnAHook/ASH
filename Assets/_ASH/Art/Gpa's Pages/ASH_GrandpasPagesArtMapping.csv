@@ -1,0 +1,9 @@
+page,id,title,oldGuid,oldPath,newPath
+1,gj_01,"Water you can trust",b5c09d1390df7744cbb50dd08bdb9d6d,Assets/_ASH/Art/FieldManual/ASH_FieldManual_06_WaterYouCanTrust.png,Assets/_ASH/Art/Gpa's Pages/ASH_GrandpasJournal_01_Water_You_Can_Trust.png
+2,gj_02,"The old Ford",329a5521ae314c14aa017e065bfed68e,Assets/_ASH/Art/Icons Placeholder/ASH_GrandpaPage_02_Placeholder.png,Assets/_ASH/Art/Gpa's Pages/ASH_GrandpasJournal_02_The_Old_Ford.png
+3,gj_03,"The shack spur",db2f0404fc6147bbb18941848157348e,Assets/_ASH/Art/Icons Placeholder/ASH_GrandpaPage_03_Placeholder.png,Assets/_ASH/Art/Gpa's Pages/ASH_GrandpasJournal_03_The_Shack_Spur.png
+4,gj_04,"The hunting shack",3f7cef8026546394f9794cf90382c939,Assets/_ASH/Art/FieldManual/ASH_FieldManual_05_BowFromNothing.png,Assets/_ASH/Art/Gpa's Pages/ASH_GrandpasJournal_04_The_Hunting_Shack.png
+5,gj_05,"Shelter that seals",f4d4250c2ad20184c937e8ed358e4f07,Assets/_ASH/Art/FieldManual/ASH_FieldManual_10_ShelterThatSeals.png,Assets/_ASH/Art/Gpa's Pages/ASH_GrandpasJournal_05_Shelter_That_Seals.png
+6,gj_06,"Breathing in the grey",5cdf580a9039f5747ac241acf99c50de,Assets/_ASH/Art/FieldManual/ASH_FieldManual_07_BreathingInTheGrey.png,Assets/_ASH/Art/Gpa's Pages/ASH_GrandpasJournal_06_Breathing_In_The_Grey.png
+7,gj_07,"Before I go",47d1e9efe54c4b7982dfec455e2ee2ee,Assets/_ASH/Art/Icons Placeholder/ASH_GrandpaPage_07_Placeholder.png,Assets/_ASH/Art/Gpa's Pages/ASH_GrandpasJournal_07_Before_I_Go.png
+8,gj_08,"Scooter",be4370de09a640d086b8fe3a08fbec94,Assets/_ASH/Art/Icons Placeholder/ASH_GrandpaPage_08_Placeholder.png,Assets/_ASH/Art/Gpa's Pages/ASH_GrandpasJournal_08_Scooter.png

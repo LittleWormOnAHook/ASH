@@ -67,7 +67,21 @@ namespace ASH.Prologue
 
         public Step Get(string id) { foreach (var s in steps) if (s != null && s.id == id) return s; return null; }
 
-        void OnEnable() { if (steps != null && steps.Count > 0 && contentVersion < 2) Upgrade2(); }
+        void OnEnable() { if (steps != null && steps.Count > 0 && contentVersion < 2) Upgrade2(); if (steps != null && steps.Count > 0 && contentVersion < 3) Upgrade3(); }
+        /// <summary>t462: the locked cabin door adds "Find Grandpa's key" (after Home Again in the list).</summary>
+        void Upgrade3()
+        {
+            if (Get("p01_key") == null) { int i = steps.FindIndex(s => s != null && s.id == "p01_home_again"); steps.Insert(i < 0 ? steps.Count : i + 1, KeyStep()); }
+            contentVersion = 3;
+#if UNITY_EDITOR
+            UnityEditor.EditorUtility.SetDirty(this);
+#endif
+        }
+        static Step KeyStep()
+        {
+            var k = S("p01_key", "Find Grandpa's key", Kind.Side, new string[0], new[] { "p01_home_again" }, "doorUnlocked", null, "The cabin door is locked. Grandpa always kept a spare key close by.", reveal: "doorTried");
+            k.items = new List<ItemNeed> { ItemNeed.Of("grandpas_key", 1, "Grandpa's Key") }; return k;
+        }
         /// <summary>t453/t454: item needs on the truck, campfire completes when placed (keeps every other edit).</summary>
         void Upgrade2()
         {
@@ -130,7 +144,8 @@ namespace ASH.Prologue
             };
             Get("c02_campfire").completeOnPlace = true;
             Get("p03_truck").items = TruckParts();
-            contentVersion = 2;
+            steps.Insert(2, KeyStep());
+            contentVersion = 3;
         }
     }
 }
