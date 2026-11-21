@@ -83,6 +83,28 @@ MonoBehaviour:
     bluffCharge: 0
     ambush: 0
     chargeAndTurn: 0
+    bodyShotsToKill: 3
+    standOffMeters: 4.5
+    standOffHoldMin: 0.8
+    standOffHoldMax: 2.4
+    personality:
+      boldnessMin: 0.35
+      boldnessMax: 0.85
+      aggressionMin: 0.3
+      aggressionMax: 0.85
+      speedMin: 0.92
+      speedMax: 1.08
+      fleeMin: 0.75
+      fleeMax: 1.3
+      wanderMin: 0.7
+      wanderMax: 1.4
+      grazeMin: 0.6
+      grazeMax: 1.5
+      cohesionMin: 0.75
+      cohesionMax: 1.25
+      standOffMin: 0.85
+      standOffMax: 1.2
+    m2TuneApplied: 1
     drops:
     - item: {fileID: 11400000, guid: 49aeecd77bdc047408ab2bf59e2992fc, type: 2}
       min: 1
@@ -163,6 +185,28 @@ MonoBehaviour:
     bluffCharge: 1
     ambush: 0
     chargeAndTurn: 0
+    bodyShotsToKill: 4
+    standOffMeters: 4
+    standOffHoldMin: 1
+    standOffHoldMax: 2.6
+    personality:
+      boldnessMin: 0.4
+      boldnessMax: 0.95
+      aggressionMin: 0.3
+      aggressionMax: 0.9
+      speedMin: 0.95
+      speedMax: 1.05
+      fleeMin: 0.75
+      fleeMax: 1.3
+      wanderMin: 0.7
+      wanderMax: 1.4
+      grazeMin: 0.6
+      grazeMax: 1.5
+      cohesionMin: 0.7
+      cohesionMax: 1.3
+      standOffMin: 0.85
+      standOffMax: 1.2
+    m2TuneApplied: 1
     drops:
     - item: {fileID: 11400000, guid: 49aeecd77bdc047408ab2bf59e2992fc, type: 2}
       min: 2
@@ -243,6 +287,28 @@ MonoBehaviour:
     bluffCharge: 0
     ambush: 0
     chargeAndTurn: 0
+    bodyShotsToKill: 1
+    standOffMeters: 0
+    standOffHoldMin: 0
+    standOffHoldMax: 0
+    personality:
+      boldnessMin: 0.15
+      boldnessMax: 0.6
+      aggressionMin: 0
+      aggressionMax: 0.3
+      speedMin: 0.92
+      speedMax: 1.08
+      fleeMin: 0.75
+      fleeMax: 1.3
+      wanderMin: 0.7
+      wanderMax: 1.4
+      grazeMin: 0.6
+      grazeMax: 1.5
+      cohesionMin: 0.7
+      cohesionMax: 1.3
+      standOffMin: 0.85
+      standOffMax: 1.2
+    m2TuneApplied: 1
     drops:
     - item: {fileID: 11400000, guid: 49aeecd77bdc047408ab2bf59e2992fc, type: 2}
       min: 1
@@ -327,6 +393,28 @@ MonoBehaviour:
     bluffCharge: 0
     ambush: 0
     chargeAndTurn: 0
+    bodyShotsToKill: 1
+    standOffMeters: 0
+    standOffHoldMin: 0
+    standOffHoldMax: 0
+    personality:
+      boldnessMin: 0
+      boldnessMax: 0.35
+      aggressionMin: 0
+      aggressionMax: 0.1
+      speedMin: 0.92
+      speedMax: 1.08
+      fleeMin: 0.75
+      fleeMax: 1.3
+      wanderMin: 0.7
+      wanderMax: 1.4
+      grazeMin: 0.6
+      grazeMax: 1.5
+      cohesionMin: 0.7
+      cohesionMax: 1.3
+      standOffMin: 0.85
+      standOffMax: 1.2
+    m2TuneApplied: 1
     drops:
     - item: {fileID: 11400000, guid: 49aeecd77bdc047408ab2bf59e2992fc, type: 2}
       min: 1
@@ -411,6 +499,28 @@ MonoBehaviour:
     bluffCharge: 0
     ambush: 0
     chargeAndTurn: 0
+    bodyShotsToKill: 1
+    standOffMeters: 0
+    standOffHoldMin: 0
+    standOffHoldMax: 0
+    personality:
+      boldnessMin: 0.2
+      boldnessMax: 0.7
+      aggressionMin: 0
+      aggressionMax: 0.4
+      speedMin: 0.92
+      speedMax: 1.08
+      fleeMin: 0.75
+      fleeMax: 1.3
+      wanderMin: 0.7
+      wanderMax: 1.4
+      grazeMin: 0.6
+      grazeMax: 1.5
+      cohesionMin: 0.7
+      cohesionMax: 1.3
+      standOffMin: 0.85
+      standOffMax: 1.2
+    m2TuneApplied: 1
     drops:
     - item: {fileID: 11400000, guid: 49aeecd77bdc047408ab2bf59e2992fc, type: 2}
       min: 1
@@ -495,6 +605,28 @@ MonoBehaviour:
     bluffCharge: 0
     ambush: 0
     chargeAndTurn: 0
+    bodyShotsToKill: 2
+    standOffMeters: 0
+    standOffHoldMin: 0
+    standOffHoldMax: 0
+    personality:
+      boldnessMin: 0.05
+      boldnessMax: 0.55
+      aggressionMin: 0
+      aggressionMax: 0.3
+      speedMin: 0.92
+      speedMax: 1.08
+      fleeMin: 0.75
+      fleeMax: 1.3
+      wanderMin: 0.7
+      wanderMax: 1.4
+      grazeMin: 0.8
+      grazeMax: 1.6
+      cohesionMin: 0.6
+      cohesionMax: 1.1
+      standOffMin: 0.85
+      standOffMax: 1.2
+    m2TuneApplied: 1
     drops:
     - item: {fileID: 11400000, guid: 49aeecd77bdc047408ab2bf59e2992fc, type: 2}
       min: 2
@@ -583,6 +715,28 @@ MonoBehaviour:
     bluffCharge: 0
     ambush: 0
     chargeAndTurn: 0
+    bodyShotsToKill: 1
+    standOffMeters: 0
+    standOffHoldMin: 0
+    standOffHoldMax: 0
+    personality:
+      boldnessMin: 0
+      boldnessMax: 0.4
+      aggressionMin: 0
+      aggressionMax: 0.1
+      speedMin: 0.92
+      speedMax: 1.08
+      fleeMin: 0.75
+      fleeMax: 1.3
+      wanderMin: 0.7
+      wanderMax: 1.4
+      grazeMin: 0.8
+      grazeMax: 1.6
+      cohesionMin: 0.6
+      cohesionMax: 1.1
+      standOffMin: 0.85
+      standOffMax: 1.2
+    m2TuneApplied: 1
     drops:
     - item: {fileID: 11400000, guid: 49aeecd77bdc047408ab2bf59e2992fc, type: 2}
       min: 1
@@ -667,6 +821,28 @@ MonoBehaviour:
     bluffCharge: 0
     ambush: 0
     chargeAndTurn: 1
+    bodyShotsToKill: 3
+    standOffMeters: 6
+    standOffHoldMin: 0.9
+    standOffHoldMax: 2.2
+    personality:
+      boldnessMin: 0.4
+      boldnessMax: 0.95
+      aggressionMin: 0.5
+      aggressionMax: 1
+      speedMin: 0.92
+      speedMax: 1.08
+      fleeMin: 0.75
+      fleeMax: 1.3
+      wanderMin: 0.7
+      wanderMax: 1.4
+      grazeMin: 0.6
+      grazeMax: 1.5
+      cohesionMin: 0.7
+      cohesionMax: 1.3
+      standOffMin: 0.85
+      standOffMax: 1.2
+    m2TuneApplied: 1
     drops:
     - item: {fileID: 11400000, guid: 49aeecd77bdc047408ab2bf59e2992fc, type: 2}
       min: 2
@@ -755,6 +931,28 @@ MonoBehaviour:
     bluffCharge: 0
     ambush: 1
     chargeAndTurn: 0
+    bodyShotsToKill: 3
+    standOffMeters: 5
+    standOffHoldMin: 0.6
+    standOffHoldMax: 1.8
+    personality:
+      boldnessMin: 0.5
+      boldnessMax: 1
+      aggressionMin: 0.4
+      aggressionMax: 0.95
+      speedMin: 0.92
+      speedMax: 1.08
+      fleeMin: 0.75
+      fleeMax: 1.3
+      wanderMin: 1
+      wanderMax: 1.8
+      grazeMin: 0.6
+      grazeMax: 1.5
+      cohesionMin: 0.7
+      cohesionMax: 1.3
+      standOffMin: 0.85
+      standOffMax: 1.2
+    m2TuneApplied: 1
     drops:
     - item: {fileID: 11400000, guid: 49aeecd77bdc047408ab2bf59e2992fc, type: 2}
       min: 2
@@ -807,6 +1005,30 @@ MonoBehaviour:
   environmentLayers:
     serializedVersion: 2
     m_Bits: 4294967259
+  speedMul: 0.85
+  clipSpeedSanity: 1
+  clipTrustMin: 0.6
+  clipTrustMax: 1.67
+  groundSmoothTime: 0.07
+  groundIgnoreCreatures: 1
+  chargeSpeedMul: 1
+  standOffEnabled: 1
+  maxAttackersPerTarget: 1
+  attackTurnGap: 1.4
+  attackTurnTimeout: 4
+  circleDegPerSecond: 22
+  lungeSpeedMul: 1
+  backOffMaxSeconds: 2.4
+  shotCountLethality: 1
+  bowVitalOneShot: 1
+  rifleVitalOneShot: 1
+  shotgunOneShotMeters: 8
+  shotgunPelletWindow: 0.15
+  pistolShotsMul: 1.5
+  alphaExtraShots: 0
+  headZoneScale: 1.1
+  heartZoneScale: 0.9
+  personalityEnabled: 1
   trapProximityRadius: 1.15
   wolfBreakFreeSeconds: 60
   snareRabbitChance: 0.7

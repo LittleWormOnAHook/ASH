@@ -25,6 +25,12 @@ namespace ASH.Movement
             public float whiskerLength = 1.3f, whiskerAngle = 35f;
             public bool depenetrate = true;
             public LayerMask environmentLayers = ~((1 << 2) | (1 << 5));
+            [Tooltip("Animator 'Speed' parameter = ground speed x this (blend thresholds built for other gait speeds).")]
+            public float speedParamScale = 1f;
+            [Tooltip("Vertical ground-follow smoothing (seconds); 0 = snap.")]
+            public float groundSmoothTime = 0f;
+            [Tooltip("Ground probe skips creatures (same layer as this body, the Player tag, non-static rigidbodies).")]
+            public bool groundIgnoreCreatures;
         }
 
         public Tune tune = new Tune();
@@ -154,7 +160,7 @@ namespace ASH.Movement
             }
             _animRate = Mathf.Lerp(_animRate, play, 1f - Mathf.Exp(-dt * 8f));
             animator.speed = _animRate * tune.animSpeedScale;
-            if (HasParam(HSpeed)) animator.SetFloat(HSpeed, v, 0.08f, dt);
+            if (HasParam(HSpeed)) animator.SetFloat(HSpeed, v * Mathf.Max(0.05f, tune.speedParamScale), 0.08f, dt);
             if (HasParam(HTurn)) animator.SetFloat(HTurn, turn, 0.12f, dt);
         }
 
@@ -174,6 +180,15 @@ namespace ASH.Movement
             return c.attachedRigidbody && !c.attachedRigidbody.isKinematic && c.attachedRigidbody.mass < 20f;
         }
 
+        bool Creature(Collider c)
+        {
+            if (!c) return false;
+            if (c.gameObject.layer == gameObject.layer && gameObject.layer != 0) return true;
+            if (c.CompareTag("Player")) return true;
+            var rb = c.attachedRigidbody;
+            return rb && !rb.isKinematic;
+        }
+
         bool Ground(Vector3 from, float dist, out Vector3 point, out Vector3 normal)
         {
             point = from; normal = Vector3.up;
@@ -181,7 +196,7 @@ namespace ASH.Movement
             float best = float.MaxValue; bool ok = false;
             for (int i = 0; i < n; i++)
             {
-                var h = Hits[i]; if (Ignore(h.collider)) continue;
+                var h = Hits[i]; if (Ignore(h.collider) || (tune.groundIgnoreCreatures && Creature(h.collider))) continue;
                 if (h.distance < best) { best = h.distance; point = h.point; normal = h.normal; ok = true; }
             }
             return ok;
@@ -281,7 +296,13 @@ namespace ASH.Movement
             float up = tune.maxStepUp;
             if (Ground(pos + Vector3.up * (up + 0.05f), up + 1.6f, out var g, out var nrm) && Vector3.Angle(nrm, Vector3.up) <= tune.maxSlope + 10f && g.y - transform.position.y <= up)
             {
-                pos.y = g.y; transform.position = pos;
+                float cy = transform.position.y, ty = g.y;
+                if (tune.groundSmoothTime > 0.001f && Mathf.Abs(ty - cy) < 0.6f)
+                {
+                    ty = Mathf.Lerp(cy, ty, 1f - Mathf.Exp(-dt / tune.groundSmoothTime));
+                    if (g.y - ty > 0.08f) ty = g.y - 0.08f; // never sink visibly into rising ground
+                }
+                pos.y = ty; transform.position = pos;
                 _up = Vector3.Slerp(_up, Vector3.Slerp(Vector3.up, nrm, 0.6f), 1f - Mathf.Exp(-dt * 8f));
             }
             else { _speed = 0f; _stuckT += dt; }

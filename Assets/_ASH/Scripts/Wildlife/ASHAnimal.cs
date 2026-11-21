@@ -36,6 +36,23 @@ namespace ASH.Wildlife
         bool _dead, _harvested, _aware, _playerHitMe, _dogHitMe, _attackHit, _hasBluffed, _hitboxes;
         int _packSlot;
         ASHAnimalMode _mode = ASHAnimalMode.Wander;
+
+        [Tooltip("0 = derive from spawn seed + species + placed position (stable across sessions).")]
+        public int personalitySeed;
+        /// <summary>Seed-rolled traits inside the species' ranges (see ASH_WildlifeSettings > species > personality).</summary>
+        public struct Personality { public float bold, aggr, speed, flee, wander, graze, cohesion, standOff; public int seed; public bool circleLeft; }
+        Personality _p = new Personality { bold = 0.5f, aggr = 0.5f, speed = 1f, flee = 1f, wander = 1f, graze = 1f, cohesion = 1f, standOff = 1f };
+        float _pAt = -99f;
+        public Personality Traits => _p;
+
+        enum Engage { Approach, Hold, Lunge, BackOff }
+        Engage _phase = Engage.Approach;
+        float _holdUntil, _phaseUntil, _tokenAt, _tokenBlockedUntil, _lastPelletT = -9f;
+        bool _hasToken;
+        Transform _tokenTarget;
+        Vector3 _backOff;
+        static readonly Dictionary<Transform, List<ASHAnimal>> Tokens = new Dictionary<Transform, List<ASHAnimal>>();
+        Transform _headBone, _chestBone;
         ASHSnareHook _trap;
         readonly OnReceiveDamage _onStart = new OnReceiveDamage();
         readonly OnReceiveDamage _onRecv = new OnReceiveDamage();
@@ -60,8 +77,8 @@ namespace ASH.Wildlife
         public struct ASHSnareHook { public GameObject trap; public ASHTrapSize size; }
 
         void OnEnable() { if (!Living.Contains(this)) Living.Add(this); }
-        void OnDisable() { Living.Remove(this); }
-        void OnDestroy() { Living.Remove(this); ASHTorchPresence.Scared -= OnTorchScare; }
+        void OnDisable() { Living.Remove(this); ReleaseToken(); }
+        void OnDestroy() { Living.Remove(this); ReleaseToken(); ASHTorchPresence.Scared -= OnTorchScare; }
 
         void Awake()
         {
@@ -74,11 +91,13 @@ namespace ASH.Wildlife
             }
             _home = transform.position;
             _wander = _home;
+            FindVitalBones();
+            RollPersonality();
             _senseT = (GetHashCode() & 7) * 0.04f;
             var anim = GetComponentInChildren<Animator>();
             if (anim) anim.applyRootMotion = false;
             _loco = GetComponent<ASHGroundLocomotion>() ?? gameObject.AddComponent<ASHGroundLocomotion>();
-            _loco.Init(transform, anim, W != null ? W.Loco(Sp, size) : new ASHGroundLocomotion.Tune());
+            _loco.Init(transform, anim, W != null ? TuneNow() : new ASHGroundLocomotion.Tune());
             _vis = GetComponent<ASHWildlifeAnim>() ?? gameObject.AddComponent<ASHWildlifeAnim>();
             _vis.Bind(anim);
             DisableVendorMotors();
@@ -102,7 +121,8 @@ namespace ASH.Wildlife
             if (_harvested) return;
             if (_dead) { _loco.Stop(); _loco.Animate(dt); return; }
             if (Sp == null || W == null) return;
-            _loco.tune = W.Loco(Sp, size);
+            if (Time.time - _pAt > 1f) RollPersonality();
+            _loco.tune = TuneNow();
             if (!_player) FindPlayer();
             FindDog();
             RetargetIfNeeded();
@@ -121,6 +141,7 @@ namespace ASH.Wildlife
 
             SenseAndDecide(dt, dPlayer);
             TickMode(dt);
+            TokenHousekeeping();
             Animate(dt);
         }
 
@@ -130,7 +151,7 @@ namespace ASH.Wildlife
             if (_mode == ASHAnimalMode.Graze || _mode == ASHAnimalMode.Curious || _mode == ASHAnimalMode.LookBack || _mode == ASHAnimalMode.Bluff)
                 return;
             if (W == null || Sp == null) return;
-            _vis.TickLoco(_loco.ActualSpeed, W.Trot(Sp, size), W.Run(Sp, size), _loco.TurningInPlace, _loco.TurnRate, dt);
+            _vis.TickLoco(_loco.ActualSpeed, Trot(), Run(), _loco.TurningInPlace, _loco.TurnRate, dt);
         }
 
         void TickMode(float dt)
@@ -223,10 +244,10 @@ namespace ASH.Wildlife
 
             if (Sp.temperament == ASHWildlifeTemperament.Passive)
             {
-                if (_alert >= 0.85f && (senseP || senseD))
+                if (_alert >= Mathf.Lerp(0.7f, 0.98f, _p.bold) && (senseP || senseD))
                 {
                     var from = senseP && _player ? _player.position : (senseD && _dog ? _dog.position : _lastSense);
-                    BeginFlee(from, Random.value < Sp.shortFleeChance);
+                    BeginFlee(from, Random.value < Sp.shortFleeChance * Mathf.Lerp(0.6f, 1.5f, _p.bold));
                     AlertHerd(from);
                 }
                 else if (_alert >= 0.35f && _mode != ASHAnimalMode.Curious)
@@ -242,7 +263,7 @@ namespace ASH.Wildlife
 
             // Hostiles / stalkers
             if (PackMateAggro()) { _aware = true; if (!_focus) _focus = _player; _mode = RushMode(); return; }
-            if (_alert >= 0.55f && (senseP || senseD || _aware))
+            if (_alert >= Mathf.Lerp(0.75f, 0.4f, _p.bold) && (senseP || senseD || _aware))
             {
                 _aware = true;
                 if (!_focus) _focus = senseP ? _player : (senseD ? _dog : _player);
@@ -316,8 +337,102 @@ namespace ASH.Wildlife
 
         ASHAnimalMode RushMode()
         {
+            if (UseStandOff) { if (_mode != ASHAnimalMode.Chase && _mode != ASHAnimalMode.Attack) _phase = Engage.Approach; return ASHAnimalMode.Chase; }
             if (Sp != null && Sp.chargeAndTurn) return ASHAnimalMode.Charge;
             return ASHAnimalMode.Chase;
+        }
+
+        bool UseStandOff => W != null && W.standOffEnabled && Sp != null && Sp.standOffMeters > 0.2f && Sp.temperament != ASHWildlifeTemperament.Passive;
+        float StandOff => Mathf.Max(Sp.attackRange + 1f, Sp.standOffMeters * _p.standOff * Mathf.Sqrt(W.Scale(Sp, size)));
+
+        // ------------------------------------------------------------------ speeds / personality
+        float Walk() => W.Walk(Sp, size) * _p.speed;
+        float Trot() => W.Trot(Sp, size) * _p.speed;
+        float Run() => W.Run(Sp, size) * _p.speed;
+
+        ASHGroundLocomotion.Tune TuneNow()
+        {
+            var t = W.Loco(Sp, size);
+            float m = _p.speed > 0.05f ? _p.speed : 1f;
+            t.walkSpeed *= m; t.trotSpeed *= m; t.runSpeed *= m;
+            t.speedParamScale /= m;
+            return t;
+        }
+
+        void RollPersonality()
+        {
+            _pAt = Time.time;
+            var neutral = new Personality { bold = 0.5f, aggr = 0.5f, speed = 1f, flee = 1f, wander = 1f, graze = 1f, cohesion = 1f, standOff = 1f };
+            if (W == null || Sp == null || !W.personalityEnabled) { _p = neutral; return; }
+            int seed = personalitySeed;
+            if (seed == 0)
+            {
+                // stable across sessions: global spawn seed + species + where it was placed (decimetre grid)
+                unchecked
+                {
+                    seed = W.spawnSeed * 73856093;
+                    seed ^= ((int)kind + 1) * 19349663;
+                    seed ^= Mathf.RoundToInt(_home.x * 10f) * 83492791;
+                    seed ^= Mathf.RoundToInt(_home.z * 10f) * 2971215;
+                    seed ^= Mathf.RoundToInt(_home.y * 10f) * 433494437;
+                    if (seed == 0) seed = 1;
+                }
+            }
+            var r = W.Ranges(Sp);
+            uint st = (uint)seed;
+            float N() { st ^= st << 13; st ^= st >> 17; st ^= st << 5; return (st & 0xFFFFFF) / 16777215f; }
+            for (int i = 0; i < 3; i++) N();
+            float R(float a, float b) => Mathf.Lerp(Mathf.Min(a, b), Mathf.Max(a, b), N());
+            _p = new Personality
+            {
+                seed = seed,
+                bold = R(r.boldnessMin, r.boldnessMax),
+                aggr = R(r.aggressionMin, r.aggressionMax),
+                speed = R(r.speedMin, r.speedMax),
+                flee = R(r.fleeMin, r.fleeMax),
+                wander = R(r.wanderMin, r.wanderMax),
+                graze = R(r.grazeMin, r.grazeMax),
+                cohesion = R(r.cohesionMin, r.cohesionMax),
+                standOff = R(r.standOffMin, r.standOffMax),
+                circleLeft = N() < 0.5f,
+            };
+        }
+
+        // ------------------------------------------------------------------ attack turns (one or few attackers per target)
+        bool TryToken(Transform t)
+        {
+            if (!t || W == null) return true;
+            if (_hasToken && _tokenTarget == t) return true;
+            if (Time.time < _tokenBlockedUntil) return false;
+            ReleaseToken();
+            if (!Tokens.TryGetValue(t, out var list)) { list = new List<ASHAnimal>(); Tokens[t] = list; }
+            list.RemoveAll(a => !a || a._dead || !a._hasToken || a._tokenTarget != t);
+            if (list.Count >= Mathf.Max(1, W.maxAttackersPerTarget)) return false;
+            list.Add(this);
+            _hasToken = true; _tokenTarget = t; _tokenAt = Time.time;
+            return true;
+        }
+
+        void ReleaseToken()
+        {
+            if (!_hasToken) return;
+            if (_tokenTarget && Tokens.TryGetValue(_tokenTarget, out var list)) list.Remove(this);
+            _hasToken = false; _tokenTarget = null;
+            if (W != null) _tokenBlockedUntil = Time.time + W.attackTurnGap;
+        }
+
+        void TokenHousekeeping()
+        {
+            if (!_hasToken) return;
+            bool engaged = _mode == ASHAnimalMode.Attack || _mode == ASHAnimalMode.Charge || (_mode == ASHAnimalMode.Chase && _phase == Engage.Lunge);
+            if (!engaged || _dead || (W != null && Time.time - _tokenAt > W.attackTurnTimeout)) ReleaseToken();
+        }
+
+        Vector3 Ring(Transform t, float radius)
+        {
+            var from = transform.position - t.position; from.y = 0f;
+            if (from.sqrMagnitude < 0.04f) from = -t.forward;
+            return t.position + from.normalized * radius;
         }
 
         Transform Focus()
@@ -409,7 +524,7 @@ namespace ASH.Wildlife
                 _loco.Stop();
                 return;
             }
-            if (!cheap && _vis.HasEat && _mode != ASHAnimalMode.Graze && Random.value < Sp.grazeChance * 0.02f * Activity01())
+            if (!cheap && _vis.HasEat && _mode != ASHAnimalMode.Graze && Random.value < Sp.grazeChance * _p.graze * 0.02f * Activity01())
             {
                 _mode = ASHAnimalMode.Graze;
                 _grazeUntil = Time.time + Random.Range(Sp.grazeMin, Sp.grazeMax);
@@ -428,12 +543,12 @@ namespace ASH.Wildlife
             {
                 _wanderT = Time.time + Random.Range(3f, 8f);
                 var o = Random.insideUnitSphere; o.y = 0f;
-                float r = Mathf.Max(3f, Sp.wanderRadius);
+                float r = Mathf.Max(3f, Sp.wanderRadius * _p.wander);
                 _wander = _home + o.normalized * Random.Range(r * 0.25f, r);
                 if (Random.value < 0.22f) { _idleUntil = Time.time + Random.Range(1.5f, 4f); _mode = ASHAnimalMode.Idle; _vis.PlayIdle(); return; }
             }
             _mode = ASHAnimalMode.Wander;
-            _loco.MoveTo(_wander, Fatigued(W.Walk(Sp, size)), 1.1f);
+            _loco.MoveTo(_wander, Fatigued(Walk()), 1.1f);
         }
 
         void GrazeTick()
@@ -466,7 +581,7 @@ namespace ASH.Wildlife
         void BeginFlee(Vector3 from, bool shortFlee)
         {
             InterruptIdle();
-            float dist = shortFlee ? Sp.shortFleeMeters : Sp.longFleeMeters;
+            float dist = (shortFlee ? Sp.shortFleeMeters : Sp.longFleeMeters) * _p.flee;
             _flee = FleePoint(from, dist);
             _scareUntil = Time.time + (shortFlee ? Random.Range(1.2f, 2.6f) : Random.Range(3f, Mathf.Max(4f, Sp.torchScareSeconds)));
             _mode = ASHAnimalMode.Flee;
@@ -476,7 +591,7 @@ namespace ASH.Wildlife
         void BeginRetreat(Vector3 from)
         {
             InterruptIdle();
-            _flee = FleePoint(from, Sp.shortFleeMeters * 1.4f);
+            _flee = FleePoint(from, Sp.shortFleeMeters * 1.4f * _p.flee);
             _retreatUntil = Time.time + Sp.retreatSeconds;
             _scareUntil = _retreatUntil;
             _mode = ASHAnimalMode.Retreat;
@@ -485,7 +600,7 @@ namespace ASH.Wildlife
         void AlertHerd(Vector3 from)
         {
             if (Sp == null || !Sp.herdFlee || W == null) return;
-            float r = W.herdRadius;
+            float r = W.herdRadius * _p.cohesion;
             for (int i = 0; i < Living.Count; i++)
             {
                 var a = Living[i];
@@ -508,7 +623,7 @@ namespace ASH.Wildlife
 
         void FleeTick()
         {
-            bool done = _loco.MoveTo(_flee, Fatigued(W.Run(Sp, size)), 1.4f) || Time.time >= _scareUntil;
+            bool done = _loco.MoveTo(_flee, Fatigued(Run()), 1.4f) || Time.time >= _scareUntil;
             if (!done) return;
             _scareUntil = 0f;
             if (_mode == ASHAnimalMode.Retreat && Time.time >= _retreatUntil && IsThreat)
@@ -534,7 +649,11 @@ namespace ASH.Wildlife
             if (!t) { WanderTick(false); return; }
             if (_playerHitMe) { _mode = RushMode(); ChaseTick(); return; }
             float d = Flat(transform.position, t.position);
-            if (d <= Sp.attackRange * 1.1f) { _mode = ASHAnimalMode.Attack; AttackTick(); return; }
+            if (d <= Sp.attackRange * 1.1f)
+            {
+                if (UseStandOff) { _phase = Engage.Hold; _holdUntil = 0f; _mode = ASHAnimalMode.Chase; return; }
+                _mode = ASHAnimalMode.Attack; AttackTick(); return;
+            }
             // Cougar: stay behind the target, close when line of sight breaks (ambush).
             Vector3 dest;
             if (Sp.ambush)
@@ -542,7 +661,7 @@ namespace ASH.Wildlife
                 var behind = t.position - t.forward * Mathf.Clamp(d * 0.35f, 4f, 12f);
                 dest = behind;
                 bool los = HasLos(t);
-                float spd = los ? W.Walk(Sp, size) : W.Run(Sp, size);
+                float spd = los ? Walk() : Run();
                 if (los && d < Sp.detectRange * 0.7f && Vector3.Dot(t.forward, (transform.position - t.position).normalized) > 0.35f)
                     dest = t.position - t.forward * 10f; // they looked this way, slide back around
                 _loco.MoveTo(dest, Fatigued(spd), 1.6f);
@@ -553,7 +672,7 @@ namespace ASH.Wildlife
                 float hold = Mathf.Clamp(Sp.detectRange * 0.8f, 8f, Sp.stalkRange * 0.7f);
                 var to = transform.position - t.position; to.y = 0f;
                 dest = t.position + (to.sqrMagnitude > 0.2f ? to.normalized : t.forward) * hold;
-                _loco.MoveTo(dest, W.Walk(Sp, size), 2f);
+                _loco.MoveTo(dest, Walk(), 2f);
                 if (Time.time >= _stalkUntil && _stalkUntil > 0f) { _aware = true; _mode = ASHAnimalMode.Chase; }
             }
         }
@@ -573,12 +692,12 @@ namespace ASH.Wildlife
             var t = Focus();
             if (t) _loco.Face(t.position, dt);
             if (t && Time.time < _bluffUntil - 0.6f)
-                _loco.MoveTo(_flee, W.Run(Sp, size), 2.2f);
+                _loco.MoveTo(_flee, Run(), 2.2f);
             else
                 _loco.Stop();
             if (Time.time < _bluffUntil) return;
             // Territorial warning, then either a real rush or they break off if the player backs away.
-            if (t && Flat(transform.position, t.position) < Sp.detectRange * 0.9f && Random.value < 0.65f)
+            if (t && Flat(transform.position, t.position) < Sp.detectRange * 0.9f && Random.value < Mathf.Lerp(0.4f, 0.92f, _p.aggr))
                 _mode = RushMode();
             else { _aware = false; _alert = 0.3f; _mode = ASHAnimalMode.Wander; }
         }
@@ -600,13 +719,14 @@ namespace ASH.Wildlife
                 if (Time.time >= _chargeUntil - 0.01f) { /* keep facing */ }
                 return;
             }
-            _loco.MoveTo(t.position, Fatigued(W.Run(Sp, size) * 1.15f), Sp.attackRange * 0.6f);
+            _loco.MoveTo(t.position, Fatigued(Run() * W.chargeSpeedMul), Sp.attackRange * 0.6f);
         }
 
         void ChaseTick()
         {
             var t = Focus();
             if (!t) { WanderTick(false); return; }
+            if (UseStandOff) { StandOffTick(t); return; }
             float d = Flat(transform.position, t.position);
             if (d <= Sp.attackRange) { _mode = ASHAnimalMode.Attack; AttackTick(); return; }
             Vector3 dest = t.position;
@@ -614,12 +734,82 @@ namespace ASH.Wildlife
             {
                 int slot = _packSlot;
                 float ang = slot * 70f - 35f;
-                float rad = W.packFlankRadius > 1f ? W.packFlankRadius : 7f;
+                float rad = (W.packFlankRadius > 1f ? W.packFlankRadius : 7f) * _p.cohesion;
                 dest = t.position + Quaternion.Euler(0f, ang, 0f) * (t.forward * -1f) * rad;
                 // Lowest slot tests a bite when close; others keep circling.
                 if (slot == 0 && d < Sp.attackRange + 2.5f) dest = t.position;
             }
-            _loco.MoveTo(dest, Fatigued(W.Run(Sp, size)), Sp.attackRange * 0.7f);
+            _loco.MoveTo(dest, Fatigued(Run()), Sp.attackRange * 0.7f);
+        }
+
+        /// <summary>Approach to a buffer ring, hold/circle there, lunge in when it's this animal's turn, attack, back off, repeat.</summary>
+        void StandOffTick(Transform t)
+        {
+            float d = Flat(transform.position, t.position);
+            float ring = StandOff;
+            float dt = Time.deltaTime;
+            switch (_phase)
+            {
+                case Engage.Approach:
+                {
+                    Vector3 dest = Ring(t, ring);
+                    if (Sp.packFlank && packId != 0)
+                    {
+                        float ang = _packSlot * 70f - 35f;
+                        dest = t.position + Quaternion.Euler(0f, ang, 0f) * (t.forward * -1f) * ring;
+                    }
+                    if (d <= ring + 0.8f) { EnterHold(); return; }
+                    _loco.MoveTo(dest, Fatigued(d > ring + 6f ? Run() : Trot()), 0.6f);
+                    return;
+                }
+                case Engage.Hold:
+                {
+                    // target walked into us: take the turn if free, otherwise give ground
+                    if (d <= Sp.attackRange * 1.05f)
+                    {
+                        if (TryToken(t)) { _mode = ASHAnimalMode.Attack; AttackTick(); return; }
+                        StartBackOff(t); return;
+                    }
+                    if (d > ring + 3.5f) { _phase = Engage.Approach; return; }
+                    var from = transform.position - t.position; from.y = 0f;
+                    if (from.sqrMagnitude < 0.04f) from = -t.forward;
+                    var dest = t.position + Quaternion.Euler(0f, (_p.circleLeft ? -1f : 1f) * Mathf.Max(8f, W.circleDegPerSecond * 0.6f), 0f) * from.normalized * ring;
+                    if (W.circleDegPerSecond > 0.5f && Flat(transform.position, dest) > 0.5f) _loco.MoveTo(dest, Walk(), 0.35f);
+                    else { _loco.Stop(); _loco.Face(t.position, dt); }
+                    if (Time.time >= _holdUntil && TryToken(t)) { _phase = Engage.Lunge; _phaseUntil = Time.time + 4f; if (Sp.chargeAndTurn || Random.value < 0.35f) _vis.PlayCall(); }
+                    return;
+                }
+                case Engage.Lunge:
+                {
+                    if (!_hasToken && !TryToken(t)) { EnterHold(); return; }
+                    if (d <= Sp.attackRange) { _mode = ASHAnimalMode.Attack; AttackTick(); return; }
+                    if (Time.time > _phaseUntil || _loco.StuckTime > 1f) { ReleaseToken(); StartBackOff(t); return; }
+                    float spd = Run() * (Sp.chargeAndTurn ? W.chargeSpeedMul : W.lungeSpeedMul);
+                    _loco.MoveTo(t.position, Fatigued(spd), Sp.attackRange * 0.7f);
+                    return;
+                }
+                default: // BackOff
+                {
+                    bool arrived = _loco.MoveTo(_backOff, Trot(), 0.8f);
+                    if (arrived || Time.time > _phaseUntil || _loco.StuckTime > 0.8f) EnterHold();
+                    return;
+                }
+            }
+        }
+
+        void EnterHold()
+        {
+            _phase = Engage.Hold;
+            float a = Mathf.Lerp(1.5f, 0.6f, _p.aggr);
+            _holdUntil = Time.time + Random.Range(Sp.standOffHoldMin, Mathf.Max(Sp.standOffHoldMin, Sp.standOffHoldMax)) * a;
+        }
+
+        void StartBackOff(Transform t)
+        {
+            _phase = Engage.BackOff;
+            _mode = ASHAnimalMode.Chase;
+            _backOff = Ring(t, StandOff);
+            _phaseUntil = Time.time + (W != null ? W.backOffMaxSeconds : 2.4f);
         }
 
         void AttackTick()
@@ -638,10 +828,16 @@ namespace ASH.Wildlife
                 }
                 return;
             }
+            if (UseStandOff)
+            {
+                // the strike has finished: give up the turn and retreat to the buffer
+                if (_attackUntil > 0f && Time.time >= _attackUntil) { _attackUntil = 0f; ReleaseToken(); StartBackOff(t); return; }
+                if (!TryToken(t)) { StartBackOff(t); return; }
+            }
             if (d > Sp.attackRange * 1.3f) { _mode = RushMode(); return; }
             _loco.Stop();
             if (Time.time < _nextAttack) return;
-            _nextAttack = Time.time + Sp.attackCooldown;
+            _nextAttack = Time.time + Sp.attackCooldown * Mathf.Lerp(1.35f, 0.75f, _p.aggr);
             _vis.PlayAttack();
             _attackHit = false;
             float wind = Mathf.Clamp(Sp.attackHitNormalized, 0.18f, 0.8f);
@@ -683,10 +879,10 @@ namespace ASH.Wildlife
 
         float Fatigued(float speed)
         {
-            bool running = speed >= W.Trot(Sp, size) + 0.2f;
+            bool running = speed >= Trot() + 0.2f;
             if (running) { _sprintT += Time.deltaTime; _restT = 0f; }
             else { _restT += Time.deltaTime; if (_restT > 2f) _sprintT = Mathf.Max(0f, _sprintT - Time.deltaTime * 1.4f); }
-            if (_sprintT > Sp.fatigueRunSeconds) return Mathf.Min(speed, W.Trot(Sp, size));
+            if (_sprintT > Sp.fatigueRunSeconds) return Mathf.Min(speed, Trot());
             return speed;
         }
 
@@ -795,9 +991,28 @@ namespace ASH.Wildlife
             _onStart.Invoke(damage);
             float raw = damage.damageValue;
             if (raw <= 0f) return;
-            string wk = WeaponKind(damage);
+            string wk = WeaponKind(damage, out string gun);
             bool vital = (damage.damageType ?? "").IndexOf("vital", System.StringComparison.OrdinalIgnoreCase) >= 0;
-            float amt = W != null ? W.Incoming(Sp, size, raw, wk, vital) : raw;
+            float amt;
+            if (W != null && W.shotCountLethality && wk != "melee" && Sp != null)
+            {
+                if (gun == "shotgun")
+                {
+                    // one blast = many pellets: only the first pellet in the window counts
+                    if (Time.time - _lastPelletT < W.shotgunPelletWindow) return;
+                    _lastPelletT = Time.time;
+                }
+                bool zone = vital || VitalZone(damage.hitPosition);
+                var src = damage.sender ? damage.sender.position : (_player ? _player.position : transform.position);
+                float dist = Flat(src, transform.position);
+                int shots = W.ShotsToKill(Sp, size);
+                if (gun == "pistol") shots = Mathf.Max(1, Mathf.CeilToInt(shots * W.pistolShotsMul));
+                bool oneShot = (zone && ((gun == "bow" && W.bowVitalOneShot) || (gun == "rifle" && W.rifleVitalOneShot)))
+                               || (gun == "shotgun" && dist <= W.shotgunOneShotMeters);
+                float per = _hpMax / shots + 0.01f;
+                amt = oneShot ? _hp + 1f : (gun == "pistol" && zone ? per * 2f : per);
+            }
+            else amt = W != null ? W.Incoming(Sp, size, raw, wk, vital) : raw;
             _hp -= amt;
             _onRecv.Invoke(damage);
             _vis.PlayHit();
@@ -830,7 +1045,7 @@ namespace ASH.Wildlife
                 else
                 {
                     _aware = true;
-                    if (_hpMax > 0f && _hp / _hpMax <= Sp.retreatHealth && Random.value < Sp.retreatChance)
+                    if (_hpMax > 0f && _hp / _hpMax <= Sp.retreatHealth && Random.value < Sp.retreatChance * Mathf.Lerp(1.4f, 0.6f, _p.bold))
                         BeginRetreat(_lastSense);
                     else
                         _mode = RushMode();
@@ -839,7 +1054,31 @@ namespace ASH.Wildlife
             if (_hp <= 0f) Die();
         }
 
-        static string WeaponKind(vDamage damage)
+        /// <summary>"arrow" / "bullet" / "melee"; gun = "bow", "rifle", "pistol", "shotgun" or "" (melee / unknown).</summary>
+        string WeaponKind(vDamage damage, out string gun)
+        {
+            gun = "";
+            string t0 = (damage.damageType ?? "").ToLowerInvariant();
+            if (t0.Contains("melee") || t0.Contains("claw") || t0.Contains("animal")) return "melee";
+            var b = ASHCombatBridge.Player;
+            bool fromPlayer = damage.sender && b && (damage.sender == b.transform || damage.sender.IsChildOf(b.transform) || (_player && (damage.sender == _player || damage.sender.IsChildOf(_player))));
+            if (fromPlayer && b.CurrentData && b.CurrentData.kind != ASHWeaponKind.Melee)
+            {
+                if (b.CurrentData.kind == ASHWeaponKind.Bow) { gun = "bow"; return "arrow"; }
+                var it = b.CurrentItem;
+                string id = it ? ((it.itemId ?? "") + " " + (it.displayName ?? "")).ToLowerInvariant() : "";
+                if (id.Contains("shotgun")) gun = "shotgun";
+                else if (id.Contains("pistol") || id.Contains("revolver") || id.Contains("sidearm") || (it && it.gripStyle == ASHGripStyle.PistolGrip)) gun = "pistol";
+                else gun = "rifle";
+                return "bullet";
+            }
+            string k = WeaponKindRaw(damage);
+            if (k == "arrow") gun = "bow";
+            else if (k == "bullet") { string n = (t0 + " " + (damage.sender ? damage.sender.name.ToLowerInvariant() : "")); gun = n.Contains("shotgun") ? "shotgun" : n.Contains("pistol") ? "pistol" : "rifle"; }
+            return k;
+        }
+
+        static string WeaponKindRaw(vDamage damage)
         {
             string t = (damage.damageType ?? "").ToLowerInvariant();
             if (t.Contains("arrow") || t.Contains("bow")) return "arrow";
@@ -867,6 +1106,7 @@ namespace ASH.Wildlife
         {
             if (_dead) return;
             _dead = true;
+            ReleaseToken();
             _mode = ASHAnimalMode.Dead;
             _loco.Stop();
             _vis.PlayDeath();
@@ -914,6 +1154,31 @@ namespace ASH.Wildlife
             }
             foreach (var col in GetComponentsInChildren<Collider>()) if (col) col.enabled = false;
             gameObject.SetActive(false);
+        }
+
+        void FindVitalBones()
+        {
+            foreach (var tr in GetComponentsInChildren<Transform>(true))
+            {
+                string n = tr.name.ToLowerInvariant();
+                if (n.Contains("ash_") || n.Contains("collider") || n.Contains("hitbox")) continue;
+                if (!_headBone && (n.EndsWith("head") || n.Contains(" head") || n.Contains("_head") || n == "head")) _headBone = tr;
+                if (!_chestBone && (n.Contains("chest") || n.Contains("ribcage") || n.Contains("spine2") || n.Contains("spine 2") || n.Contains("spine_02") || n.Contains("spine02"))) _chestBone = tr;
+            }
+        }
+
+        /// <summary>Head or heart hit, judged from the hit point against the head / chest bones (or a body-shape estimate).</summary>
+        bool VitalZone(Vector3 hit)
+        {
+            if (hit.sqrMagnitude < 0.0001f || W == null || Sp == null) return false;
+            var body = W.Body(Sp);
+            float sc = Mathf.Max(0.1f, transform.lossyScale.x);
+            float r = Mathf.Max(0.08f, body.x) * sc;
+            Vector3 head = _headBone ? _headBone.position : transform.TransformPoint(new Vector3(0f, (body.z * 1.25f), body.y * 0.5f + body.x * 1.1f));
+            Vector3 heart = _chestBone ? _chestBone.position - transform.up * r * 0.35f : transform.TransformPoint(new Vector3(0f, body.z * 0.85f, body.y * 0.25f));
+            if ((hit - head).magnitude <= r * W.headZoneScale) return true;
+            if ((hit - heart).magnitude <= r * W.heartZoneScale) return true;
+            return false;
         }
 
         void EnsureHitboxes()

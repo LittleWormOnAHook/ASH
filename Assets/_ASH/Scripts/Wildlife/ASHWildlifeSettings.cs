@@ -27,6 +27,36 @@ namespace ASH.Wildlife
             [Range(0f, 1f)] public float chance = 1f;
         }
 
+        /// <summary>Per-species ranges a placed animal's seeded personality is rolled from (stable per instance).</summary>
+        [Serializable]
+        public sealed class PersonalityRange
+        {
+            [Tooltip("0 = skittish (flees/engages late), 1 = bold.")]
+            [Range(0f, 1f)] public float boldnessMin = 0.2f;
+            [Range(0f, 1f)] public float boldnessMax = 0.8f;
+            [Tooltip("0 = slow, hesitant attacks; 1 = short holds, fast follow-ups.")]
+            [Range(0f, 1f)] public float aggressionMin = 0.2f;
+            [Range(0f, 1f)] public float aggressionMax = 0.8f;
+            [Tooltip("Multiplies walk/trot/run (animation playback follows).")]
+            [Range(0.5f, 1.5f)] public float speedMin = 0.92f;
+            [Range(0.5f, 1.5f)] public float speedMax = 1.08f;
+            [Tooltip("Multiplies flee distances.")]
+            [Range(0.2f, 3f)] public float fleeMin = 0.75f;
+            [Range(0.2f, 3f)] public float fleeMax = 1.3f;
+            [Tooltip("Multiplies wander radius.")]
+            [Range(0.2f, 3f)] public float wanderMin = 0.7f;
+            [Range(0.2f, 3f)] public float wanderMax = 1.4f;
+            [Tooltip("Multiplies graze chance.")]
+            [Range(0f, 3f)] public float grazeMin = 0.6f;
+            [Range(0f, 3f)] public float grazeMax = 1.5f;
+            [Tooltip("Multiplies herd / pack radius (low = tight group).")]
+            [Range(0.2f, 3f)] public float cohesionMin = 0.7f;
+            [Range(0.2f, 3f)] public float cohesionMax = 1.3f;
+            [Tooltip("Multiplies the stand-off buffer.")]
+            [Range(0.3f, 2f)] public float standOffMin = 0.85f;
+            [Range(0.3f, 2f)] public float standOffMax = 1.2f;
+        }
+
         [Serializable]
         public sealed class Species
         {
@@ -107,6 +137,21 @@ namespace ASH.Wildlife
             public bool ambush;
             public bool chargeAndTurn;
 
+            [Header("Lethality (ranged; predictable shot counts)")]
+            [Tooltip("Body hits from a bow or rifle needed to kill (deer 2, wolf/cougar 3, bear 4). Head/heart = 1 with bow or rifle.")]
+            [Range(1, 12)] public int bodyShotsToKill = 2;
+
+            [Header("Stand-off (aggressive species)")]
+            [Tooltip("Buffer the animal holds from its target before and after each attack. 0 = old straight-in behaviour.")]
+            [Range(0f, 15f)] public float standOffMeters = 4.5f;
+            [Range(0f, 10f)] public float standOffHoldMin = 0.8f;
+            [Range(0f, 15f)] public float standOffHoldMax = 2.2f;
+
+            [Header("Seeded personality ranges")]
+            public PersonalityRange personality = new PersonalityRange();
+            [Tooltip("Set by setup once; untick to re-apply this pass's per-species defaults (shots, stand-off, personality).")]
+            public bool m2TuneApplied;
+
             public List<Drop> drops = new List<Drop>();
         }
 
@@ -174,6 +219,52 @@ namespace ASH.Wildlife
         [Range(10f, 80f)] public float whiskerAngle = 35f;
         public bool depenetrate = true;
         public LayerMask environmentLayers = ~((1 << 2) | (1 << 5));
+
+        [Header("Speed / gait sync (Play-editable)")]
+        [Tooltip("Global walk/trot/run multiplier for every species (0.85 = 15% slower). Animation playback follows so feet stay planted.")]
+        [Range(0.3f, 1.5f)] public float speedMul = 0.85f;
+        [Tooltip("Ignore measured clip speeds that are far from the species' gait speed (bad root-motion data made clips play up to 2.6x = bouncing).")]
+        public bool clipSpeedSanity = true;
+        [Range(0.2f, 1f)] public float clipTrustMin = 0.6f;
+        [Range(1f, 5f)] public float clipTrustMax = 1.67f;
+        [Tooltip("Vertical ground-follow smoothing in seconds (0 = snap each frame). Removes stair-step bobbing on uneven terrain.")]
+        [Range(0f, 0.4f)] public float groundSmoothTime = 0.07f;
+        [Tooltip("Ground probe ignores other animals / the player so they never stand on each other's colliders.")]
+        public bool groundIgnoreCreatures = true;
+        [Tooltip("Boar-style charge speed vs run.")]
+        [Range(0.6f, 1.6f)] public float chargeSpeedMul = 1.0f;
+
+        [Header("Turn-taking + stand-off (Play-editable)")]
+        public bool standOffEnabled = true;
+        [Tooltip("How many animals may attack the same target at once; the rest hold at their buffer.")]
+        [Range(1, 6)] public int maxAttackersPerTarget = 1;
+        [Tooltip("After an animal's turn it waits this long before it may take another, so others get a go.")]
+        [Range(0f, 8f)] public float attackTurnGap = 1.4f;
+        [Tooltip("An attacker gives up its turn if it hasn't landed an attack in this long.")]
+        [Range(1f, 12f)] public float attackTurnTimeout = 4f;
+        [Tooltip("Circling speed around the target while holding (degrees / second).")]
+        [Range(0f, 90f)] public float circleDegPerSecond = 22f;
+        [Range(0.5f, 1.6f)] public float lungeSpeedMul = 1.0f;
+        [Range(0.5f, 6f)] public float backOffMaxSeconds = 2.4f;
+
+        [Header("Lethality (Play-editable)")]
+        [Tooltip("Bow/rifle/shotgun damage uses each species' bodyShotsToKill instead of raw weapon damage.")]
+        public bool shotCountLethality = true;
+        public bool bowVitalOneShot = true;
+        public bool rifleVitalOneShot = true;
+        [Tooltip("Shotgun one-shots any animal within this distance.")]
+        [Range(0f, 40f)] public float shotgunOneShotMeters = 8f;
+        [Tooltip("Pellets from one shotgun blast inside this window count as one shot.")]
+        [Range(0.02f, 0.5f)] public float shotgunPelletWindow = 0.15f;
+        [Tooltip("Pistol needs this many times the body shots (a head/heart pistol hit counts double).")]
+        [Range(1f, 4f)] public float pistolShotsMul = 1.5f;
+        [Range(0, 4)] public int alphaExtraShots = 0;
+        [Tooltip("Head / heart zone radius as a share of body radius (zone check around head and chest bones, or body-shape estimate).")]
+        [Range(0.3f, 3f)] public float headZoneScale = 1.1f;
+        [Range(0.3f, 3f)] public float heartZoneScale = 0.9f;
+
+        [Header("Seeded personality")]
+        public bool personalityEnabled = true;
 
         [Header("Traps")]
         [Range(0.4f, 6f)] public float trapProximityRadius = 1.15f;
@@ -254,6 +345,40 @@ namespace ASH.Wildlife
             ApplyCombatProfile(fawn, 1.2f, 1.2f, 1.15f, 1.15f, 1.9f, 1.1f, 1f, true, false, false, false, false);
             ApplyCombatProfile(boar, 0.85f, 0.7f, 0.85f, 0.9f, 1.45f, 1.1f, 0.8f, false, false, false, false, true);
             ApplyCombatProfile(cougar, 1f, 1.05f, 1f, 1f, 1.8f, 0.55f, 1.35f, false, false, false, true, false);
+            //            shots standOff holdMin holdMax  bold(min,max)  aggr(min,max)
+            ApplyTune(wolf,    3, 4.5f, 0.8f, 2.4f, 0.35f, 0.85f, 0.3f, 0.85f);
+            ApplyTune(bear,    4, 4.0f, 1.0f, 2.6f, 0.4f, 0.95f, 0.3f, 0.9f);
+            ApplyTune(fox,     1, 0f, 0f, 0f, 0.15f, 0.6f, 0f, 0.3f);
+            ApplyTune(rabbit,  1, 0f, 0f, 0f, 0f, 0.35f, 0f, 0.1f);
+            ApplyTune(raccoon, 1, 0f, 0f, 0f, 0.2f, 0.7f, 0f, 0.4f);
+            ApplyTune(deer,    2, 0f, 0f, 0f, 0.05f, 0.55f, 0f, 0.3f);
+            ApplyTune(fawn,    1, 0f, 0f, 0f, 0f, 0.4f, 0f, 0.1f);
+            ApplyTune(boar,    3, 6.0f, 0.9f, 2.2f, 0.4f, 0.95f, 0.5f, 1f);
+            ApplyTune(cougar,  3, 5.0f, 0.6f, 1.8f, 0.5f, 1f, 0.4f, 0.95f);
+        }
+
+        static void ApplyTune(Species sp, int shots, float standOff, float holdMin, float holdMax, float boldMin, float boldMax, float aggrMin, float aggrMax)
+        {
+            if (sp == null || sp.m2TuneApplied) return;
+            sp.bodyShotsToKill = shots;
+            sp.standOffMeters = standOff; sp.standOffHoldMin = holdMin; sp.standOffHoldMax = holdMax;
+            if (sp.personality == null) sp.personality = new PersonalityRange();
+            var p = sp.personality;
+            p.boldnessMin = boldMin; p.boldnessMax = boldMax; p.aggressionMin = aggrMin; p.aggressionMax = aggrMax;
+            if (sp.kind == ASHWildlifeKind.Deer || sp.kind == ASHWildlifeKind.Fawn) { p.cohesionMin = 0.6f; p.cohesionMax = 1.1f; p.grazeMin = 0.8f; p.grazeMax = 1.6f; }
+            if (sp.kind == ASHWildlifeKind.Wolf) { p.cohesionMin = 0.75f; p.cohesionMax = 1.25f; }
+            if (sp.kind == ASHWildlifeKind.Cougar) { p.wanderMin = 1f; p.wanderMax = 1.8f; }
+            if (sp.kind == ASHWildlifeKind.Bear) { p.speedMin = 0.95f; p.speedMax = 1.05f; }
+            sp.m2TuneApplied = true;
+        }
+
+        public PersonalityRange Ranges(Species sp) => sp != null && sp.personality != null ? sp.personality : new PersonalityRange();
+
+        public int ShotsToKill(Species sp, ASHWildlifeSize size)
+        {
+            int n = sp != null ? Mathf.Max(1, sp.bodyShotsToKill) : 2;
+            if (size == ASHWildlifeSize.Alpha) n += alphaExtraShots;
+            return Mathf.Max(1, n);
         }
 
         static void ApplyCombatProfile(Species sp, float incoming, float arrow, float bullet, float melee, float vital, float day, float night, bool herd, bool flank, bool bluff, bool ambush, bool charge)
@@ -369,10 +494,18 @@ namespace ASH.Wildlife
             t.runSpeed = Run(sp, size);
             if (sp != null)
             {
-                t.walkClipSpeed = sp.walkClipSpeed > 0.05f ? sp.walkClipSpeed : 1f;
-                t.trotClipSpeed = sp.trotClipSpeed > 0.05f ? sp.trotClipSpeed : 2f;
-                t.runClipSpeed = sp.runClipSpeed > 0.05f ? sp.runClipSpeed : 4f;
+                // Reference speeds = ground speed at which each clip plays at 1x. Raw (pre speedMul) species gaits are what the
+                // clips were tuned against, so slowing the animal slows playback in step (no foot sliding).
+                float rw = Mathf.Max(0.2f, sp.walkSpeed), rr = Mathf.Max(rw + 0.1f, sp.runSpeed);
+                float rt = sp.trotSpeed > 0.2f ? sp.trotSpeed : (rw + rr) * 0.5f;
+                t.walkClipSpeed = ClipRef(sp.walkClipSpeed, rw);
+                t.trotClipSpeed = ClipRef(sp.trotClipSpeed, rt);
+                t.runClipSpeed = ClipRef(sp.runClipSpeed, rr);
+                // controller blend thresholds were built from the raw gaits: feed Speed in those units
+                t.speedParamScale = rr / Mathf.Max(0.2f, t.runSpeed);
             }
+            t.groundSmoothTime = groundSmoothTime;
+            t.groundIgnoreCreatures = groundIgnoreCreatures;
             t.turnSpeed = turnSpeed;
             t.turnSmoothTime = turnSmoothTime;
             t.acceleration = acceleration;
@@ -397,6 +530,14 @@ namespace ASH.Wildlife
             return t;
         }
 
+        float ClipRef(float measured, float gait)
+        {
+            if (measured <= 0.05f) return gait;
+            if (!clipSpeedSanity) return measured;
+            float r = measured / Mathf.Max(0.05f, gait);
+            return r < clipTrustMin || r > clipTrustMax ? gait : measured;
+        }
+
         public Vector3 Body(Species sp)
         {
             if (sp != null && sp.bodyRadius > 0.05f)
@@ -417,6 +558,7 @@ namespace ASH.Wildlife
 
         float Speed(float v, ASHWildlifeSize size)
         {
+            v *= speedMul;
             if (size == ASHWildlifeSize.Young) v *= youngSpeedMul;
             else if (size == ASHWildlifeSize.Alpha) v *= alphaSpeedMul;
             return Mathf.Max(0.2f, v);
