@@ -15,7 +15,7 @@ MonoBehaviour:
   itemId: emptytin
   displayName: Empty Tin Can
   description: Holds water from a tank or creek. Can be flattened into scrap.
-  icon: {fileID: 21300000, guid: a5b11ac546464c44c93a3dc743e88506, type: 3}
+  icon: {fileID: 21300000, guid: 61574bedb74bf9d4786eb56a6f5c4f8c, type: 3}
   uiTint: {r: 0.7, g: 0.7, b: 0.72, a: 1}
   category: 0
   maxStack: 10

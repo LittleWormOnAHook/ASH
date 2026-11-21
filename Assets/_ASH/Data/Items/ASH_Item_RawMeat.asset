@@ -15,7 +15,7 @@ MonoBehaviour:
   itemId: rawmeat
   displayName: Raw Meat
   description: Edible raw in a pinch, but it will cost you. Cook it at a fire.
-  icon: {fileID: 21300000, guid: c5deca8dcd3be3a4f8478c175938014c, type: 3}
+  icon: {fileID: 21300000, guid: b2ea651026a27bb4eb3c94e29694a693, type: 3}
   uiTint: {r: 0.7, g: 0.25, b: 0.25, a: 1}
   category: 1
   maxStack: 5

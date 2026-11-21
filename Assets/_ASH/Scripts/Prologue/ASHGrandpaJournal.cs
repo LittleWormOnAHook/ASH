@@ -14,10 +14,12 @@ namespace ASH.Prologue
     public sealed class ASHGrandpaJournal : MonoBehaviour, IASHSaveable
     {
         static readonly HashSet<string> _found = new HashSet<string>();
+        static readonly HashSet<string> _cleared = new HashSet<string>();
         public static event Action<string, string> PageFound; // collection, page id
         static bool _hooked;
+        const float DefaultReach = 30f;
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        static void ResetStatics() { _found.Clear(); PageFound = null; _hooked = false; }
+        static void ResetStatics() { _found.Clear(); _cleared.Clear(); PageFound = null; _hooked = false; }
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         static void Hook() { if (_hooked) return; _hooked = true; SceneManager.sceneLoaded += (s, m) => Ensure(); }
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -28,6 +30,7 @@ namespace ASH.Prologue
             new GameObject("ASH_GrandpaJournal").AddComponent<ASHGrandpaJournal>();
         }
         static string Key(string c, string id) => (string.IsNullOrEmpty(c) ? "grandpa" : c) + "/" + id;
+        static string MarkerId(ASHJournalCollectionPage p) => "gj_" + p.id;
         public static bool Has(string collection, string pageId) => !string.IsNullOrEmpty(pageId) && _found.Contains(Key(collection, pageId));
         public static int Count(string collection) { int n = 0; string p = (string.IsNullOrEmpty(collection) ? "grandpa" : collection) + "/"; foreach (var k in _found) if (k.StartsWith(p)) n++; return n; }
 
@@ -37,7 +40,7 @@ namespace ASH.Prologue
             if (string.IsNullOrEmpty(pageId) || !_found.Add(Key(collection, pageId))) return false;
             var col = ASHJournalCollection.Get(collection); var pg = col ? col.Page(pageId) : null;
             string title = pg != null ? $"{(col ? col.title : "Journal")} - p.{pg.number}: {pg.title}" : pageId;
-            ASHJournalLog.Add(title, pg != null ? pg.text : "");
+            ASHJournalLog.Add(title, pg != null ? pg.text : "", Key(collection, pageId));
             var h = FindAnyObjectByType<ASHHud>(); if (h) h.Toast($"Found {(col ? col.title : "a journal")} page {(pg != null ? pg.number.ToString() : pageId)}{(pg != null ? " (" + pg.TypeLabel + ")" : "")}: {(pg != null ? pg.title : "")}  -  journal [J]");
             if (pg != null) Marker(pg);
             ASHLog.Info($"Journal page found: {Key(collection, pageId)}");
@@ -50,20 +53,62 @@ namespace ASH.Prologue
         static void Marker(ASHJournalCollectionPage p)
         {
             if (p == null || p.type != ASHJournalPageType.Clue || !p.compassMarker || p.markerPosition == Vector3.zero) return;
-            ASH.UI.ASHCompass.Unregister("gj_" + p.id);
-            ASH.UI.ASHCompass.Register(p.markerPosition, ASH.UI.ASHCompassMarkerKind.Poi, new Color(0.85f, 0.68f, 0.35f), "gj_" + p.id);
+            string id = MarkerId(p);
+            if (_cleared.Contains(id)) return;
+            ASH.UI.ASHCompass.Unregister(id);
+            ASH.UI.ASHCompass.Register(p.markerPosition, ASH.UI.ASHCompassMarkerKind.Poi, new Color(0.85f, 0.68f, 0.35f), id);
         }
 
-        void OnEnable() { _found.Clear(); ASHSaveSystem.Register(this); }
+        static void ClearMarker(ASHJournalCollectionPage p, string reason)
+        {
+            if (p == null) return;
+            string id = MarkerId(p);
+            if (!_cleared.Add(id)) return;
+            ASH.UI.ASHCompass.Unregister(id);
+            ASHLog.Info($"Journal clue marker cleared ({reason}): {id}");
+        }
+
+        static Vector3 PlayerPos()
+        {
+            if (ASHCompass.Instance != null)
+            {
+                var p = ASHCompass.Instance.DebugPlayerPos;
+                if (p != Vector3.zero) return p;
+            }
+            var cam = Camera.main;
+            return cam ? cam.transform.position : Vector3.zero;
+        }
+
+        void Update()
+        {
+            if (_found.Count == 0) return;
+            var col = ASHJournalCollection.Grandpa; if (!col || col.pages == null) return;
+            var pos = PlayerPos(); if (pos == Vector3.zero) return;
+            foreach (var p in col.pages)
+            {
+                if (p == null || p.type != ASHJournalPageType.Clue || !p.compassMarker || p.markerPosition == Vector3.zero) continue;
+                if (!_found.Contains(Key(col.collectionId, p.id))) continue;
+                string id = MarkerId(p); if (_cleared.Contains(id)) continue;
+                float r = p.markerReachRadius > 0f ? p.markerReachRadius : DefaultReach;
+                var a = pos; var b = p.markerPosition; a.y = b.y = 0f;
+                if ((a - b).sqrMagnitude <= r * r) ClearMarker(p, "arrived");
+            }
+        }
+
+        void OnEnable() { _found.Clear(); _cleared.Clear(); ASHSaveSystem.Register(this); }
         void OnDisable() { ASHSaveSystem.Unregister(this); }
-        [Serializable] sealed class State { public List<string> found = new List<string>(); }
+        [Serializable] sealed class State { public List<string> found = new List<string>(); public List<string> cleared = new List<string>(); }
         public string SaveKey => "journalPages";
         public int RestoreOrder => 22; // before the Field Manual re-evaluates? (it evaluates on demand) and before the prologue (30)
-        public string CaptureJson() { var s = new State(); s.found.AddRange(_found); return JsonUtility.ToJson(s); }
+        public string CaptureJson() { var s = new State(); s.found.AddRange(_found); s.cleared.AddRange(_cleared); return JsonUtility.ToJson(s); }
         public void RestoreJson(string json)
         {
-            _found.Clear(); var s = string.IsNullOrEmpty(json) ? null : JsonUtility.FromJson<State>(json);
-            if (s != null) foreach (var k in s.found) _found.Add(k);
+            _found.Clear(); _cleared.Clear(); var s = string.IsNullOrEmpty(json) ? null : JsonUtility.FromJson<State>(json);
+            if (s != null)
+            {
+                if (s.found != null) foreach (var k in s.found) _found.Add(k);
+                if (s.cleared != null) foreach (var k in s.cleared) _cleared.Add(k);
+            }
             var col = ASHJournalCollection.Grandpa; if (col) foreach (var p in col.pages) if (p != null && _found.Contains(Key(col.collectionId, p.id))) Marker(p);
         }
     }

@@ -16,7 +16,7 @@ MonoBehaviour:
   displayName: Fan Belt
   description: A ribbed rubber engine belt. Without one the engine won't run. Fit
     it from a vehicle's Repair menu.
-  icon: {fileID: 21300000, guid: 40fb93619f2980b429c76c1ac4c2d8b7, type: 3}
+  icon: {fileID: 21300000, guid: fa4125d52b0b81b4c8af2ae1232f6237, type: 3}
   uiTint: {r: 0.2, g: 0.18, b: 0.16, a: 1}
   category: 4
   maxStack: 2

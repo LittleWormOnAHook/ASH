@@ -15,7 +15,7 @@ MonoBehaviour:
   itemId: flashlight
   displayName: Flashlight
   description: Runs on batteries. Toggle with [L].
-  icon: {fileID: 21300000, guid: 2f213ae59449a9049a3078b62bae050c, type: 3}
+  icon: {fileID: 21300000, guid: 78cae2b37a059104fb37082dfc8ca051, type: 3}
   uiTint: {r: 0.2, g: 0.2, b: 0.22, a: 1}
   category: 9
   maxStack: 1

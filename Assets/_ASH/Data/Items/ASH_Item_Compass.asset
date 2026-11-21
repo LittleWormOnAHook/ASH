@@ -16,7 +16,7 @@ MonoBehaviour:
   displayName: Compass
   description: Grandpa's old brass compass. Use it to keep a heading at the top of
     the screen.
-  icon: {fileID: 21300000, guid: cba6be62cba858447aed7b8ee01b9d16, type: 3}
+  icon: {fileID: 21300000, guid: 560b337f8f1ca44418c2d6d7d2755ba9, type: 3}
   uiTint: {r: 0.78, g: 0.62, b: 0.35, a: 1}
   category: 3
   maxStack: 1

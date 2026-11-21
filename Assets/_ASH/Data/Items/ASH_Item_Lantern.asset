@@ -16,7 +16,7 @@ MonoBehaviour:
   displayName: Oil Lantern
   description: Burns rubbing alcohol. Toggle with [L]; refill by using rubbing alcohol
     (it tops itself up from the pack when it runs dry).
-  icon: {fileID: 21300000, guid: a9646fd22cfd05d44b1919a71fc3bbff, type: 3}
+  icon: {fileID: 21300000, guid: 77af17f6bc1da694681de69543bc7b3b, type: 3}
   uiTint: {r: 0.4, g: 0.35, b: 0.25, a: 1}
   category: 9
   maxStack: 1

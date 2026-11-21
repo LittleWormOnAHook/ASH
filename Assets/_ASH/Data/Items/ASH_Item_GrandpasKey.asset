@@ -15,7 +15,7 @@ MonoBehaviour:
   itemId: grandpas_key
   displayName: Grandpa's Key
   description: Grandpa's spare key to the cabin, worn smooth.
-  icon: {fileID: 21300000, guid: b3590561747bf2041824f52e705b2fb7, type: 3}
+  icon: {fileID: 21300000, guid: fb45a241800384d4e83f7aaef5450b0f, type: 3}
   uiTint: {r: 0.25, g: 0.25, b: 0.27, a: 1}
   category: 6
   maxStack: 1

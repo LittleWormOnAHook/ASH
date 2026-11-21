@@ -15,7 +15,7 @@ MonoBehaviour:
   itemId: pistol
   displayName: Pistol
   description: 'A scuffed 9mm semi-auto. [hold: hotbar or cross bar, LMB fires]'
-  icon: {fileID: 21300000, guid: f44e4656fc11764488caf3695708e215, type: 3}
+  icon: {fileID: 21300000, guid: a1350ae117f7e0b449f898fc1ce7b5b6, type: 3}
   uiTint: {r: 0.3, g: 0.28, b: 0.26, a: 1}
   category: 7
   maxStack: 1

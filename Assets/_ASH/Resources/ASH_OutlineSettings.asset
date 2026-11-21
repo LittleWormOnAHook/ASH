@@ -17,3 +17,9 @@ MonoBehaviour:
   widthPixels: 2.5
   shader: {fileID: 4800000, guid: 66e8f6f6b29203c4ea2c8961ef90ee62, type: 3}
   maxParts: 16
+  foliageShader: {fileID: 4800000, guid: a8c41d7e6b305f94c2e91a47d6b8f0c3, type: 3}
+  solidMode: 1
+  foliageMode: 0
+  foliageTintStrength: 0.7
+  foliageRimPower: 2.5
+  foliagePulse: 0.12

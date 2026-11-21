@@ -95,7 +95,7 @@ namespace ASH.Map
             string body = d.journalEntry;
             if (newPois.Count > 0) body += "\n<color=#c9a46a>Marked:</color> " + string.Join(", ", newPois);
             if (!string.IsNullOrEmpty(d.nextHint)) body += "\n<color=#c9a46a>Next:</color> " + d.nextHint;
-            ASHJournalLog.Add($"Survey {d.order}: {d.displayName}", body);
+            ASHJournalLog.Add($"Survey {d.order}: {d.displayName}", body, "survey:" + d.surveyId);
             SurveyLogged?.Invoke(d);
             Revealed?.Invoke();
             return true;

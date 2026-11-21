@@ -15,7 +15,7 @@ MonoBehaviour:
   itemId: improvisedknife
   displayName: Improvised Knife
   description: Scrap blade wrapped in cloth. Works as a knife.
-  icon: {fileID: 21300000, guid: 30cbd4e52c488274f8400089fbe40f3d, type: 3}
+  icon: {fileID: 21300000, guid: 2610fc9a31dcbfd4e8eb4383dfdbe895, type: 3}
   uiTint: {r: 0.5, g: 0.5, b: 0.48, a: 1}
   category: 3
   maxStack: 1

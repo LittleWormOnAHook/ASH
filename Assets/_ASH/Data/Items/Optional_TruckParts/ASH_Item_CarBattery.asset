@@ -16,7 +16,7 @@ MonoBehaviour:
   displayName: Car Battery
   description: A 12 volt lead-acid battery, still holding a charge. Fit it from a
     vehicle's Repair menu.
-  icon: {fileID: 21300000, guid: b3590561747bf2041824f52e705b2fb7, type: 3}
+  icon: {fileID: 21300000, guid: 02071c7136e84db4585120000be5cec6, type: 3}
   uiTint: {r: 0.25, g: 0.25, b: 0.27, a: 1}
   category: 4
   maxStack: 1

@@ -16,7 +16,7 @@ MonoBehaviour:
   displayName: Wooden Bow
   description: 'Self bow of seasoned ash wood. Quiet; arrows can be made. [hold:
     hotbar or cross bar, LMB shoots]'
-  icon: {fileID: 21300000, guid: ccfd909e364ce364a9cb473835c4b619, type: 3}
+  icon: {fileID: 21300000, guid: 4612ed0db9bccb146afed52db4838c70, type: 3}
   uiTint: {r: 0.5, g: 0.36, b: 0.22, a: 1}
   category: 7
   maxStack: 1

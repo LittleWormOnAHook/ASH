@@ -15,7 +15,7 @@ MonoBehaviour:
   itemId: reclaimedwood
   displayName: Reclaimed Wood
   description: Planks from crates and furniture. Burns longer than deadwood.
-  icon: {fileID: 21300000, guid: 472814919022dcc4185db2a610937915, type: 3}
+  icon: {fileID: 21300000, guid: 118d009d732c4124dbf671776b7ca55d, type: 3}
   uiTint: {r: 0.55, g: 0.42, b: 0.3, a: 1}
   category: 0
   maxStack: 20

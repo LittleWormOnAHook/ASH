@@ -35,10 +35,13 @@ namespace ASH.Prologue
         public bool noAshBeforeQuake = true;
 
         [Header("Cabin door + Grandpa's key (t462)")]
-        [Tooltip("The cabin door starts locked; trying it adds 'Find Grandpa's key'. The key (world pickup) unlocks and opens it. Auto-unlocks when the quake warning starts (no softlock).")]
+        [Tooltip("The cabin door starts locked; trying it adds 'Find Grandpa's key'. The key must be on the hotbar and used on the door (E). Auto-unlocks when the quake warning starts (no softlock).")]
         public bool lockCabinUntilKey = true;
         public string keyItemId = "grandpas_key";
         public string doorLockedMessage = "Locked.";
+        public string doorUnlockPrompt = "Unlock door";
+        [Tooltip("Shown when the door is locked and the key is carried but not on the hotbar.")]
+        public string doorNeedHotbarMessage = "Locked. Put Grandpa's key on the hotbar and use it on the door.";
         [Tooltip("Weather snapped to if ash shows up before the quake (non-ash weather only).")]
         public ASH.World.Weather.ASHWeatherKind preQuakeWeather = ASH.World.Weather.ASHWeatherKind.LightSnowMorning;
         [Tooltip("Car-start radio news (subtitles), shown one after another while driving to the cabin.")]

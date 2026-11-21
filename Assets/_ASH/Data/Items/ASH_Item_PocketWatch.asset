@@ -15,7 +15,7 @@ MonoBehaviour:
   itemId: pocketwatch
   displayName: Old Pocket Watch
   description: Brass case, stopped at 4:17. Someone would pay for it.
-  icon: {fileID: 21300000, guid: 24e550239eb496841921c07cf3d118c5, type: 3}
+  icon: {fileID: 21300000, guid: 399c3abaacbe18e4fa59d9597cb41d20, type: 3}
   uiTint: {r: 0.78, g: 0.66, b: 0.38, a: 1}
   category: 4
   maxStack: 5

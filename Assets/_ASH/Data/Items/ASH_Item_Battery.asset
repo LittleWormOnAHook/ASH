@@ -15,7 +15,7 @@ MonoBehaviour:
   itemId: battery
   displayName: Battery
   description: A D-cell with some charge left. Powers the flashlight.
-  icon: {fileID: 21300000, guid: 22a6a44b6690c0e4db9ec72710da6335, type: 3}
+  icon: {fileID: 21300000, guid: 8a97043ac3dbb5547bfcc14698d06877, type: 3}
   uiTint: {r: 0.3, g: 0.3, b: 0.25, a: 1}
   category: 0
   maxStack: 10

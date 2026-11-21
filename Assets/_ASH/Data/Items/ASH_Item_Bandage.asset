@@ -15,7 +15,7 @@ MonoBehaviour:
   itemId: bandage
   displayName: Bandage
   description: Clean cloth bandage. Stops bleeding, restores some health.
-  icon: {fileID: 21300000, guid: c08cea52a0b27194a8e13c1adfd339c1, type: 3}
+  icon: {fileID: 21300000, guid: 215184de1a84c5946814de976974c9f5, type: 3}
   uiTint: {r: 0.9, g: 0.88, b: 0.82, a: 1}
   category: 5
   maxStack: 10

@@ -15,7 +15,7 @@ MonoBehaviour:
   itemId: rags
   displayName: Rags
   description: Greasy rags. Rinse and tear for a strip of cloth.
-  icon: {fileID: 21300000, guid: b16bd6ecaac6c8a4e92859fc2bf0d7ff, type: 3}
+  icon: {fileID: 21300000, guid: 01b80a698c15d2c4a9fdb80f4f39a175, type: 3}
   uiTint: {r: 0.45, g: 0.42, b: 0.35, a: 1}
   category: 4
   maxStack: 10

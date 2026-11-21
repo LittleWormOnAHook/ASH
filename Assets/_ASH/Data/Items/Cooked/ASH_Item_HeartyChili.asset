@@ -15,10 +15,11 @@ MonoBehaviour:
   itemId: heartychili
   displayName: Hearty Chili
   description: Beans and meat cooked down together. Keeps you going for hours.
-  icon: {fileID: 21300000, guid: 63e0a6bee19981346acfc41d16feebf6, type: 3}
+  icon: {fileID: 21300000, guid: 5ace3cb56089ed94a8f39a168f3eb659, type: 3}
   uiTint: {r: 0.7, g: 0.3, b: 0.18, a: 1}
   category: 1
   maxStack: 5
+  sellValue: 0
   useVerb: Eat
   keyItem: 0
   restoreHunger: 70
@@ -49,6 +50,7 @@ MonoBehaviour:
   gripStyle: 0
   heldScale: 1
   ammoItem: {fileID: 0}
+  containerLitres: 0
   fuelItem: {fileID: 0}
   fuelSecondsPerUnit: 480
   fuelCapacityUnits: 2

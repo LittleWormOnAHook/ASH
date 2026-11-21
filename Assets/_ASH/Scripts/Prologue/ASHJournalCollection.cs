@@ -31,6 +31,8 @@ namespace ASH.Prologue
         [Header("Clue")]
         [Tooltip("Clue: add a compass marker at markerPosition when found (only when that area exists).")] public bool compassMarker;
         public Vector3 markerPosition;
+        [Tooltip("Clue: hide the compass marker once the player is this close (metres). 0 = 30 m default.")]
+        [Min(0f)] public float markerReachRadius;
         [Tooltip("Objective chain flag this page satisfies (documentation; e.g. truckFound for the truck page). Chain steps can also use the flag 'page:<id>'.")] public string chainFlag;
         [Header("Rare recipe")]
         [Tooltip("Recipe asset name unlocked by this page (via the JournalPage condition in ASH_PrologueSettings).")] public string rareRecipeName;

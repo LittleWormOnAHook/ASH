@@ -13,8 +13,9 @@ namespace ASH.EditorTools
             var a = AssetDatabase.LoadAssetAtPath<ASHOutlineSettings>(p);
             if (!a) { a = ScriptableObject.CreateInstance<ASHOutlineSettings>(); AssetDatabase.CreateAsset(a, p); }
             if (!a.shader) a.shader = AssetDatabase.LoadAssetAtPath<Shader>("Assets/_ASH/Shaders/Rendering/ASH_HarvestOutline.shader");
+            if (!a.foliageShader) a.foliageShader = AssetDatabase.LoadAssetAtPath<Shader>("Assets/_ASH/Shaders/Rendering/ASH_HarvestFoliageGlow.shader");
             EditorUtility.SetDirty(a); AssetDatabase.SaveAssets();
-            Debug.Log($"[ASH] Harvest outline settings: {p} (shader {(a.shader ? a.shader.name : "MISSING")})");
+            Debug.Log($"[ASH] Harvest outline settings: {p} (outline {(a.shader ? a.shader.name : "MISSING")}, foliage {(a.foliageShader ? a.foliageShader.name : "MISSING")})");
         }
     }
 }

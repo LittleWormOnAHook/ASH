@@ -19,7 +19,7 @@ namespace ASH.Core
     public sealed class ASHCoreSave : IASHSaveable
     {
         [Serializable] public sealed class SlotState { public string id; public int amount; public float condition = 1f; }
-        [Serializable] public sealed class NoteState { public string title, body, stamp; }
+        [Serializable] public sealed class NoteState { public string id, title, body, stamp; }
         [Serializable]
         sealed class State
         {
@@ -57,7 +57,7 @@ namespace ASH.Core
             var tr = UnityEngine.Object.FindAnyObjectByType<ASHObjectiveTracker>();
             if (tr) s.objectives = tr.CaptureJson();
             var log = ASHJournalLog.Instance ? ASHJournalLog.Instance : UnityEngine.Object.FindAnyObjectByType<ASHJournalLog>();
-            if (log) foreach (var e in log.Entries) s.notes.Add(new NoteState { title = e.title, body = e.body, stamp = e.stamp });
+            if (log) foreach (var e in log.Entries) s.notes.Add(new NoteState { id = e.id, title = e.title, body = e.body, stamp = e.stamp });
             var seq = ASHEruptionSequence.Instance ? ASHEruptionSequence.Instance : UnityEngine.Object.FindAnyObjectByType<ASHEruptionSequence>();
             if (seq) { s.openingStage = (int)seq.Current; s.aftershocksOver = seq.AftershocksOver; s.openingSuppressed = seq.Suppressed; s.openingObjectiveDone = seq.ObjectiveFinishedEarly; }
             var dir = ASHWeatherDirector.Instance;
@@ -119,7 +119,7 @@ namespace ASH.Core
             var tr = UnityEngine.Object.FindAnyObjectByType<ASHObjectiveTracker>();
             if (tr && !string.IsNullOrEmpty(s.objectives)) tr.RestoreJson(s.objectives);
             var log = ASHJournalLog.Instance ? ASHJournalLog.Instance : UnityEngine.Object.FindAnyObjectByType<ASHJournalLog>();
-            if (log) { var list = new List<ASHJournalLog.Entry>(); foreach (var e in s.notes) list.Add(new ASHJournalLog.Entry { title = e.title, body = e.body, stamp = e.stamp }); log.RestoreEntries(list); }
+            if (log) { var list = new List<ASHJournalLog.Entry>(); foreach (var e in s.notes) list.Add(new ASHJournalLog.Entry { id = e.id, title = e.title, body = e.body, stamp = e.stamp }); log.RestoreEntries(list); }
 
             var cc = Player();
             if (cc && s.hasPose)

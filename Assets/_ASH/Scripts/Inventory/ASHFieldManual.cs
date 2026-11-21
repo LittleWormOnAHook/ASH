@@ -142,7 +142,7 @@ namespace ASH.Inventory
             StowJournal();
             var hud = FindAnyObjectByType<UI.ASHHud>();
             if (hud) hud.Toast($"{(Data ? Data.tabName : "Field manual")} added to your journal  [{"Q"}]");
-            ASH.Map.ASHJournalLog.Add("Grandpa's Field Manual", Data ? Data.coverNote : "Grandpa's survival notes.");
+            ASH.Map.ASHJournalLog.Add("Grandpa's Field Manual", Data ? Data.coverNote : "Grandpa's survival notes.", "fm_cover");
             ManualRead?.Invoke(); Changed?.Invoke();
         }
 
@@ -154,7 +154,7 @@ namespace ASH.Inventory
             int total = Data ? Data.totalPages : 12;
             var pg = Data ? Data.Page(n) : null;
             if (hud) hud.Toast($"Found a torn page: Page {n} of {total}" + (pg != null && !string.IsNullOrEmpty(pg.title) ? $" - {pg.title}" : "") + (IsRead ? "  (added to the Survival Guide)" : "  (tucked into the journal)"));
-            if (pg != null && !string.IsNullOrEmpty(pg.text)) ASH.Map.ASHJournalLog.Add($"Manual page {n}: {pg.title}", pg.text);
+            if (pg != null && !string.IsNullOrEmpty(pg.text)) ASH.Map.ASHJournalLog.Add($"Manual page {n}: {pg.title}", pg.text, "fm_page_" + n);
             PageFound?.Invoke(n);
             Evaluate(); Changed?.Invoke();
             return true;

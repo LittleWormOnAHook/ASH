@@ -15,7 +15,7 @@ MonoBehaviour:
   itemId: cloth
   displayName: Cloth
   description: Clean strips of fabric. Bandages, repairs, tinder.
-  icon: {fileID: 21300000, guid: 279c48c8357171049b1eda82a2718d61, type: 3}
+  icon: {fileID: 21300000, guid: f482a2885fbd032458203bd50f9e20e3, type: 3}
   uiTint: {r: 0.75, g: 0.68, b: 0.55, a: 1}
   category: 0
   maxStack: 10

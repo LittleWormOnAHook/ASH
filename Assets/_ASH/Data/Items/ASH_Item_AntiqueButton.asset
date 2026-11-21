@@ -15,7 +15,7 @@ MonoBehaviour:
   itemId: antiquebutton
   displayName: Antique Button
   description: A carved bone button. Collectors like these.
-  icon: {fileID: 21300000, guid: 625ade0cbbe2c0641ab52177285d725e, type: 3}
+  icon: {fileID: 21300000, guid: 5185d68858ed62a4fa1681484aaf6bd7, type: 3}
   uiTint: {r: 0.82, g: 0.78, b: 0.66, a: 1}
   category: 4
   maxStack: 20

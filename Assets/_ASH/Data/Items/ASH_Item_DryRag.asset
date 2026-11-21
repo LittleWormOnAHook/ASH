@@ -15,7 +15,7 @@ MonoBehaviour:
   itemId: dry_rag
   displayName: Dry Rag
   description: Dried out and caked with ash. Wet it again with a little water.
-  icon: {fileID: 21300000, guid: 43e45ee837e7f604e89058f9861829b8, type: 3}
+  icon: {fileID: 21300000, guid: ca1377e9d28892a47b45e0ec10032d0a, type: 3}
   uiTint: {r: 0.6, g: 0.58, b: 0.52, a: 1}
   category: 0
   maxStack: 5

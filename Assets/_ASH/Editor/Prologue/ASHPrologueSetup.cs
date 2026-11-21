@@ -81,13 +81,22 @@ namespace ASH.EditorTools
                 s.unlockOverrides = new List<ASHRecipeUnlockOverride>();
                 void O(string recipe, params ASHUnlockCondition[] cs) { var r = Recipe(recipe); if (!r) { log.Add("WARNING missing recipe " + recipe); return; } s.unlockOverrides.Add(new ASHRecipeUnlockOverride { recipe = r, requireAll = false, conditions = cs.ToList() }); }
                 ASHUnlockCondition Pick(string item) => new ASHUnlockCondition { kind = ASHUnlockKind.FirstPickup, item = Item(item) };
-                ASHUnlockCondition Page(string id) => new ASHUnlockCondition { kind = ASHUnlockKind.JournalPage, collection = "grandpa", pageId = id };
-                O("Torch", Pick("Torch"), Page("gj_01"));
+                O("Torch", Pick("Torch"));
                 O("Rope", Pick("PlantFiber"));
                 O("ClothFromShirt", Pick("OldShirt"));
                 O("FlattenTins", Pick("EmptyTin"));
                 O("CampfireFirewood", Pick("Firewood"));
-                dirty = true; log.Add("unlock overrides: Torch (pick up a torch or Grandpa's Journal p.1), Rope (plant fiber), Cloth from Shirt (old shirt), Flatten Tins (empty tin), Campfire (firewood) (firewood)");
+                dirty = true; log.Add("unlock overrides: Torch (pick up a torch), Rope (plant fiber), Cloth from Shirt (old shirt), Flatten Tins (empty tin), Campfire (firewood) (firewood)");
+            }
+            else
+            {
+                int removed = 0;
+                foreach (var o in s.unlockOverrides)
+                {
+                    if (o == null || o.conditions == null) continue;
+                    removed += o.conditions.RemoveAll(c => c != null && c.kind == ASHUnlockKind.JournalPage && c.pageId == "gj_01");
+                }
+                if (removed > 0) { dirty = true; log.Add("unlock overrides: Torch no longer unlocks from Grandpa's Journal p.1 (pickup only)"); }
             }
             if (dirty) EditorUtility.SetDirty(s);
             return s;

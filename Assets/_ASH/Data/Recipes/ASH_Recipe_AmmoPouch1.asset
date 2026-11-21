@@ -23,7 +23,7 @@ MonoBehaviour:
     amount: 1
   outputItem: {fileID: 0}
   outputAmount: 1
-  icon: {fileID: 21300000, guid: 8347fecd2471ced4d92fa3f52c717f0b, type: 3}
+  icon: {fileID: 21300000, guid: e79574b246c267744845f3d98314a7b7, type: 3}
   requiredCraftingLevel: 1
   upgradeId: ammo_pouch
   upgradeTier: 1

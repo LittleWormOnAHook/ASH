@@ -15,7 +15,7 @@ MonoBehaviour:
   itemId: canopener
   displayName: Can Opener
   description: Opens cans cleanly and keeps the tin.
-  icon: {fileID: 21300000, guid: 2729b6002b3df9f4a9bbbf2d3817ada9, type: 3}
+  icon: {fileID: 21300000, guid: 8484f604cf8b5614589a0eaebda7282f, type: 3}
   uiTint: {r: 0.65, g: 0.65, b: 0.6, a: 1}
   category: 3
   maxStack: 1

@@ -15,7 +15,7 @@ MonoBehaviour:
   itemId: rope
   displayName: Rope
   description: Twisted plant fiber cordage.
-  icon: {fileID: 21300000, guid: a653b1c8e8158d34f82c86b067577aa1, type: 3}
+  icon: {fileID: 21300000, guid: 5bac939d3f70d624b8240d9f1663327e, type: 3}
   uiTint: {r: 0.62, g: 0.55, b: 0.38, a: 1}
   category: 0
   maxStack: 10

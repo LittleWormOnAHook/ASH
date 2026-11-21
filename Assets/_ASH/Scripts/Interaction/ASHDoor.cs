@@ -30,6 +30,12 @@ namespace ASH.Interaction
         public bool locked;
         public string openPrompt = "Open door", closePrompt = "Close door";
         public string lockedMessage = "It's stuck.";
+        [Tooltip("If set, E unlocks the door when this item is on the hotbar.")]
+        public string unlockKeyId;
+        public bool unlockRequiresHotbar = true;
+        public string unlockPrompt = "Unlock door";
+        [Tooltip("Toast when the key is carried but not on the hotbar.")]
+        public string needHotbarMessage = "Locked. Put the key on the hotbar and use it on the door.";
         [Tooltip("Jiggle when trying a locked door (degrees).")] [Range(0f, 10f)] public float lockedJiggle = 1.6f;
         [Tooltip("Rattle while the ground shakes (degrees at full quake intensity).")] [Range(0f, 15f)] public float quakeRattle = 2.5f;
 
@@ -40,6 +46,8 @@ namespace ASH.Interaction
 
         /// <summary>t462: raised when someone tries this door while it is locked.</summary>
         public static event System.Action<ASHDoor> LockedTried;
+        /// <summary>t486: raised after this door is unlocked with the required hotbar key.</summary>
+        public static event System.Action<ASHDoor> UnlockedWithKey;
         public bool IsOpen => _targetAngle != 0f;
         public float Angle => _angle;
         public bool Locked => locked;
@@ -147,14 +155,39 @@ namespace ASH.Interaction
 
         // ------------------------------------------------------------------ IASHUsable
         public float GetUsePriority(in ASHUseContext context) => isActiveAndEnabled ? 1f : -1f;
-        public string GetPrompt(in ASHUseContext context) => IsOpen && !locked ? closePrompt : openPrompt;
+        static bool ItemOnHotbar(ASH.Inventory.ASHInventory inv, ASH.Inventory.ASHItemDefinition def)
+        {
+            if (!inv || !def) return false;
+            for (int i = 0; i < inv.HotbarCount; i++) { var s = inv.Slots[i]; if (!s.IsEmpty && s.item == def) return true; }
+            return false;
+        }
+        bool KeyReady(in ASHUseContext context, out bool hasKey)
+        {
+            hasKey = false;
+            if (string.IsNullOrEmpty(unlockKeyId)) return false;
+            var def = ASH.Inventory.ASHItemRegistry.I ? ASH.Inventory.ASHItemRegistry.I.Find(unlockKeyId) : null;
+            if (!def || context.Inventory == null) return false;
+            hasKey = context.Inventory.Count(def) > 0;
+            return unlockRequiresHotbar ? ItemOnHotbar(context.Inventory, def) : hasKey;
+        }
+        public string GetPrompt(in ASHUseContext context)
+        {
+            if (locked) return KeyReady(context, out _) ? (string.IsNullOrEmpty(unlockPrompt) ? "Unlock door" : unlockPrompt) : openPrompt;
+            return IsOpen ? closePrompt : openPrompt;
+        }
         public float GetHoldDuration(in ASHUseContext context) => 0f;
         public bool TryUse(in ASHUseContext context)
         {
             if (locked)
             {
+                if (KeyReady(context, out var hasKey))
+                {
+                    Unlock(true); SetOpen(true, context.PlayerPosition); UnlockedWithKey?.Invoke(this);
+                    return true;
+                }
                 _jiggleT = 0.35f; Sfx("doorLocked", lockedClips, 1f); LockedTried?.Invoke(this);
-                var hud = FindAnyObjectByType<UI.ASHHud>(); if (hud && !string.IsNullOrEmpty(lockedMessage)) hud.Toast(lockedMessage);
+                string msg = hasKey && !string.IsNullOrEmpty(needHotbarMessage) ? needHotbarMessage : lockedMessage;
+                var hud = FindAnyObjectByType<UI.ASHHud>(); if (hud && !string.IsNullOrEmpty(msg)) hud.Toast(msg);
                 return true;
             }
             if (IsOpen) { SetOpen(false); Sfx("doorClose", closeClips, 1f); }

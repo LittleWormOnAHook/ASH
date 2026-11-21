@@ -15,7 +15,7 @@ MonoBehaviour:
   itemId: campfire
   displayName: Campfire
   description: A ring of stones and deadwood. Place it to make camp.
-  icon: {fileID: 21300000, guid: 9233d4ba76ef6144da36194accbd774d, type: 3}
+  icon: {fileID: 21300000, guid: 39f637aa7254a2941aecaec102292346, type: 3}
   uiTint: {r: 0.95, g: 0.55, b: 0.25, a: 1}
   category: 2
   maxStack: 1

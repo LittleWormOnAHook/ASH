@@ -71,6 +71,7 @@ namespace ASH.Prologue
             ASHVehicle.Inspected += OnInspected;
             ASHGrandpaJournal.PageFound += OnPageFound;
             ASH.Interaction.ASHDoor.LockedTried -= OnDoorLockedTried; ASH.Interaction.ASHDoor.LockedTried += OnDoorLockedTried;
+            ASH.Interaction.ASHDoor.UnlockedWithKey -= OnDoorUnlockedWithKey; ASH.Interaction.ASHDoor.UnlockedWithKey += OnDoorUnlockedWithKey;
             ASHDeathScreen.RetryAvailable = () => SavesLocked && ASHSaveSystem.Read(S ? S.checkpointSlot : "prologue_checkpoint") != null;
             ASHDeathScreen.Retry = Retry;
             ASHInventory.SuppressStartingItems = () => TakesOverOpening && S.prologueKitOnly && ASHSaveSystem.PendingLoad == null && !ASHSceneFlow.ContinuingRun;
@@ -85,6 +86,7 @@ namespace ASH.Prologue
             ASHVehicle.Inspected -= OnInspected;
             ASHGrandpaJournal.PageFound -= OnPageFound;
             ASH.Interaction.ASHDoor.LockedTried -= OnDoorLockedTried;
+            ASH.Interaction.ASHDoor.UnlockedWithKey -= OnDoorUnlockedWithKey;
             ASHDeathScreen.RetryAvailable = null; ASHDeathScreen.Retry = null; ASHInventory.SuppressStartingItems = null;
             if (_stats) _stats.Died -= OnDied;
         }
@@ -329,8 +331,12 @@ namespace ASH.Prologue
             bool has = HasKey();
             if (keyPickup) keyPickup.SetActive(!_doorUnlocked && !has);
             var d = CabinDoor(); if (!d || !S.lockCabinUntilKey) return;
-            if (!_doorUnlocked && !has && Current < Phase.Warning) { d.SnapClosed(); d.Lock(); if (!string.IsNullOrEmpty(S.doorLockedMessage)) d.lockedMessage = S.doorLockedMessage; }
-            else if (d.Locked && Current < Phase.Warning) d.Unlock(false);
+            d.unlockKeyId = S.keyItemId;
+            d.unlockRequiresHotbar = true;
+            if (!string.IsNullOrEmpty(S.doorUnlockPrompt)) d.unlockPrompt = S.doorUnlockPrompt;
+            if (!string.IsNullOrEmpty(S.doorNeedHotbarMessage)) d.needHotbarMessage = S.doorNeedHotbarMessage;
+            if (!string.IsNullOrEmpty(S.doorLockedMessage)) d.lockedMessage = S.doorLockedMessage;
+            if (!_doorUnlocked && Current < Phase.Warning) { d.SnapClosed(); d.Lock(); }
         }
         void UnlockCabinDoor(bool open, string message)
         {
@@ -339,6 +345,15 @@ namespace ASH.Prologue
             if (keyPickup && !HasKey()) keyPickup.SetActive(false);
             if (!string.IsNullOrEmpty(message)) { var hud = FindAnyObjectByType<ASHHud>(); if (hud) hud.Toast(message); }
             if (logPhases) Debug.Log("[ASH] Prologue: cabin door unlocked" + (message == null ? " (warning)" : " (Grandpa's key)"));
+        }
+        void OnDoorUnlockedWithKey(ASH.Interaction.ASHDoor d)
+        {
+            if (d != CabinDoor() || _doorUnlocked) return;
+            _doorUnlocked = true;
+            if (keyPickup && !HasKey()) keyPickup.SetActive(false);
+            var hud = FindAnyObjectByType<ASHHud>(); if (hud) hud.Toast("Grandpa's key. The door's open.");
+            if (logPhases) Debug.Log("[ASH] Prologue: cabin door unlocked (Grandpa's key on the hotbar)");
+            var r = ASHObjectiveChainRunner.Instance; if (r && !ASHSaveSystem.IsRestoring) r.Tick(true);
         }
         void OnDoorLockedTried(ASH.Interaction.ASHDoor d)
         {
@@ -358,7 +373,7 @@ namespace ASH.Prologue
             if (_seq == null) Cache();
             if (!_doorApplied) { _doorApplied = true; ApplyDoorState(); }
             _slowT -= Time.deltaTime; bool slow = _slowT <= 0f; if (slow) _slowT = 0.25f;
-            if (slow && S.lockCabinUntilKey && !_doorUnlocked && Current < Phase.Warning && HasKey()) UnlockCabinDoor(true, "Grandpa's key. The door's open.");
+            // t486: the key must be on the hotbar and used on the door; warning still auto-unlocks (no softlock).
             if (slow && !TruckFound && _truck && Flat(_truck.transform.position - PlayerPos()).magnitude <= S.truckFoundRadius) MarkTruckFound();
             switch (Current)
             {

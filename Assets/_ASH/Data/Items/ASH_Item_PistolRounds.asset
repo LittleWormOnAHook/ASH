@@ -15,7 +15,7 @@ MonoBehaviour:
   itemId: pistolrounds
   displayName: 9mm Rounds
   description: Pistol cartridges.
-  icon: {fileID: 21300000, guid: e88daa7a8bd7d2643abe2448afd3971e, type: 3}
+  icon: {fileID: 21300000, guid: 97b7744a598ccc34db5b42772a07c359, type: 3}
   uiTint: {r: 0.75, g: 0.6, b: 0.3, a: 1}
   category: 8
   maxStack: 100

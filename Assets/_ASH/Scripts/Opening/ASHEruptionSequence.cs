@@ -282,7 +282,7 @@ namespace ASH.Opening
                 case Stage.FirstAsh: break; // ramp starts after ashOnset (see Tick)
                 case Stage.HeavyWave:
                     if (director) director.TransitionTo(ASHWeatherKind.HeavyAsh, profile.heavyRampSeconds / sp);
-                    ASHJournalLog.Add(profile.journalWaveTitle, profile.journalWaveBody);
+                    ASHJournalLog.Add(profile.journalWaveTitle, profile.journalWaveBody, "eruption_wave");
                     break;
                 case Stage.Easing:
                     if (director) director.TransitionTo(profile.afterState, profile.easeSeconds / sp);
@@ -366,7 +366,7 @@ namespace ASH.Opening
         }
 
         bool _journalBroadcast;
-        void JournalBroadcast() { if (_journalBroadcast) return; _journalBroadcast = true; ASHJournalLog.Add(profile.journalBroadcastTitle, profile.journalBroadcastBody); }
+        void JournalBroadcast() { if (_journalBroadcast) return; _journalBroadcast = true; ASHJournalLog.Add(profile.journalBroadcastTitle, profile.journalBroadcastBody, "eruption_broadcast"); }
 
         // ------------------------------------------------------------------ fog density
         void EnsureFogVolume()

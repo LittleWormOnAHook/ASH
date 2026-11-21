@@ -87,14 +87,6 @@ MonoBehaviour:
       upgradeTier: 1
       collection: grandpa
       pageId: 
-    - kind: 4
-      item: {fileID: 0}
-      quantity: 1
-      page: 1
-      upgradeId: 
-      upgradeTier: 1
-      collection: grandpa
-      pageId: gj_01
   - recipe: {fileID: 11400000, guid: 175d1959d24317743b87ba6da11c0d39, type: 2}
     requireAll: 0
     conditions:

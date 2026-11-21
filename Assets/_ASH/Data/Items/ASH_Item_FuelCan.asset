@@ -16,7 +16,7 @@ MonoBehaviour:
   displayName: Fuel Can
   description: A dented 20 litre jerry can. Pour it into a vehicle from the vehicle
     menu (Fuel Up). Keep it when it's empty.
-  icon: {fileID: 21300000, guid: b365173f60e05ae45a8753b42ac95b3f, type: 3}
+  icon: {fileID: 21300000, guid: abf05545131a19c4c9ef6684e6be83ac, type: 3}
   uiTint: {r: 0.72, g: 0.18, b: 0.12, a: 1}
   category: 4
   maxStack: 1
