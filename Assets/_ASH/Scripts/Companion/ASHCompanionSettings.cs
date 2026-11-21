@@ -171,10 +171,13 @@ namespace ASH.Companion
         [Range(0.2f, 6f)] public float attackCooldown = 1.4f;
         [Range(0f, 1f)] public float attackHitDelay = 0.35f;
         [Tooltip("Health fraction where the dog breaks off and comes back to you.")] [Range(0f, 0.9f)] public float retreatAt = 0.25f;
-        [Tooltip("Goes down at 0 health instead of dying; hold E on it to revive.")] public bool downedNotDead = true;
+        [Tooltip("Kept for compatibility. The dog cannot die: at 0 health it always enters Downed.")] public bool downedNotDead = true;
         [Range(0.5f, 10f)] public float reviveHoldSeconds = 2.5f;
+        [Tooltip("Fraction of max health restored when you revive the dog with a bandage, first aid kit or raw meat.")]
         [Range(0.05f, 1f)] public float reviveHealth = 0.35f;
-        [Tooltip("Gets up by itself after this many seconds (0 = only when you revive it).")] [Range(0f, 900f)] public float selfReviveSeconds = 0f;
+        [Tooltip("Gets up by itself after this many seconds (0 = only when you revive it with an item).")] [Range(0f, 900f)] public float selfReviveSeconds = 0f;
+        [Tooltip("Compass / HUD hint while the dog is downed.")] public string downedHint = "Your dog is hurt";
+        [Tooltip("Seconds between whimper loops while downed.")] [Range(0.8f, 12f)] public float whimperInterval = 3.2f;
 
         [Header("Needs and bond")]
         public bool hunger = true;

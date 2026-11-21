@@ -56,7 +56,7 @@ namespace ASH.Interaction
 
         ASHInteractor _ia; Material _matOutline, _matGlow; Component _cur; float _findT;
         readonly List<Part> _parts = new List<Part>();
-        readonly MaterialPropertyBlock _block = new MaterialPropertyBlock();
+        MaterialPropertyBlock _block;
 
         public static bool Harvestable(Component t)
         {
@@ -67,6 +67,8 @@ namespace ASH.Interaction
             if (animal) return animal.IsDead && !animal.Harvested;
             return false;
         }
+
+        void Awake() { _block = new MaterialPropertyBlock(); }
 
         void LateUpdate()
         {
@@ -123,6 +125,7 @@ namespace ASH.Interaction
         void DrawGlow(ASHOutlineSettings S, Part p, Mesh mesh, Matrix4x4 mtx)
         {
             if (!_matGlow) return;
+            if (_block == null) _block = new MaterialPropertyBlock();
             var tex = BaseMap(p.src);
             if (!tex) return; // no alpha source: skip rather than filling the card
             _matGlow.SetColor(ID_Col, S.color);

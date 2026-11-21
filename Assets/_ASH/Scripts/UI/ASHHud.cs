@@ -47,7 +47,7 @@ namespace ASH.UI
         RectTransform _root;
         Bar _health, _stamina, _hunger, _thirst;
         float _objRefreshAt;
-        Text _prompt, _objTitle, _objLines, _clock, _placeHint, _deathText, _invDesc;
+        Text _prompt, _objTitle, _objLines, _clock, _placeHint, _deathText, _invDesc, _companionHint;
         RectTransform _holdBar, _holdFill, _reticle;
         RectTransform _toastRoot;
         Text _subtitle; float _subUntil = -1f;
@@ -854,6 +854,20 @@ namespace ASH.UI
             t.text = msg; AddShadow(t);
             _toasts.Add((t, Time.unscaledTime + toastSeconds));
             if (_toasts.Count > 6) { Destroy(_toasts[0].text.gameObject); _toasts.RemoveAt(0); }
+        }
+
+        /// <summary>Persistent top-of-screen hint (dog downed, etc.). Empty text clears it.</summary>
+        public void SetCompanionHint(string text)
+        {
+            if (_companionHint == null && _root)
+            {
+                _companionHint = Label("CompanionHint", _root, new Vector2(0.5f, 1f), new Vector2(0f, -88f), new Vector2(800f, 36f), 24, TextAnchor.MiddleCenter, new Color(0.92f, 0.72f, 0.42f, 1f));
+                AddShadow(_companionHint);
+            }
+            if (!_companionHint) return;
+            bool on = !string.IsNullOrEmpty(text);
+            _companionHint.text = on ? text : "";
+            _companionHint.gameObject.SetActive(on);
         }
 
         void SetInv(bool open) { _invPanel.SetActive(open); ASHUIState.SetOpen(ASHPanels.Inventory, open); if (open) { RefreshInventory(); HideTip(); } else { EndSlotDrag(); CloseContext(); } }

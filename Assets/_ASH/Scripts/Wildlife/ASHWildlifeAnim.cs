@@ -6,6 +6,7 @@ namespace ASH.Wildlife
     /// Drives a species' own Malbers clips with the dog's animation setup: Speed/Turn floats when the
     /// ASH locomotion controller is present, otherwise CrossFade of classified walk/trot/run/turn states.
     /// Playback rate is applied by ASHGroundLocomotion so the feet stay planted. Also plays vendor audio.
+    /// CrossFade is skipped when the state or controller is missing (no Animator warnings).
     /// </summary>
     [DisallowMultipleComponent]
     public sealed class ASHWildlifeAnim : MonoBehaviour
@@ -22,6 +23,21 @@ namespace ASH.Wildlife
         string _state;
         float _stepT;
         bool _hasSpeed;
+
+        public bool HasEat => Has(eatState);
+        public bool HasSleep => Has(sleepState);
+        public bool HasCall => Has(callState);
+        public bool HasAttack => Has(attackState);
+        public bool HasDeath => Has(deathState) || Has(sleepState);
+        public string Current => _state;
+        public float NormalizedTime
+        {
+            get
+            {
+                if (!_anim || !_anim.runtimeAnimatorController) return 0f;
+                return _anim.GetCurrentAnimatorStateInfo(0).normalizedTime;
+            }
+        }
 
         public void Bind(Animator anim)
         {
@@ -43,23 +59,21 @@ namespace ASH.Wildlife
         public void TickLoco(float actualSpeed, float trot, float run, bool turningInPlace, float turnRate, float dt)
         {
             if (!_anim || !_anim.runtimeAnimatorController) return;
+            if (IsLocked()) return;
             if (_hasSpeed)
             {
-                if (turningInPlace && !string.IsNullOrEmpty(turnLState) && !string.IsNullOrEmpty(turnRState))
-                {
-                    var turn = turnRate >= 0f ? turnRState : turnLState;
-                    Fade(turn);
-                }
+                if (turningInPlace && Has(turnLState) && Has(turnRState))
+                    Fade(turnRate >= 0f ? turnRState : turnLState);
                 else Fade(locoState);
             }
             else
             {
-                string want = idleState;
-                if (turningInPlace && (!string.IsNullOrEmpty(turnLState) || !string.IsNullOrEmpty(turnRState)))
-                    want = turnRate >= 0f && !string.IsNullOrEmpty(turnRState) ? turnRState : (string.IsNullOrEmpty(turnLState) ? turnRState : turnLState);
-                else if (actualSpeed > run * 0.85f && !string.IsNullOrEmpty(runState)) want = runState;
-                else if (actualSpeed > trot * 0.85f && !string.IsNullOrEmpty(trotState)) want = trotState;
-                else if (actualSpeed > 0.2f && !string.IsNullOrEmpty(walkState)) want = walkState;
+                string want = Has(idleState) ? idleState : locoState;
+                if (turningInPlace && (Has(turnLState) || Has(turnRState)))
+                    want = turnRate >= 0f && Has(turnRState) ? turnRState : (Has(turnLState) ? turnLState : turnRState);
+                else if (actualSpeed > run * 0.85f && Has(runState)) want = runState;
+                else if (actualSpeed > trot * 0.85f && Has(trotState)) want = trotState;
+                else if (actualSpeed > 0.2f && Has(walkState)) want = walkState;
                 Fade(want);
             }
             Steps(actualSpeed, run, dt);
@@ -67,17 +81,40 @@ namespace ASH.Wildlife
 
         public void PlayAttack() { Fade(attackState); Play(attackClips, 0.9f); }
         public void PlayHit() { Fade(hitState); Play(hurtClips, 0.85f); }
-        public void PlayDeath() { Fade(!string.IsNullOrEmpty(deathState) ? deathState : sleepState); Play(deathClips, 1f); }
+        public void PlayDeath() { Fade(Has(deathState) ? deathState : sleepState); Play(deathClips, 1f); }
         public void PlayCall() { Fade(callState); Play(callClips, 0.8f); }
         public void PlayEat() => Fade(eatState);
         public void PlaySleep() => Fade(sleepState);
-        public void PlayIdle() => Fade(!string.IsNullOrEmpty(idleState) ? idleState : locoState);
+        public void PlayIdle() => Fade(Has(idleState) ? idleState : locoState);
+
+        public bool InState(string state)
+        {
+            if (string.IsNullOrEmpty(state) || !_anim || !_anim.runtimeAnimatorController) return false;
+            var info = _anim.GetCurrentAnimatorStateInfo(0);
+            return info.IsName(state);
+        }
+
+        public bool Has(string state)
+        {
+            if (string.IsNullOrEmpty(state) || !_anim || !_anim.runtimeAnimatorController) return false;
+            return _anim.HasState(0, Animator.StringToHash(state));
+        }
+
+        bool IsLocked()
+        {
+            if (Has(deathState) && InState(deathState)) return true;
+            if (InState(attackState) && NormalizedTime < 0.95f) return true;
+            if (InState(hitState) && NormalizedTime < 0.85f) return true;
+            return false;
+        }
 
         void Fade(string state)
         {
             if (string.IsNullOrEmpty(state) || !_anim || state == _state) return;
             if (!_anim.runtimeAnimatorController) return;
-            _anim.CrossFade(state, 0.12f, 0, 0f);
+            int hash = Animator.StringToHash(state);
+            if (!_anim.HasState(0, hash)) return;
+            _anim.CrossFade(hash, 0.12f, 0, 0f);
             _state = state;
         }
 

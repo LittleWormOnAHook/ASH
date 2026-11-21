@@ -52,6 +52,37 @@ MonoBehaviour:
     bodyRadius: 0
     bodyLength: 0
     bodyHeight: 0
+    sightRange: 0
+    sightAngle: 80
+    hearWalk: 8
+    hearCrouch: 3
+    hearSprint: 22
+    hearGunshot: 70
+    scentRange: 18
+    curiousSeconds: 1.6
+    grazeChance: 0.35
+    grazeMin: 4
+    grazeMax: 10
+    lookBackChance: 0.65
+    lookBackSeconds: 2.4
+    retreatHealth: 0.35
+    retreatChance: 0.5
+    retreatSeconds: 6
+    fatigueRunSeconds: 12
+    incomingMul: 1
+    arrowMul: 1
+    bulletMul: 1
+    meleeMul: 1
+    vitalMul: 1.7
+    attackHitNormalized: 0.42
+    combatProfileApplied: 1
+    dayActivity: 0.7
+    nightActivity: 1.25
+    herdFlee: 0
+    packFlank: 1
+    bluffCharge: 0
+    ambush: 0
+    chargeAndTurn: 0
     drops:
     - item: {fileID: 11400000, guid: 49aeecd77bdc047408ab2bf59e2992fc, type: 2}
       min: 1
@@ -101,6 +132,37 @@ MonoBehaviour:
     bodyRadius: 0
     bodyLength: 0
     bodyHeight: 0
+    sightRange: 0
+    sightAngle: 80
+    hearWalk: 8
+    hearCrouch: 3
+    hearSprint: 22
+    hearGunshot: 70
+    scentRange: 18
+    curiousSeconds: 1.6
+    grazeChance: 0.35
+    grazeMin: 4
+    grazeMax: 10
+    lookBackChance: 0.65
+    lookBackSeconds: 2.4
+    retreatHealth: 0.22
+    retreatChance: 0.25
+    retreatSeconds: 6
+    fatigueRunSeconds: 12
+    incomingMul: 0.7
+    arrowMul: 0.45
+    bulletMul: 0.65
+    meleeMul: 0.8
+    vitalMul: 1.35
+    attackHitNormalized: 0.42
+    combatProfileApplied: 1
+    dayActivity: 1.1
+    nightActivity: 0.85
+    herdFlee: 0
+    packFlank: 0
+    bluffCharge: 1
+    ambush: 0
+    chargeAndTurn: 0
     drops:
     - item: {fileID: 11400000, guid: 49aeecd77bdc047408ab2bf59e2992fc, type: 2}
       min: 2
@@ -150,6 +212,37 @@ MonoBehaviour:
     bodyRadius: 0
     bodyLength: 0
     bodyHeight: 0
+    sightRange: 0
+    sightAngle: 80
+    hearWalk: 8
+    hearCrouch: 3
+    hearSprint: 22
+    hearGunshot: 70
+    scentRange: 18
+    curiousSeconds: 1.6
+    grazeChance: 0.35
+    grazeMin: 4
+    grazeMax: 10
+    lookBackChance: 0.65
+    lookBackSeconds: 2.4
+    retreatHealth: 0.3
+    retreatChance: 0.45
+    retreatSeconds: 6
+    fatigueRunSeconds: 12
+    incomingMul: 1.15
+    arrowMul: 1.2
+    bulletMul: 1.15
+    meleeMul: 1.1
+    vitalMul: 1.8
+    attackHitNormalized: 0.42
+    combatProfileApplied: 1
+    dayActivity: 1
+    nightActivity: 1.1
+    herdFlee: 0
+    packFlank: 0
+    bluffCharge: 0
+    ambush: 0
+    chargeAndTurn: 0
     drops:
     - item: {fileID: 11400000, guid: 49aeecd77bdc047408ab2bf59e2992fc, type: 2}
       min: 1
@@ -203,6 +296,37 @@ MonoBehaviour:
     bodyRadius: 0
     bodyLength: 0
     bodyHeight: 0
+    sightRange: 0
+    sightAngle: 80
+    hearWalk: 8
+    hearCrouch: 3
+    hearSprint: 22
+    hearGunshot: 70
+    scentRange: 18
+    curiousSeconds: 1.6
+    grazeChance: 0.55
+    grazeMin: 4
+    grazeMax: 10
+    lookBackChance: 0.65
+    lookBackSeconds: 2.4
+    retreatHealth: 0.3
+    retreatChance: 0.45
+    retreatSeconds: 6
+    fatigueRunSeconds: 12
+    incomingMul: 1.25
+    arrowMul: 1.3
+    bulletMul: 1.25
+    meleeMul: 1.2
+    vitalMul: 2
+    attackHitNormalized: 0.42
+    combatProfileApplied: 1
+    dayActivity: 1
+    nightActivity: 1.15
+    herdFlee: 0
+    packFlank: 0
+    bluffCharge: 0
+    ambush: 0
+    chargeAndTurn: 0
     drops:
     - item: {fileID: 11400000, guid: 49aeecd77bdc047408ab2bf59e2992fc, type: 2}
       min: 1
@@ -256,6 +380,37 @@ MonoBehaviour:
     bodyRadius: 0
     bodyLength: 0
     bodyHeight: 0
+    sightRange: 0
+    sightAngle: 80
+    hearWalk: 8
+    hearCrouch: 3
+    hearSprint: 22
+    hearGunshot: 70
+    scentRange: 18
+    curiousSeconds: 1.6
+    grazeChance: 0.35
+    grazeMin: 4
+    grazeMax: 10
+    lookBackChance: 0.65
+    lookBackSeconds: 2.4
+    retreatHealth: 0.3
+    retreatChance: 0.45
+    retreatSeconds: 6
+    fatigueRunSeconds: 12
+    incomingMul: 1.1
+    arrowMul: 1.15
+    bulletMul: 1.1
+    meleeMul: 1.05
+    vitalMul: 1.7
+    attackHitNormalized: 0.42
+    combatProfileApplied: 1
+    dayActivity: 0.9
+    nightActivity: 1.2
+    herdFlee: 0
+    packFlank: 0
+    bluffCharge: 0
+    ambush: 0
+    chargeAndTurn: 0
     drops:
     - item: {fileID: 11400000, guid: 49aeecd77bdc047408ab2bf59e2992fc, type: 2}
       min: 1
@@ -309,6 +464,37 @@ MonoBehaviour:
     bodyRadius: 0
     bodyLength: 0
     bodyHeight: 0
+    sightRange: 0
+    sightAngle: 80
+    hearWalk: 8
+    hearCrouch: 3
+    hearSprint: 22
+    hearGunshot: 70
+    scentRange: 18
+    curiousSeconds: 1.6
+    grazeChance: 0.55
+    grazeMin: 4
+    grazeMax: 10
+    lookBackChance: 0.65
+    lookBackSeconds: 2.4
+    retreatHealth: 0.3
+    retreatChance: 0.45
+    retreatSeconds: 6
+    fatigueRunSeconds: 12
+    incomingMul: 1
+    arrowMul: 1
+    bulletMul: 1
+    meleeMul: 1
+    vitalMul: 1.7
+    attackHitNormalized: 0.42
+    combatProfileApplied: 1
+    dayActivity: 1.15
+    nightActivity: 0.9
+    herdFlee: 1
+    packFlank: 0
+    bluffCharge: 0
+    ambush: 0
+    chargeAndTurn: 0
     drops:
     - item: {fileID: 11400000, guid: 49aeecd77bdc047408ab2bf59e2992fc, type: 2}
       min: 2
@@ -366,6 +552,37 @@ MonoBehaviour:
     bodyRadius: 0
     bodyLength: 0
     bodyHeight: 0
+    sightRange: 0
+    sightAngle: 80
+    hearWalk: 8
+    hearCrouch: 3
+    hearSprint: 22
+    hearGunshot: 70
+    scentRange: 18
+    curiousSeconds: 1.6
+    grazeChance: 0.55
+    grazeMin: 4
+    grazeMax: 10
+    lookBackChance: 0.65
+    lookBackSeconds: 2.4
+    retreatHealth: 0.3
+    retreatChance: 0.45
+    retreatSeconds: 6
+    fatigueRunSeconds: 12
+    incomingMul: 1.2
+    arrowMul: 1.2
+    bulletMul: 1.15
+    meleeMul: 1.15
+    vitalMul: 1.9
+    attackHitNormalized: 0.42
+    combatProfileApplied: 1
+    dayActivity: 1.1
+    nightActivity: 1
+    herdFlee: 1
+    packFlank: 0
+    bluffCharge: 0
+    ambush: 0
+    chargeAndTurn: 0
     drops:
     - item: {fileID: 11400000, guid: 49aeecd77bdc047408ab2bf59e2992fc, type: 2}
       min: 1
@@ -397,7 +614,7 @@ MonoBehaviour:
     damage: 14
     detectRange: 16
     stalkRange: 22
-    attackRange: 2.2
+    attackRange: 2.4
     walkSpeed: 2.1
     runSpeed: 8
     attackCooldown: 1.8
@@ -419,6 +636,37 @@ MonoBehaviour:
     bodyRadius: 0
     bodyLength: 0
     bodyHeight: 0
+    sightRange: 0
+    sightAngle: 80
+    hearWalk: 8
+    hearCrouch: 3
+    hearSprint: 22
+    hearGunshot: 70
+    scentRange: 18
+    curiousSeconds: 1.6
+    grazeChance: 0.35
+    grazeMin: 4
+    grazeMax: 10
+    lookBackChance: 0.65
+    lookBackSeconds: 2.4
+    retreatHealth: 0.3
+    retreatChance: 0.3
+    retreatSeconds: 6
+    fatigueRunSeconds: 12
+    incomingMul: 0.85
+    arrowMul: 0.7
+    bulletMul: 0.85
+    meleeMul: 0.9
+    vitalMul: 1.45
+    attackHitNormalized: 0.42
+    combatProfileApplied: 1
+    dayActivity: 1.1
+    nightActivity: 0.8
+    herdFlee: 0
+    packFlank: 0
+    bluffCharge: 0
+    ambush: 0
+    chargeAndTurn: 1
     drops:
     - item: {fileID: 11400000, guid: 49aeecd77bdc047408ab2bf59e2992fc, type: 2}
       min: 2
@@ -476,6 +724,37 @@ MonoBehaviour:
     bodyRadius: 0
     bodyLength: 0
     bodyHeight: 0
+    sightRange: 0
+    sightAngle: 110
+    hearWalk: 8
+    hearCrouch: 3
+    hearSprint: 22
+    hearGunshot: 70
+    scentRange: 22
+    curiousSeconds: 1.6
+    grazeChance: 0.35
+    grazeMin: 4
+    grazeMax: 10
+    lookBackChance: 0.65
+    lookBackSeconds: 2.4
+    retreatHealth: 0.3
+    retreatChance: 0.45
+    retreatSeconds: 6
+    fatigueRunSeconds: 12
+    incomingMul: 1
+    arrowMul: 1.05
+    bulletMul: 1
+    meleeMul: 1
+    vitalMul: 1.8
+    attackHitNormalized: 0.42
+    combatProfileApplied: 1
+    dayActivity: 0.55
+    nightActivity: 1.35
+    herdFlee: 0
+    packFlank: 0
+    bluffCharge: 0
+    ambush: 1
+    chargeAndTurn: 0
     drops:
     - item: {fileID: 11400000, guid: 49aeecd77bdc047408ab2bf59e2992fc, type: 2}
       min: 2
@@ -536,6 +815,14 @@ MonoBehaviour:
   largeTrapWolfChance: 0.4
   campExclusionMeters: 80
   packSpacing: 14
+  windScent: 1
+  windDegrees: 40
+  windSpinPerMinute: 8
+  aiLodMeters: 75
+  gunshotHearMeters: 80
+  bowHearMeters: 16
+  herdRadius: 16
+  packFlankRadius: 7
   spawnSeed: 0
   youngChance: 0.25
   alphaChance: 0.12

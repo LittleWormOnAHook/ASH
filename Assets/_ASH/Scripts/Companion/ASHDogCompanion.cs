@@ -25,6 +25,8 @@ namespace ASH.Companion
     public sealed partial class ASHDogCompanion : MonoBehaviour, IASHUsable, IASHSaveable, vIDamageReceiver
     {
         public static ASHDogCompanion Active { get; private set; }
+        /// <summary>True when the dog can be targeted or fought. Downed or dead dogs are ignored so hostiles go back to the player.</summary>
+        public static bool IsValidTarget => Active && Active.isActiveAndEnabled && !Active.Downed && !Active.Dead;
         public static event Action Changed;
         /// <summary>Set by ASHDogMenu: opens the dog menu.</summary>
         public static Func<ASHDogCompanion, ASHInventory, Transform, bool> OpenMenu;
@@ -77,7 +79,7 @@ namespace ASH.Companion
         Transform _find; bool _findIsCrate; float _findScanT, _nextFind, _findGiveUp, _pointUntil = -1f; string _findLabel;
         readonly Dictionary<int, float> _seen = new Dictionary<int, float>();
         readonly List<(string id, float until)> _markers = new List<(string, float)>();
-        float _nextPet, _nextCall, _callRunUntil, _downT, _followXp; bool _compassReg; string _threatMarker;
+        float _nextPet, _nextCall, _callRunUntil, _downT, _followXp, _whimperT; bool _compassReg; string _threatMarker;
         float _yawVel, _animYaw, _turnRate, _actualSpeed, _animRate = 1f; bool _turningInPlace, _teleported; Vector3 _lastPos;
         sealed class Paw { public Transform t; public float min = 99f; public bool lifted; }
         readonly List<Paw> _paws = new List<Paw>(); AudioSource _stepAudio; int _lastStepClip = -1;
@@ -808,27 +810,62 @@ namespace ASH.Companion
 
         void GoDown()
         {
-            Health = 0f; Downed = true; _downT = 0f; _pendingHit = -1f; _speed = 0f;
-            if (!S.downedNotDead) { Dead = true; Toast($"{DogName} has died."); }
-            else Toast($"{DogName} is down! Hold E on {DogName} to help.");
+            Health = 0f; Downed = true; Dead = false; _downT = 0f; _pendingHit = -1f; _speed = 0f; _whimperT = 0f;
+            string hint = string.IsNullOrEmpty(S.downedHint) ? "Your dog is hurt" : S.downedHint;
+            Toast($"{hint}. Hold E on {DogName} with a bandage, first aid kit or raw meat.");
             Play(whineClip); SetPose(Pose.Down);
             ASHCompass.Register(transform, ASHCompassMarkerKind.Custom, S.dogMarkerColor, "dog"); _compassReg = true;
+            if (!_hud) _hud = FindAnyObjectByType<ASHHud>();
+            if (_hud) _hud.SetCompanionHint(hint);
             Notify();
         }
 
         void DownedUpdate(float dt)
         {
-            _speed = 0f; SetPose(Pose.Down); Activity = Dead ? "Dead" : "Down, needs help";
-            if (Dead) return;
-            _downT += dt; if (S.selfReviveSeconds > 0f && _downT >= S.selfReviveSeconds) Revive(false);
+            _speed = 0f; SetPose(Pose.Down); Activity = "Down, needs help";
+            Dead = false;
+            _downT += dt;
+            _whimperT -= dt;
+            if (_whimperT <= 0f)
+            {
+                Play(whineClip, 0.85f);
+                _whimperT = Mathf.Max(0.8f, S.whimperInterval);
+            }
+            if (S.selfReviveSeconds > 0f && _downT >= S.selfReviveSeconds) Revive(false);
         }
 
         public void Revive(bool byPlayer)
         {
-            if (Dead || !Downed) return;
-            Downed = false; Health = MaxHealth * S.reviveHealth; SetPose(Pose.None); _retreat = true;
+            if (!Downed) return;
+            Downed = false; Dead = false; Health = MaxHealth * S.reviveHealth; SetPose(Pose.None); _retreat = true; _whimperT = 0f;
             if (byPlayer) AddBond(S.bondPerPet);
+            if (!_hud) _hud = FindAnyObjectByType<ASHHud>();
+            if (_hud) _hud.SetCompanionHint(null);
             Toast($"{DogName} is back on its feet."); Notify();
+        }
+
+        public static bool IsReviveItem(ASHItemDefinition it)
+        {
+            if (!it) return false;
+            if (it.category == ASHItemCategory.Medical) return true;
+            string id = (it.itemId ?? "").Replace(" ", "").Replace("_", "").ToLowerInvariant();
+            if (id == "rawmeat" || id.Contains("rawmeat")) return true;
+            string n = (it.displayName ?? "").ToLowerInvariant();
+            return n == "raw meat" || n.Contains("raw meat");
+        }
+
+        public static ASHItemDefinition FindReviveItem(ASHInventory inv, out int slot)
+        {
+            slot = -1;
+            if (inv == null) return null;
+            var slots = inv.Slots;
+            for (int i = 0; i < slots.Count; i++)
+            {
+                var s = slots[i];
+                if (s == null || s.IsEmpty || !IsReviveItem(s.item)) continue;
+                slot = i; return s.item;
+            }
+            return null;
         }
 
         // ================================================================== finds (loot / supply crates)
@@ -1062,13 +1099,28 @@ namespace ASH.Companion
         }
 
         // ================================================================== use (E)
-        public float GetUsePriority(in ASHUseContext c) => Dead ? -1f : 55f;
-        public string GetPrompt(in ASHUseContext c) => Dead ? null : Downed ? $"Help {DogName} up" : $"{DogName}  (Lv {Level})";
-        public float GetHoldDuration(in ASHUseContext c) => Downed ? S.reviveHoldSeconds : 0f;
+        public float GetUsePriority(in ASHUseContext c) => Downed ? 70f : 55f;
+        public string GetPrompt(in ASHUseContext c)
+        {
+            if (Downed)
+            {
+                var it = FindReviveItem(c.Inventory, out _);
+                if (it) return $"[Hold E] Use {it.displayName} to help {DogName}";
+                return "Need a bandage, first aid kit or raw meat to help " + DogName;
+            }
+            return $"{DogName}  (Lv {Level})";
+        }
+        public float GetHoldDuration(in ASHUseContext c) => Downed && FindReviveItem(c.Inventory, out _) ? S.reviveHoldSeconds : 0f;
         public bool TryUse(in ASHUseContext c)
         {
-            if (Dead) return false;
-            if (Downed) { Revive(true); return true; }
+            if (Downed)
+            {
+                var it = FindReviveItem(c.Inventory, out int slot);
+                if (!it || c.Inventory == null) return false;
+                if (!c.Inventory.RemoveFromSlot(slot, 1) && !c.Inventory.Remove(it, 1)) return false;
+                Revive(true);
+                return true;
+            }
             return OpenMenu != null && OpenMenu(this, c.Inventory, c.PlayerTransform);
         }
 
@@ -1093,7 +1145,8 @@ namespace ASH.Companion
             if (s == null) return;
             Debug.Log($"[ASH] Dog restored from save (mode {(ASHDogMode)s.mode}, level {s.level})");
             _name = s.name; Mode = (ASHDogMode)Mathf.Clamp(s.mode, 0, 2); Level = Mathf.Clamp(s.level, 1, S.maxLevel); Xp = Mathf.Max(0f, s.xp);
-            Health = s.health < 0f ? MaxHealth : Mathf.Min(s.health, MaxHealth); Hunger = s.hunger; Bond = s.bond; Downed = s.downed; Dead = s.dead;
+            Health = s.health < 0f ? MaxHealth : Mathf.Min(s.health, MaxHealth); Hunger = s.hunger; Bond = s.bond; Downed = s.downed || s.dead; Dead = false;
+            if (Downed) { Health = 0f; SetPose(Pose.Down); if (!_hud) _hud = FindAnyObjectByType<ASHHud>(); if (_hud) _hud.SetCompanionHint(string.IsNullOrEmpty(S.downedHint) ? "Your dog is hurt" : S.downedHint); }
             if (s.hasPos) { transform.position = s.pos; _stayPos = s.stay; _yaw = s.yaw; ApplyRotation(); }
             _pack.Clear();
             if (s.pack != null) foreach (var p in s.pack) { var it = p == null || string.IsNullOrEmpty(p.id) ? null : ASHItemRegistry.I.Find(p.id); _pack.Add(it ? new PackSlot { item = it, amount = p.amount, condition = p.condition } : new PackSlot()); }

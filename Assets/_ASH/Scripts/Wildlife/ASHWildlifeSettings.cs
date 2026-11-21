@@ -64,6 +64,49 @@ namespace ASH.Wildlife
             [Range(0f, 1.2f)] public float bodyRadius = 0f;
             [Range(0f, 2.5f)] public float bodyLength = 0f;
             [Range(0f, 1.8f)] public float bodyHeight = 0f;
+
+            [Header("Senses (0 range = use detect / stalk)")]
+            [Range(0f, 80f)] public float sightRange = 0f;
+            [Range(20f, 180f)] public float sightAngle = 80f;
+            [Range(1f, 40f)] public float hearWalk = 8f;
+            [Range(0.5f, 20f)] public float hearCrouch = 3f;
+            [Range(4f, 80f)] public float hearSprint = 22f;
+            [Range(10f, 200f)] public float hearGunshot = 70f;
+            [Range(2f, 80f)] public float scentRange = 18f;
+
+            [Header("Alert / graze / retreat")]
+            [Range(0.2f, 8f)] public float curiousSeconds = 1.6f;
+            [Range(0f, 1f)] public float grazeChance = 0.35f;
+            [Range(1f, 20f)] public float grazeMin = 4f;
+            [Range(2f, 30f)] public float grazeMax = 10f;
+            [Range(0f, 1f)] public float lookBackChance = 0.65f;
+            [Range(0.4f, 8f)] public float lookBackSeconds = 2.4f;
+            [Range(0.05f, 0.9f)] public float retreatHealth = 0.3f;
+            [Range(0f, 1f)] public float retreatChance = 0.45f;
+            [Range(1f, 20f)] public float retreatSeconds = 6f;
+            [Range(4f, 30f)] public float fatigueRunSeconds = 12f;
+
+            [Header("Damage taken (1 = as rolled; lower = tougher)")]
+            [Range(0.2f, 2f)] public float incomingMul = 1f;
+            [Range(0.2f, 2f)] public float arrowMul = 1f;
+            [Range(0.2f, 2f)] public float bulletMul = 1f;
+            [Range(0.2f, 2f)] public float meleeMul = 1f;
+            [Range(1f, 3f)] public float vitalMul = 1.6f;
+            [Range(0.15f, 0.9f)] public float attackHitNormalized = 0.42f;
+            [Tooltip("Set by setup once; do not tick unless you want defaults re-applied.")]
+            public bool combatProfileApplied;
+
+            [Header("Daily activity (1 = normal; 0 = mostly bedded)")]
+            [Range(0f, 2f)] public float dayActivity = 1f;
+            [Range(0f, 2f)] public float nightActivity = 1f;
+
+            [Header("Species tactics")]
+            public bool herdFlee;
+            public bool packFlank;
+            public bool bluffCharge;
+            public bool ambush;
+            public bool chargeAndTurn;
+
             public List<Drop> drops = new List<Drop>();
         }
 
@@ -145,6 +188,15 @@ namespace ASH.Wildlife
         [Tooltip("Nothing is placed this close to the cabin, truck, player, POIs, lights, Gaia Water, porch or tire objects.")]
         [Range(10f, 300f)] public float campExclusionMeters = 80f;
         [Range(4f, 80f)] public float packSpacing = 14f;
+        [Header("World senses / AI LOD (Play-editable)")]
+        public bool windScent = true;
+        [Range(0f, 360f)] public float windDegrees = 40f;
+        [Range(0f, 180f)] public float windSpinPerMinute = 8f;
+        [Range(20f, 200f)] public float aiLodMeters = 75f;
+        [Range(20f, 250f)] public float gunshotHearMeters = 80f;
+        [Range(4f, 40f)] public float bowHearMeters = 16f;
+        [Range(4f, 40f)] public float herdRadius = 16f;
+        [Range(2f, 20f)] public float packFlankRadius = 7f;
         public int spawnSeed = 0;
         [Range(0f, 1f)] public float youngChance = 0.25f;
         [Range(0f, 1f)] public float alphaChance = 0.12f;
@@ -193,6 +245,29 @@ namespace ASH.Wildlife
             if (fawn.trapSize == ASHTrapSize.None) fawn.trapSize = ASHTrapSize.Large;
             if (rabbit.trapSize == ASHTrapSize.None) rabbit.trapSize = ASHTrapSize.Snare;
             if (raccoon.trapSize == ASHTrapSize.None) raccoon.trapSize = ASHTrapSize.Snare;
+            ApplyCombatProfile(wolf, 1f, 1f, 1f, 1f, 1.7f, 0.7f, 1.25f, false, true, false, false, false);
+            ApplyCombatProfile(bear, 0.7f, 0.45f, 0.65f, 0.8f, 1.35f, 1.1f, 0.85f, false, false, true, false, false);
+            ApplyCombatProfile(fox, 1.15f, 1.2f, 1.15f, 1.1f, 1.8f, 1f, 1.1f, false, false, false, false, false);
+            ApplyCombatProfile(rabbit, 1.25f, 1.3f, 1.25f, 1.2f, 2f, 1f, 1.15f, false, false, false, false, false);
+            ApplyCombatProfile(raccoon, 1.1f, 1.15f, 1.1f, 1.05f, 1.7f, 0.9f, 1.2f, false, false, false, false, false);
+            ApplyCombatProfile(deer, 1f, 1f, 1f, 1f, 1.7f, 1.15f, 0.9f, true, false, false, false, false);
+            ApplyCombatProfile(fawn, 1.2f, 1.2f, 1.15f, 1.15f, 1.9f, 1.1f, 1f, true, false, false, false, false);
+            ApplyCombatProfile(boar, 0.85f, 0.7f, 0.85f, 0.9f, 1.45f, 1.1f, 0.8f, false, false, false, false, true);
+            ApplyCombatProfile(cougar, 1f, 1.05f, 1f, 1f, 1.8f, 0.55f, 1.35f, false, false, false, true, false);
+        }
+
+        static void ApplyCombatProfile(Species sp, float incoming, float arrow, float bullet, float melee, float vital, float day, float night, bool herd, bool flank, bool bluff, bool ambush, bool charge)
+        {
+            if (sp == null || sp.combatProfileApplied) return;
+            sp.incomingMul = incoming; sp.arrowMul = arrow; sp.bulletMul = bullet; sp.meleeMul = melee; sp.vitalMul = vital;
+            sp.dayActivity = day; sp.nightActivity = night;
+            sp.herdFlee = herd; sp.packFlank = flank; sp.bluffCharge = bluff; sp.ambush = ambush; sp.chargeAndTurn = charge;
+            if (sp.kind == ASHWildlifeKind.Deer || sp.kind == ASHWildlifeKind.Fawn || sp.kind == ASHWildlifeKind.Rabbit) sp.grazeChance = 0.55f;
+            if (sp.kind == ASHWildlifeKind.Bear) { sp.scaredByTorch = false; sp.retreatChance = 0.25f; sp.retreatHealth = 0.22f; }
+            if (sp.kind == ASHWildlifeKind.Wolf) { sp.retreatChance = 0.5f; sp.retreatHealth = 0.35f; }
+            if (sp.kind == ASHWildlifeKind.Cougar) { sp.sightAngle = 110f; sp.scentRange = 22f; }
+            if (sp.kind == ASHWildlifeKind.Boar) { sp.retreatChance = 0.3f; sp.attackRange = Mathf.Max(sp.attackRange, 2.4f); }
+            sp.combatProfileApplied = true;
         }
 
         static Species Sp(ASHWildlifeKind k, string name, ASHWildlifeTemperament t, ASHTrapSize trap, ASHDogWildlifePolicy dog,
@@ -256,6 +331,25 @@ namespace ASH.Wildlife
             if (size == ASHWildlifeSize.Young) d *= youngDamageMul;
             else if (size == ASHWildlifeSize.Alpha) d *= alphaDamageMul;
             return Mathf.Max(0f, d);
+        }
+
+        public float Incoming(Species sp, ASHWildlifeSize size, float raw, string weaponKind, bool vital)
+        {
+            if (sp == null) return Mathf.Max(0f, raw);
+            float m = sp.incomingMul;
+            if (weaponKind == "arrow") m *= sp.arrowMul;
+            else if (weaponKind == "bullet") m *= sp.bulletMul;
+            else m *= sp.meleeMul;
+            if (vital) m *= sp.vitalMul;
+            if (size == ASHWildlifeSize.Young) m *= 1.2f;
+            else if (size == ASHWildlifeSize.Alpha) m *= 0.9f;
+            return Mathf.Max(0f, raw * m);
+        }
+
+        public float SightRange(Species sp)
+        {
+            if (sp == null) return 22f;
+            return sp.sightRange > 0.5f ? sp.sightRange : Mathf.Max(sp.detectRange, sp.stalkRange);
         }
 
         public float Walk(Species sp, ASHWildlifeSize size) => Speed(sp != null ? sp.walkSpeed : 2f, size);

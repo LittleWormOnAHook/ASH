@@ -409,7 +409,7 @@ namespace ASH.EditorTools
             if (src == null) return null;
             ASHMenuInstaller.Folder(AnimDir);
             var path = ControllerPath(kind);
-            var clips = src.animationClips;
+            var clips = CollectClips(kind, src);
             var idle = PickClip(clips, true, new[] { "idle", "relax" }, new[] { "to ", "walk", "run", "trot", "eat", "sleep", "attack" });
             var walk = PickClip(clips, true, new[] { "walk" }, new[] { "to ", "back", "left", "right", "turn", "idle" });
             var trot = PickClip(clips, true, new[] { "trot" }, new[] { "to ", "left", "right", "turn" });
@@ -448,10 +448,13 @@ namespace ASH.EditorTools
             loco.motion = tree;
             sm.defaultState = loco;
             void Add(string name, AnimationClip clip) { if (!clip) return; var st = sm.AddState(name); st.motion = clip; }
+            Add("Idle", idle);
             Add("Walk", walk); Add("Trot", trot); Add("Run", run);
             Add("TurnL", turnL); Add("TurnR", turnR);
             Add("Attack", attack); Add("Hit", hit); Add("Death", death);
             Add("Eat", eat); Add("Sleep", sleep); Add("Call", call);
+            if (!death) log.Append(kind + " still has no death clip; ");
+            else log.Append(kind + " death=" + death.name + "; ");
             if (idle) { var st = sm.AddState("Idle"); st.motion = idle; }
 
             if (sp != null)
@@ -557,6 +560,7 @@ namespace ASH.EditorTools
             }
             var cc = root.GetComponent<CharacterController>();
             if (cc) Object.DestroyImmediate(cc);
+            PrepareDamage(root, settings, kind);
             foreach (var tr in root.GetComponentsInChildren<Transform>(true))
                 if (tr) GameObjectUtility.RemoveMonoBehavioursWithMissingScript(tr.gameObject);
             var saved = PrefabUtility.SaveAsPrefabAsset(root, dest);
@@ -667,6 +671,85 @@ namespace ASH.EditorTools
                 main.playOnAwake = false;
                 ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
             }
+        }
+
+        static AnimationClip[] CollectClips(ASHWildlifeKind kind, RuntimeAnimatorController src)
+        {
+            var list = new List<AnimationClip>();
+            var seen = new HashSet<string>();
+            void Add(AnimationClip c)
+            {
+                if (!c || seen.Contains(c.name)) return;
+                seen.Add(c.name);
+                list.Add(c);
+            }
+            if (src != null && src.animationClips != null)
+                foreach (var c in src.animationClips) Add(c);
+            string token = kind == ASHWildlifeKind.Fawn ? "Deer" : kind.ToString();
+            string rac = kind == ASHWildlifeKind.Raccoon ? "Raccon" : null;
+            var folders = new List<string>();
+            if (AssetDatabase.IsValidFolder("Assets/Malbers Animations")) folders.Add("Assets/Malbers Animations");
+            foreach (var folder in folders)
+            {
+                foreach (var g in AssetDatabase.FindAssets("t:AnimationClip", new[] { folder }))
+                {
+                    var path = AssetDatabase.GUIDToAssetPath(g);
+                    if (path.IndexOf(token, System.StringComparison.OrdinalIgnoreCase) < 0
+                        && (rac == null || path.IndexOf(rac, System.StringComparison.OrdinalIgnoreCase) < 0))
+                        continue;
+                    Add(AssetDatabase.LoadAssetAtPath<AnimationClip>(path));
+                }
+                foreach (var g in AssetDatabase.FindAssets("t:Model", new[] { folder }))
+                {
+                    var path = AssetDatabase.GUIDToAssetPath(g);
+                    if (path.IndexOf(token, System.StringComparison.OrdinalIgnoreCase) < 0
+                        && (rac == null || path.IndexOf(rac, System.StringComparison.OrdinalIgnoreCase) < 0))
+                        continue;
+                    foreach (var o in AssetDatabase.LoadAllAssetsAtPath(path))
+                        if (o is AnimationClip clip) Add(clip);
+                }
+            }
+            return list.ToArray();
+        }
+
+        static void PrepareDamage(GameObject root, ASHWildlifeSettings settings, ASHWildlifeKind kind)
+        {
+            try { root.tag = "Enemy"; } catch { /* tag missing */ }
+            int layer = LayerMask.NameToLayer("Enemy");
+            if (layer >= 0) SetLayer(root.transform, layer);
+            var animal = root.GetComponent<ASHAnimal>() ?? root.AddComponent<ASHAnimal>();
+            bool solid = false;
+            foreach (var c in root.GetComponentsInChildren<Collider>(true))
+            {
+                if (!c || c is CharacterController) continue;
+                if (!c.isTrigger) solid = true;
+                if (layer >= 0) c.gameObject.layer = layer;
+                try { c.gameObject.tag = "Enemy"; } catch { }
+                if (!c.GetComponent<ASHWildlifeHitbox>())
+                    c.gameObject.AddComponent<ASHWildlifeHitbox>().Bind(animal);
+            }
+            if (!solid)
+            {
+                var body = settings ? settings.Body(settings.Of(kind)) : new Vector3(0.3f, 0.7f, 0.5f);
+                Transform ht = root.transform.Find("ASH_Hitbox");
+                GameObject hg = ht ? ht.gameObject : new GameObject("ASH_Hitbox");
+                if (!ht) hg.transform.SetParent(root.transform, false);
+                if (layer >= 0) hg.layer = layer;
+                try { hg.tag = "Enemy"; } catch { }
+                var cap = hg.GetComponent<CapsuleCollider>() ?? hg.AddComponent<CapsuleCollider>();
+                cap.isTrigger = false;
+                cap.height = Mathf.Max(0.4f, body.y + body.z);
+                cap.radius = Mathf.Max(0.12f, body.x);
+                cap.center = new Vector3(0f, Mathf.Max(0.2f, body.z), 0f);
+                cap.direction = 1;
+                if (!hg.GetComponent<ASHWildlifeHitbox>()) hg.AddComponent<ASHWildlifeHitbox>().Bind(animal);
+            }
+        }
+
+        static void SetLayer(Transform t, int layer)
+        {
+            t.gameObject.layer = layer;
+            for (int i = 0; i < t.childCount; i++) SetLayer(t.GetChild(i), layer);
         }
 
         static bool HasCollider(GameObject root)

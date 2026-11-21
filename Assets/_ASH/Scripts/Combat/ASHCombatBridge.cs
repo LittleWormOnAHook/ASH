@@ -4,6 +4,7 @@ using ASH.Gameplay;
 using ASH.Inventory;
 using ASH.Player;
 using ASH.Survival;
+using ASH.Wildlife;
 using Invector;
 using Invector.vCharacterController;
 using Invector.vItemManager;
@@ -31,6 +32,9 @@ namespace ASH.Combat
     {
         ASHBowDrawRig _bowRig;
         public static ASHCombatBridge Player { get; private set; }
+        public bool Crouching => _cc && _cc.isCrouching;
+        public bool Sprinting => _cc && _cc.isSprinting;
+        public float InputMag => _cc ? _cc.input.magnitude : 0f;
 
         ASHEquipment _eq; ASHInvectorInput _in; vShooterManager _sm; vMeleeManager _mm; vAmmoManager _am; vThirdPersonController _cc;
         ASHSurvivalStats _stats; ASHWeaponAim _aim; ASHChopAnimator _chop; Animator _anim;
@@ -264,6 +268,10 @@ namespace ASH.Combat
             if (_cur.ammoItem) _eq.SpendAmmo(_cur.ammoItem, 1);
             var kind = CurrentData ? CurrentData.kind : (w.chargeWeapon ? ASHWeaponKind.Bow : ASHWeaponKind.Gun);
             var b = ASHSoundBank.Instance; var at = w.muzzle ? w.muzzle.position : transform.position + Vector3.up * 1.4f;
+            float hear = kind == ASHWeaponKind.Bow
+                ? (ASHWildlifeSettings.I ? ASHWildlifeSettings.I.bowHearMeters : 16f)
+                : (ASHWildlifeSettings.I ? ASHWildlifeSettings.I.gunshotHearMeters : 80f);
+            ASHWildlifeStimulus.Gunshot(at, hear, kind != ASHWeaponKind.Bow);
             if (kind == ASHWeaponKind.Bow)
             {
                 if (_aim) _aim.ExternalShot();
@@ -379,6 +387,21 @@ namespace ASH.Combat
         {
             if (d == null || !_stats) return;
             _stats.Damage(d.damageValue * ASHCombatTuning.Live.incomingDamage);
+        }
+
+        /// <summary>Apply world/animal damage to ASH health and still fire Invector hit reactions (immortal Invector health).</summary>
+        public void HurtFromWorld(float amount, Transform sender, Vector3 hitPos)
+        {
+            if (amount <= 0f) return;
+            var d = new vDamage(Mathf.RoundToInt(amount))
+            {
+                sender = sender,
+                hitPosition = hitPos,
+                hitReaction = true,
+                damageType = "animal"
+            };
+            if (_cc != null) _cc.TakeDamage(d);
+            else { OnStartDamage(d); OnDamage(d); }
         }
 
         /// <summary>Adds Invector's Aiming / CrouchingAiming / AimingScopeView camera states to a runtime copy of the player's
