@@ -504,7 +504,7 @@ MonoBehaviour:
   wolfPrefab: {fileID: 2505689248885541101, guid: 90477145a02bd564ab856b45bbc93ddf, type: 3}
   bearPrefab: {fileID: 5610414547883767365, guid: c1145d84f9d6f964ebbea73bfd4557d1, type: 3}
   foxPrefab: {fileID: 5041636853550733748, guid: 6594ca83b077e2041a685e3d55ce4ad8, type: 3}
-  rabbitPrefab: {fileID: 5976964573012707784, guid: 78ae5e15c7b0d994cbc84378acb8af6b, type: 3}
+  rabbitPrefab: {fileID: 5978262655887008376, guid: 78ae5e15c7b0d994cbc84378acb8af6b, type: 3}
   raccoonPrefab: {fileID: 1236620915589279067, guid: c2cffc1813c66854a8669543836f6dfc, type: 3}
   deerPrefab: {fileID: 3385046615160643203, guid: 6cd6a4c8d4e2ff642a67af648c91dfbf, type: 3}
   fawnPrefab: {fileID: 6547232371813118885, guid: 0a1b3846d65a2fb43b21b747162e5d73, type: 3}

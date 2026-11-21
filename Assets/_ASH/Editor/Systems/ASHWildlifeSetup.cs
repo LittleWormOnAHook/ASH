@@ -254,6 +254,7 @@ namespace ASH.EditorTools
         {
             var src = FindSpeciesPrefab(kind, out string usedPath, out bool standIn);
             if (!src) return false;
+            log.Append(kind + " src " + Path.GetFileName(usedPath) + "; ");
             if (standIn) standIns.Append(kind + " used " + Path.GetFileName(usedPath) + "; ");
             var ctrlSrc = FindSpeciesController(kind, usedPath);
             var loco = BuildLocoController(kind, ctrlSrc, settings, log);
@@ -274,9 +275,9 @@ namespace ASH.EditorTools
             {
                 case ASHWildlifeKind.Wolf: folder = "Wolf"; prefer = "Wolf"; break;
                 case ASHWildlifeKind.Bear: folder = "Bear"; prefer = "Bear Black"; break;
-                case ASHWildlifeKind.Fox: folder = "Fox"; prefer = "Fox"; break;
-                case ASHWildlifeKind.Rabbit: folder = "Rabbit"; prefer = "Rabbit"; break;
-                case ASHWildlifeKind.Raccoon: folder = "Raccoon"; prefer = "Raccoon"; break;
+                case ASHWildlifeKind.Fox: folder = "Fox"; prefer = "Fox Snow"; break;
+                case ASHWildlifeKind.Rabbit: folder = "Rabbit"; prefer = "Rabbit PA"; break;
+                case ASHWildlifeKind.Raccoon: folder = "Raccoon"; prefer = "Raccoon PA"; break;
                 case ASHWildlifeKind.Deer: folder = "Deer"; prefer = "Deer"; break;
                 case ASHWildlifeKind.Fawn: folder = "Deer"; prefer = "Fawn"; break;
                 case ASHWildlifeKind.Boar: folder = "Boar"; prefer = "Boar"; break;
@@ -287,10 +288,15 @@ namespace ASH.EditorTools
             string[] exact = {
                 "Assets/Malbers Animations/Animals Packs/01 Forest Pack/" + folder + "/" + prefer + ".prefab",
                 "Assets/Malbers Animations/Animals Packs/01 Forest Pack/" + folder + "/Models/" + prefer + ".prefab",
+                "Assets/Malbers Animations/Animals Packs/01 Forest Pack/Rabbit/Models/Rabbit PA.prefab",
+                "Assets/Malbers Animations/Animals Packs/01 Forest Pack/Fox/Models/Fox Snow.prefab",
+                "Assets/Malbers Animations/Animals Packs/01 Forest Pack/Raccoon/Models/Raccoon PA.prefab",
                 "Assets/Malbers Animations/Animals Packs/01 Forest Pack/Wolf/Models/Wolf.prefab",
                 "Assets/Malbers Animations/Animals Packs/01 Forest Pack/Bear/Bear Black.prefab",
                 "Assets/Malbers Animations/Animals Packs/01 Forest Pack/Raccoon/Raccoon.prefab",
                 "Assets/Malbers Animations/Animals Packs/01 Forest Pack/Raccon/Raccoon.prefab",
+                "Assets/Malbers Animations/Animals Packs/01 Forest Pack/Deer/Models/Fawn.prefab",
+                "Assets/Malbers Animations/Animals Packs/01 Forest Pack/Deer/Models/Deer.prefab",
                 "Assets/Malbers Animations/Animals Packs/01 Forest Pack/Deer/Fawn.prefab",
                 "Assets/Malbers Animations/Animals Packs/01 Forest Pack/Deer/Deer.prefab"
             };
@@ -314,13 +320,37 @@ namespace ASH.EditorTools
             return null;
         }
 
+        static bool IsNonAnimalPrefab(string path, string name)
+        {
+            var p = (path ?? "").Replace('\\', '/').ToLowerInvariant();
+            var n = (name ?? "").ToLowerInvariant();
+            if (p.Contains("/tracks/") || p.Contains("/fx/") || p.Contains("/vfx/")) return true;
+            if (n.Contains("track") || n.Contains("footprint") || n.Contains("foot print") || n.Contains("decal") || n.Contains("particle") || n.Contains("vfx")) return true;
+            return false;
+        }
+
         static bool NameFits(string name, string prefer, ASHWildlifeKind kind)
         {
             var n = name.ToLowerInvariant();
+            if (IsNonAnimalPrefab("", name)) return false;
             if (n.Contains("ragdoll") || n.Contains("dead") || n.Contains("demo scene") || n.Contains("enemy")) return false;
             if (kind == ASHWildlifeKind.Fawn) return n.Contains("fawn");
             if (kind == ASHWildlifeKind.Deer) return n.Contains("deer") && !n.Contains("fawn");
             return n.Contains(prefer.ToLowerInvariant()) || n.Contains(kind.ToString().ToLowerInvariant());
+        }
+
+        static int PrefabScore(string path, string prefer)
+        {
+            var n = Path.GetFileNameWithoutExtension(path ?? "").ToLowerInvariant();
+            var preferL = (prefer ?? "").ToLowerInvariant();
+            int s = 0;
+            var p = (path ?? "").Replace('\\', '/');
+            if (p.IndexOf("/Models/", System.StringComparison.OrdinalIgnoreCase) >= 0) s += 8;
+            if (n == preferL) s += 10;
+            else if (preferL.Length > 0 && n.StartsWith(preferL)) s += 4;
+            if (n.Contains("baby") || n.Contains("cub") || n.Contains("corgi") || n.Contains("fennec") || n.Contains("panda") || n.Contains("mane wolf")) s -= 6;
+            if (n.Contains("showcase") || n.Contains("demo")) s -= 5;
+            return s;
         }
 
         static List<string> FindPrefabsIn(string root, string folderToken, string prefer, ASHWildlifeKind kind)
@@ -330,11 +360,16 @@ namespace ASH.EditorTools
             {
                 var p = AssetDatabase.GUIDToAssetPath(g);
                 if (p.IndexOf(folderToken, System.StringComparison.OrdinalIgnoreCase) < 0) continue;
+                if (IsNonAnimalPrefab(p, Path.GetFileNameWithoutExtension(p))) continue;
                 var go = AssetDatabase.LoadAssetAtPath<GameObject>(p);
                 if (!go || !NameFits(go.name, prefer, kind)) continue;
-                if (p.IndexOf(prefer, System.StringComparison.OrdinalIgnoreCase) >= 0) list.Insert(0, p);
-                else list.Add(p);
+                list.Add(p);
             }
+            list.Sort((a, b) =>
+            {
+                int d = PrefabScore(b, prefer).CompareTo(PrefabScore(a, prefer));
+                return d != 0 ? d : string.CompareOrdinal(a, b);
+            });
             return list;
         }
 
@@ -511,6 +546,7 @@ namespace ASH.EditorTools
             }
             WireAudio(vis, srcCtrl, dest);
             MaybeCoat(root, kind, settings);
+            StripStrayParticles(root);
             if (!HasCollider(root))
             {
                 var body = settings.Body(settings.Of(kind));
@@ -611,6 +647,26 @@ namespace ASH.EditorTools
                 AssetDatabase.CreateAsset(mat, matPath);
             }
             // Keep the vendor material on the default wrapper. Coat mats are available for size=Alpha at place time later.
+        }
+
+        static void StripStrayParticles(GameObject root)
+        {
+            if (!root) return;
+            foreach (var ps in root.GetComponentsInChildren<ParticleSystem>(true))
+            {
+                if (!ps) continue;
+                var n = ps.gameObject.name.ToLowerInvariant();
+                bool track = n.Contains("track") || n.Contains("footprint") || n.Contains("foot print") || n.Contains("decal") || n.Contains("print");
+                if (track)
+                {
+                    if (ps.gameObject != root) Object.DestroyImmediate(ps.gameObject);
+                    else Object.DestroyImmediate(ps);
+                    continue;
+                }
+                var main = ps.main;
+                main.playOnAwake = false;
+                ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            }
         }
 
         static bool HasCollider(GameObject root)
