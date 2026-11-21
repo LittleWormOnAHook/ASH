@@ -1,0 +1,19 @@
+Bird call clips (trimmed, high-passed, normalised, OGG) - all PUBLIC DOMAIN. Verified via Wikimedia Commons extmetadata on 2026-11-21.
+
+ASH_Bird_Raven_01..04  <- "Common Raven.ogg" (public domain)
+    https://commons.wikimedia.org/wiki/File:Common_Raven.ogg
+ASH_Bird_Raven_05..08  <- "Yellowstone sound library - Common Raven - 001.mp3" (US National Park Service, public domain)
+    https://commons.wikimedia.org/wiki/File:Yellowstone_sound_library_-_Common_Raven_-_001.mp3
+    (also downloaded, not used: "Common Raven Grand Teton National Park.ogg", NPS, public domain)
+ASH_Bird_Blackbird_01..04 <- "Yellowstone sound library - Red-Winged Blackbird - 001.mp3" (NPS, public domain)
+    https://commons.wikimedia.org/wiki/File:Yellowstone_sound_library_-_Red-Winged_Blackbird_-_001.mp3
+ASH_Bird_Bluebird_01..04 <- "Yellowstone sound library - Mountain Bluebird - 001.mp3" (NPS, public domain)
+    https://commons.wikimedia.org/wiki/File:Yellowstone_sound_library_-_Mountain_Bluebird_-_001.mp3
+ASH_Bird_Nutcracker_01..03 <- "Yellowstone sound library - Clark's Nutcracker - 001.mp3" (NPS, public domain)
+    https://commons.wikimedia.org/wiki/File:Yellowstone_sound_library_-_Clark%E2%80%99s_Nutcracker_-_001.mp3
+ASH_Bird_Robin_01..04 <- "Yellowstone sound library - American Robin - 001.mp3" (NPS, public domain)
+    https://commons.wikimedia.org/wiki/File:Yellowstone_sound_library_-_American_Robin_-_001.mp3
+
+Crows use the raven caws pitched up (ASH_BirdSettings > crow > callPitch 1.22); no PD hooded/American crow recording was clean enough.
+Sparrow tweets reuse the project's own "Assets/Audio/QP01 0067 Coniferous forest bird twitter.wav" (purchased pack, untracked).
+Take-off flaps reuse Malbers "Common/Audio/Wings" clips (vendor pack, untracked).

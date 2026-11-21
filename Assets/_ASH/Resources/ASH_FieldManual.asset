@@ -1081,3 +1081,35 @@ MonoBehaviour:
     column: 7
     row: 9
     parents: []
+  - recipe: {fileID: 11400000, guid: 0e018d33dfe90504dba5342e5df8741b, type: 2}
+    basic: 0
+    conditions:
+    - kind: 0
+      item: {fileID: 11400000, guid: e8bcaedc81f40524cbb94ff1a1f9cd6a, type: 2}
+      quantity: 1
+      page: 1
+      upgradeId: 
+      upgradeTier: 1
+      collection: grandpa
+      pageId: 
+    requireAll: 1
+    hint: Gather the right animal material, or find the hunting notes (page 4).
+    column: 4
+    row: 11
+    parents: []
+  - recipe: {fileID: 11400000, guid: 68d0c02261b919346b301313ddb6b646, type: 2}
+    basic: 0
+    conditions:
+    - kind: 0
+      item: {fileID: 11400000, guid: 10f5a362f9b1fcf4b848d1cee18cb823, type: 2}
+      quantity: 1
+      page: 1
+      upgradeId: 
+      upgradeTier: 1
+      collection: grandpa
+      pageId: 
+    requireAll: 1
+    hint: Gather the right animal material, or find the hunting notes (page 4).
+    column: 7
+    row: 6
+    parents: []

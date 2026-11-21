@@ -11,6 +11,8 @@ namespace ASH.Wildlife
     public enum ASHWildlifeTemperament { Passive, Hostile, Stalk }
     public enum ASHTrapSize { None, Snare, Large }
     public enum ASHDogWildlifePolicy { Engage, WarnDistractRetreat, Ignore }
+    /// <summary>Per-species surprise move (seeded chance + cooldown per placed animal).</summary>
+    public enum ASHSurpriseKind { None, FreezeThenBolt, CircleBehind, FalseCharge, StandAndHuff, Pounce, PlayDead, StalkFromCover }
 
     [CreateAssetMenu(menuName = "ASH/Wildlife/Wildlife Settings", fileName = "ASH_WildlifeSettings")]
     public sealed class ASHWildlifeSettings : ScriptableObject
@@ -152,6 +154,25 @@ namespace ASH.Wildlife
             [Tooltip("Set by setup once; untick to re-apply this pass's per-species defaults (shots, stand-off, personality).")]
             public bool m2TuneApplied;
 
+            [Header("Surprise behaviour (seeded; Play-editable)")]
+            [Tooltip("Deer freeze then bolt, wolf circles behind, boar false-charges, bear stands and huffs, fox pounces, raccoon plays dead, cougar stalks from cover.")]
+            public ASHSurpriseKind surprise = ASHSurpriseKind.None;
+            [Tooltip("Chance the surprise fires when its trigger comes up (scaled by the animal's seeded tendency and the global multiplier).")]
+            [Range(0f, 1f)] public float surpriseChance = 0.35f;
+            [Tooltip("Seconds before the same animal can surprise again (random between min and max).")]
+            [Range(0f, 900f)] public float surpriseCooldownMin = 45f;
+            [Range(0f, 900f)] public float surpriseCooldownMax = 120f;
+            [Tooltip("Main hold time: freeze, huff, stand, play-dead, wait in cover, etc.")]
+            [Range(0.2f, 20f)] public float surpriseSeconds = 2.5f;
+            [Tooltip("Distance used by the move: false-charge stop, pounce length, circle-behind ring, cover search radius, play-dead 'too close'.")]
+            [Range(0.5f, 40f)] public float surpriseMeters = 6f;
+            [Tooltip("Speed multiplier for the burst after the surprise (bolt, pounce, rush).")]
+            [Range(0.5f, 2.5f)] public float surpriseBurstMul = 1.25f;
+            [Tooltip("Optional Animator state for the move (e.g. a bear 'Stand' state). Empty = call / idle / death fallback.")]
+            public string surpriseState = "";
+            [Tooltip("Set by defaults once; untick to re-apply this species' surprise defaults.")]
+            public bool m3SurpriseApplied;
+
             public List<Drop> drops = new List<Drop>();
         }
 
@@ -266,6 +287,14 @@ namespace ASH.Wildlife
         [Header("Seeded personality")]
         public bool personalityEnabled = true;
 
+        [Header("Surprise behaviours (Play-editable)")]
+        public bool surprisesEnabled = true;
+        [Tooltip("Multiplies every species' surprise chance (0 = off, 2 = twice as often).")]
+        [Range(0f, 4f)] public float surpriseChanceMul = 1f;
+        [Tooltip("Each placed animal rolls a seeded tendency in this range (multiplies its surprise chance).")]
+        [Range(0f, 3f)] public float surpriseTendencyMin = 0.4f;
+        [Range(0f, 3f)] public float surpriseTendencyMax = 1.6f;
+
         [Header("Traps")]
         [Range(0.4f, 6f)] public float trapProximityRadius = 1.15f;
         [Tooltip("Trapped wolf may break free after this many real seconds.")]
@@ -355,6 +384,24 @@ namespace ASH.Wildlife
             ApplyTune(fawn,    1, 0f, 0f, 0f, 0f, 0.4f, 0f, 0.1f);
             ApplyTune(boar,    3, 6.0f, 0.9f, 2.2f, 0.4f, 0.95f, 0.5f, 1f);
             ApplyTune(cougar,  3, 5.0f, 0.6f, 1.8f, 0.5f, 1f, 0.4f, 0.95f);
+            //                                                    chance cdMin cdMax  secs  meters burst
+            ApplySurprise(deer,    ASHSurpriseKind.FreezeThenBolt, 0.45f, 40f, 110f, 2.2f, 0f,   1.25f);
+            ApplySurprise(fawn,    ASHSurpriseKind.FreezeThenBolt, 0.55f, 30f, 90f,  1.6f, 0f,   1.2f);
+            ApplySurprise(rabbit,  ASHSurpriseKind.FreezeThenBolt, 0.5f,  20f, 60f,  2.6f, 0f,   1.3f);
+            ApplySurprise(wolf,    ASHSurpriseKind.CircleBehind,   0.4f,  45f, 120f, 1.2f, 7f,   1.15f);
+            ApplySurprise(boar,    ASHSurpriseKind.FalseCharge,    0.5f,  40f, 100f, 1.6f, 4.5f, 1.2f);
+            ApplySurprise(bear,    ASHSurpriseKind.StandAndHuff,   0.55f, 60f, 160f, 2.8f, 0f,   1.1f);
+            ApplySurprise(fox,     ASHSurpriseKind.Pounce,         0.3f,  25f, 70f,  0.9f, 2.4f, 1.6f);
+            ApplySurprise(raccoon, ASHSurpriseKind.PlayDead,       0.45f, 60f, 150f, 6f,   4f,   1.3f);
+            ApplySurprise(cougar,  ASHSurpriseKind.StalkFromCover, 0.5f,  60f, 160f, 3.5f, 18f,  1.3f);
+        }
+
+        static void ApplySurprise(Species sp, ASHSurpriseKind k, float chance, float cdMin, float cdMax, float secs, float meters, float burst)
+        {
+            if (sp == null || sp.m3SurpriseApplied) return;
+            sp.surprise = k; sp.surpriseChance = chance; sp.surpriseCooldownMin = cdMin; sp.surpriseCooldownMax = cdMax;
+            sp.surpriseSeconds = secs; if (meters > 0f) sp.surpriseMeters = meters; sp.surpriseBurstMul = burst;
+            sp.m3SurpriseApplied = true;
         }
 
         static void ApplyTune(Species sp, int shots, float standOff, float holdMin, float holdMax, float boldMin, float boldMax, float aggrMin, float aggrMax)

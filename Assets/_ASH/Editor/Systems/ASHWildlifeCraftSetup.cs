@@ -129,7 +129,7 @@ namespace ASH.EditorTools
             Debug.Log("[ASH] Animal crafting: " + cleaned.Count + " recipes wired into the journal. Starter recipes left unchanged.");
         }
 
-        static ASHItemDefinition I(string id)
+        internal static ASHItemDefinition I(string id)
         {
             foreach (var g in AssetDatabase.FindAssets("t:ASHItemDefinition"))
             {
@@ -139,7 +139,7 @@ namespace ASH.EditorTools
             return null;
         }
 
-        static ASHItemDefinition NewItem(string id, string name, string desc, string letters, ASHItemCategory cat, int stack, int sell)
+        internal static ASHItemDefinition NewItem(string id, string name, string desc, string letters, ASHItemCategory cat, int stack, int sell)
         {
             var existing = I(id);
             var icon = ASHWildlifeSetup.EnsureLetter(LetterDir + "/ASH_Letter_" + letters + ".png", letters);
@@ -167,12 +167,12 @@ namespace ASH.EditorTools
 
         static void Dirty(ASHItemDefinition it) { if (it) EditorUtility.SetDirty(it); }
 
-        static ASHRecipeIngredient Ing(ASHItemDefinition item, int n)
+        internal static ASHRecipeIngredient Ing(ASHItemDefinition item, int n)
         {
             return new ASHRecipeIngredient { item = item, amount = Mathf.Max(1, n) };
         }
 
-        static ASHUnlockCondition[] First(params ASHItemDefinition[] items)
+        internal static ASHUnlockCondition[] First(params ASHItemDefinition[] items)
         {
             var list = new List<ASHUnlockCondition>();
             foreach (var it in items) if (it) list.Add(new ASHUnlockCondition { kind = ASHUnlockKind.FirstPickup, item = it });
@@ -192,7 +192,7 @@ namespace ASH.EditorTools
 
         static ASHRecipeIngredient ToolKnife() => null; // knife is a requiredTool on the recipe, not an ingredient
 
-        static ASHRecipe Rec(string id, string name, string desc, ASHRecipeCategory cat, ASHItemDefinition output, int amount, float seconds, ASHCraftStation station, float cookMin, ASHUnlockCondition[] unlock, int col, int row, params ASHRecipeIngredient[] ings)
+        internal static ASHRecipe Rec(string id, string name, string desc, ASHRecipeCategory cat, ASHItemDefinition output, int amount, float seconds, ASHCraftStation station, float cookMin, ASHUnlockCondition[] unlock, int col, int row, params ASHRecipeIngredient[] ings)
         {
             if (!output) return null;
             var valid = new List<ASHRecipeIngredient>();
@@ -230,7 +230,7 @@ namespace ASH.EditorTools
         sealed class Meta { public ASHUnlockCondition[] unlock; public int col, row; public bool all; }
         static readonly Dictionary<ASHRecipe, Meta> Pending = new Dictionary<ASHRecipe, Meta>();
 
-        static void WireManual(List<ASHRecipe> recipes)
+        internal static void WireManual(List<ASHRecipe> recipes)
         {
             var d = AssetDatabase.LoadAssetAtPath<ASHFieldManualData>(ManualPath);
             if (!d) { Debug.LogWarning("[ASH] Field Manual asset missing; recipes were created but not wired."); return; }

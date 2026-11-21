@@ -105,6 +105,15 @@ MonoBehaviour:
       standOffMin: 0.85
       standOffMax: 1.2
     m2TuneApplied: 1
+    surprise: 2
+    surpriseChance: 0.4
+    surpriseCooldownMin: 45
+    surpriseCooldownMax: 120
+    surpriseSeconds: 1.2
+    surpriseMeters: 7
+    surpriseBurstMul: 1.15
+    surpriseState: 
+    m3SurpriseApplied: 1
     drops:
     - item: {fileID: 11400000, guid: 49aeecd77bdc047408ab2bf59e2992fc, type: 2}
       min: 1
@@ -207,6 +216,15 @@ MonoBehaviour:
       standOffMin: 0.85
       standOffMax: 1.2
     m2TuneApplied: 1
+    surprise: 4
+    surpriseChance: 0.55
+    surpriseCooldownMin: 60
+    surpriseCooldownMax: 160
+    surpriseSeconds: 2.8
+    surpriseMeters: 6
+    surpriseBurstMul: 1.1
+    surpriseState: 
+    m3SurpriseApplied: 1
     drops:
     - item: {fileID: 11400000, guid: 49aeecd77bdc047408ab2bf59e2992fc, type: 2}
       min: 2
@@ -309,6 +327,15 @@ MonoBehaviour:
       standOffMin: 0.85
       standOffMax: 1.2
     m2TuneApplied: 1
+    surprise: 5
+    surpriseChance: 0.3
+    surpriseCooldownMin: 25
+    surpriseCooldownMax: 70
+    surpriseSeconds: 0.9
+    surpriseMeters: 2.4
+    surpriseBurstMul: 1.6
+    surpriseState: 
+    m3SurpriseApplied: 1
     drops:
     - item: {fileID: 11400000, guid: 49aeecd77bdc047408ab2bf59e2992fc, type: 2}
       min: 1
@@ -415,6 +442,15 @@ MonoBehaviour:
       standOffMin: 0.85
       standOffMax: 1.2
     m2TuneApplied: 1
+    surprise: 1
+    surpriseChance: 0.5
+    surpriseCooldownMin: 20
+    surpriseCooldownMax: 60
+    surpriseSeconds: 2.6
+    surpriseMeters: 6
+    surpriseBurstMul: 1.3
+    surpriseState: 
+    m3SurpriseApplied: 1
     drops:
     - item: {fileID: 11400000, guid: 49aeecd77bdc047408ab2bf59e2992fc, type: 2}
       min: 1
@@ -521,6 +557,15 @@ MonoBehaviour:
       standOffMin: 0.85
       standOffMax: 1.2
     m2TuneApplied: 1
+    surprise: 6
+    surpriseChance: 0.45
+    surpriseCooldownMin: 60
+    surpriseCooldownMax: 150
+    surpriseSeconds: 6
+    surpriseMeters: 4
+    surpriseBurstMul: 1.3
+    surpriseState: 
+    m3SurpriseApplied: 1
     drops:
     - item: {fileID: 11400000, guid: 49aeecd77bdc047408ab2bf59e2992fc, type: 2}
       min: 1
@@ -627,6 +672,15 @@ MonoBehaviour:
       standOffMin: 0.85
       standOffMax: 1.2
     m2TuneApplied: 1
+    surprise: 1
+    surpriseChance: 0.45
+    surpriseCooldownMin: 40
+    surpriseCooldownMax: 110
+    surpriseSeconds: 2.2
+    surpriseMeters: 6
+    surpriseBurstMul: 1.25
+    surpriseState: 
+    m3SurpriseApplied: 1
     drops:
     - item: {fileID: 11400000, guid: 49aeecd77bdc047408ab2bf59e2992fc, type: 2}
       min: 2
@@ -737,6 +791,15 @@ MonoBehaviour:
       standOffMin: 0.85
       standOffMax: 1.2
     m2TuneApplied: 1
+    surprise: 1
+    surpriseChance: 0.55
+    surpriseCooldownMin: 30
+    surpriseCooldownMax: 90
+    surpriseSeconds: 1.6
+    surpriseMeters: 6
+    surpriseBurstMul: 1.2
+    surpriseState: 
+    m3SurpriseApplied: 1
     drops:
     - item: {fileID: 11400000, guid: 49aeecd77bdc047408ab2bf59e2992fc, type: 2}
       min: 1
@@ -843,6 +906,15 @@ MonoBehaviour:
       standOffMin: 0.85
       standOffMax: 1.2
     m2TuneApplied: 1
+    surprise: 3
+    surpriseChance: 0.5
+    surpriseCooldownMin: 40
+    surpriseCooldownMax: 100
+    surpriseSeconds: 1.6
+    surpriseMeters: 4.5
+    surpriseBurstMul: 1.2
+    surpriseState: 
+    m3SurpriseApplied: 1
     drops:
     - item: {fileID: 11400000, guid: 49aeecd77bdc047408ab2bf59e2992fc, type: 2}
       min: 2
@@ -953,6 +1025,15 @@ MonoBehaviour:
       standOffMin: 0.85
       standOffMax: 1.2
     m2TuneApplied: 1
+    surprise: 7
+    surpriseChance: 0.5
+    surpriseCooldownMin: 60
+    surpriseCooldownMax: 160
+    surpriseSeconds: 3.5
+    surpriseMeters: 18
+    surpriseBurstMul: 1.3
+    surpriseState: 
+    m3SurpriseApplied: 1
     drops:
     - item: {fileID: 11400000, guid: 49aeecd77bdc047408ab2bf59e2992fc, type: 2}
       min: 2
@@ -1029,6 +1110,10 @@ MonoBehaviour:
   headZoneScale: 1.1
   heartZoneScale: 0.9
   personalityEnabled: 1
+  surprisesEnabled: 1
+  surpriseChanceMul: 1
+  surpriseTendencyMin: 0.4
+  surpriseTendencyMax: 1.6
   trapProximityRadius: 1.15
   wolfBreakFreeSeconds: 60
   snareRabbitChance: 0.7

@@ -1,0 +1,8 @@
+ASH_Bird_Crow.fbx + ASH_Bird_Crow_color/normal/rough.png
+Source: "Hooded Crow" v1 by tevy.dev - https://tevy.dev/models/hooded-crow (LOD1 GLB: https://tevy.dev/models/hooded-crow/v1/lod1.glb)
+License: CC0 1.0 Universal (public domain dedication) - https://creativecommons.org/publicdomain/zero/1.0/
+Commercial use allowed, no attribution required (credited here anyway).
+Conversion (2026-11-21): meshopt decoded with @gltf-transform/cli, KTX2/BasisU textures transcoded to PNG with KTX-Software,
+exported to FBX with Blender 4.2.3. Animations renamed idle / fly / peck; bone-shape helper mesh removed. LOD1 = 3,200 tris.
+In game the Raven, Red-winged Blackbird, Robin, Mountain Bluebird, Nutcracker and Sparrow are tinted / rescaled variants of this one rig
+(ASH_BirdSettings > types). Replace with dedicated models later if wanted.

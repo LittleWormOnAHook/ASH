@@ -1,0 +1,307 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6b3d2622a0c62454495a63bce6a39709, type: 3}
+  m_Name: ASH_BirdSettings
+  m_EditorClassIdentifier: Assembly-CSharp::ASH.Wildlife.Birds.ASHBirdSettings
+  birdsEnabled: 1
+  autoSpawn: 1
+  sceneNames: []
+  birdPrefab: {fileID: 5296834143647907378, guid: 6ddbbf86175b7fc4699f0edc60297a0e, type: 3}
+  seed: 0
+  types:
+  - id: crow
+    displayName: Crow
+    weight: 1.4
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    scale: 1
+    soloChance: 0.3
+    flockMin: 2
+    flockMax: 6
+    flySpeed: 8.5
+    speedJitter: 0.15
+    maxAccel: 8
+    glideShare: 0.45
+    altitudeMin: 9
+    altitudeMax: 28
+    takeOffDistance: 14
+    peckChance: 0.55
+    perchOnObjectsChance: 0.5
+    landedMinSeconds: 10
+    landedMaxSeconds: 45
+    calls:
+    - {fileID: 8300000, guid: 82ca782f059c10247a7d8b29235ff4fe, type: 3}
+    - {fileID: 8300000, guid: 7c30c8e21d76c2b4ca1948eeca4c8801, type: 3}
+    - {fileID: 8300000, guid: fec76d8308e2f0747b19273aabafa8d7, type: 3}
+    - {fileID: 8300000, guid: 0ef4c81cb71e4f0488889cb8f20c9244, type: 3}
+    - {fileID: 8300000, guid: 574fcae135ef7a746b07210a67e4d95c, type: 3}
+    - {fileID: 8300000, guid: f6ba4be2ad9132b448e6bb1297505b15, type: 3}
+    - {fileID: 8300000, guid: 1a85927988f10d840b08c2313af6cfb1, type: 3}
+    - {fileID: 8300000, guid: 78b81d36ac301994f83e1feed6453d1d, type: 3}
+    callVolume: 0.85
+    callPitch: 1.22
+    callIntervalMin: 4
+    callIntervalMax: 12
+    feathersMin: 2
+    feathersMax: 4
+    meatMin: 1
+    meatMax: 1
+  - id: raven
+    displayName: Raven
+    weight: 0.6
+    tint: {r: 0.28, g: 0.28, b: 0.32, a: 1}
+    scale: 1.3
+    soloChance: 0.6
+    flockMin: 1
+    flockMax: 3
+    flySpeed: 9
+    speedJitter: 0.15
+    maxAccel: 8
+    glideShare: 0.45
+    altitudeMin: 9
+    altitudeMax: 28
+    takeOffDistance: 18
+    peckChance: 0.35
+    perchOnObjectsChance: 0.6
+    landedMinSeconds: 10
+    landedMaxSeconds: 45
+    calls:
+    - {fileID: 8300000, guid: 82ca782f059c10247a7d8b29235ff4fe, type: 3}
+    - {fileID: 8300000, guid: 7c30c8e21d76c2b4ca1948eeca4c8801, type: 3}
+    - {fileID: 8300000, guid: fec76d8308e2f0747b19273aabafa8d7, type: 3}
+    - {fileID: 8300000, guid: 0ef4c81cb71e4f0488889cb8f20c9244, type: 3}
+    - {fileID: 8300000, guid: 574fcae135ef7a746b07210a67e4d95c, type: 3}
+    - {fileID: 8300000, guid: f6ba4be2ad9132b448e6bb1297505b15, type: 3}
+    - {fileID: 8300000, guid: 1a85927988f10d840b08c2313af6cfb1, type: 3}
+    - {fileID: 8300000, guid: 78b81d36ac301994f83e1feed6453d1d, type: 3}
+    callVolume: 0.9
+    callPitch: 0.95
+    callIntervalMin: 6
+    callIntervalMax: 16
+    feathersMin: 3
+    feathersMax: 5
+    meatMin: 1
+    meatMax: 2
+  - id: blackbird
+    displayName: Red-winged Blackbird
+    weight: 0.8
+    tint: {r: 0.3, g: 0.28, b: 0.28, a: 1}
+    scale: 0.5
+    soloChance: 0.2
+    flockMin: 3
+    flockMax: 8
+    flySpeed: 7
+    speedJitter: 0.15
+    maxAccel: 12
+    glideShare: 0.15
+    altitudeMin: 5
+    altitudeMax: 16
+    takeOffDistance: 9
+    peckChance: 0.5
+    perchOnObjectsChance: 0.7
+    landedMinSeconds: 10
+    landedMaxSeconds: 45
+    calls:
+    - {fileID: 8300000, guid: f9c74bc1662764a4ab15c869c9b55dfc, type: 3}
+    - {fileID: 8300000, guid: 83ad524d8fd90bf45bc73e8d5d26293f, type: 3}
+    - {fileID: 8300000, guid: 5e69470b1dbf2ef419b46ef3836d9693, type: 3}
+    - {fileID: 8300000, guid: 9c76e4cdaec8fc74a9b35cfdc8c1ae7c, type: 3}
+    callVolume: 0.7
+    callPitch: 1
+    callIntervalMin: 3
+    callIntervalMax: 10
+    feathersMin: 1
+    feathersMax: 2
+    meatMin: 1
+    meatMax: 1
+  - id: robin
+    displayName: Robin
+    weight: 0.9
+    tint: {r: 0.78, g: 0.5, b: 0.36, a: 1}
+    scale: 0.5
+    soloChance: 0.6
+    flockMin: 1
+    flockMax: 3
+    flySpeed: 7
+    speedJitter: 0.15
+    maxAccel: 12
+    glideShare: 0.15
+    altitudeMin: 5
+    altitudeMax: 16
+    takeOffDistance: 8
+    peckChance: 0.75
+    perchOnObjectsChance: 0.35
+    landedMinSeconds: 10
+    landedMaxSeconds: 45
+    calls:
+    - {fileID: 8300000, guid: b92fb5c4b9adae24bb6b620ae6097573, type: 3}
+    - {fileID: 8300000, guid: a771e54359e89764f91e017effc0dc4e, type: 3}
+    - {fileID: 8300000, guid: d3278f0b949d21346bc581d1c09e3415, type: 3}
+    - {fileID: 8300000, guid: d6cab54a46c6cfa469f404aedb138fb0, type: 3}
+    callVolume: 0.7
+    callPitch: 1
+    callIntervalMin: 3
+    callIntervalMax: 9
+    feathersMin: 1
+    feathersMax: 2
+    meatMin: 1
+    meatMax: 1
+  - id: bluebird
+    displayName: Mountain Bluebird
+    weight: 0.7
+    tint: {r: 0.5, g: 0.7, b: 1, a: 1}
+    scale: 0.45
+    soloChance: 0.4
+    flockMin: 2
+    flockMax: 5
+    flySpeed: 7
+    speedJitter: 0.15
+    maxAccel: 12
+    glideShare: 0.15
+    altitudeMin: 5
+    altitudeMax: 16
+    takeOffDistance: 8
+    peckChance: 0.6
+    perchOnObjectsChance: 0.6
+    landedMinSeconds: 10
+    landedMaxSeconds: 45
+    calls:
+    - {fileID: 8300000, guid: 4a82b617539b0dd41ba36c06c7ecd12f, type: 3}
+    - {fileID: 8300000, guid: 2195405df5339994fb1bc14a933c07d7, type: 3}
+    - {fileID: 8300000, guid: 72c4c733fa478e848bd009e3d5051feb, type: 3}
+    - {fileID: 8300000, guid: ec6e6d9e5d0c9d740a412f89681a6939, type: 3}
+    callVolume: 0.65
+    callPitch: 1
+    callIntervalMin: 3
+    callIntervalMax: 9
+    feathersMin: 1
+    feathersMax: 2
+    meatMin: 1
+    meatMax: 1
+  - id: nutcracker
+    displayName: Nutcracker
+    weight: 0.6
+    tint: {r: 0.85, g: 0.85, b: 0.82, a: 1}
+    scale: 0.7
+    soloChance: 0.5
+    flockMin: 1
+    flockMax: 3
+    flySpeed: 8
+    speedJitter: 0.15
+    maxAccel: 12
+    glideShare: 0.15
+    altitudeMin: 5
+    altitudeMax: 16
+    takeOffDistance: 11
+    peckChance: 0.6
+    perchOnObjectsChance: 0.55
+    landedMinSeconds: 10
+    landedMaxSeconds: 45
+    calls:
+    - {fileID: 8300000, guid: 09fffc1269e97ad4cabcdf364d4bcbcb, type: 3}
+    - {fileID: 8300000, guid: 409f237503b81034a992276efcb4ccfe, type: 3}
+    - {fileID: 8300000, guid: 48e4bd17beffd0a4f84b41cfa4dd7397, type: 3}
+    callVolume: 0.8
+    callPitch: 1
+    callIntervalMin: 4
+    callIntervalMax: 12
+    feathersMin: 1
+    feathersMax: 3
+    meatMin: 1
+    meatMax: 1
+  - id: sparrow
+    displayName: Sparrow
+    weight: 1
+    tint: {r: 0.72, g: 0.56, b: 0.4, a: 1}
+    scale: 0.36
+    soloChance: 0.15
+    flockMin: 4
+    flockMax: 10
+    flySpeed: 6.5
+    speedJitter: 0.15
+    maxAccel: 12
+    glideShare: 0.15
+    altitudeMin: 5
+    altitudeMax: 16
+    takeOffDistance: 7
+    peckChance: 0.8
+    perchOnObjectsChance: 0.4
+    landedMinSeconds: 10
+    landedMaxSeconds: 45
+    calls:
+    - {fileID: 8300000, guid: c9ccacc5e928b064e9d120caf7d204b7, type: 3}
+    callVolume: 0.55
+    callPitch: 1.1
+    callIntervalMin: 2.5
+    callIntervalMax: 8
+    feathersMin: 1
+    feathersMax: 1
+    meatMin: 1
+    meatMax: 1
+  maxBirds: 36
+  maxGroups: 7
+  spawnInterval: 3
+  spawnRadiusMin: 45
+  spawnRadiusMax: 120
+  despawnDistance: 190
+  startLandedChance: 0.55
+  separationWeight: 2.2
+  separationRadius: 1.6
+  alignmentWeight: 1
+  cohesionWeight: 0.8
+  seekWeight: 1.3
+  altitudeWeight: 2.5
+  avoidWeight: 6
+  avoidLookAhead: 8
+  maxBankDegrees: 35
+  flyMinSeconds: 10
+  flyMaxSeconds: 30
+  wanderRadius: 70
+  perchLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  landingSearchRadius: 18
+  landingTries: 10
+  maxPerchSlope: 32
+  maxPerchHeight: 12
+  approachDistance: 9
+  touchdownSpeed: 1.6
+  approachTimeout: 14
+  edgeInset: 0.07
+  crouchTakeOffMul: 0.6
+  sprintTakeOffMul: 1.4
+  gunshotScareMeters: 140
+  takeOffUpSpeed: 4
+  fleeDistance: 80
+  idleState: idle
+  flyState: fly
+  peckState: peck
+  flapAnimSpeed: 1
+  glideAnimSpeed: 0.08
+  groundAnimSpeed: 1
+  animCullDistance: 60
+  tickLodDistance: 45
+  farTickEvery: 3
+  cullScreenSize: 0.004
+  takeOffClips:
+  - {fileID: 8300000, guid: 5d899c056941065488afa4b7af4e16ae, type: 3}
+  - {fileID: 8300000, guid: 06266e5efe4d1b043929c582b429bbd3, type: 3}
+  - {fileID: 8300000, guid: f059f51c270dd6d479ad8b8338a7079f, type: 3}
+  takeOffVolume: 0.7
+  deathClips:
+  - {fileID: 8300000, guid: f059f51c270dd6d479ad8b8338a7079f, type: 3}
+  audioMaxDistance: 70
+  audioVoices: 6
+  gravity: 14
+  deadLifetime: 600
+  harvestHold: 1.4
+  featherItem: {fileID: 11400000, guid: 10f5a362f9b1fcf4b848d1cee18cb823, type: 2}
+  meatItem: {fileID: 11400000, guid: e8bcaedc81f40524cbb94ff1a1f9cd6a, type: 2}

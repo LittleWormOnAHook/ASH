@@ -1,0 +1,181 @@
+using System;
+using System.Collections.Generic;
+using ASH.Inventory;
+using UnityEngine;
+
+namespace ASH.Wildlife.Birds
+{
+    /// <summary>
+    /// Every bird tunable (Resources/ASH_BirdSettings). Play-editable: the manager reads it live, so edits made in Play stay on the asset.
+    /// Created / filled by ASH/Systems/Wildlife/Setup Birds (idempotent).
+    /// </summary>
+    [CreateAssetMenu(menuName = "ASH/Wildlife/Bird Settings", fileName = "ASH_BirdSettings")]
+    public sealed class ASHBirdSettings : ScriptableObject
+    {
+        static ASHBirdSettings _i;
+        public static ASHBirdSettings I => _i ? _i : (_i = Resources.Load<ASHBirdSettings>("ASH_BirdSettings"));
+
+        [Serializable]
+        public sealed class BirdType
+        {
+            public string id = "crow";
+            public string displayName = "Crow";
+            [Tooltip("Relative spawn weight (0 = never spawns).")]
+            [Range(0f, 10f)] public float weight = 1f;
+            [Tooltip("Multiplies the model's base colour (all types share the one animated crow rig).")]
+            public Color tint = Color.white;
+            [Range(0.1f, 3f)] public float scale = 1f;
+
+            [Header("Group")]
+            [Range(0f, 1f)] public float soloChance = 0.3f;
+            [Range(1, 30)] public int flockMin = 2;
+            [Range(1, 30)] public int flockMax = 5;
+
+            [Header("Flight")]
+            [Range(1f, 30f)] public float flySpeed = 8f;
+            [Range(0f, 0.6f)] public float speedJitter = 0.15f;
+            [Range(0.5f, 30f)] public float maxAccel = 9f;
+            [Tooltip("Fraction of airborne time spent gliding (wings still) instead of flapping.")]
+            [Range(0f, 0.9f)] public float glideShare = 0.35f;
+            [Range(2f, 60f)] public float altitudeMin = 7f;
+            [Range(4f, 120f)] public float altitudeMax = 22f;
+
+            [Header("Ground")]
+            [Tooltip("Takes off when the player gets this close (crouch / sprint multipliers below).")]
+            [Range(1f, 60f)] public float takeOffDistance = 13f;
+            [Range(0f, 1f)] public float peckChance = 0.5f;
+            [Tooltip("0 = only terrain / ground, 1 = prefers the top edges of rocks, fences, roofs, logs.")]
+            [Range(0f, 1f)] public float perchOnObjectsChance = 0.55f;
+            [Range(2f, 300f)] public float landedMinSeconds = 10f;
+            [Range(2f, 600f)] public float landedMaxSeconds = 45f;
+
+            [Header("Audio")]
+            public AudioClip[] calls;
+            [Range(0f, 1.5f)] public float callVolume = 0.8f;
+            [Range(0.3f, 2.5f)] public float callPitch = 1f;
+            [Range(0.5f, 120f)] public float callIntervalMin = 4f;
+            [Range(0.5f, 240f)] public float callIntervalMax = 14f;
+
+            [Header("Harvest")]
+            [Range(0, 20)] public int feathersMin = 2;
+            [Range(0, 20)] public int feathersMax = 4;
+            [Range(0, 10)] public int meatMin = 1;
+            [Range(0, 10)] public int meatMax = 1;
+        }
+
+        [Header("Master")]
+        public bool birdsEnabled = true;
+        [Tooltip("Spawn birds automatically around the player in any scene with a Terrain and a Player.")]
+        public bool autoSpawn = true;
+        [Tooltip("Optional scene name filter (empty = every scene with a Terrain and Player).")]
+        public List<string> sceneNames = new List<string>();
+        public GameObject birdPrefab;
+        [Tooltip("Spawn seed (0 = random each session).")]
+        public int seed;
+
+        [Header("Types (crow is the source model; others are tinted / scaled variants of the same rig)")]
+        public List<BirdType> types = new List<BirdType>();
+
+        [Header("Population / pooling")]
+        [Range(0, 200)] public int maxBirds = 36;
+        [Range(0, 40)] public int maxGroups = 7;
+        [Range(0.2f, 60f)] public float spawnInterval = 3f;
+        [Range(5f, 300f)] public float spawnRadiusMin = 45f;
+        [Range(10f, 400f)] public float spawnRadiusMax = 120f;
+        [Tooltip("Groups this far from the player go back to the pool.")]
+        [Range(30f, 800f)] public float despawnDistance = 190f;
+        [Range(0f, 1f)] public float startLandedChance = 0.55f;
+
+        [Header("Flocking (boids)")]
+        [Range(0f, 10f)] public float separationWeight = 2.2f;
+        [Range(0.2f, 10f)] public float separationRadius = 1.6f;
+        [Range(0f, 10f)] public float alignmentWeight = 1.0f;
+        [Range(0f, 10f)] public float cohesionWeight = 0.8f;
+        [Range(0f, 10f)] public float seekWeight = 1.3f;
+        [Range(0f, 20f)] public float altitudeWeight = 2.5f;
+        [Range(0f, 20f)] public float avoidWeight = 6f;
+        [Range(1f, 40f)] public float avoidLookAhead = 8f;
+        [Range(0f, 90f)] public float maxBankDegrees = 35f;
+        [Range(2f, 120f)] public float flyMinSeconds = 10f;
+        [Range(4f, 240f)] public float flyMaxSeconds = 30f;
+        [Range(10f, 300f)] public float wanderRadius = 70f;
+
+        [Header("Landing")]
+        [Tooltip("Layers birds may land on (Player, Enemy, Water, Ignore Raycast and UI are always removed).")]
+        public LayerMask perchLayers = ~0;
+        [Range(3f, 80f)] public float landingSearchRadius = 18f;
+        [Range(1, 40)] public int landingTries = 10;
+        [Range(0f, 60f)] public float maxPerchSlope = 32f;
+        [Range(0f, 40f)] public float maxPerchHeight = 12f;
+        [Range(1f, 40f)] public float approachDistance = 9f;
+        [Range(0.3f, 6f)] public float touchdownSpeed = 1.6f;
+        [Range(3f, 40f)] public float approachTimeout = 14f;
+        [Tooltip("How far in from a top edge the bird stands (metres).")]
+        [Range(0f, 0.5f)] public float edgeInset = 0.07f;
+
+        [Header("Scare / take-off")]
+        [Range(0.1f, 1.5f)] public float crouchTakeOffMul = 0.6f;
+        [Range(1f, 3f)] public float sprintTakeOffMul = 1.4f;
+        [Tooltip("Gunshots within this range flush every landed group (bow shots use the bow hearing range).")]
+        [Range(0f, 400f)] public float gunshotScareMeters = 140f;
+        [Range(0.5f, 15f)] public float takeOffUpSpeed = 4f;
+        [Range(10f, 400f)] public float fleeDistance = 80f;
+
+        [Header("Animation")]
+        public string idleState = "idle";
+        public string flyState = "fly";
+        public string peckState = "peck";
+        [Range(0.2f, 3f)] public float flapAnimSpeed = 1f;
+        [Range(0f, 1f)] public float glideAnimSpeed = 0.08f;
+        [Range(0.2f, 3f)] public float groundAnimSpeed = 1f;
+
+        [Header("LOD / culling")]
+        [Tooltip("Beyond this camera distance, landed birds freeze their Animator (flying birds keep it).")]
+        [Range(10f, 300f)] public float animCullDistance = 60f;
+        [Tooltip("Beyond this camera distance, flocking updates every Nth frame.")]
+        [Range(10f, 300f)] public float tickLodDistance = 45f;
+        [Range(1, 8)] public int farTickEvery = 3;
+        [Tooltip("LODGroup screen size where a bird stops rendering.")]
+        [Range(0f, 0.1f)] public float cullScreenSize = 0.004f;
+
+        [Header("Audio")]
+        public AudioClip[] takeOffClips;
+        [Range(0f, 1.5f)] public float takeOffVolume = 0.7f;
+        public AudioClip[] deathClips;
+        [Range(5f, 300f)] public float audioMaxDistance = 70f;
+        [Range(1, 16)] public int audioVoices = 6;
+
+        [Header("Death / harvest")]
+        [Range(1f, 40f)] public float gravity = 14f;
+        [Range(10f, 3600f)] public float deadLifetime = 600f;
+        [Range(0.2f, 10f)] public float harvestHold = 1.4f;
+        public ASHItemDefinition featherItem;
+        public ASHItemDefinition meatItem;
+
+        public BirdType Pick(System.Random rng)
+        {
+            float total = 0f;
+            foreach (var t in types) if (t != null) total += Mathf.Max(0f, t.weight);
+            if (total <= 0f) return null;
+            float r = (float)rng.NextDouble() * total;
+            foreach (var t in types)
+            {
+                if (t == null) continue;
+                r -= Mathf.Max(0f, t.weight);
+                if (r <= 0f) return t;
+            }
+            return types.Count > 0 ? types[types.Count - 1] : null;
+        }
+
+        public int PerchMask()
+        {
+            int m = perchLayers;
+            foreach (var n in new[] { "Player", "Enemy", "Water", "Ignore Raycast", "UI" })
+            {
+                int l = LayerMask.NameToLayer(n);
+                if (l >= 0) m &= ~(1 << l);
+            }
+            return m;
+        }
+    }
+}

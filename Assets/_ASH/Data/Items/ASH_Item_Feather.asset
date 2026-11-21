@@ -1,0 +1,57 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6e51ffdd6995b1141ae6bc6f9c404f94, type: 3}
+  m_Name: ASH_Item_Feather
+  m_EditorClassIdentifier: Assembly-CSharp::ASH.Inventory.ASHItemDefinition
+  itemId: feather
+  displayName: Feathers
+  description: Flight feathers from a bird. Fletch arrows with them.
+  icon: {fileID: 21300000, guid: fc475cd5ee9c0204a8cb066dfc7abe30, type: 3}
+  uiTint: {r: 0.32, g: 0.32, b: 0.36, a: 1}
+  category: 0
+  maxStack: 40
+  sellValue: 1
+  useVerb: Use
+  keyItem: 0
+  restoreHunger: 0
+  restoreThirst: 0
+  restoreHealth: 0
+  restoreStamina: 0
+  requiresOpener: 0
+  smashedYield: 0.65
+  leftoverItem: {fileID: 0}
+  sicknessChance: 0
+  sicknessHealthLoss: 8
+  sicknessThirstLoss: 10
+  sicknessHungerLoss: 6
+  toolType: 0
+  breakdownYield: []
+  breakdownTool: 0
+  breakdownToolRequired: 0
+  breakdownSeconds: 2
+  breakdownNoToolYield: 0.5
+  worldPickupPrefab: {fileID: 0}
+  placeablePrefab: {fileID: 0}
+  placementFootprint: {x: 1.4, y: 0.6, z: 1.4}
+  maxPlacementSlope: 22
+  equipSlot: 0
+  wearSlot: 0
+  heldPrefab: {fileID: 0}
+  holdPosition: {x: 0, y: 0, z: 0}
+  holdEuler: {x: 0, y: 0, z: 0}
+  gripStyle: 0
+  heldScale: 1
+  ammoItem: {fileID: 0}
+  containerLitres: 0
+  fuelItem: {fileID: 0}
+  fuelSecondsPerUnit: 480
+  fuelCapacityUnits: 2
