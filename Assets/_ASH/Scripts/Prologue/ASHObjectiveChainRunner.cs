@@ -17,18 +17,31 @@ namespace ASH.Prologue
         static ASHObjectiveChain C => ASHObjectiveChain.I;
 
         readonly HashSet<string> _done = new HashSet<string>(), _shown = new HashSet<string>(), _crafted = new HashSet<string>();
-        ASHObjectiveTracker _tracker; ASHCrafting _craft; ASHInventory _inv; ASH.Gameplay.ASHPlacer _placer; float _t;
+        ASHObjectiveTracker _tracker; ASHCrafting _craft; ASHInventory _inv; ASH.Gameplay.ASHPlacer _placer; float _t; bool _restored;
 
         void Awake() { Instance = this; }
         void OnEnable() { ASHSaveSystem.Register(this); }
-        void OnDisable() { ASHSaveSystem.Unregister(this); if (_craft) _craft.Crafted -= OnCrafted; _craft = null; if (_placer) _placer.PlacedObject -= OnPlaced; _placer = null; }
+        void OnDisable() { ASHSaveSystem.Unregister(this); if (_craft) _craft.Crafted -= OnCrafted; _craft = null; if (_placer) _placer.PlacedObject -= OnPlaced; _placer = null; if (_inv) _inv.Changed -= OnInventoryChanged; _inv = null; }
+        // t475: anything entering / leaving the pack re-checks every objective at once (counts + auto-complete)
+        void OnInventoryChanged() { _t = 0f; _countsDirty = true; }
+        bool _countsDirty;
+
+        /// <summary>t475: THE refresh for every objective type (main, side, craft): re-reads inventory + fitted/placed state, shows
+        /// newly available steps, completes anything already satisfied and redraws the HUD counts. Used on reveal, inventory
+        /// change, load and checkpoint restore.</summary>
+        public void Refresh(bool announce)
+        {
+            Cache(); if (!_tracker || !C) return;
+            Tick(announce);
+            _countsDirty = false; _tracker.NotifyLinesChanged();
+        }
         void OnDestroy() { if (Instance == this) Instance = null; }
 
         void Cache()
         {
             if (!_tracker) _tracker = FindAnyObjectByType<ASHObjectiveTracker>();
             if (!_craft) { _craft = FindAnyObjectByType<ASHCrafting>(); if (_craft) _craft.Crafted += OnCrafted; }
-            if (!_inv) _inv = FindAnyObjectByType<ASHInventory>();
+            if (!_inv) { _inv = FindAnyObjectByType<ASHInventory>(); if (_inv) _inv.Changed += OnInventoryChanged; }
             if (!_placer) { _placer = FindAnyObjectByType<ASH.Gameplay.ASHPlacer>(); if (_placer) _placer.PlacedObject += OnPlaced; }
         }
         // t454: remember the recipe AND its output item, so any recipe making the same thing counts (campfire variants)
@@ -42,7 +55,7 @@ namespace ASH.Prologue
             var d = ASHPrologueDirector.Instance; if (!d || d.Current == ASHPrologueDirector.Phase.NotStarted) return;
             if (ASHSaveSystem.IsRestoring) return;
             _t -= Time.deltaTime; if (_t > 0f) return; _t = 0.25f;
-            Tick(true);
+            if (_countsDirty || _restored) { _restored = false; Refresh(true); } else Tick(true);
         }
 
         /// <summary>Shows every step whose prerequisites are done and completes every satisfied one (repeats until stable).</summary>
@@ -64,7 +77,9 @@ namespace ASH.Prologue
                     if (sat) { Finish(s); changed = true; }
                 }
                 if (!changed) break;
+                _countsDirty = true; // something was shown or finished: redraw the counts
             }
+            if (_countsDirty && _tracker) { _countsDirty = false; _tracker.NotifyLinesChanged(); }
         }
 
         bool PrereqsDone(ASHObjectiveChain.Step s) { foreach (var p in s.prerequisites) if (!string.IsNullOrEmpty(p) && !_done.Contains(p) && !TrackerDone(p)) return false; return true; }
@@ -76,6 +91,11 @@ namespace ASH.Prologue
             bool any = false, ok = false;
             if (!string.IsNullOrEmpty(s.completeFlag)) { any = true; ok |= Flag(s.completeFlag, false); }
             if (!string.IsNullOrEmpty(s.recipeName)) { any = true; ok |= Crafted(s); }
+            if (!any && s.items != null && s.items.Count > 0) // t475: collect-only steps complete once every item is in the pack (or fitted)
+            {
+                bool all = true; foreach (var n in s.items) { if (n == null || string.IsNullOrEmpty(n.itemId)) continue; if (Have(n, out int need) < need) { all = false; break; } }
+                return all;
+            }
             return any && ok;
         }
         bool Crafted(ASHObjectiveChain.Step s)
@@ -123,6 +143,13 @@ namespace ASH.Prologue
             foreach (var l in ItemLines(s)) yield return l;
             if (!string.IsNullOrEmpty(s.hint)) yield return (s.hint, sat);
         }
+        /// <summary>t475: items held now (pack) plus parts already fitted to the truck; need = how many the step wants.</summary>
+        int Have(ASHObjectiveChain.ItemNeed n, out int need)
+        {
+            Cache(); var d = ASHPrologueDirector.Instance; var reg = ASHItemRegistry.I; var def = reg ? reg.Find(n.itemId) : null;
+            need = n.countInstalled && d ? d.PartNeeded(n.itemId, n.count) : n.count;
+            return (n.countInstalled && d ? d.PartInstalled(n.itemId) : 0) + (def && _inv ? _inv.Count(def) : 0);
+        }
         static IEnumerable<(string, bool)> Concat(IEnumerable<(string, bool)> a, IEnumerable<(string, bool)> b) { foreach (var x in a) yield return x; foreach (var x in b) yield return x; }
 
         /// <summary>t453: one line per needed item with a live have/need count (prefixed for the HUD item style). Recipe ingredients
@@ -145,9 +172,8 @@ namespace ASH.Prologue
             {
                 if (n == null || string.IsNullOrEmpty(n.itemId)) continue;
                 var def = reg ? reg.Find(n.itemId) : null;
-                int need = n.countInstalled && d ? d.PartNeeded(n.itemId, n.count) : n.count;
                 int fitted = n.countInstalled && d ? d.PartInstalled(n.itemId) : 0;
-                int have = fitted + (def && _inv ? _inv.Count(def) : 0);
+                int have = Have(n, out int need);
                 string name = !string.IsNullOrEmpty(n.label) ? n.label : def ? def.displayName : n.itemId;
                 yield return (ASHObjectiveHudSettings.ItemPrefix + $"{name}  {Mathf.Min(have, need)}/{need}{(fitted > 0 ? $"  ({fitted} fitted)" : "")}", sat || have >= need);
             }
@@ -181,7 +207,7 @@ namespace ASH.Prologue
             foreach (var x in s.done) _done.Add(x); foreach (var x in s.crafted) _crafted.Add(x);
             Cache(); if (!_tracker || !C) return;
             foreach (var id in s.shown) { _shown.Add(id); if (_done.Contains(id) || TrackerDone(id)) continue; var st = C.Get(id); if (st != null) Register(st); }
-            _t = 0f;
+            _t = 0f; _restored = true; // t475: first frame after the restore runs the full Refresh (inventory is back by then)
         }
     }
 }

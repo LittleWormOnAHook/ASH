@@ -36,6 +36,8 @@ namespace ASH.Gameplay
         public Transform FirstSurveyPoint => firstSurveyPoint;
         public IReadOnlyList<GatherGoal> GatherGoals => gatherGoals;
         public event Action Changed;
+        /// <summary>t475: objective lines read live counts; this redraws them (inventory change, reveal, restore).</summary>
+        public void NotifyLinesChanged() => Changed?.Invoke();
         public event Action<string> Message;
 
         public Transform Overlook => overlook;

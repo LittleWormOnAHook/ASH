@@ -94,7 +94,11 @@ namespace ASH.World.Accumulation
         [Range(0f, 1f)] public float ashDecayPerMinute = 0f;
         [Range(0f, 1f)] public float snowDecayPerMinute = 0f;
 
-        [Header("Look")]
+        [Header("Look asset (t471): Resources/ASH_AccumulationLook overrides the Look + Surface Texture fields below (edits there are kept in Play)")]
+        [Tooltip("Look settings asset. Empty = Resources/ASH_AccumulationLook. With no asset, the fields below are used as before.")] public ASHAccumulationLookSettings look;
+        public ASHAccumulationLookSettings Look => look ? look : ASHAccumulationLookSettings.I;
+
+        [Header("Look (legacy: overwritten from the Look asset while it exists)")]
         public Color ashColor = new Color(0.44f, 0.44f, 0.46f);
         [Range(0.1f, 1f)] public float wetAshDarkness = 0.5f;
         [Tooltip("Trail Coverage Keep: how much snow/ash colour stays in footprints and trails (0 = bare dark ground, the old look; 1 = trails only dent, never darken).")] [Range(0f, 1f)] public float trailCoverageKeep = 0.75f;
@@ -321,6 +325,11 @@ namespace ASH.World.Accumulation
         /// <summary>Surface Texture globals (top of the ash/snow). Separate from deformation quality on purpose.</summary>
         public void PushSurfaceTexture()
         {
+            var L = Look;
+            Shader.SetGlobalVector(ID_Look, L ? new Vector4(1f / Mathf.Max(L.macroScale, 0.01f), L.macroAlbedoVariation, L.snowSparkle, L.sparkleScale) : Vector4.zero);
+            Shader.SetGlobalVector(ID_Look2, L ? new Vector4(L.ashGrain, L.ashGrainScale, L.ashTextureColour, L.normalDepthFade) : Vector4.zero);
+            Shader.SetGlobalVector(ID_Look3, L ? new Vector4(L.sparkleDensity, L.macroUvWarp, Mathf.Max(L.normalFullDepth, 0.01f), 0f) : new Vector4(0f, 0f, 1f, 0f));
+            Shader.SetGlobalColor(ID_AshCol2, L ? new Color(L.ashColorVariation.r, L.ashColorVariation.g, L.ashColorVariation.b, L.ashColorVariationAmount) : Color.clear);
             Shader.SetGlobalTexture(ID_AshNrm, ashNormal ? ashNormal : Texture2D.normalTexture);
             Shader.SetGlobalTexture(ID_SnowNrm, snowNormal ? snowNormal : Texture2D.normalTexture);
             Shader.SetGlobalTexture(ID_DetTex, detailTexture ? detailTexture : Texture2D.linearGrayTexture);
@@ -346,8 +355,11 @@ namespace ASH.World.Accumulation
         }
 #endif
 
+        static readonly int ID_Look = Shader.PropertyToID("_ASH_Look"), ID_Look2 = Shader.PropertyToID("_ASH_Look2"), ID_Look3 = Shader.PropertyToID("_ASH_Look3"), ID_AshCol2 = Shader.PropertyToID("_ASH_AshColor2");
+
         public void PushGlobals()
         {
+            { var L = Look; if (L) L.CopyTo(this); } // t471: the Look asset is the source of the look values
             var wd = (Application.isPlaying ? _inputs.windDirection : prevailingWind); if (wd.sqrMagnitude < 1e-4f) wd = prevailingWind; wd.Normalize();
             Shader.SetGlobalVector(ID_Layers, new Vector4(ashAmount, snowAmount, Mathf.Clamp01(ashAmount + snowAmount), enabled ? 1f : 0f));
             Shader.SetGlobalVector(ID_PropMul, new Vector4(prefabAshMultiplier, prefabSnowMultiplier, 0f, 0f));

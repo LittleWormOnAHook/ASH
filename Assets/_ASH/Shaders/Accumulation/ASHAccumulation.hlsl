@@ -37,6 +37,10 @@ float4 _ASH_ColliderMaskRect; // x minX, y minZ, z 1/size (square), w enabled
 float4 _ASH_Bank;           // x bank height m, y bank reach m, z curve exponent, w enabled
 float4 _ASH_Bank2;          // x noise scale 1/m, y noise strength 0..1, z layer depth (m) for a full-height bank, w mask texel m
 float4 _ASH_Contact;        // x contact curve height m (extra concave fillet against the object), y falloff m, z noise 0..1, w enabled
+float4 _ASH_Look;         // t471: x macro 1/m, y macro albedo variation, z snow sparkle, w sparkle cells/m
+float4 _ASH_Look2;        // t471: x ash grain, y ash grain cells/m, z ash texture colour 0..1, w normal depth fade 0..1
+float4 _ASH_Look3;        // t471: x sparkle density, y macro uv warp (repeats), z normal full depth (relative), w 0
+float4 _ASH_AshColor2;    // t471: grey-brown ash variation colour (rgb), a amount
 float4 _ASH_Dust;           // x dusting height above the bank/layer top m, y fade m, z strength 0..1, w enabled
 
 float ASH_Hash(float2 p) { p = frac(p * float2(123.34, 456.21)); p += dot(p, p + 45.32); return frac(p.x * p.y); }
@@ -241,14 +245,32 @@ void ASH_ApplyAccumulation(float3 positionWS, half3 geomNormalWS, half4 drift, h
     if (cov <= 0.001) return;
 
     float2 xz = positionWS.xz;
-    float2 uvS = xz / max(_ASH_Noise.w, 0.01), uvA = xz / max(_ASH_Noise.z, 0.01);
+    // t471: macro patches (break up tiling: brightness + uv warp). Cheap value-noise fbm, no extra textures or passes.
+    half macro = _ASH_Look.x > 0.0 ? ASH_Fbm(xz * _ASH_Look.x) : 0.5;
+    float2 warp = (macro - 0.5) * _ASH_Look3.y;
+    float2 uvS = xz / max(_ASH_Noise.w, 0.01) + warp, uvA = xz / max(_ASH_Noise.z, 0.01) - warp;
     half bias = _ASH_SurfTex2.x;
     half4 snowS = SAMPLE_TEXTURE2D_BIAS(_ASH_SnowTex, sampler_ASH_SnowTex, uvS, bias);
     half4 ashS = SAMPLE_TEXTURE2D_BIAS(_ASH_AshTex, sampler_ASH_AshTex, uvA, bias);
     half lum = dot(ashS.rgb, half3(0.299, 0.587, 0.114));
     half detail = clamp(lum * max(_ASH_TexNorm.x, 0.01), 0.55, 1.6);
-    half3 ashAlb = _ASH_AccumColor.rgb * detail * lerp(1.0, _ASH_AccumColor.a, _ASH_Weather.x);
+    // t471: ash colour variation from the texture itself (normalised to Ash Color), grey-brown clumps and fine grain
+    half3 ashVar = lerp(half3(detail, detail, detail), clamp(ashS.rgb * max(_ASH_TexNorm.x, 0.01), 0.4, 1.8), _ASH_Look2.z);
+    half3 ashTint = _ASH_AccumColor.rgb;
+    if (_ASH_AshColor2.a > 0.001)
+    {
+        half clump = ASH_Noise(xz * max(_ASH_Look2.y, 1.0) * 0.17 + 7.3) * 0.7 + macro * 0.3;
+        ashTint = lerp(ashTint, _ASH_AshColor2.rgb, _ASH_AshColor2.a * saturate(clump * 1.6 - 0.3));
+    }
+    if (_ASH_Look2.x > 0.001)
+    {
+        float2 g = xz * _ASH_Look2.y;
+        half grain = ASH_Noise(g) * 0.65 + ASH_Noise(g * 0.31 + 11.7) * 0.35;
+        ashVar *= 1.0 + (grain - 0.5) * 2.0 * _ASH_Look2.x;
+    }
+    half3 ashAlb = ashTint * ashVar * lerp(1.0, _ASH_AccumColor.a, _ASH_Weather.x);
     half3 snowAlb = snowS.rgb * _ASH_SnowColor.rgb * lerp(1.0, 0.85, _ASH_Weather.x);
+    half mv = 1.0 + (macro - 0.5) * 2.0 * _ASH_Look.y; snowAlb *= mv; ashAlb *= mv;
 
     // layer normal (tangent-space maps projected on world XZ around the un-mapped surface normal) + fine detail
     half3 layerN = geomNormalWS; half3 tn = half3(0, 0, 0);
@@ -260,12 +282,23 @@ void ASH_ApplyAccumulation(float3 positionWS, half3 geomNormalWS, half4 drift, h
     }
     if (_ASH_SurfTex2.z > 0.5)
     {
-        float2 uvD = xz / _ASH_SurfTex.y;
+        float2 uvD = xz / _ASH_SurfTex.y + warp;
         half dA = SAMPLE_TEXTURE2D_BIAS(_ASH_DetailTex, sampler_ASH_AshTex, uvD, bias).g;
         half m = lerp(1.0, dA * 2.0, _ASH_SurfTex.z); snowAlb *= m; ashAlb *= m;
         tn.xy += UnpackNormalScale(SAMPLE_TEXTURE2D_BIAS(_ASH_DetailNrm, sampler_ASH_AshTex, uvD, bias), _ASH_SurfTex.w).xy;
     }
+    // t471: thin dustings follow the ground; the bump grows to full strength with layer depth
+    tn.xy *= lerp(1.0, saturate((ashLeft + snowLeft) / max(_ASH_Look3.z, 0.01)), _ASH_Look2.w);
     layerN = normalize(geomNormalWS + half3(tn.x, 0, tn.y));
+
+    // t471: snow sparkle - sparse view-dependent glints (hash cells), faded with distance to avoid shimmer
+    if (_ASH_Look.z > 0.001)
+    {
+        float3 toCam = _WorldSpaceCameraPos.xyz - positionWS; half dist = length(toCam); half3 V = toCam / max(dist, 0.001);
+        half h = ASH_Hash(floor(xz * _ASH_Look.w) + floor(V.xz * 6.0 + V.y * 3.0) * 13.7);
+        half glint = step(1.0 - _ASH_Look3.x, h) * saturate(dot(layerN, V) * 2.0) * saturate(1.0 - dist / 30.0);
+        snowAlb += glint * _ASH_Look.z * (1.0 - ashCov);
+    }
 
     albedo = lerp(albedo, snowAlb, snowCov);
     albedo = lerp(albedo, ashAlb, ashCov);

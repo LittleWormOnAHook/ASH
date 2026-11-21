@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 33d0a379f02226e4caab3db17f99af84, type: 3}
+  m_Name: ASH_AccumulationLook
+  m_EditorClassIdentifier: Assembly-CSharp::ASH.World.Accumulation.ASHAccumulationLookSettings
+  ashColor: {r: 0.3537558, g: 0.3537558, b: 0.3584906, a: 1}
+  wetAshDarkness: 0.5
+  trailCoverageKeep: 0.75
+  snowColor: {r: 0.8388252, g: 0.8454921, b: 0.85660374, a: 1}
+  ashTexture: {fileID: 2800000, guid: 728135340b744414a9d4280bfe536c51, type: 3}
+  ashNormal: {fileID: 2800000, guid: 45f9228508951874a860d3616bd0c113, type: 3}
+  snowTexture: {fileID: 2800000, guid: 1cff50f696e47004793933731f01ff8e, type: 3}
+  snowNormal: {fileID: 2800000, guid: 5f00806f215844043a324a7613dd212d, type: 3}
+  ashTiling: 1.1
+  snowTiling: 5
+  surfaceNormalStrength: 0.8
+  ashTextureMean: 0.05
+  detailTexture: {fileID: 0}
+  detailNormal: {fileID: 2800000, guid: a4e60d649c7f3f444b01ffe03e9d6658, type: 3}
+  detailTiling: 0.35
+  detailAlbedoStrength: 0.5
+  detailNormalStrength: 0.45
+  surfaceMipBias: 0
+  surfaceMaxTextureSize: 2048
+  ashTextureColour: 0.6
+  ashColorVariation: {r: 0.29, g: 0.26, b: 0.23, a: 1}
+  ashColorVariationAmount: 0.45
+  ashGrain: 0.3
+  ashGrainScale: 35
+  snowSparkle: 0.8
+  sparkleScale: 70
+  sparkleDensity: 0.015
+  macroScale: 30
+  macroAlbedoVariation: 0.12
+  macroUvWarp: 0.35
+  normalDepthFade: 0.6
+  normalFullDepth: 0.35
