@@ -25,7 +25,17 @@ namespace ASH.Wildlife.Birds
             public Vector3 target, home;
             public float flyUntil, landedUntil, callAt, scareAt;
             public ASHBirdSpot spot;
+            // noise / alert
+            public bool alert;
+            public float alertUntil, flushAt;
+            public Vector3 threat;
         }
+
+        struct PendingCall { public float at; public AudioClip[] clips; public Vector3 pos; public float vol, pitch; }
+        readonly List<PendingCall> _calls = new List<PendingCall>();
+        Vector3 _pPrev, _dPrev;
+        float _pSpeed, _dSpeed;
+        bool _pHave, _dHave;
 
         readonly List<ASHBird> _all = new List<ASHBird>();
         readonly Stack<ASHBird> _pool = new Stack<ASHBird>();
@@ -91,6 +101,9 @@ namespace ASH.Wildlife.Birds
             _mask = s.PerchMask();
             Vector3 eye = _cam ? _cam.transform.position : _player.position;
 
+            TrackNoiseSources(Time.deltaTime);
+            for (int i = _calls.Count - 1; i >= 0; i--)
+                if (Time.time >= _calls[i].at) { var c = _calls[i]; _calls.RemoveAt(i); PlayAt(c.clips, c.pos, c.vol, c.pitch); }
             GunshotCheck(s);
             if (Time.time >= _spawnAt) { _spawnAt = Time.time + s.spawnInterval; if (s.autoSpawn) TrySpawn(s); }
             if (Time.time >= _spotAt) { _spotAt = Time.time + s.spotCheckInterval; SpotTick(s); }
@@ -148,7 +161,7 @@ namespace ASH.Wildlife.Birds
                 if (s.attackBirdsEnabled)
                     foreach (var b in f.m)
                         if (b.aggressive && b.state != ASHBirdState.Attack && (b.transform.position - at).magnitude <= s.attackTriggerMeters) TryStartAttack(b, s);
-                if ((f.landed || f.landing) && Flat(Centroid(f), at) <= range) TakeOff(f, at, true);
+                if ((f.landed || f.landing) && Flat(Centroid(f), at) <= range) TakeOff(f, at, true, Nearest(f, at), s.gunshotCascadeMul);
             }
         }
 
@@ -293,6 +306,10 @@ namespace ASH.Wildlife.Birds
             b.state = ASHBirdState.Landed;
             b.stateAt = Time.time;
             b.nextAnimSwap = Time.time + Rng(0.2f, 2f);
+            b.groundHome = p;
+            b.gMode = 0;
+            b.alertTarget = 0f;
+            b.surface = Physics.Raycast(p + Vector3.up * 0.3f, Vector3.down, out var sh, 0.7f, _mask, QueryTriggerInteraction.Ignore) ? sh.collider : null;
         }
 
         // ------------------------------------------------------------------ flock brain
@@ -303,12 +320,8 @@ namespace ASH.Wildlife.Birds
             {
                 if (Time.time >= f.scareAt)
                 {
-                    f.scareAt = Time.time + 0.15f;
-                    float dist = t.takeOffDistance;
-                    var b = ASH.Combat.ASHCombatBridge.Player;
-                    if (b) { if (b.Crouching) dist *= s.crouchTakeOffMul; else if (b.Sprinting) dist *= s.sprintTakeOffMul; }
-                    foreach (var m in f.m)
-                        if ((m.transform.position - _player.position).sqrMagnitude < dist * dist) { TakeOff(f, _player.position, true); return; }
+                    f.scareAt = Time.time + s.noiseCheckInterval;
+                    if (NoiseCheck(f, s, t)) return;
                 }
                 if (f.landed && Time.time >= f.landedUntil) { TakeOff(f, Vector3.zero, false); return; }
                 if (f.landing)
@@ -388,11 +401,15 @@ namespace ASH.Wildlife.Birds
             return false;
         }
 
-        void TakeOff(Flock f, Vector3 threat, bool scared)
+        void TakeOff(Flock f, Vector3 threat, bool scared, Vector3 origin = default, float cascadeMul = 1f)
         {
             var s = S;
             var t = f.type;
             var c = Centroid(f);
+            f.alert = false; f.flushAt = 0f;
+            if (scared && origin.sqrMagnitude < 0.0001f) origin = threat.sqrMagnitude > 0.01f ? Nearest(f, threat) : c;
+            bool firstCall = true;
+            if (scared && t.calls != null && t.calls.Length > 0) { PlayAt(t.calls, origin, t.callVolume, t.callPitch * s.alarmPitchMul); firstCall = false; }
             Vector3 away = threat.sqrMagnitude > 0.01f ? c - threat : Random3(1f);
             away.y = 0f;
             away = away.sqrMagnitude > 0.01f ? away.normalized : Vector3.forward;
@@ -410,7 +427,25 @@ namespace ASH.Wildlife.Birds
                 any |= wasLanded;
                 b.state = ASHBirdState.Fly;
                 b.stateAt = Time.time;
-                b.launchAt = wasLanded ? Time.time + (scared ? Rng(0f, 0.3f) : Rng(0f, 1.2f)) : Time.time;
+                float delay = 0f;
+                if (wasLanded)
+                {
+                    if (scared)
+                    {
+                        // startle cascade: the bird nearest the noise goes first, mates follow by distance with a little jitter
+                        delay = Flat(b.transform.position, origin) * s.startleSpreadPerMeter * cascadeMul + Rng(0f, s.startleJitter * Mathf.Max(0.3f, cascadeMul));
+                        delay = Mathf.Min(delay, s.startleMaxDelay);
+                        b.alertTarget = 1f;
+                        if (t.calls != null && t.calls.Length > 0 && (firstCall || R01() < s.alarmCallChance))
+                        {
+                            _calls.Add(new PendingCall { at = Time.time + delay, clips = t.calls, pos = b.transform.position, vol = t.callVolume * (firstCall ? 1f : 0.8f), pitch = t.callPitch * s.alarmPitchMul });
+                            firstCall = false;
+                        }
+                    }
+                    else delay = Rng(0f, 1.2f);
+                }
+                b.launchAt = Time.time + delay;
+                b.gMode = 0;
                 var side = (away + Random3(0.6f)); side.y = 0f;
                 if (wasLanded) b.vel = Vector3.up * s.takeOffUpSpeed * Rng(0.8f, 1.2f) + side.normalized * t.flySpeed * 0.35f;
                 b.gliding = false;
@@ -418,8 +453,21 @@ namespace ASH.Wildlife.Birds
                 b.groundCheckAt = 0f;
             }
             if (any && s.takeOffClips != null && s.takeOffClips.Length > 0)
-                PlayAt(s.takeOffClips, c, s.takeOffVolume * Mathf.Clamp(0.6f + f.m.Count * 0.12f, 0.6f, 1.3f), 1f / Mathf.Max(0.4f, Mathf.Sqrt(t.scale)));
-            if (scared && t.calls != null && t.calls.Length > 0) { PlayAt(t.calls, c, t.callVolume, t.callPitch * 1.05f); f.callAt = Time.time + Rng(1.5f, 4f); }
+            {
+                // wing burst follows the cascade: first flaps at the origin, a second (bigger groups) as the rest lift
+                float vol = s.takeOffVolume * Mathf.Clamp(0.6f + f.m.Count * 0.12f, 0.6f, 1.3f);
+                float pitch = 1f / Mathf.Max(0.4f, Mathf.Sqrt(t.scale));
+                if (scared && f.m.Count > 2)
+                {
+                    PlayAt(s.takeOffClips, origin, vol * 0.7f, pitch);
+                    _calls.Add(new PendingCall { at = Time.time + Mathf.Min(s.startleMaxDelay, 0.25f + 0.3f * cascadeMul), clips = s.takeOffClips, pos = c, vol = vol * 0.8f, pitch = pitch * 0.97f });
+                }
+                else PlayAt(s.takeOffClips, c, vol, pitch);
+            }
+            if (scared && t.calls != null && t.calls.Length > 0)
+            {
+                f.callAt = Time.time + Rng(1.5f, 4f);
+            }
         }
 
         // ------------------------------------------------------------------ per-bird motion
@@ -429,7 +477,15 @@ namespace ASH.Wildlife.Birds
             switch (b.state)
             {
                 case ASHBirdState.Fly:
-                    if (Time.time < b.launchAt) { b.Play(s.idleState, s.groundAnimSpeed); return; }
+                    if (Time.time < b.launchAt)
+                    {
+                        // about to flush: frozen head-up for its share of the cascade delay
+                        b.Play(s.idleState, b.alertTarget > 0.5f ? s.alertAnimSpeed : s.groundAnimSpeed);
+                        b.alertW = Mathf.MoveTowards(b.alertW, b.alertTarget, dt * 8f);
+                        GroundPose(b, s, dt, 0f, 0f);
+                        return;
+                    }
+                    b.alertW = b.alertTarget = 0f;
                     Boids(b, f, s, t, dt, f.target);
                     FlapOrGlide(b, s, t);
                     return;
@@ -556,19 +612,273 @@ namespace ASH.Wildlife.Birds
             b.Play(s.flyState, d < s.approachDistance ? s.flapAnimSpeed * 1.15f : s.glideAnimSpeed);
         }
 
+        // ------------------------------------------------------------------ ground behaviour: idle / peck / hop-walk, alert freeze
         void LandedTick(ASHBird b, ASHBirdSettings s, ASHBirdSettings.BirdType t, float dt)
         {
-            var tr = b.transform;
-            if (Time.time >= b.nextAnimSwap)
+            var f = b.flock;
+            float sc = Mathf.Max(0.3f, t.scale);
+            bool alert = f != null && f.alert && Time.time >= b.alertFrom;
+            b.alertTarget = alert ? 1f : 0f;
+            b.alertW = Mathf.MoveTowards(b.alertW, b.alertTarget, dt * (alert ? 7f : 2.5f));
+            float bob = 0f, nod = 0f;
+            if (alert)
             {
-                bool peck = b.perchGround && R01() < t.peckChance;
-                b.Play(peck ? s.peckState : s.idleState, s.groundAnimSpeed * Rng(0.9f, 1.1f));
-                b.nextAnimSwap = Time.time + (peck ? Rng(2.2f, 5f) : Rng(2f, 6f));
-                if (!peck && R01() < 0.35f) b.targetYaw = tr.eulerAngles.y + Rng(-70f, 70f);
+                // freeze head-up, one eye on the noise
+                if (b.gMode != 0) { b.gMode = 0; b.walkPhase = 0f; }
+                b.Play(s.idleState, s.alertAnimSpeed);
+                var to = f.threat - b.perch; to.y = 0f;
+                if (to.sqrMagnitude > 0.01f) b.targetYaw = Quaternion.LookRotation(to).eulerAngles.y + ((b.GetHashCode() & 1) == 0 ? 35f : -35f);
+                b.nextAnimSwap = Time.time + Rng(0.3f, 1.2f);
             }
-            var e = tr.eulerAngles;
-            float y = Mathf.MoveTowardsAngle(e.y, b.targetYaw, 120f * dt);
-            if (Mathf.Abs(Mathf.DeltaAngle(e.y, y)) > 0.01f) tr.rotation = Quaternion.Euler(0f, y, 0f);
+            else if (b.gMode == 2)
+            {
+                if (!WalkStep(b, f, s, t, dt, sc, out bob, out nod)) EndWalk(b, s, t);
+            }
+            else if (Time.time >= b.nextAnimSwap) ChooseGround(b, f, s, t, sc);
+            GroundPose(b, s, dt, bob, nod);
+        }
+
+        void GroundPose(ASHBird b, ASHBirdSettings s, float dt, float bob, float nod)
+        {
+            var tr = b.transform;
+            float y = Mathf.MoveTowardsAngle(tr.eulerAngles.y, b.targetYaw, (b.gMode == 2 ? 320f : 120f) * dt);
+            float pitch = -s.alertBodyPitch * b.alertW + nod;
+            tr.SetPositionAndRotation(b.perch + Vector3.up * bob, Quaternion.Euler(pitch, y, 0f));
+        }
+
+        void ChooseGround(ASHBird b, Flock f, ASHBirdSettings s, ASHBirdSettings.BirdType t, float sc)
+        {
+            bool canWalk = s.groundWalkEnabled && (b.perchGround || (s.walkOnObjects && b.surface));
+            bool strayed = f != null && LandedCentroid(f, b, out var lc) && Flat(b.perch, lc) > s.groupCohesionMeters * Mathf.Sqrt(sc);
+            if (canWalk && (strayed || R01() < s.walkChance) && PickWalk(b, f, s, sc))
+            {
+                b.gMode = 2;
+                b.walkPhase = 0f;
+                b.Play(HasWalkClip(b, s) ? s.walkState : s.idleState, s.groundAnimSpeed);
+                b.nextAnimSwap = Time.time + 8f; // safety: walk ends on arrival or block
+                return;
+            }
+            bool peck = b.perchGround && R01() < t.peckChance;
+            SetGroundMode(b, s, peck);
+            if (!peck && R01() < 0.35f) b.targetYaw = b.transform.eulerAngles.y + Rng(-70f, 70f);
+        }
+
+        void SetGroundMode(ASHBird b, ASHBirdSettings s, bool peck)
+        {
+            b.gMode = peck ? 1 : 0;
+            b.Play(peck ? s.peckState : s.idleState, s.groundAnimSpeed * Rng(0.9f, 1.1f));
+            b.nextAnimSwap = Time.time + (peck ? Rng(s.peckSecondsMin, Mathf.Max(s.peckSecondsMin, s.peckSecondsMax))
+                                              : Rng(s.idleSecondsMin, Mathf.Max(s.idleSecondsMin, s.idleSecondsMax)));
+        }
+
+        void EndWalk(ASHBird b, ASHBirdSettings s, ASHBirdSettings.BirdType t)
+        {
+            b.walkPhase = 0f;
+            SetGroundMode(b, s, b.perchGround && R01() < s.peckAfterWalkChance);
+        }
+
+        static bool HasWalkClip(ASHBird b, ASHBirdSettings s)
+            => !string.IsNullOrEmpty(s.walkState) && b.animator && b.animator.isActiveAndEnabled && b.animator.HasState(0, Animator.StringToHash(s.walkState));
+
+        bool PickWalk(ASHBird b, Flock f, ASHBirdSettings s, float sc)
+        {
+            var pos = b.perch;
+            var fwd = b.transform.forward; fwd.y = 0f;
+            if (fwd.sqrMagnitude < 0.01f) fwd = Vector3.forward;
+            Vector3 dir;
+            bool back = false;
+            if (f != null && LandedCentroid(f, b, out var lc) && Flat(pos, lc) > s.groupCohesionMeters * Mathf.Sqrt(sc)) { dir = lc - pos; back = true; }
+            else dir = Quaternion.Euler(0f, Rng(-110f, 110f), 0f) * fwd;
+            dir.y = 0f;
+            if (dir.sqrMagnitude < 0.0001f) return false;
+            dir.Normalize();
+            float len = Rng(s.walkBoutMin, Mathf.Max(s.walkBoutMin, s.walkBoutMax)) * sc;
+            var to = pos + dir * len;
+            if (!back)
+            {
+                // stay near where it landed
+                float leash = s.maxWanderFromLanding * sc;
+                if (!b.perchGround) leash = Mathf.Min(leash, 1.5f * sc);
+                var off = to - b.groundHome; off.y = 0f;
+                if (off.magnitude > leash) { to = b.groundHome + off.normalized * leash * 0.7f; to.y = pos.y; }
+            }
+            if (Flat(to, pos) < 0.05f) return false;
+            b.walkTo = to;
+            var d = to - pos; d.y = 0f;
+            b.targetYaw = Quaternion.LookRotation(d.normalized).eulerAngles.y;
+            return true;
+        }
+
+        bool WalkStep(ASHBird b, Flock f, ASHBirdSettings s, ASHBirdSettings.BirdType t, float dt, float sc, out float bob, out float nod)
+        {
+            bob = 0f; nod = 0f;
+            if (Time.time >= b.nextAnimSwap) return false;
+            bool clip = HasWalkClip(b, s);
+            float rate = s.hopRate / Mathf.Sqrt(sc);
+            float hopLen = s.hopDistance * sc;
+            var to = b.walkTo - b.perch; to.y = 0f;
+            float d = to.magnitude;
+            if (d < 0.03f) return false;
+            var dir = to / d;
+            b.targetYaw = Quaternion.LookRotation(dir).eulerAngles.y;
+            // turn in place first (small hops), then move
+            bool facing = Mathf.Abs(Mathf.DeltaAngle(b.transform.eulerAngles.y, b.targetYaw)) < 45f;
+            b.walkPhase += rate * dt;
+            float ph = b.walkPhase - Mathf.Floor(b.walkPhase);
+            float sn = Mathf.Sin(ph * Mathf.PI);
+            float pulse = clip ? 1f : 2f * sn * sn; // hop: the body moves in bursts, one per hop
+            float step = facing ? Mathf.Min(hopLen * rate * pulse * dt, d) : 0f;
+            if (step > 0f)
+            {
+                var next = b.perch + dir * step;
+                float space = s.groundSpacing * sc;
+                if (f != null)
+                    foreach (var m in f.m)
+                    {
+                        if (m == b || m.state != ASHBirdState.Landed) continue;
+                        float nd = Flat(m.perch, next);
+                        if (nd < space && nd < Flat(m.perch, b.perch)) return false;
+                    }
+                if (!GroundAt(b, next, dir, s, sc, out float gy)) return false;
+                next.y = gy;
+                b.perch = next;
+            }
+            if (!clip)
+            {
+                bob = sn * s.hopHeight * sc * (facing ? 1f : 0.5f);
+                nod = Mathf.Sin(ph * Mathf.PI * 2f) * s.hopNodDegrees;
+            }
+            return true;
+        }
+
+        /// <summary>Ground-snaps a walk step. Ground birds stay on terrain / their landing surface; perched birds stay on the same
+        /// collider top and never step past its edge.</summary>
+        bool GroundAt(ASHBird b, Vector3 p, Vector3 dir, ASHBirdSettings s, float sc, out float y)
+        {
+            y = p.y;
+            float up = s.maxStepUp + 0.25f;
+            if (!Physics.Raycast(p + Vector3.up * up, Vector3.down, out var h, up + s.maxStepUp + 0.25f, _mask, QueryTriggerInteraction.Ignore)) return false;
+            if (Mathf.Abs(h.point.y - b.perch.y) > s.maxStepUp) return false;
+            if (h.normal.y < Mathf.Cos(s.maxPerchSlope * Mathf.Deg2Rad)) return false;
+            bool sameSurface = b.surface && h.collider == b.surface;
+            if (b.perchGround)
+            {
+                if (!sameSurface && !(h.collider is TerrainCollider)) return false;
+            }
+            else
+            {
+                if (!sameSurface) return false;
+                var ahead = p + dir * Mathf.Max(s.edgeInset, 0.05f * sc);
+                if (!Physics.Raycast(ahead + Vector3.up * up, Vector3.down, out var h2, up + s.maxStepUp + 0.25f, _mask, QueryTriggerInteraction.Ignore)
+                    || h2.collider != b.surface || Mathf.Abs(h2.point.y - h.point.y) > s.maxStepUp) return false;
+            }
+            y = h.point.y;
+            return true;
+        }
+
+        static bool LandedCentroid(Flock f, ASHBird except, out Vector3 c)
+        {
+            c = Vector3.zero; int n = 0;
+            foreach (var m in f.m) { if (m == except || m.state != ASHBirdState.Landed) continue; c += m.perch; n++; }
+            if (n == 0) return false;
+            c /= n;
+            return true;
+        }
+
+        static Vector3 Nearest(Flock f, Vector3 p)
+        {
+            Vector3 best = p; float bd = float.MaxValue;
+            foreach (var m in f.m) { float d = (m.transform.position - p).sqrMagnitude; if (d < bd) { bd = d; best = m.transform.position; } }
+            return best;
+        }
+
+        // ------------------------------------------------------------------ noise: footsteps (player speed / stance), the dog, alert band
+        void TrackNoiseSources(float dt)
+        {
+            dt = Mathf.Max(dt, 0.0001f);
+            float k = 1f - Mathf.Exp(-8f * dt);
+            if (_player)
+            {
+                var p = _player.position;
+                if (_pHave) { float v = Flat(p, _pPrev) / dt; if (v > 40f) v = _pSpeed; _pSpeed = Mathf.Lerp(_pSpeed, v, k); }
+                _pPrev = p; _pHave = true;
+            }
+            var dog = ASHDogCompanion.Active;
+            if (dog && dog.isActiveAndEnabled)
+            {
+                var p = dog.transform.position;
+                if (_dHave) { float v = Flat(p, _dPrev) / dt; if (v > 40f) v = _dSpeed; _dSpeed = Mathf.Lerp(_dSpeed, v, k); }
+                _dPrev = p; _dHave = true;
+            }
+            else { _dHave = false; _dSpeed = 0f; }
+        }
+
+        /// <summary>0 = nothing, 1 = in the alert band, 2 = moderate noise inside flush distance, 3 = loud noise inside flush distance.</summary>
+        static int NoiseLevel(Flock f, Vector3 src, float flushDist, bool loud, float alertMul)
+        {
+            float bd = float.MaxValue;
+            foreach (var m in f.m)
+            {
+                if (m.state != ASHBirdState.Landed && m.state != ASHBirdState.Approach) continue;
+                float d = (m.transform.position - src).sqrMagnitude;
+                if (d < bd) bd = d;
+            }
+            if (bd == float.MaxValue) return 0;
+            if (bd < flushDist * flushDist) return loud ? 3 : 2;
+            float a = flushDist * alertMul;
+            return bd < a * a ? 1 : 0;
+        }
+
+        /// <summary>Returns true if the flock flushed.</summary>
+        bool NoiseCheck(Flock f, ASHBirdSettings s, ASHBirdSettings.BirdType t)
+        {
+            int level = 0;
+            Vector3 src = _player.position;
+            var br = ASH.Combat.ASHCombatBridge.Player;
+            float dist = t.takeOffDistance;
+            bool loud = false;
+            if (br && br.Crouching) { dist *= s.crouchTakeOffMul; loud = !s.crouchAlertsFirst; }
+            else if ((br && br.Sprinting) || _pSpeed > s.loudSpeed) { dist *= s.sprintTakeOffMul; loud = true; }
+            else if (_pSpeed < s.stillSpeed) dist *= s.stillTakeOffMul;
+            level = NoiseLevel(f, _player.position, dist, loud, s.alertDistanceMul);
+
+            var dog = ASHDogCompanion.Active;
+            if (dog && dog.isActiveAndEnabled && s.dogNoiseMeters > 0f)
+            {
+                float dd = s.dogNoiseMeters;
+                bool dl = false;
+                if (_dSpeed > s.dogRunSpeed) { dd *= s.dogRunMul; dl = true; }
+                else if (_dSpeed < s.stillSpeed) dd *= s.dogStillMul;
+                int lv = NoiseLevel(f, dog.transform.position, dd, dl, s.alertDistanceMul);
+                if (lv > level) { level = lv; src = dog.transform.position; }
+            }
+
+            if (level == 3 || (level >= 2 && !f.landed))
+            {
+                TakeOff(f, src, true, Nearest(f, src), 1f);
+                return true;
+            }
+            if (level >= 1 && f.landed)
+            {
+                f.threat = src;
+                if (!f.alert)
+                {
+                    f.alert = true;
+                    var first = Nearest(f, src);
+                    foreach (var m in f.m)
+                        m.alertFrom = Time.time + Mathf.Min(s.startleMaxDelay, Flat(m.transform.position, first) * s.startleSpreadPerMeter * 0.6f + Rng(0f, s.startleJitter));
+                }
+                f.alertUntil = Time.time + s.alertCalmSeconds;
+                f.landedUntil = Mathf.Max(f.landedUntil, Time.time + 2f);
+                if (level == 2)
+                {
+                    if (f.flushAt <= 0f) f.flushAt = Time.time + Rng(s.alertFreezeMin, Mathf.Max(s.alertFreezeMin, s.alertFreezeMax));
+                    else if (Time.time >= f.flushAt) { TakeOff(f, src, true, Nearest(f, src), 1f); return true; }
+                }
+                else f.flushAt = 0f;
+            }
+            else if (f.alert && Time.time >= f.alertUntil) { f.alert = false; f.flushAt = 0f; }
+            return false;
         }
 
         // ------------------------------------------------------------------ attack birds: climb, dive-bomb the player (or harass the dog), a few passes, then leave
@@ -581,6 +891,7 @@ namespace ASH.Wildlife.Birds
             if (!target) target = _player;
             if (!target) return;
             b.atkTarget = target;
+            b.alertW = b.alertTarget = 0f; b.gMode = 0;
             b.atkPasses = _rng.Next(Mathf.Max(1, s.passesMin), Mathf.Max(s.passesMin, s.passesMax) + 1);
             b.state = ASHBirdState.Attack;
             b.stateAt = Time.time;
@@ -713,13 +1024,14 @@ namespace ASH.Wildlife.Birds
             push.y = Mathf.Max(push.y, 0.2f);
             b.vel = b.vel * 0.5f + push.normalized * 2.5f;
             b.SetAnimatorOn(false);
+            b.alertW = b.alertTarget = 0f;
             _dead.Add(b);
             var s = S;
             if (s && s.deathClips != null && s.deathClips.Length > 0) PlayAt(s.deathClips, b.transform.position, 0.8f, 1f);
             if (f != null && f.m.Count > 0)
             {
                 if (s && s.attackBirdsEnabled) foreach (var m in f.m) if (m.aggressive && m.state != ASHBirdState.Attack) TryStartAttack(m, s);
-                TakeOff(f, b.transform.position, true);
+                TakeOff(f, b.transform.position, true, b.transform.position, s ? s.gunshotCascadeMul : 0.5f);
             }
         }
 

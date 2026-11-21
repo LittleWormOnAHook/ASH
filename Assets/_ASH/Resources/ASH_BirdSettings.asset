@@ -302,6 +302,47 @@ MonoBehaviour:
   gunshotScareMeters: 140
   takeOffUpSpeed: 4
   fleeDistance: 80
+  stillTakeOffMul: 0.4
+  stillSpeed: 0.35
+  loudSpeed: 5.5
+  crouchAlertsFirst: 1
+  dogNoiseMeters: 8
+  dogRunMul: 1.6
+  dogRunSpeed: 3.5
+  dogStillMul: 0.35
+  alertDistanceMul: 1.7
+  alertFreezeMin: 0.45
+  alertFreezeMax: 1.3
+  alertCalmSeconds: 3
+  alertHeadPitch: 24
+  alertBodyPitch: 9
+  alertAnimSpeed: 0.05
+  startleSpreadPerMeter: 0.12
+  startleJitter: 0.18
+  startleMaxDelay: 0.9
+  gunshotCascadeMul: 0.45
+  alarmCallChance: 0.35
+  alarmPitchMul: 1.1
+  noiseCheckInterval: 0.15
+  groundWalkEnabled: 1
+  walkState: 
+  walkChance: 0.35
+  peckAfterWalkChance: 0.6
+  walkBoutMin: 0.3
+  walkBoutMax: 1.3
+  hopDistance: 0.13
+  hopRate: 4.5
+  hopHeight: 0.035
+  hopNodDegrees: 6
+  maxWanderFromLanding: 2.5
+  groupCohesionMeters: 2.5
+  groundSpacing: 0.35
+  maxStepUp: 0.18
+  walkOnObjects: 1
+  idleSecondsMin: 2
+  idleSecondsMax: 6
+  peckSecondsMin: 2.2
+  peckSecondsMax: 5
   idleState: idle
   flyState: fly
   peckState: peck

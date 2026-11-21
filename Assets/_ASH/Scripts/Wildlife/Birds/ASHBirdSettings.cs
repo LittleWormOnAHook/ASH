@@ -129,6 +129,78 @@ namespace ASH.Wildlife.Birds
         [Range(0.5f, 15f)] public float takeOffUpSpeed = 4f;
         [Range(10f, 400f)] public float fleeDistance = 80f;
 
+        [Header("Noise / startle (footsteps, dog, gunshots; Play-editable)")]
+        [Tooltip("Player standing still: flush distance multiplier (they mostly ignore a motionless person).")]
+        [Range(0f, 1.5f)] public float stillTakeOffMul = 0.4f;
+        [Tooltip("Player speed (m/s) below which they count as standing still.")]
+        [Range(0f, 2f)] public float stillSpeed = 0.35f;
+        [Tooltip("Player speed (m/s) above which footsteps count as loud even without the sprint flag (e.g. running downhill).")]
+        [Range(2f, 15f)] public float loudSpeed = 5.5f;
+        [Tooltip("Crouched footsteps count as quiet: they still alert first, but only flush much closer.")]
+        public bool crouchAlertsFirst = true;
+        [Tooltip("Dog walking: flush distance in metres (the dog barks/runs = loud).")]
+        [Range(0f, 40f)] public float dogNoiseMeters = 8f;
+        [Range(1f, 4f)] public float dogRunMul = 1.6f;
+        [Tooltip("Dog speed (m/s) above which it counts as running (loud).")]
+        [Range(1f, 12f)] public float dogRunSpeed = 3.5f;
+        [Range(0f, 1.5f)] public float dogStillMul = 0.35f;
+        [Tooltip("Alert band: a noise source within flushDistance x this makes the group freeze and look up, without flushing.")]
+        [Range(1f, 4f)] public float alertDistanceMul = 1.7f;
+        [Tooltip("Moderate noise inside flush distance: they freeze head-up this long, then flush.")]
+        [Range(0f, 5f)] public float alertFreezeMin = 0.45f;
+        [Range(0f, 8f)] public float alertFreezeMax = 1.3f;
+        [Tooltip("Seconds without noise before alerted birds relax and go back to pecking.")]
+        [Range(0.5f, 20f)] public float alertCalmSeconds = 3f;
+        [Tooltip("Head lift (degrees) on the head/neck bones while alert.")]
+        [Range(0f, 60f)] public float alertHeadPitch = 24f;
+        [Tooltip("Whole-body tilt back (degrees) while alert (upright stance).")]
+        [Range(0f, 30f)] public float alertBodyPitch = 9f;
+        [Tooltip("Animator speed while frozen alert (0 = full freeze).")]
+        [Range(0f, 1f)] public float alertAnimSpeed = 0.05f;
+        [Tooltip("Startle spreads through the group: extra launch delay per metre from the first bird that reacted.")]
+        [Range(0f, 1f)] public float startleSpreadPerMeter = 0.12f;
+        [Range(0f, 1f)] public float startleJitter = 0.18f;
+        [Range(0f, 3f)] public float startleMaxDelay = 0.9f;
+        [Tooltip("Gunshots spread the startle faster (multiplies the spread delay).")]
+        [Range(0f, 2f)] public float gunshotCascadeMul = 0.45f;
+        [Tooltip("Chance each startled bird gives an alarm call as it lifts off (the first one always calls).")]
+        [Range(0f, 1f)] public float alarmCallChance = 0.35f;
+        [Range(0.5f, 2f)] public float alarmPitchMul = 1.1f;
+        [Range(0.05f, 1f)] public float noiseCheckInterval = 0.15f;
+
+        [Header("Ground behaviour (walk / peck; Play-editable)")]
+        public bool groundWalkEnabled = true;
+        [Tooltip("Animator state for walking. The crow rig has none (idle / fly / peck only), so empty = procedural hop-walk over the idle pose.")]
+        public string walkState = "";
+        [Tooltip("Chance a landed bird starts a short walk at each behaviour change (else idle / peck).")]
+        [Range(0f, 1f)] public float walkChance = 0.35f;
+        [Tooltip("Chance to peck right after a walk (found something).")]
+        [Range(0f, 1f)] public float peckAfterWalkChance = 0.6f;
+        [Tooltip("Walk bout length in metres at scale 1.")]
+        [Range(0.05f, 5f)] public float walkBoutMin = 0.3f;
+        [Range(0.1f, 8f)] public float walkBoutMax = 1.3f;
+        [Tooltip("Distance per hop/step at scale 1.")]
+        [Range(0.02f, 0.6f)] public float hopDistance = 0.13f;
+        [Tooltip("Hops per second (small birds hop quicker; scaled by 1/sqrt(scale)).")]
+        [Range(0.5f, 12f)] public float hopRate = 4.5f;
+        [Tooltip("Hop height at scale 1 (body bob).")]
+        [Range(0f, 0.3f)] public float hopHeight = 0.035f;
+        [Tooltip("Forward nod per hop (degrees).")]
+        [Range(0f, 30f)] public float hopNodDegrees = 6f;
+        [Tooltip("How far a bird may wander from where it landed (metres, scaled).")]
+        [Range(0.2f, 15f)] public float maxWanderFromLanding = 2.5f;
+        [Tooltip("Loose group: a bird farther than this from the landed group's centre walks back toward it.")]
+        [Range(0.3f, 20f)] public float groupCohesionMeters = 2.5f;
+        [Tooltip("Personal space between walking mates (scaled).")]
+        [Range(0.05f, 2f)] public float groundSpacing = 0.35f;
+        [Range(0.02f, 1f)] public float maxStepUp = 0.18f;
+        [Tooltip("Birds perched on objects (fences, rocks, roofs) also walk along the top, never past the edge.")]
+        public bool walkOnObjects = true;
+        [Range(0.5f, 20f)] public float idleSecondsMin = 2f;
+        [Range(0.5f, 30f)] public float idleSecondsMax = 6f;
+        [Range(0.5f, 20f)] public float peckSecondsMin = 2.2f;
+        [Range(0.5f, 30f)] public float peckSecondsMax = 5f;
+
         [Header("Animation")]
         public string idleState = "idle";
         public string flyState = "fly";

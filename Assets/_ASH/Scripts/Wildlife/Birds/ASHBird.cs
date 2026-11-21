@@ -36,6 +36,14 @@ namespace ASH.Wildlife.Birds
         internal int atkPasses, atkPhase;
         internal float atkPhaseAt, attackReadyAt;
         public bool Aggressive => aggressive;
+        // ground behaviour: 0 idle, 1 peck, 2 walk
+        internal int gMode;
+        internal Vector3 groundHome, walkTo;
+        internal float walkPhase, alertW, alertTarget, alertFrom;
+        internal Collider surface;
+        Transform _head, _neck;
+        Quaternion _headBase, _headSet, _neckBase, _neckSet;
+        bool _headApplied;
 
         string _anim;
         Renderer[] _renderers;
@@ -58,6 +66,12 @@ namespace ASH.Wildlife.Birds
             if (!body) body = GetComponent<SphereCollider>();
             if (!body) { body = gameObject.AddComponent<SphereCollider>(); body.radius = bodyRadius; }
             _renderers = GetComponentsInChildren<Renderer>(true);
+            foreach (var t in GetComponentsInChildren<Transform>(true))
+            {
+                var n = t.name.ToLowerInvariant();
+                if (!_head && n == "head") _head = t;
+                else if (!_neck && n == "neck") _neck = t;
+            }
             var rb = GetComponent<Rigidbody>();
             if (!rb) rb = gameObject.AddComponent<Rigidbody>();
             rb.isKinematic = true; rb.useGravity = false; rb.interpolation = RigidbodyInterpolation.None;
@@ -92,6 +106,32 @@ namespace ASH.Wildlife.Birds
             gliding = false;
             vel = Vector3.zero;
             tickAcc = 0f;
+            gMode = 0; alertW = alertTarget = 0f; surface = null; walkPhase = 0f;
+            _headApplied = false;
+        }
+
+        /// <summary>Alert head-up: lifts head and neck after the Animator has posed them. Detects whether the Animator wrote this
+        /// frame (culled / disabled animators don't), so the offset never accumulates.</summary>
+        void LateUpdate()
+        {
+            var s = ASHBirdSettings.I;
+            float ang = s ? s.alertHeadPitch * alertW : 0f;
+            if (ang < 0.05f && !_headApplied) return;
+            var right = transform.right;
+            if (_head) ApplyLift(_head, ref _headBase, ref _headSet, right, ang * 0.6f);
+            if (_neck) ApplyLift(_neck, ref _neckBase, ref _neckSet, right, ang * 0.4f);
+            _headApplied = ang >= 0.05f;
+        }
+
+        void ApplyLift(Transform bone, ref Quaternion baseRot, ref Quaternion setRot, Vector3 axis, float ang)
+        {
+            var cur = bone.localRotation;
+            // unchanged since we set it = the Animator didn't pose this frame, so start from the stored base
+            var start = _headApplied && Quaternion.Dot(cur, setRot) > 0.999999f ? baseRot : cur;
+            baseRot = start;
+            bone.localRotation = start;
+            if (ang >= 0.05f) bone.rotation = Quaternion.AngleAxis(-ang, axis) * bone.rotation;
+            setRot = bone.localRotation;
         }
 
         internal void Play(string st, float speed)
