@@ -15,6 +15,9 @@ MonoBehaviour:
   loadingScreenEnabled: 1
   coverEditorPlayInGameScene: 1
   coverMainMenuLoads: 1
+  coverEditorPlayInMenu: 1
+  warmupOnMenu: 1
+  menuSettleSeconds: 0.4
   minDisplaySeconds: 2
   fadeInSeconds: 0.25
   fadeOutSeconds: 0.8
@@ -39,8 +42,30 @@ MonoBehaviour:
   settleMaxSeconds: 15
   settleStableSeconds: 0.75
   settleMaxFrameMs: 60
-  background: {fileID: 0}
+  background: {fileID: 21300000, guid: 7d2365b52e0d4c6b9a3b4a6f3bbc2634, type: 3}
   backgroundTint: {r: 0.06, g: 0.055, b: 0.05, a: 1}
+  backgroundOpacity: 0.7
+  backgroundDarken: 0.35
+  darkenColor: {r: 0.02, g: 0.018, b: 0.016, a: 1}
+  vignette: 0.6
+  backgroundZoom: 1.03
+  backgroundPushIn: 0.04
+  ringSize: 150
+  ringThickness: 0.06
+  dotSize: 0.12
+  ringColor: {r: 0.95, g: 0.62, b: 0.28, a: 1}
+  dotColor: {r: 0.93, g: 0.9, b: 0.84, a: 1}
+  ringSpeed: 240
+  circleOffset: {x: 0, y: 30}
+  percentFontSize: 44
+  percentColor: {r: 0.93, g: 0.9, b: 0.84, a: 1}
+  percentGap: 26
+  showStatusText: 1
+  statusFontSize: 20
+  progressSmoothing: 1.2
+  showTitle: 1
+  showProgressBar: 0
+  showTips: 1
   tipSeconds: 6
   tips:
   - Wet clothes steal heat fast. Dry them by a fire before night falls.

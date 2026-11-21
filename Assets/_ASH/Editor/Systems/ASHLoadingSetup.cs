@@ -28,7 +28,31 @@ namespace ASH.EditorTools
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode) { Debug.LogWarning("[ASH] Stop Play mode first."); return; }
             var s = EnsureSettings();
+            AssignBackground(s, false);
             Collect(s);
+        }
+
+        public const string CabinName = "ASH_Loading_Cabin";
+        public const string CabinDefaultPath = "Assets/_ASH/Art/UI/ASH_Loading_Cabin.png";
+
+        /// <summary>t558: background = Grandpa's cabin screenshot (Assets/_ASH/Art/UI/ASH_Loading_Cabin.*) when the slot is empty (or force).</summary>
+        public static void AssignBackground(ASHLoadingSettings s, bool force)
+        {
+            if (!s || (s.background && !force)) return;
+            string path = AssetDatabase.LoadAssetAtPath<Texture2D>(CabinDefaultPath) ? CabinDefaultPath : null;
+            if (path == null)
+                foreach (var g in AssetDatabase.FindAssets(CabinName + " t:Texture2D", new[] { "Assets/_ASH" }))
+                {
+                    var p = AssetDatabase.GUIDToAssetPath(g);
+                    if (System.IO.Path.GetFileNameWithoutExtension(p) == CabinName) { path = p; break; }
+                }
+            if (path == null) return;
+            var sp = AssetDatabase.LoadAllAssetsAtPath(path).OfType<Sprite>().FirstOrDefault();
+            if (!sp) { Debug.LogWarning($"[ASH] Loading: {path} isn't imported as a Sprite (Texture Type: Sprite (2D and UI))."); return; }
+            s.background = sp;
+            EditorUtility.SetDirty(s);
+            AssetDatabase.SaveAssetIfDirty(s);
+            Debug.Log($"[ASH] Loading: background = {path}");
         }
 
         [MenuItem("ASH/Systems/Loading/Collect Shader Variants (idempotent)", false, 281)]
@@ -125,7 +149,8 @@ namespace ASH.EditorTools
             if (!s.shaderVariants) s.shaderVariants = svc;
             EditorUtility.SetDirty(svc);
             EditorUtility.SetDirty(s);
-            AssetDatabase.SaveAssets();
+            AssetDatabase.SaveAssetIfDirty(svc); // only our two assets (SaveAssets would also write other unsaved edits open in the Editor)
+            AssetDatabase.SaveAssetIfDirty(s);
             Debug.Log($"[ASH] Loading screen ready: {SettingsPath}. Shader variants {SvcPath}: {svc.shaderCount} shaders, {svc.variantCount} variants (was {before}; +{fromSession} from this Editor session, +{fromMats} from {mats.Count} materials). ProjectSettings untouched. Tip: play the game a while in the Editor, stop, then run ASH/Systems/Loading/Collect Shader Variants again to capture more.");
         }
 
@@ -138,6 +163,36 @@ namespace ASH.EditorTools
                 return svc.Add(v);
             }
             catch { return false; } // that pass / keyword set doesn't exist in this shader
+        }
+    }
+
+    /// <summary>t558: a screenshot named ASH_Loading_Cabin.* dropped into Assets/_ASH imports as a UI sprite (first import only) and fills an empty loading background.</summary>
+    public sealed class ASHLoadingArtImporter : AssetPostprocessor
+    {
+        static bool IsCabin(string path) => path.StartsWith("Assets/_ASH/") && System.IO.Path.GetFileNameWithoutExtension(path) == ASHLoadingSetup.CabinName;
+
+        void OnPreprocessTexture()
+        {
+            if (!IsCabin(assetPath) || !assetImporter.importSettingsMissing) return;
+            var ti = (TextureImporter)assetImporter;
+            ti.textureType = TextureImporterType.Sprite;
+            ti.spriteImportMode = SpriteImportMode.Single;
+            ti.mipmapEnabled = false;
+            ti.npotScale = TextureImporterNPOTScale.None;
+            ti.wrapMode = TextureWrapMode.Clamp;
+            ti.alphaIsTransparency = false;
+            ti.maxTextureSize = 2048;
+            ti.textureCompression = TextureImporterCompression.CompressedHQ;
+        }
+
+        static void OnPostprocessAllAssets(string[] imported, string[] deleted, string[] moved, string[] movedFrom)
+        {
+            if (!imported.Any(IsCabin)) return;
+            EditorApplication.delayCall += () =>
+            {
+                var s = AssetDatabase.LoadAssetAtPath<ASHLoadingSettings>("Assets/_ASH/Resources/ASH_LoadingSettings.asset");
+                ASHLoadingSetup.AssignBackground(s, false);
+            };
         }
     }
 }

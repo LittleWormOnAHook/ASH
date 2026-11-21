@@ -646,7 +646,20 @@ namespace ASH.Wildlife.Birds
             float spd = Mathf.Clamp(b.vel.magnitude, cruise * 0.6f, cruise * 1.3f);
             b.vel = b.vel.sqrMagnitude > 0.0001f ? b.vel.normalized * spd : tr.forward * spd;
             b.vel.y = Mathf.Clamp(b.vel.y, -cruise * 0.55f, cruise * 0.6f);
-            pos += b.vel * dt;
+            var stepV = b.vel * dt;
+            if (s.hardCollisionGuard && stepV.sqrMagnitude > 1e-8f)
+            {
+                // t560: never fly through trees / rocks / buildings: sweep this frame's step and bounce off what it hits
+                float br = 0.18f * Mathf.Max(0.3f, t.scale), sl = stepV.magnitude;
+                if (Physics.SphereCast(pos, br, stepV / sl, out var sh, sl + br, _mask, QueryTriggerInteraction.Ignore))
+                {
+                    pos += stepV / sl * Mathf.Max(0f, sh.distance - 0.05f);
+                    b.vel = Vector3.Reflect(b.vel, sh.normal) * 0.6f + (sh.normal + Vector3.up * 0.5f).normalized * (cruise * 0.35f);
+                    b.avoidAt = 0f;
+                    stepV = Vector3.zero;
+                }
+            }
+            pos += stepV;
             float floor = b.groundY + 0.8f;
             if (pos.y < floor) { pos.y = floor; if (b.vel.y < 0f) b.vel.y = 0f; }
             tr.position = pos;

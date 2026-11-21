@@ -16,20 +16,23 @@ namespace ASH.Wildlife
         public Bounds bounds;
         public float surfaceY;
 
-        static readonly List<ASHWaterBody> _cache = new List<ASHWaterBody>();
-        static float _cacheAt = -999f;
-        static string _cacheKey;
+        sealed class CacheEntry { public float at = -999f; public readonly List<ASHWaterBody> list = new List<ASHWaterBody>(); }
+        static readonly Dictionary<string, CacheEntry> _caches = new Dictionary<string, CacheEntry>();
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)] static void ResetCache() => _caches.Clear();
 
         /// <summary>Water bodies whose GameObject name contains any of the given names (cached; rescanned every 30 s).</summary>
         public static List<ASHWaterBody> Find(string[] names, float surfaceOffset = 0f)
         {
             string key = names == null ? "" : string.Join("|", names) + surfaceOffset;
-            if (Time.unscaledTime - _cacheAt < 30f && key == _cacheKey)
+            // t560: one cache entry per name set (birds and wildlife ask with different keys; a single slot would rescan the scene every call)
+            if (!_caches.TryGetValue(key, out var e)) { e = new CacheEntry(); _caches[key] = e; }
+            var _cache = e.list;
+            if (e.at > 0f && Time.unscaledTime - e.at < 30f)
             {
                 _cache.RemoveAll(w => w == null || !w.root);
                 return _cache;
             }
-            _cacheAt = Time.unscaledTime; _cacheKey = key;
+            e.at = Time.unscaledTime;
             _cache.Clear();
             if (names == null || names.Length == 0) return _cache;
             foreach (var tr in Object.FindObjectsByType<Transform>(FindObjectsInactive.Exclude))

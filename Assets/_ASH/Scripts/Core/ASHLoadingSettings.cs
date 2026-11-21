@@ -14,8 +14,14 @@ namespace ASH.Core
         public bool loadingScreenEnabled = true;
         [Tooltip("Also cover Editor Play that starts directly in a game scene (Play From Main Menu off).")]
         public bool coverEditorPlayInGameScene = true;
-        [Tooltip("Show the screen for scene changes to the main menu too (only the async load, no warmup).")]
+        [Tooltip("Show the screen for scene changes to the main menu too (async load + shader warmup).")]
         public bool coverMainMenuLoads = true;
+        [Tooltip("t555: Play (or the built game) starting on the main menu: cover it while the menu's shaders and the game's shader variants warm up.")]
+        public bool coverEditorPlayInMenu = true;
+        [Tooltip("t555: warm the shader variant collection while on the menu screen too (the game scene load is then faster).")]
+        public bool warmupOnMenu = true;
+        [Tooltip("Seconds the menu gets to build its UI before warmup starts.")]
+        [Range(0f, 10f)] public float menuSettleSeconds = 0.4f;
         [Range(0f, 20f)] public float minDisplaySeconds = 2f;
         [Range(0.05f, 5f)] public float fadeInSeconds = 0.25f;
         [Range(0.05f, 5f)] public float fadeOutSeconds = 0.8f;
@@ -56,10 +62,50 @@ namespace ASH.Core
         [Range(0.1f, 10f)] public float settleStableSeconds = 0.75f;
         [Range(10f, 500f)] public float settleMaxFrameMs = 60f;
 
-        [Header("Look")]
-        [Tooltip("Optional background art. Empty = dark ash gradient.")]
+        [Header("Look: background (t557/t558)")]
+        [Tooltip("Background image, faded. Default: Grandpa's cabin, Assets/_ASH/Art/UI/ASH_Loading_Cabin.png. Swap freely; a new image named ASH_Loading_Cabin.* is picked up automatically when the slot is empty.")]
         public Sprite background;
-        public Color backgroundTint = new Color(0.06f, 0.055f, 0.05f, 1f);
+        [Tooltip("Colour behind the image (and the whole background when no image is set).")]
+        public Color backgroundTint = new Color(0.03f, 0.028f, 0.025f, 1f);
+        [Tooltip("How visible the image is (0 = hidden, 1 = full strength).")]
+        [Range(0f, 1f)] public float backgroundOpacity = 0.7f;
+        [Tooltip("Dark wash over the image so the circle and percentage read clearly.")]
+        [Range(0f, 1f)] public float backgroundDarken = 0.35f;
+        public Color darkenColor = new Color(0.02f, 0.018f, 0.016f, 1f);
+        [Tooltip("Darker edges.")]
+        [Range(0f, 1f)] public float vignette = 0.6f;
+        [Tooltip("Image zoom (fills the screen, keeps aspect).")]
+        [Range(1f, 2f)] public float backgroundZoom = 1.03f;
+        [Tooltip("Slow push-in while loading (zoom added over 20 s). 0 = still.")]
+        [Range(0f, 0.3f)] public float backgroundPushIn = 0.04f;
+
+        [Header("Look: progress circle (saving-icon style, t556)")]
+        [Tooltip("Circle diameter (pixels at 1920x1080).")]
+        [Range(40f, 600f)] public float ringSize = 150f;
+        [Tooltip("Ring line thickness, fraction of the radius.")]
+        [Range(0.01f, 0.4f)] public float ringThickness = 0.06f;
+        [Tooltip("Dot size, fraction of the circle diameter (saving icon: 0.235).")]
+        [Range(0.02f, 0.6f)] public float dotSize = 0.12f;
+        public Color ringColor = new Color(0.95f, 0.62f, 0.28f, 1f);
+        public Color dotColor = new Color(0.93f, 0.9f, 0.84f, 1f);
+        [Tooltip("Dot orbit speed, degrees per second (negative = clockwise... positive spins the same way as the saving icon).")]
+        [Range(-1440f, 1440f)] public float ringSpeed = 240f;
+        [Tooltip("Circle position from the screen centre.")]
+        public Vector2 circleOffset = new Vector2(0f, 30f);
+        [Range(10, 140)] public int percentFontSize = 44;
+        public Color percentColor = new Color(0.93f, 0.9f, 0.84f, 1f);
+        [Tooltip("Gap between the circle and the percentage.")]
+        [Range(0f, 300f)] public float percentGap = 26f;
+        [Tooltip("Small status line under the percentage (Loading / Preparing shaders / ...).")]
+        public bool showStatusText = true;
+        [Range(8, 80)] public int statusFontSize = 20;
+        [Tooltip("How fast the shown percentage catches up with real progress (fraction per second). It always reaches 100% before the fade.")]
+        [Range(0.1f, 10f)] public float progressSmoothing = 1.2f;
+
+        [Header("Look: extras")]
+        public bool showTitle = true;
+        public bool showProgressBar = false;
+        public bool showTips = true;
         [Range(1f, 60f)] public float tipSeconds = 6f;
         [TextArea(1, 3)]
         public string[] tips =

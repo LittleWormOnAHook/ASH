@@ -96,6 +96,10 @@ namespace ASH.Wildlife
             [Range(0f, 1.2f)] public float bodyRadius = 0f;
             [Range(0f, 2.5f)] public float bodyLength = 0f;
             [Range(0f, 1.8f)] public float bodyHeight = 0f;
+            [Tooltip("t560: look-ahead for obstacle avoidance x this (0 = 1). Bigger = turns away earlier.")]
+            [Range(0f, 4f)] public float avoidLookAheadMul = 0f;
+            [Tooltip("t561: how high a step / low ledge this species can climb x this (0 = 1).")]
+            [Range(0f, 3f)] public float stepUpMul = 0f;
 
             [Header("Senses (0 range = use detect / stalk)")]
             [Range(0f, 80f)] public float sightRange = 0f;
@@ -275,6 +279,32 @@ namespace ASH.Wildlife
         [Range(0f, 0.4f)] public float groundSmoothTime = 0.07f;
         [Tooltip("Ground probe ignores other animals / the player so they never stand on each other's colliders.")]
         public bool groundIgnoreCreatures = true;
+
+        [Header("Avoidance / rocks (t560, t561; Play-editable, applied when an animal spawns or settings change)")]
+        [Tooltip("Animals stand only on terrain (or on colliders at most Max Above Terrain over it: roads, low logs). Taller colliders (large rocks, buildings, vehicles, fences) are obstacles to steer around.")]
+        public bool terrainOnlyGround = true;
+        [Range(0.05f, 3f)] public float maxAboveTerrain = 0.6f;
+        [Tooltip("An animal standing this high above the terrain (on a rock / roof) hops down to the nearest clear terrain spot.")]
+        [Range(0.2f, 5f)] public float offRockHeight = 0.9f;
+        [Range(0.1f, 2f)] public float hopSeconds = 0.55f;
+        [Range(0f, 3f)] public float hopHeight = 0.6f;
+        [Tooltip("Stuck this long = back up and turn away (0 = off).")]
+        [Range(0f, 5f)] public float stuckBackupSeconds = 1f;
+        [Range(0.1f, 3f)] public float backupSeconds = 0.6f;
+        [Range(0.1f, 1.5f)] public float backupSpeedMul = 0.5f;
+        [Tooltip("Personal space kept from other animals, metres beyond both bodies (0 = off).")]
+        [Range(0f, 4f)] public float separationRadius = 0.6f;
+        [Range(0f, 4f)] public float separationWeight = 0.8f;
+        [Tooltip("A drop deeper than this just ahead counts as a cliff (0 = off).")]
+        [Range(0f, 20f)] public float cliffDrop = 2.5f;
+        [Tooltip("Global look-ahead multiplier for avoidance (whiskers + blocked check).")]
+        [Range(0.3f, 4f)] public float avoidLookAheadMul = 1.2f;
+        [Tooltip("Look-ahead while charging / attacking (shorter so it still commits to the target).")]
+        [Range(0.2f, 1.5f)] public float chargeLookAheadMul = 0.7f;
+        [Tooltip("Keep out of these lakes / ponds (scene object names). Fishing shore stays reachable: only water deeper than Water Min Depth counts.")]
+        public bool avoidWater = true;
+        public string[] waterObjectNames = { "Lake Tinkiller" };
+        [Range(0.05f, 2f)] public float waterMinDepth = 0.25f;
         [Tooltip("Boar-style charge speed vs run.")]
         [Range(0.6f, 1.6f)] public float chargeSpeedMul = 1.0f;
 
@@ -661,12 +691,42 @@ namespace ASH.Wildlife
             t.whiskerAngle = whiskerAngle;
             t.depenetrate = depenetrate;
             t.environmentLayers = environmentLayers;
+            // t560 / t561 avoidance
+            t.terrainOnlyGround = terrainOnlyGround;
+            t.maxAboveTerrain = maxAboveTerrain;
+            t.offRockHeight = Mathf.Max(offRockHeight, maxAboveTerrain + 0.1f);
+            t.hopSeconds = hopSeconds; t.hopHeight = hopHeight;
+            t.stuckBackupSeconds = stuckBackupSeconds; t.backupSeconds = backupSeconds; t.backupSpeedMul = backupSpeedMul;
+            t.separationRadius = separationRadius; t.separationWeight = separationWeight;
+            t.maxDrop = cliffDrop;
+            t.lookAheadMul = avoidLookAheadMul * (sp != null && sp.avoidLookAheadMul > 0.01f ? sp.avoidLookAheadMul : 1f);
+            if (sp != null && sp.stepUpMul > 0.01f) t.maxStepUp *= sp.stepUpMul;
+            t.isWater = avoidWater ? WaterProbe() : null;
             float sc = Scale(sp, size);
             var body = Body(sp);
             t.bodyRadius = body.x * sc;
             t.bodyLength = body.y * sc;
             t.bodyHeight = body.z * sc;
             return t;
+        }
+
+        System.Func<Vector3, bool> _waterProbe; string _waterKey;
+        /// <summary>Deep-water test over the named lakes (cached; lakes are looked up by ASHWaterBody, 30 s cache).</summary>
+        System.Func<Vector3, bool> WaterProbe()
+        {
+            string key = (waterObjectNames != null ? string.Join("|", waterObjectNames) : "") + "/" + waterMinDepth;
+            if (_waterProbe != null && _waterKey == key) return _waterProbe;
+            _waterKey = key;
+            var names = waterObjectNames; float min = waterMinDepth; int mask = environmentLayers;
+            _waterProbe = p =>
+            {
+                if (names == null || names.Length == 0) return false;
+                var lakes = ASHWaterBody.Find(names);
+                if (lakes == null) return false;
+                for (int i = 0; i < lakes.Count; i++) if (lakes[i] != null && lakes[i].Depth(p, mask) >= min) return true;
+                return false;
+            };
+            return _waterProbe;
         }
 
         float ClipRef(float measured, float gait)

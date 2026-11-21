@@ -31,7 +31,40 @@ namespace ASH.Movement
             public float groundSmoothTime = 0f;
             [Tooltip("Ground probe skips creatures (same layer as this body, the Player tag, non-static rigidbodies).")]
             public bool groundIgnoreCreatures;
+
+            // t560/t561 avoidance (defaults = off, wildlife turns them on through ASH_WildlifeSettings)
+            [Tooltip("Stand only on terrain, or on colliders at most Max Above Terrain over it (roads, low logs). Taller things (large rocks, buildings, vehicles) are obstacles.")]
+            public bool terrainOnlyGround;
+            public float maxAboveTerrain = 0.6f;
+            [Tooltip("Standing this high above the terrain (on a rock...) = hop down to the nearest clear terrain spot.")]
+            public float offRockHeight = 0.9f;
+            public float hopSeconds = 0.55f, hopHeight = 0.6f;
+            [Tooltip("Stuck this long = back up and turn away (0 = off).")]
+            public float stuckBackupSeconds;
+            public float backupSeconds = 0.6f, backupSpeedMul = 0.5f;
+            [Tooltip("Keep this much space from other animals (0 = off).")]
+            public float separationRadius;
+            public float separationWeight = 0.8f;
+            [Tooltip("Treat a drop deeper than this ahead as a cliff (0 = off).")]
+            public float maxDrop;
+            [Tooltip("Look-ahead multiplier for whiskers and the blocked check.")]
+            public float lookAheadMul = 1f;
+            [System.NonSerialized] public System.Func<Vector3, bool> isWater;
         }
+
+        static readonly System.Collections.Generic.List<ASHGroundLocomotion> All = new System.Collections.Generic.List<ASHGroundLocomotion>();
+        void OnEnable() { if (!All.Contains(this)) All.Add(this); }
+        void OnDisable() { All.Remove(this); }
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)] static void ResetAll() => All.Clear();
+
+        /// <summary>Runtime look-ahead scale set by the AI (shorter while charging so it still commits to the target).</summary>
+        public float LookAheadScale { get; set; } = 1f;
+        /// <summary>True while hopping down off a rock.</summary>
+        public bool Hopping => _hopT >= 0f;
+        float LA => Mathf.Max(0.2f, tune.lookAheadMul * LookAheadScale);
+
+        float _hopT = -1f, _backupUntil, _backupCooldown, _rockCheckAt;
+        Vector3 _hopFrom, _hopTo;
 
         public Tune tune = new Tune();
         public Animator animator;
@@ -80,13 +113,34 @@ namespace ASH.Movement
         public bool MoveTo(Vector3 target, float want, float arrive)
         {
             float dt = Time.deltaTime;
+            if (TickHop(dt)) return false;
             var to = target - transform.position; to.y = 0f; float d = to.magnitude;
             if (d <= arrive) { _turningInPlace = false; Stop(); return true; }
             var dir = to / d;
             if (d < 1.2f && _speed < 0.3f && !_turningInPlace && Mathf.Abs(Mathf.DeltaAngle(_yaw, Mathf.Atan2(dir.x, dir.z) * Mathf.Rad2Deg)) > 100f)
             { Stop(); return true; }
+            // t560: stuck -> back up a little and turn away
+            if (tune.stuckBackupSeconds > 0f && _stuckT > tune.stuckBackupSeconds && Time.time > _backupCooldown && Time.time >= _backupUntil)
+            {
+                _backupUntil = Time.time + tune.backupSeconds;
+                _backupCooldown = _backupUntil + 1.5f;
+                float side = Random.value < 0.5f ? 1f : -1f;
+                var alt = Quaternion.Euler(0f, side * Random.Range(100f, 140f), 0f) * dir;
+                if (Blocked(alt, 1.2f)) alt = Quaternion.Euler(0f, -side * Random.Range(100f, 140f), 0f) * dir;
+                _detour = alt; _detourUntil = _backupUntil + 1f;
+            }
+            if (Time.time < _backupUntil)
+            {
+                _turningInPlace = false;
+                _speed = Mathf.MoveTowards(_speed, tune.walkSpeed * tune.backupSpeedMul, tune.acceleration * dt);
+                var back = -(Quaternion.Euler(0f, _yaw, 0f) * Vector3.forward);
+                Step(back, dt);
+                Face(transform.position + _detour, dt);
+                _stuckT = Mathf.Max(0f, _stuckT - dt);
+                return false;
+            }
             if (Time.time < _detourUntil) dir = _detour;
-            else if (Blocked(dir, Mathf.Min(d, 0.9f)))
+            else if (Blocked(dir, Mathf.Min(d, 0.9f * LA)))
             {
                 bool found = false;
                 foreach (float a in new[] { 40f, -40f, 75f, -75f, 110f, -110f, 150f, -150f })
@@ -96,7 +150,7 @@ namespace ASH.Movement
                 }
                 if (!found) { _stuckT += dt; _speed = 0f; _turningInPlace = false; Face(transform.position + dir, dt); Depenetrate(); return false; }
             }
-            dir = Whiskers(dir);
+            dir = Separate(Whiskers(dir));
             float yawTo = Mathf.Atan2(dir.x, dir.z) * Mathf.Rad2Deg; float diff = Mathf.DeltaAngle(_yaw, yawTo);
             if (!_turningInPlace && Mathf.Abs(diff) > tune.turnInPlaceAngle && _speed < tune.trotSpeed) _turningInPlace = true;
             else if (_turningInPlace && Mathf.Abs(diff) < tune.turnInPlaceDone) _turningInPlace = false;
@@ -114,6 +168,7 @@ namespace ASH.Movement
         public void Stop()
         {
             float dt = Time.deltaTime;
+            if (TickHop(dt)) return;
             _speed = Mathf.MoveTowards(_speed, 0f, tune.acceleration * 2f * dt);
             if (_speed > 0.01f) Step(transform.forward, dt);
             else { _moving = false; Depenetrate(); }
@@ -197,6 +252,7 @@ namespace ASH.Movement
             for (int i = 0; i < n; i++)
             {
                 var h = Hits[i]; if (Ignore(h.collider) || (tune.groundIgnoreCreatures && Creature(h.collider))) continue;
+                if (tune.terrainOnlyGround && !(h.collider is TerrainCollider) && TerrainY(h.point, out var ty) && h.point.y - ty > tune.maxAboveTerrain) continue; // t561: not on rock tops
                 if (h.distance < best) { best = h.distance; point = h.point; normal = h.normal; ok = true; }
             }
             return ok;
@@ -241,17 +297,124 @@ namespace ASH.Movement
             float cos = Mathf.Cos(tune.maxSlope * Mathf.Deg2Rad), best = float.MaxValue; bool ok = false;
             for (int i = 0; i < n; i++)
             {
-                var h = Hits[i]; if (h.distance <= 0f || Ignore(h.collider) || h.normal.y >= cos) continue;
+                var h = Hits[i]; if (!IsObstacle(h, cos)) continue;
                 if (h.distance < best) { best = h.distance; hit = h; ok = true; }
             }
             return ok;
         }
 
-        bool Blocked(Vector3 dir, float dist) => Sweep(transform.position, dir, dir, dist, out _);
+        bool Blocked(Vector3 dir, float dist) => Sweep(transform.position, dir, dir, dist, out _) || Hazard(dir);
+
+        /// <summary>Wall-like hit, or (terrain-only ground) any collider that rises more than maxAboveTerrain over the terrain: large rocks, buildings, vehicles, fences.</summary>
+        bool IsObstacle(RaycastHit h, float cos)
+        {
+            if (h.distance <= 0f || Ignore(h.collider)) return false;
+            if (tune.terrainOnlyGround && !(h.collider is TerrainCollider) && TerrainY(h.point, out var ty) && h.collider.bounds.max.y - ty > tune.maxAboveTerrain) return true;
+            return h.normal.y < cos;
+        }
+
+        /// <summary>Cliff edge (drop deeper than maxDrop or no ground) or water just ahead.</summary>
+        bool Hazard(Vector3 dir)
+        {
+            if (tune.maxDrop <= 0f && tune.isWater == null) return false;
+            var pos = transform.position;
+            var ahead = pos + dir * Mathf.Max(tune.bodyLength * 0.5f + 0.6f, tune.whiskerLength * 0.8f * LA);
+            if (tune.isWater != null)
+            {
+                bool wet = false;
+                try { wet = tune.isWater(ahead); } catch { }
+                if (wet) return true;
+            }
+            if (tune.maxDrop > 0f)
+            {
+                float up = tune.maxStepUp + 0.5f;
+                if (!Ground(ahead + Vector3.up * up, up + tune.maxDrop + 0.5f, out var g, out _)) return true;
+                if (pos.y - g.y > tune.maxDrop) return true;
+            }
+            return false;
+        }
+
+        /// <summary>Steer away from nearby animals (same locomotor).</summary>
+        Vector3 Separate(Vector3 dir)
+        {
+            if (tune.separationRadius <= 0f) return dir;
+            var pos = transform.position; var sep = Vector3.zero;
+            for (int i = 0; i < All.Count; i++)
+            {
+                var o = All[i]; if (!o || o == this) continue;
+                var d = pos - o.transform.position; d.y = 0f;
+                float R = tune.bodyRadius + o.tune.bodyRadius + tune.separationRadius, m = d.magnitude;
+                if (m < R && m > 1e-3f) sep += d / m * (1f - m / R);
+            }
+            if (sep.sqrMagnitude < 1e-4f) return dir;
+            var r = dir + sep * tune.separationWeight; r.y = 0f;
+            return r.sqrMagnitude > 1e-4f ? r.normalized : dir;
+        }
+
+        static bool TerrainY(Vector3 p, out float y)
+        {
+            var ts = Terrain.activeTerrains;
+            for (int i = 0; i < ts.Length; i++)
+            {
+                var t = ts[i]; if (!t || !t.terrainData) continue;
+                var o = t.GetPosition(); var sz = t.terrainData.size;
+                if (p.x >= o.x && p.z >= o.z && p.x <= o.x + sz.x && p.z <= o.z + sz.z) { y = t.SampleHeight(p) + o.y; return true; }
+            }
+            y = 0f; return false;
+        }
+
+        // ------------------------------------------------------------------ t561: off-rock hop
+        /// <summary>Runs the hop if one is active, or starts one when the animal stands on something tall. True = hop in progress (skip normal movement).</summary>
+        bool TickHop(float dt)
+        {
+            if (_hopT < 0f)
+            {
+                if (!tune.terrainOnlyGround || Time.time < _rockCheckAt) return false;
+                _rockCheckAt = Time.time + 0.25f;
+                var p = transform.position;
+                if (!TerrainY(p, out var ty) || p.y - ty <= tune.offRockHeight) return false;
+                _hopFrom = p; _hopTo = ClearTerrainPoint(p); _hopT = 0f; _speed = 0f; _turningInPlace = false;
+            }
+            _hopT += dt / Mathf.Max(0.1f, tune.hopSeconds);
+            float k = Mathf.Clamp01(_hopT);
+            var pos = Vector3.Lerp(_hopFrom, _hopTo, k) + Vector3.up * (4f * tune.hopHeight * k * (1f - k));
+            transform.position = pos;
+            var flat = _hopTo - _hopFrom; flat.y = 0f;
+            if (flat.sqrMagnitude > 0.01f) { _yaw = Mathf.MoveTowardsAngle(_yaw, Mathf.Atan2(flat.x, flat.z) * Mathf.Rad2Deg, 720f * dt); ApplyRotation(); }
+            _moving = true;
+            if (k >= 1f) { _hopT = -1f; _up = Vector3.up; _teleported = true; _lastPos = transform.position; _stuckT = 0f; _rockCheckAt = Time.time + 1f; }
+            return true;
+        }
+
+        /// <summary>Nearest terrain spot around p with room for the body (no rock / building there, not water).</summary>
+        Vector3 ClearTerrainPoint(Vector3 p)
+        {
+            var fwd = Quaternion.Euler(0f, _yaw, 0f) * Vector3.forward;
+            foreach (float r in new[] { 1.2f, 2f, 3f, 4.5f, 6.5f, 9f, 13f })
+                for (int i = 0; i < 12; i++)
+                {
+                    var dir = Quaternion.Euler(0f, (i % 2 == 0 ? 1 : -1) * ((i + 1) / 2) * 30f, 0f) * fwd;
+                    var q = p + dir * (r + tune.bodyRadius);
+                    if (!TerrainY(q, out var ty)) continue;
+                    q.y = ty;
+                    if (tune.isWater != null) { bool wet = false; try { wet = tune.isWater(q); } catch { } if (wet) continue; }
+                    if (Occupied(q, dir)) continue;
+                    return q;
+                }
+            TerrainY(p, out var y0); p.y = y0; return p;
+        }
+
+        bool Occupied(Vector3 q, Vector3 fwd)
+        {
+            Ends(q + Vector3.up * 0.05f, fwd, out var a, out var b);
+            int n = Physics.OverlapCapsuleNonAlloc(a, b, tune.bodyRadius * 1.15f, Pen, tune.environmentLayers, QueryTriggerInteraction.Ignore);
+            for (int i = 0; i < n; i++) { var c = Pen[i]; if (!Ignore(c) && !(c is TerrainCollider)) return true; }
+            return false;
+        }
 
         Vector3 Whiskers(Vector3 dir)
         {
-            var o = transform.position + Vector3.up * tune.bodyHeight; float len = tune.whiskerLength, r = tune.bodyRadius * 0.6f;
+            var o = transform.position + Vector3.up * tune.bodyHeight; float len = tune.whiskerLength * LA, r = tune.bodyRadius * 0.6f;
             float L = Feel(o, Quaternion.Euler(0f, -tune.whiskerAngle, 0f) * dir, len, r);
             float R = Feel(o, Quaternion.Euler(0f, tune.whiskerAngle, 0f) * dir, len, r);
             if (L >= len && R >= len) return dir;
@@ -265,7 +428,7 @@ namespace ASH.Movement
             float cos = Mathf.Cos(tune.maxSlope * Mathf.Deg2Rad), best = len;
             for (int i = 0; i < n; i++)
             {
-                var h = Hits[i]; if (h.distance <= 0f || Ignore(h.collider) || h.normal.y >= cos) continue;
+                var h = Hits[i]; if (!IsObstacle(h, cos)) continue;
                 best = Mathf.Min(best, h.distance);
             }
             return best;

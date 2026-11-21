@@ -135,6 +135,7 @@ namespace ASH.Wildlife
             if (Sp == null || W == null) return;
             if (Time.time - _pAt > 1f) RollPersonality();
             _loco.tune = TuneNow();
+            _loco.LookAheadScale = (_mode == ASHAnimalMode.Charge || _mode == ASHAnimalMode.Attack) ? W.chargeLookAheadMul : 1f; // t560: avoidance stays on while charging, shorter look-ahead
             if (!_player) FindPlayer();
             FindDog();
             RetargetIfNeeded();

@@ -113,6 +113,8 @@ namespace ASH.Wildlife.Birds
         [Range(0f, 20f)] public float altitudeWeight = 2.5f;
         [Range(0f, 20f)] public float avoidWeight = 6f;
         [Range(1f, 40f)] public float avoidLookAhead = 8f;
+        [Tooltip("t560: sweep each flight step and bounce off anything hit, so birds never pass through trees, rocks or buildings.")]
+        public bool hardCollisionGuard = true;
         [Range(0f, 90f)] public float maxBankDegrees = 35f;
         [Range(2f, 120f)] public float flyMinSeconds = 10f;
         [Range(4f, 240f)] public float flyMaxSeconds = 30f;

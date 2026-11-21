@@ -29,7 +29,9 @@ namespace ASH.Core
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         static void ResetStatics() { Instance = null; CollectPrewarm = null; }
 
-        CanvasGroup _group; RectTransform _bar, _spin; Text _status, _tip, _pct;
+        CanvasGroup _group; RectTransform _bar, _barBg, _spin, _dot; Text _status, _tip, _pct, _title;
+        Image _backdrop, _bgImg, _darkImg, _vigImg, _ringImg, _dotImg; AspectRatioFitter _fit;
+        Sprite _ringSprite, _vigSprite; float _ringSpriteThickness = -1f;
         bool _busy; float _shown, _progress, _shownProgress; int _tipIdx = -1; float _nextTip;
         readonly List<Behaviour> _lockedInputs = new List<Behaviour>();
 
@@ -53,10 +55,18 @@ namespace ASH.Core
         static void CoverEditorPlay()
         {
             if (Instance && Instance._busy) return;
-            if (!S.loadingScreenEnabled || !S.coverEditorPlayInGameScene) return;
-            if (!IsGameScene()) return;
-            var ls = Ensure();
-            ls.StartCoroutine(ls.ReadyRoutine(true));
+            if (!S.loadingScreenEnabled) return;
+            if (IsGameScene())
+            {
+                if (!S.coverEditorPlayInGameScene) return;
+                var ls = Ensure();
+                ls.StartCoroutine(ls.ReadyRoutine(true));
+            }
+            else if (IsMenuScene() && S.coverEditorPlayInMenu)
+            {
+                var ls = Ensure();
+                ls.StartCoroutine(ls.MenuRoutine(true)); // t555: Play / game start on the main menu: warm the menu + game shaders first
+            }
         }
 
         static ASHLoadingScreen Ensure()
@@ -68,6 +78,7 @@ namespace ASH.Core
         }
 
         static bool IsGameScene() => FindAnyObjectByType<ASH.Survival.ASHSurvivalStats>() != null;
+        static bool IsMenuScene() => FindAnyObjectByType<ASH.UI.ASHMainMenu>() != null;
 
         void Awake()
         {
@@ -111,7 +122,31 @@ namespace ASH.Core
             _progress = 0.55f;
             yield return null; // scene Awake/Start
             if (IsGameScene()) yield return ReadyRoutine(false, t0);
+            else if (IsMenuScene()) yield return MenuRoutine(false, t0); // t555: back to the menu waits for its shaders too
             else yield return Finish(t0);
+        }
+
+        /// <summary>t555: main menu: let it build, then warm the shader variants (game ones too, so the game load is quicker).</summary>
+        IEnumerator MenuRoutine(bool coverNow, float t0 = -1f)
+        {
+            _busy = true;
+            if (coverNow) { Show(1f); _progress = 0f; }
+            if (t0 < 0f) t0 = Time.unscaledTime;
+            float p0 = Mathf.Clamp01(_progress);
+            SetStatus("Preparing the menu");
+            float st = Time.unscaledTime, dur = Mathf.Max(0.01f, S.menuSettleSeconds);
+            while (Time.unscaledTime - st < S.menuSettleSeconds)
+            {
+                _progress = Mathf.Lerp(p0, p0 + (1f - p0) * 0.2f, (Time.unscaledTime - st) / dur);
+                yield return null;
+            }
+            if (S.warmupOnMenu && S.warmupShaders)
+            {
+                SetStatus("Preparing shaders");
+                yield return WarmVariants(Mathf.Max(_progress, p0 + (1f - p0) * 0.2f), 0.92f);
+                yield return WarmGraphicsStates();
+            }
+            yield return Finish(t0);
         }
 
         /// <summary>After a game scene is active: lock input, settle, warm shaders, pre-render, fade out.</summary>
@@ -149,20 +184,7 @@ namespace ASH.Core
             if (S.warmupShaders)
             {
                 SetStatus("Preparing shaders");
-                var svc = S.shaderVariants;
-                if (svc && !svc.isWarmedUp)
-                {
-                    int total = Mathf.Max(1, svc.variantCount), per = Mathf.Max(1, S.variantsPerFrame), done = 0;
-                    bool finished = false;
-                    while (!finished)
-                    {
-                        try { finished = svc.WarmUpProgressively(per); }
-                        catch (Exception e) { Debug.LogWarning("[ASH] Loading: shader warmup: " + e.Message); svc.WarmUp(); finished = true; }
-                        done += per;
-                        _progress = Mathf.Lerp(0.7f, 0.8f, Mathf.Clamp01(done / (float)total));
-                        yield return null;
-                    }
-                }
+                yield return WarmVariants(0.7f, 0.8f);
                 yield return WarmGraphicsStates();
             }
 
@@ -178,11 +200,31 @@ namespace ASH.Core
             yield return Finish(t0);
         }
 
+        /// <summary>Warms the shader variant collection a few variants per frame, progress from..to.</summary>
+        IEnumerator WarmVariants(float from, float to)
+        {
+            var svc = S.shaderVariants;
+            if (!svc || svc.isWarmedUp) { _progress = Mathf.Max(_progress, to); yield break; }
+            int total = Mathf.Max(1, svc.variantCount), per = Mathf.Max(1, S.variantsPerFrame), done = 0;
+            bool finished = false;
+            while (!finished)
+            {
+                try { finished = svc.WarmUpProgressively(per); }
+                catch (Exception e) { Debug.LogWarning("[ASH] Loading: shader warmup: " + e.Message); svc.WarmUp(); finished = true; }
+                done += per;
+                _progress = Mathf.Max(_progress, Mathf.Lerp(from, to, Mathf.Clamp01(done / (float)total)));
+                yield return null;
+            }
+            _progress = Mathf.Max(_progress, to);
+        }
+
         IEnumerator Finish(float t0)
         {
             _progress = 1f;
             SetStatus("Ready");
-            while (Time.unscaledTime - t0 < S.minDisplaySeconds) yield return null;
+            float wait = Time.unscaledTime;
+            while ((Time.unscaledTime - t0 < S.minDisplaySeconds || _shownProgress < 0.999f) && Time.unscaledTime - wait < 5f) yield return null; // the percentage reaches 100% before the fade
+            _shownProgress = 1f;
             LockInput(false);
             yield return Fade(1f, 0f, S.fadeOutSeconds);
             if (_group) _group.gameObject.SetActive(false);
@@ -368,52 +410,137 @@ namespace ASH.Core
         void Update()
         {
             if (!_busy || !_group) return;
-            if (_spin) _spin.localRotation = Quaternion.Euler(0, 0, -Time.unscaledTime * 240f);
-            _shownProgress = Mathf.MoveTowards(_shownProgress, _progress, Time.unscaledDeltaTime * 1.5f);
+            ApplyLook();
+            if (_spin) _spin.localRotation = Quaternion.Euler(0, 0, -Time.unscaledTime * S.ringSpeed);
+            float target = Mathf.Clamp01(_progress);
+            // smooth: catch up at least progressSmoothing per second, faster when far behind
+            float speed = Mathf.Max(S.progressSmoothing, (target - _shownProgress) * 3f);
+            _shownProgress = Mathf.MoveTowards(_shownProgress, target, Time.unscaledDeltaTime * speed);
             if (_bar) _bar.anchorMax = new Vector2(Mathf.Clamp01(_shownProgress), 1f);
-            if (_pct) _pct.text = Mathf.RoundToInt(_shownProgress * 100f) + "%";
-            if (Time.unscaledTime >= _nextTip) NextTip();
+            int pct = Mathf.FloorToInt(_shownProgress * 100f + 0.001f);
+            if (_progress < 1f) pct = Mathf.Min(pct, 99);
+            if (_pct) _pct.text = pct + "%";
+            if (S.showTips && Time.unscaledTime >= _nextTip) NextTip();
         }
 
         void BuildUI()
         {
-            var cgo = new GameObject("ASH_LoadingCanvas", typeof(Canvas), typeof(CanvasScaler), typeof(CanvasGroup));
+            var cgo = new GameObject("ASH_LoadingCanvas", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster), typeof(CanvasGroup));
             cgo.transform.SetParent(transform, false);
             var canvas = cgo.GetComponent<Canvas>(); canvas.renderMode = RenderMode.ScreenSpaceOverlay; canvas.sortingOrder = 1000;
             var sc = cgo.GetComponent<CanvasScaler>(); sc.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize; sc.referenceResolution = new Vector2(1920, 1080); sc.matchWidthOrHeight = 0.5f;
-            _group = cgo.GetComponent<CanvasGroup>(); _group.blocksRaycasts = true; _group.interactable = false;
+            _group = cgo.GetComponent<CanvasGroup>(); _group.blocksRaycasts = true; _group.interactable = false; // blocks clicks to the menu underneath
             var root = (RectTransform)cgo.transform;
-            var st = S;
-            var bg = K.Image(K.Stretch("Background", root), st.background ? Color.white : st.backgroundTint, true);
-            if (st.background) { bg.sprite = st.background; bg.preserveAspect = false; }
-            K.Image(K.Stretch("Haze", root), new Color(0.55f, 0.5f, 0.46f, 0.06f));
-            var title = K.Text(K.At("Title", root, new Vector2(0, 1), new Vector2(140, -170), new Vector2(600, 140)), "ASH", 120, K.Ink, TextAnchor.MiddleLeft, FontStyle.Bold);
-            K.Shadow(title, 2f);
 
-            // spinner (same ring + dot as the saving icon) + status
-            var spinRow = K.At("Spinner", root, new Vector2(0, 0), new Vector2(140, 150), new Vector2(520, 44));
-            spinRow.pivot = new Vector2(0, 0.5f);
-            _spin = K.At("Ring", spinRow, new Vector2(0, 0.5f), Vector2.zero, new Vector2(34, 34));
-            _spin.pivot = new Vector2(0.5f, 0.5f); _spin.anchoredPosition = new Vector2(17, 0);
-            K.Image(_spin, K.Accent).sprite = K.Ring;
-            var dot = K.At("Dot", _spin, new Vector2(0.5f, 1f), new Vector2(0, -2), new Vector2(8, 8)); K.Image(dot, K.Ink).sprite = K.Dot;
-            _status = K.Text(K.Stretch("Status", spinRow, 46, 0, 0, 0), "Loading", 22, K.Ink);
+            // t557/t558: faded background (Grandpa's cabin): tint, image (fills, keeps aspect), dark wash, vignette
+            _backdrop = K.Image(K.Stretch("Backdrop", root), S.backgroundTint, true);
+            var bgRt = K.At("Background", root, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1920, 1080));
+            _bgImg = K.Image(bgRt, Color.white);
+            _fit = bgRt.gameObject.AddComponent<AspectRatioFitter>(); _fit.aspectMode = AspectRatioFitter.AspectMode.EnvelopeParent; _fit.aspectRatio = 16f / 9f;
+            _darkImg = K.Image(K.Stretch("Darken", root), Color.black);
+            _vigImg = K.Image(K.Stretch("Vignette", root), Color.black); _vigImg.sprite = VignetteSprite();
+            K.Image(K.Stretch("Haze", root), new Color(0.55f, 0.5f, 0.46f, 0.04f));
+
+            _title = K.Text(K.At("Title", root, new Vector2(0, 1), new Vector2(140, -170), new Vector2(600, 140)), "ASH", 120, K.Ink, TextAnchor.MiddleLeft, FontStyle.Bold);
+            K.Shadow(_title, 2f);
+
+            // t556: big saving-icon circle, centred: ring + dot orbiting it, percentage below
+            _spin = K.At("Circle", root, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(150, 150));
+            _ringImg = K.Image(K.Stretch("Ring", _spin), K.Accent);
+            _dot = K.At("Dot", _spin, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(18, 18));
+            _dotImg = K.Image(_dot, K.Ink); _dotImg.sprite = K.Dot;
+            _pct = K.Text(K.At("Percent", root, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(400, 60)), "0%", 44, K.Ink, TextAnchor.MiddleCenter, FontStyle.Bold);
+            K.Shadow(_pct, 2f);
+            _status = K.Text(K.At("Status", root, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(900, 36)), "Loading", 20, K.Dim, TextAnchor.MiddleCenter);
             K.Shadow(_status);
 
-            // progress bar
-            var barBg = K.At("Bar", root, new Vector2(0, 0), new Vector2(140, 100), new Vector2(1640, 6));
-            barBg.pivot = new Vector2(0, 0.5f);
-            K.Image(barBg, new Color(1f, 1f, 1f, 0.08f));
-            _bar = K.Rect("Fill", barBg);
+            // optional progress bar + tip (bottom)
+            _barBg = K.At("Bar", root, new Vector2(0.5f, 0), new Vector2(0, 100), new Vector2(1640, 6));
+            K.Image(_barBg, new Color(1f, 1f, 1f, 0.08f));
+            _bar = K.Rect("Fill", _barBg);
             _bar.anchorMin = Vector2.zero; _bar.anchorMax = new Vector2(0f, 1f); _bar.offsetMin = Vector2.zero; _bar.offsetMax = Vector2.zero;
             K.Image(_bar, K.Accent);
-            _pct = K.Text(K.At("Pct", root, new Vector2(1, 0), new Vector2(-140, 150), new Vector2(200, 44)), "0%", 20, K.Dim, TextAnchor.MiddleRight);
-            _pct.rectTransform.pivot = new Vector2(1, 0.5f);
-
-            // tip
-            _tip = K.Text(K.At("Tip", root, new Vector2(0, 0), new Vector2(140, 220), new Vector2(1640, 60)), "", 22, K.Dim, TextAnchor.MiddleLeft, FontStyle.Italic);
-            _tip.rectTransform.pivot = new Vector2(0, 0.5f);
+            _tip = K.Text(K.At("Tip", root, new Vector2(0.5f, 0), new Vector2(0, 150), new Vector2(1640, 60)), "", 22, K.Dim, TextAnchor.MiddleCenter, FontStyle.Italic);
             K.Shadow(_tip);
+            ApplyLook();
+        }
+
+        /// <summary>Applies ASH_LoadingSettings' look every frame while shown (edits in Play show live).</summary>
+        void ApplyLook()
+        {
+            var st = S;
+            if (!_group || !st) return;
+            if (_backdrop) _backdrop.color = st.backgroundTint;
+            if (_bgImg)
+            {
+                var sp = st.background;
+                if (_bgImg.sprite != sp) _bgImg.sprite = sp;
+                _bgImg.enabled = sp;
+                _bgImg.color = new Color(1f, 1f, 1f, st.backgroundOpacity);
+                if (sp && _fit) _fit.aspectRatio = sp.rect.width / Mathf.Max(1f, sp.rect.height);
+                float z = st.backgroundZoom + st.backgroundPushIn * Mathf.Clamp01((Time.unscaledTime - _shown) / 20f);
+                _bgImg.rectTransform.localScale = new Vector3(z, z, 1f);
+            }
+            if (_darkImg) { var c = st.darkenColor; c.a = st.backgroundDarken; _darkImg.color = c; _darkImg.enabled = c.a > 0.001f; }
+            if (_vigImg) { _vigImg.color = new Color(0f, 0f, 0f, st.vignette); _vigImg.enabled = st.vignette > 0.001f; }
+            if (_title) _title.gameObject.SetActive(st.showTitle);
+
+            float size = Mathf.Max(8f, st.ringSize), r = size * 0.5f, th = Mathf.Clamp(st.ringThickness, 0.01f, 0.9f);
+            if (_spin) { _spin.sizeDelta = new Vector2(size, size); _spin.anchoredPosition = st.circleOffset; }
+            if (_ringImg)
+            {
+                if (!_ringSprite || !Mathf.Approximately(_ringSpriteThickness, th)) { if (_ringSprite) { Destroy(_ringSprite.texture); Destroy(_ringSprite); } _ringSprite = RingSprite(th); _ringSpriteThickness = th; }
+                _ringImg.sprite = _ringSprite; _ringImg.color = st.ringColor;
+            }
+            if (_dot)
+            {
+                float d = Mathf.Max(2f, size * st.dotSize);
+                _dot.sizeDelta = new Vector2(d, d);
+                _dot.anchoredPosition = new Vector2(0f, r * (1f - th * 0.5f));
+                if (_dotImg) _dotImg.color = st.dotColor;
+            }
+            float y = st.circleOffset.y - r - st.percentGap - st.percentFontSize * 0.55f;
+            if (_pct)
+            {
+                _pct.fontSize = st.percentFontSize; _pct.color = st.percentColor;
+                _pct.rectTransform.sizeDelta = new Vector2(400f, st.percentFontSize * 1.4f);
+                _pct.rectTransform.anchoredPosition = new Vector2(st.circleOffset.x, y);
+            }
+            if (_status)
+            {
+                _status.gameObject.SetActive(st.showStatusText);
+                _status.fontSize = st.statusFontSize;
+                _status.rectTransform.anchoredPosition = new Vector2(st.circleOffset.x, y - st.percentFontSize * 0.55f - st.statusFontSize * 0.9f);
+            }
+            if (_barBg) _barBg.gameObject.SetActive(st.showProgressBar);
+            if (_tip) _tip.gameObject.SetActive(st.showTips);
+        }
+
+        /// <summary>Anti-aliased white ring, line thickness = fraction of the radius.</summary>
+        static Sprite RingSprite(float thickness)
+        {
+            const int n = 256;
+            float px = 2f / n, outer = 1f - px, inner = outer - thickness;
+            return MakeSprite(n, d => Mathf.Clamp01(Mathf.Min(d - inner, outer - d) / px + 0.5f));
+        }
+
+        Sprite VignetteSprite()
+        {
+            if (!_vigSprite) _vigSprite = MakeSprite(128, d => { float t = Mathf.Clamp01((d - 0.55f) / 0.85f); return t * t * (3f - 2f * t); });
+            return _vigSprite;
+        }
+
+        static Sprite MakeSprite(int n, Func<float, float> alpha)
+        {
+            var tex = new Texture2D(n, n, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp, name = "ASH_LoadingUI" };
+            var px = new Color32[n * n];
+            for (int y = 0; y < n; y++) for (int x = 0; x < n; x++)
+            {
+                float dx = (x + 0.5f) / n * 2f - 1f, dy = (y + 0.5f) / n * 2f - 1f;
+                px[y * n + x] = new Color32(255, 255, 255, (byte)(Mathf.Clamp01(alpha(Mathf.Sqrt(dx * dx + dy * dy))) * 255f));
+            }
+            tex.SetPixels32(px); tex.Apply(false, true);
+            return Sprite.Create(tex, new Rect(0, 0, n, n), new Vector2(0.5f, 0.5f));
         }
     }
 }

@@ -48,11 +48,12 @@ namespace ASH.Wildlife.Birds
             if (f == null) return;
             try { f.SetValue(c, Convert.ChangeType(v, f.FieldType)); } catch { try { f.SetValue(c, v); } catch { } }
         }
+        static readonly HashSet<string> _vendorWarned = new HashSet<string>();
         static void Call(Component c, string method, params object[] args)
         {
             if (!c) return;
             foreach (var m in c.GetType().GetMethods(BF))
-                if (m.Name == method && m.GetParameters().Length == args.Length) { try { m.Invoke(c, args); } catch (Exception e) { Debug.LogWarning("[ASH] Birds: vendor " + method + " failed: " + e.Message); } return; }
+                if (m.Name == method && m.GetParameters().Length == args.Length) { try { m.Invoke(c, args); } catch (Exception e) { if (_vendorWarned.Add(method)) Debug.LogWarning("[ASH] Birds: vendor " + method + " failed (shown once): " + (e.InnerException ?? e).Message); } return; }
         }
         static IList Roamers(Component ctrl) => Get(ctrl, _fRoamers, "_roamers") as IList;
 
