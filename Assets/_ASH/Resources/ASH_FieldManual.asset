@@ -522,3 +522,20 @@ MonoBehaviour:
     column: 1
     row: 13
     parents: []
+  - recipe: {fileID: 11400000, guid: e0c947428c252544395f84d52760137a, type: 2}
+    basic: 0
+    conditions:
+    - kind: 2
+      item: {fileID: 0}
+      quantity: 1
+      page: 4
+      upgradeId: 
+      upgradeTier: 1
+      collection: grandpa
+      pageId: 
+    requireAll: 1
+    hint: A note in the hunting shack (page 4) shows how to set a snare.
+    column: 3
+    row: 6
+    parents:
+    - {fileID: 11400000, guid: 175d1959d24317743b87ba6da11c0d39, type: 2}

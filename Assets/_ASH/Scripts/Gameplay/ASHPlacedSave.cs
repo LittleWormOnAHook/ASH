@@ -12,7 +12,7 @@ namespace ASH.Gameplay
     public sealed class ASHPlacedSave : IASHSaveable
     {
         [Serializable] sealed class Fire { public string id; public bool lit; public float fuel; public string cook; }
-        [Serializable] sealed class Placed { public string item; public Vector3 pos; public Quaternion rot; public bool hasFire; public bool lit; public float fuel; public string cook; }
+        [Serializable] sealed class Placed { public string item; public Vector3 pos; public Quaternion rot; public bool hasFire; public bool lit; public float fuel; public string cook; public bool hasSnare; public bool snareCaught; public float snareHours; }
         [Serializable] sealed class State { public List<Fire> fires = new List<Fire>(); public List<Placed> placed = new List<Placed>(); }
 
         readonly Dictionary<string, ASHCampfire> _sceneFires = new Dictionary<string, ASHCampfire>();
@@ -40,7 +40,8 @@ namespace ASH.Gameplay
             {
                 if (!p || string.IsNullOrEmpty(p.itemId)) continue;
                 var f = p.GetComponent<ASHCampfire>();
-                s.placed.Add(new Placed { item = p.itemId, pos = p.transform.position, rot = p.transform.rotation, hasFire = f, lit = f && f.Lit, fuel = f ? f.FuelHours : 0f, cook = f ? ASHFireCooking.Capture(f) : null });
+                var sn = p.GetComponent<ASHSnare>();
+                s.placed.Add(new Placed { item = p.itemId, pos = p.transform.position, rot = p.transform.rotation, hasFire = f, lit = f && f.Lit, fuel = f ? f.FuelHours : 0f, cook = f ? ASHFireCooking.Capture(f) : null, hasSnare = sn, snareCaught = sn && sn.HasCatch, snareHours = sn ? sn.WaitedHours : 0f });
             }
             return JsonUtility.ToJson(s);
         }
@@ -58,6 +59,7 @@ namespace ASH.Gameplay
                 go.name = it.placeablePrefab.name;
                 go.AddComponent<ASHPlacedObject>().itemId = p.item;
                 if (p.hasFire) { var c = go.GetComponent<ASHCampfire>(); if (c) { c.RestoreState(p.lit, p.fuel); ASHFireCooking.Restore(c, p.cook); } }
+                if (p.hasSnare) { var sn = go.GetComponent<ASHSnare>(); if (sn) sn.RestoreState(p.snareCaught, p.snareHours); }
             }
         }
     }

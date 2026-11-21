@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7faa865d243c06c49a47068b44b676be, type: 3}
+  m_Name: ASH_SnareSettings
+  m_EditorClassIdentifier: Assembly-CSharp::ASH.Gameplay.ASHSnareSettings
+  firstCheckHours: 2
+  retryHours: 1
+  catchChance: 0.65
+  requireOutdoors: 1
+  collectHoldSeconds: 1.2
+  packHoldSeconds: 1.2
+  setPrompt: Snare is set
+  collectPrompt: Collect rabbit
+  packPrompt: Pack up snare
+  noSpaceMessage: No room in the pack.
+  indoorMessage: Too close to a building
+  caughtToast: The snare caught a rabbit.
+  footprintX: 0.8
+  footprintY: 0.5
+  footprintZ: 0.8
+  maxSlope: 22

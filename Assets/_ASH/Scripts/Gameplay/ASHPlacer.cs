@@ -140,6 +140,7 @@ namespace ASH.Gameplay
                 InvalidReason = "Blocked"; return;
             }
             if (ASHTent.TryRejectPlacement(_item, aim, out var why)) { InvalidReason = why; return; }
+            if (ASHSnare.TryRejectPlacement(_item, aim, out var whySnare)) { InvalidReason = whySnare; return; }
             IsValid = true; InvalidReason = null;
         }
 
