@@ -56,7 +56,7 @@ namespace ASH.Prologue
 
         ASHObjectiveTracker _tracker; vThirdPersonController _cc; ASHVehicle _car, _truck; ASHEruptionSequence _seq; ASHSurvivalStats _stats;
         float _outsideT, _slowT, _warnStart = -1f; bool _killChecked, _treeStarted, _carInspected, _arrivalDone, _homeAgainDone;
-        bool _doorTried, _doorUnlocked, _doorApplied; ASHInventory _keyInv; int _tiresNeeded = 2; bool _refirePending; Quaternion _treePose = Quaternion.identity; bool _deadThisRun;
+        bool _doorTried, _doorUnlocked, _doorApplied; ASHInventory _keyInv; int _tiresNeeded = 2; bool _refirePending; Quaternion _treePose = Quaternion.identity;
         Func<bool> _autosaveBlocker; Canvas _bannerCanvas; Text _banner, _bannerSub;
 
         // ------------------------------------------------------------------ lifecycle
@@ -516,7 +516,6 @@ namespace ASH.Prologue
 
         void OnDied()
         {
-            _deadThisRun = true;
             if (logPhases) Debug.Log($"[ASH] Prologue: player died in phase {Current}{(SavesLocked ? " (checkpoint retry offered)" : "")}");
         }
 

@@ -82,7 +82,7 @@ namespace ASH.EditorTools
             Vector3 cabin = new Vector3(521.42f, 306.11f, 1557.94f);
             var gpsGo = GameObject.Find(ASHItemIconsGpsSetup.GpsName); if (gpsGo) cabin = gpsGo.transform.position;
             GameObject best = null; float bestD = float.MaxValue; int n = 0;
-            foreach (var t in Object.FindObjectsByType<Transform>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            foreach (var t in Object.FindObjectsByType<Transform>(FindObjectsInactive.Include))
             {
                 var g = t.gameObject; if (!g.scene.IsValid() || EditorUtility.IsPersistent(g)) continue;
                 bool isCompass = src && PrefabUtility.IsAnyPrefabInstanceRoot(g) && PrefabUtility.GetCorrespondingObjectFromOriginalSource(g) == src;

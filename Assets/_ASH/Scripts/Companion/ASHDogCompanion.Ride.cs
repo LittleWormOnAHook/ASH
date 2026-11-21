@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 
 namespace ASH.Companion
 {
@@ -71,7 +71,7 @@ namespace ASH.Companion
             {
                 _vehicleWait = wait;
                 if (_body) _body.enabled = !wait;
-                if (wait) { _speed = 0f; _moving = false; _turningInPlace = false; _stuckT = 0f; _hasWander = false; _find = null; SetPose(Pose.Sit); Activity = "Waiting by the road"; }
+                if (wait) { _speed = 0f; _moving = false; _turningInPlace = false; _stuckT = 0f; _find = null; SetPose(Pose.Sit); Activity = "Waiting by the road"; }
                 else SetPose(Pose.None);
             }
             if (wait) { _speed = 0f; _moving = false; _stuckT = 0f; }

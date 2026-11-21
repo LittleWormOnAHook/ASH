@@ -13,7 +13,7 @@ namespace ASH.EditorTools
         public static void Probe()
         {
             var sb = new StringBuilder("[ASH] PROBE\n");
-            foreach (var mb in Object.FindObjectsByType<MonoBehaviour>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            foreach (var mb in Object.FindObjectsByType<MonoBehaviour>(FindObjectsInactive.Include))
             {
                 if (!mb) continue; var n = mb.GetType().Name;
                 if (n == "ASHVehicle" || n == "ASHShelterZone" || n == "ASHSupplyCrate" || n == "ASHDogCompanion" || n == "ASHEruptionSequence" || n == "ASHOpeningObjective"

@@ -92,7 +92,7 @@ namespace ASH.DebugTools
                     phase, aim.BowCrosshairErrorBefore, aim.BowCrosshairErrorAfter, Vector3.Angle(aim.ArrowRestWorld - aim.NockWorld, ap - aim.NockWorld), Vector3.Dot(off, camR), Vector3.Dot(off, cam.transform.up), sp.x, sp.y, Vector3.Distance(cam.transform.position, ap), aim.BowLeanBefore, aim.BowLeanAfter, aim.CameraRightNow, aim.CameraHeightNow));
                 if (phase == "aim" || phase == "draw") ScreenCapture.CaptureScreenshot(@"C:\Users\Teabagger\ashx\bow_" + phase + ".png");
                 if (phase == "shot")
-                    foreach (var rb in Object.FindObjectsByType<Rigidbody>(FindObjectsSortMode.None))
+                    foreach (var rb in Object.FindObjectsByType<Rigidbody>())
                         if (rb.linearVelocity.sqrMagnitude > 25f && !rb.transform.IsChildOf(root))
                             Debug.Log(string.Format(CultureInfo.InvariantCulture, "[ASH] BOWA projectile {0}: vel-vs-aimpt={1:F1}deg", rb.name, Vector3.Angle(rb.linearVelocity, ap - rb.position)));
             }

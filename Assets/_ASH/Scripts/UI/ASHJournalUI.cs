@@ -87,9 +87,9 @@ namespace ASH.UI
             foreach (Tab t in new[] { Tab.Items, Tab.Character, Tab.Notes, Tab.Objectives, Tab.Skills, Tab.Pets, Tab.Crafting }) // the Survival Guide tab comes last (hidden until unlocked)
             {
                 var tab = t;
-                float w = t == Tab.Crafting ? 150 : t == Tab.Character ? 86 : 96;
+                float w = t == Tab.Crafting ? 150 : 96;
                 var b = K.At("Tab" + t, rt, new Vector2(0, 1), new Vector2(x, -20), new Vector2(w, 38)); x += w + 4;
-                string label = t == Tab.Crafting ? "SURVIVAL GUIDE" : t == Tab.Character ? "CHAR" : t.ToString().ToUpperInvariant();
+                string label = t == Tab.Crafting ? "SURVIVAL GUIDE" : t == Tab.Character ? "ROOK" : t.ToString().ToUpperInvariant();
                 K.Button(b, label, 16, () => Show(tab), new Color(1, 1, 1, 0.12f));
                 _tabButtons[t] = b.GetComponent<Image>();
             }

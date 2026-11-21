@@ -227,9 +227,9 @@ namespace ASH.EditorTools
         static List<Vector3> CollectBlocked()
         {
             var list = new List<Vector3>();
-            foreach (var t in Object.FindObjectsByType<Transform>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            foreach (var t in Object.FindObjectsByType<Transform>(FindObjectsInactive.Include))
                 if (t && IsProtected(t)) list.Add(t.position);
-            foreach (var l in Object.FindObjectsByType<Light>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            foreach (var l in Object.FindObjectsByType<Light>(FindObjectsInactive.Include))
                 if (l && l.type != LightType.Directional) list.Add(l.transform.position);
             var player = GameObject.FindGameObjectWithTag("Player");
             if (player) list.Add(player.transform.position);
@@ -437,9 +437,9 @@ namespace ASH.EditorTools
                 useAutomaticThresholds = false
             };
             AssetDatabase.AddObjectToAsset(tree, ac);
-            float gw = 0.1f, gt = 2f, gr = 4f;
+            float gt = 2f, gr = 4f;
             var sp = settings.Of(kind);
-            if (sp != null) { gw = 0.05f; gt = Mathf.Max(sp.walkSpeed * 0.5f, 0.2f); var mid = sp.trotSpeed > 0.2f ? sp.trotSpeed : (sp.walkSpeed + sp.runSpeed) * 0.5f; gr = Mathf.Max(mid, sp.runSpeed * 0.7f); }
+            if (sp != null) { gt = Mathf.Max(sp.walkSpeed * 0.5f, 0.2f); var mid = sp.trotSpeed > 0.2f ? sp.trotSpeed : (sp.walkSpeed + sp.runSpeed) * 0.5f; gr = Mathf.Max(mid, sp.runSpeed * 0.7f); }
             if (idle) tree.AddChild(idle, 0f);
             if (walk) tree.AddChild(walk, Mathf.Max(0.15f, sp != null ? sp.walkSpeed : 1.5f));
             if (trot) tree.AddChild(trot, sp != null ? (sp.trotSpeed > 0.2f ? sp.trotSpeed : (sp.walkSpeed + sp.runSpeed) * 0.5f) : 3f);
@@ -579,7 +579,6 @@ namespace ASH.EditorTools
                 var p = AssetDatabase.GUIDToAssetPath(g);
                 var n = Path.GetFileNameWithoutExtension(p).ToLowerInvariant();
                 var folder = p.ToLowerInvariant();
-                bool near = false;
                 var kind = vis ? vis.gameObject.name : "";
                 // collect broadly then sort by name tokens; assignment happens by token
                 clips.Add(AssetDatabase.LoadAssetAtPath<AudioClip>(p));

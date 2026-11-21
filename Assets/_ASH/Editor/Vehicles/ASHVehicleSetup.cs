@@ -34,7 +34,7 @@ namespace ASH.EditorTools
 
         static Transform FindSource(string name)
         {
-            foreach (var t in Object.FindObjectsByType<Transform>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            foreach (var t in Object.FindObjectsByType<Transform>(FindObjectsInactive.Include))
             {
                 if (t.name != name || t.parent != null) continue;
                 if (t.GetComponentInChildren<VehicleController>(true) || t.GetComponentInChildren<ASHVehicle>(true)) continue;
@@ -49,7 +49,7 @@ namespace ASH.EditorTools
             var src = FindSource(srcName);
             if (!src) { _log.Append($"\n{disp}: source '{srcName}' not found"); return; }
             string vName = "ASH_Vehicle_" + disp;
-            foreach (var old in Object.FindObjectsByType<ASHVehicle>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            foreach (var old in Object.FindObjectsByType<ASHVehicle>(FindObjectsInactive.Include))
                 if (old.vehicleId == id) Undo.DestroyObjectImmediate(old.gameObject);
 
             var demoPf = AssetDatabase.LoadAssetAtPath<GameObject>(Demo);

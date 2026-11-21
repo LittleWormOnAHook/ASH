@@ -73,7 +73,7 @@ namespace ASH.Companion
         Transform _player; ASHInput _input; ASHHud _hud; AudioSource _audio;
         Vector3 _lastPlayerPos; float _playerSpeed, _playerIdleT, _speed, _stuckT, _yaw; Vector3 _up = Vector3.up;
         Pose _pose; float _poseUntil; Vector3 _stayPos; float _stayT, _idleT;
-        Vector3 _wander; bool _hasWander; float _wanderWait; bool _moving;
+        Vector3 _wander; float _wanderWait; bool _moving;
         Transform _threat; float _threatScanT, _nextWarn, _warnUntil, _nextAttack, _pendingHit = -1f; Transform _pendingTarget; bool _retreat; float _lastHurt = -99f;
         Transform _assistTarget; float _distractUntil;
         Transform _find; bool _findIsCrate; float _findScanT, _nextFind, _findGiveUp, _pointUntil = -1f; string _findLabel;
@@ -264,7 +264,7 @@ namespace ASH.Companion
             if (_playerIdleT < 0.3f && _act != Act.None) EndAct(); // you moved: drop the activity and come along
             if (!idleMode && (far || (_moving && dP > fd)))
             {
-                _hasWander = false; _idleT = 0f;
+                _idleT = 0f;
                 float want = dP > S.runDistance ? S.runSpeed : dP > S.trotDistance ? S.trotSpeed : Mathf.Clamp(_playerSpeed * 1.1f, S.walkSpeed, S.runSpeed);
                 if (_retreat) want = S.runSpeed;
                 want *= 1f + S.bondBonus * Bond / 100f;
@@ -468,7 +468,7 @@ namespace ASH.Companion
             _nextDigFind = Time.time + S.digFindCooldown; DigFinds++;
             Play(barkDoubleClip ? barkDoubleClip : barkClip, 0.9f);
             ASHDogMarker.Show(pk.transform, S.lootMarkerColor, item.displayName, S.markerSeconds);
-            string id = "dogdig" + pk.GetInstanceID();
+            string id = "dogdig" + pk.GetHashCode();
             ASHCompass.Register(pk.transform.position, ASHCompassMarkerKind.Custom, S.lootMarkerColor, id); _markers.Add((id, Time.time + S.markerSeconds));
             AddXp(S.xpDigFind);
             Toast($"{DogName} dug up something: {item.displayName}!");
@@ -671,7 +671,7 @@ namespace ASH.Companion
                 }
             }
             if (!have && !haveVisible) { if (!Ground(P - _player.forward * 1.5f + Vector3.up * 2f, 6f, out best, out _)) best = P - _player.forward * 1.5f; }
-            transform.position = best; _teleported = true; _lastPos = best; _speed = 0f; _stuckT = 0f; _turningInPlace = false; _yawVel = 0f; _pose = Pose.None; _poseUntil = 0f; _hasWander = false; _find = null; _pointUntil = -1f;
+            transform.position = best; _teleported = true; _lastPos = best; _speed = 0f; _stuckT = 0f; _turningInPlace = false; _yawVel = 0f; _pose = Pose.None; _poseUntil = 0f; _find = null; _pointUntil = -1f;
             var to = P - best; to.y = 0f; if (to.sqrMagnitude > 0.01f) _yaw = Mathf.Atan2(to.x, to.z) * Mathf.Rad2Deg; _animYaw = _yaw; _up = Vector3.up; ApplyRotation();
             // no Happy one-shot here: it latched and played Idle_2 over the run after a Call; start straight in locomotion
             if (animator && animator.isActiveAndEnabled && animator.runtimeAnimatorController) { animator.ResetTrigger(HHappy); animator.Play("Locomotion", 0, 0f); animator.SetFloat(HSpeed, 0f); animator.SetFloat(HTurn, 0f); }
@@ -884,13 +884,13 @@ namespace ASH.Companion
                 if (!t) { var fd = c.GetComponentInParent<IASHDogFindable>(); if (fd != null && fd.DogCanFind) { t = ((Component)fd).transform; crate = true; l = string.IsNullOrEmpty(fd.DogFindLabel) ? "Loot box" : fd.DogFindLabel; } }
                 if (!t && S.findLoot) { var pk = c.GetComponentInParent<ASHItemPickup>(); if (pk && pk.Item && pk.isActiveAndEnabled) { t = pk.transform; l = pk.Item.displayName; } }
                 if (!t) continue;
-                int id = t.GetInstanceID(); if (_seen.TryGetValue(id, out var until) && Time.time < until) continue;
+                int id = t.GetHashCode(); if (_seen.TryGetValue(id, out var until) && Time.time < until) continue;
                 float dp = Flat(t.position, P); if (dp < S.ignoreCloserThan || dp > S.leashRadius) continue;
                 float d = (t.position - transform.position).sqrMagnitude; if (d < bd) { bd = d; best = t; bestCrate = crate; label = l; }
             }
             if (!best) return;
             _find = best; _findIsCrate = bestCrate; _findLabel = label; _findGiveUp = Time.time + 25f; _pointUntil = -1f;
-            _seen[best.GetInstanceID()] = Time.time + S.refindCooldown;
+            _seen[best.GetHashCode()] = Time.time + S.refindCooldown;
         }
 
         bool FindStep(float dt, Vector3 P)
@@ -903,7 +903,7 @@ namespace ASH.Companion
                 _pointUntil = Time.time + S.pointSeconds;
                 Play(barkDoubleClip ? barkDoubleClip : barkClip);
                 ASHDogMarker.Show(_find, _findIsCrate ? S.crateMarkerColor : S.lootMarkerColor, _findLabel, S.markerSeconds);
-                string id = "dogfind" + _find.GetInstanceID();
+                string id = "dogfind" + _find.GetHashCode();
                 ASHCompass.Register(_find.position, ASHCompassMarkerKind.Custom, _findIsCrate ? S.crateMarkerColor : S.lootMarkerColor, id); _markers.Add((id, Time.time + S.markerSeconds));
                 Toast(_findIsCrate ? $"{DogName} found a supply crate." : $"{DogName} found something: {_findLabel}.");
                 AddXp(_findIsCrate ? S.xpFindCrate : S.xpFindLoot);

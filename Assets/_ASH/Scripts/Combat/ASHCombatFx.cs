@@ -90,7 +90,7 @@ namespace ASH.Combat
             mpb.SetColor("_BaseColor", col); mpb.SetColor("_Color", col); r.SetPropertyBlock(mpb);
             mark.transform.SetParent(target.transform, true);
             Object.Destroy(mark, t.markLifetime);
-            int id = target.transform.GetInstanceID();
+            int id = target.transform.GetHashCode();
             if (!_perTarget.TryGetValue(id, out var q)) { q = new Queue<GameObject>(); _perTarget[id] = q; }
             q.Enqueue(mark);
             while (q.Count > t.maxMarksPerTarget) { var old = q.Dequeue(); if (old) Object.Destroy(old); }
@@ -100,7 +100,7 @@ namespace ASH.Combat
         public static void Clear(Transform target)
         {
             if (!target) return;
-            if (_perTarget.TryGetValue(target.GetInstanceID(), out var q)) { foreach (var g in q) if (g) Object.Destroy(g); q.Clear(); }
+            if (_perTarget.TryGetValue(target.GetHashCode(), out var q)) { foreach (var g in q) if (g) Object.Destroy(g); q.Clear(); }
         }
 
         static Material Fallback()

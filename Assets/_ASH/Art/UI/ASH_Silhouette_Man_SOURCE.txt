@@ -1,0 +1,9 @@
+﻿ASH_Silhouette_Man.png
+======================
+Source:  "Male person standing silhouette vector clip art" (FreeSVG SVG ID 18338, published by OpenClipart; file radacina_men_in_black_5)
+URL:     https://freesvg.org/male-person-standing-silhouette-vector-clip-art
+Image:   https://freesvg.org/img/radacina_men_in_black_5.png
+License: Public Domain / Creative Commons CC0 1.0 - free for personal and commercial use, no attribution required.
+         https://creativecommons.org/publicdomain/zero/1.0/
+Changes: cropped to the figure, recoloured to white on transparent (tinted at runtime by ASH_CharacterTabSettings).
+Downloaded: 2026-11-21

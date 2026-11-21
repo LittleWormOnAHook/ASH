@@ -173,7 +173,7 @@ namespace ASH.EditorTools
             var root = PrefabUtility.LoadPrefabContents(PlayerPrefab);
             try { foreach (var r in root.GetComponentsInChildren<ASHBowDrawRig>(true)) { r.handOnArrowLine = 1f; r.handLineSide = 0.07f; } PrefabUtility.SaveAsPrefabAsset(root, PlayerPrefab); }
             finally { PrefabUtility.UnloadPrefabContents(root); }
-            foreach (var r in Object.FindObjectsByType<ASHBowDrawRig>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            foreach (var r in Object.FindObjectsByType<ASHBowDrawRig>(FindObjectsInactive.Include))
             { if (EditorUtility.IsPersistent(r)) continue; Undo.RecordObject(r, "Bow hand line"); r.handOnArrowLine = 1f; r.handLineSide = 0.07f; EditorUtility.SetDirty(r); }
             Debug.Log("[ASH] BOWA hand line defaults written (prefab + open scene rigs)");
         }
@@ -187,7 +187,7 @@ namespace ASH.EditorTools
                 var r0 = PrefabUtility.LoadPrefabContents(PlayerPrefab);
                 try { var wa = r0 ? r0.GetComponentInChildren<ASH.Gameplay.ASHWeaponAim>(true) : null; if (wa) { WriteAim(wa, aimData); PrefabUtility.SaveAsPrefabAsset(r0, PlayerPrefab); Debug.Log("[ASH] Bow aim camera/body saved to ASH_Player.prefab."); } }
                 finally { if (r0) PrefabUtility.UnloadPrefabContents(r0); }
-                foreach (var w in Object.FindObjectsByType<ASH.Gameplay.ASHWeaponAim>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+                foreach (var w in Object.FindObjectsByType<ASH.Gameplay.ASHWeaponAim>(FindObjectsInactive.Include))
                 { if (EditorUtility.IsPersistent(w)) continue; Undo.RecordObject(w, "Bow aim tuning"); WriteAim(w, aimData); EditorUtility.SetDirty(w); }
             }
             var json = SessionState.GetString(PendingKey, ""); if (string.IsNullOrEmpty(json)) return;
@@ -202,7 +202,7 @@ namespace ASH.EditorTools
             }
             finally { if (root) PrefabUtility.UnloadPrefabContents(root); }
             // the open scene's player may override these fields: give it the same values (scene left unsaved)
-            foreach (var r in Object.FindObjectsByType<ASHBowDrawRig>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            foreach (var r in Object.FindObjectsByType<ASHBowDrawRig>(FindObjectsInactive.Include))
             { if (EditorUtility.IsPersistent(r)) continue; Undo.RecordObject(r, "Bow tuning"); Overwrite(r, json); EditorUtility.SetDirty(r); }
             Debug.Log("[ASH] Bow tuning saved to ASH_Player.prefab.");
         }

@@ -89,7 +89,7 @@ namespace ASH.EditorTools
         {
             var dog = FindDog(); var c = dog ? dog.transform.position : (Object.FindAnyObjectByType<ASH.Survival.ASHSurvivalStats>()?.transform.position ?? Vector3.zero);
             var sb = new StringBuilder(); int total = 0, missing = 0, added = 0;
-            foreach (var mf in Object.FindObjectsByType<MeshFilter>(FindObjectsSortMode.None))
+            foreach (var mf in Object.FindObjectsByType<MeshFilter>())
             {
                 var mr = mf.GetComponent<MeshRenderer>(); if (!mr || !mr.enabled || !mf.sharedMesh) continue;
                 if ((mr.bounds.center - c).sqrMagnitude > 30f * 30f || mr.bounds.size.magnitude < 0.35f) continue;
@@ -168,7 +168,7 @@ namespace ASH.EditorTools
         static GameObject FindDog()
         {
             var c = Object.FindAnyObjectByType<ASHDogCompanion>(FindObjectsInactive.Include); if (c) return c.gameObject;
-            foreach (var a in Object.FindObjectsByType<Animator>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            foreach (var a in Object.FindObjectsByType<Animator>(FindObjectsInactive.Include))
             {
                 var root = PrefabUtility.GetOutermostPrefabInstanceRoot(a.gameObject) ?? a.gameObject;
                 var src = PrefabUtility.GetCorrespondingObjectFromSource(root);

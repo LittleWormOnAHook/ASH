@@ -69,7 +69,7 @@ namespace ASH.DebugTools
             }
             Log($"forced pee: started {peeing}, done +{dog.Pees - p0}, target '{dog.LastPeeTarget}', lifted leg right {ASHDogCompanion.LearnedLegRight}; activities {acts}");
             float u2 = Time.time + 3f; while (Time.time < u2) yield return null;
-            int spots = 0; foreach (var g in FindObjectsByType<Transform>(FindObjectsSortMode.None)) if (g.name == "ASH_DogPeeSpot") spots++;
+            int spots = 0; foreach (var g in FindObjectsByType<Transform>()) if (g.name == "ASH_DogPeeSpot") spots++;
             Log($"pee spots on the ground: {spots}");
         }
 

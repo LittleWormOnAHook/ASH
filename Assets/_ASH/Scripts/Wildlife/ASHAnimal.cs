@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using ASH.Combat;
 using ASH.Companion;
 using ASH.Interaction;
@@ -74,7 +74,7 @@ namespace ASH.Wildlife
             }
             _home = transform.position;
             _wander = _home;
-            _senseT = (GetInstanceID() & 7) * 0.04f;
+            _senseT = (GetHashCode() & 7) * 0.04f;
             var anim = GetComponentInChildren<Animator>();
             if (anim) anim.applyRootMotion = false;
             _loco = GetComponent<ASHGroundLocomotion>() ?? gameObject.AddComponent<ASHGroundLocomotion>();
@@ -112,7 +112,7 @@ namespace ASH.Wildlife
             float dPlayer = _player ? Flat(transform.position, _player.position) : 999f;
             float lod = W.aiLodMeters > 10f ? W.aiLodMeters : 75f;
             bool far = dPlayer > lod;
-            if (far && (GetInstanceID() + Time.frameCount) % 5 != 0)
+            if (far && (GetHashCode() + Time.frameCount) % 5 != 0)
             {
                 if (_mode == ASHAnimalMode.Wander || _mode == ASHAnimalMode.Idle || _mode == ASHAnimalMode.Graze) WanderTick(true);
                 Animate(dt);
@@ -157,7 +157,7 @@ namespace ASH.Wildlife
         {
             _senseT -= dt;
             if (_senseT > 0f && _mode != ASHAnimalMode.Attack && _mode != ASHAnimalMode.Charge) return;
-            _senseT = 0.18f + (GetInstanceID() & 3) * 0.03f;
+            _senseT = 0.18f + (GetHashCode() & 3) * 0.03f;
 
             bool dogOk = DogUsable();
             float dDog = dogOk ? Flat(transform.position, _dog.position) : 999f;

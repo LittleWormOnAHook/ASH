@@ -24,7 +24,7 @@ namespace ASH.EditorTools
         public static void Cabin()
         {
             var sb = new StringBuilder("[ASH] VEHC");
-            foreach (var t in Object.FindObjectsByType<Transform>(FindObjectsInactive.Exclude, FindObjectsSortMode.None))
+            foreach (var t in Object.FindObjectsByType<Transform>(FindObjectsInactive.Exclude))
             {
                 var n = t.name.ToLowerInvariant();
                 if (!(n.Contains("cabin") || n.Contains("porch") || n.Contains("deck") || n.Contains("veranda") || n.Contains("step") || n.Contains("stair"))) continue;
@@ -77,7 +77,7 @@ namespace ASH.EditorTools
         {
             var sb = new StringBuilder("[ASH] VEHL");
             foreach (var root in new[] { "Pickup", "Car" })
-                foreach (var go in Object.FindObjectsByType<Transform>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+                foreach (var go in Object.FindObjectsByType<Transform>(FindObjectsInactive.Include))
                 {
                     if (go.name != root || go.parent != null || !go.gameObject.activeInHierarchy) continue;
                     sb.Append($"\n{root}:");
@@ -118,7 +118,7 @@ namespace ASH.EditorTools
         public static void AnyTire()
         {
             var sb = new StringBuilder("[ASH] VEHT2");
-            foreach (var t in Object.FindObjectsByType<Transform>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            foreach (var t in Object.FindObjectsByType<Transform>(FindObjectsInactive.Include))
                 if (t.name.ToLowerInvariant().Contains("tire") || (t.GetComponent<ASH.Interaction.ASHItemPickup>() && t.GetComponent<ASH.Interaction.ASHItemPickup>().ToString().ToLowerInvariant().Contains("tire")))
                     sb.Append($"\n{Path(t)} active={t.gameObject.activeInHierarchy} pos={t.position:F2}");
             sb.Append($"\nundo={Undo.GetCurrentGroupName()}");
@@ -134,7 +134,7 @@ namespace ASH.EditorTools
         public static void Roots()
         {
             var sb = new StringBuilder("[ASH] VEHR");
-            foreach (var t in Object.FindObjectsByType<Transform>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            foreach (var t in Object.FindObjectsByType<Transform>(FindObjectsInactive.Include))
             {
                 if (!PrefabUtility.IsAnyPrefabInstanceRoot(t.gameObject)) continue;
                 var src = PrefabUtility.GetCorrespondingObjectFromSource(t.gameObject); var ap = src ? AssetDatabase.GetAssetPath(src) : "";
@@ -148,7 +148,7 @@ namespace ASH.EditorTools
         public static void Probe()
         {
             var sb = new StringBuilder("[ASH] VEHP");
-            foreach (var t in Object.FindObjectsByType<Transform>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            foreach (var t in Object.FindObjectsByType<Transform>(FindObjectsInactive.Include))
             {
                 var n = t.name.ToLowerInvariant();
                 if (!(n.Contains("pickup_0") || n.Contains("car_0") || n.Contains("lod_car") || n.Contains("lod_pickup") || n.Contains("truck") || n.StartsWith("car") || n.Contains("vehicle"))) continue;

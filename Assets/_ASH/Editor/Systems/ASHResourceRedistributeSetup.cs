@@ -32,7 +32,7 @@ namespace ASH.EditorTools
         {
             var settings = ASHMenuInstaller.Ensure<ASHResourceRedistributeSettings>(SettingsPath);
             int stamped = 0, keep = 0, skipped = 0;
-            foreach (var node in Object.FindObjectsByType<ASHResourceNode>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            foreach (var node in Object.FindObjectsByType<ASHResourceNode>(FindObjectsInactive.Include))
             {
                 if (!node || IsProtected(node.transform)) { skipped++; continue; }
                 var id = node.GetComponent<ASHResourceId>() ?? Undo.AddComponent<ASHResourceId>(node.gameObject);
@@ -73,7 +73,7 @@ namespace ASH.EditorTools
             if (!terrain) { Debug.LogWarning("[ASH] Redistribute: no terrain."); return; }
 
             var movable = new List<ASHResourceNode>();
-            foreach (var node in Object.FindObjectsByType<ASHResourceNode>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            foreach (var node in Object.FindObjectsByType<ASHResourceNode>(FindObjectsInactive.Include))
             {
                 if (!node || IsProtected(node.transform)) continue;
                 var id = node.GetComponent<ASHResourceId>() ?? node.gameObject.AddComponent<ASHResourceId>();
@@ -155,7 +155,7 @@ namespace ASH.EditorTools
             int clones = root ? root.transform.childCount : 0;
             if (root) Undo.DestroyObjectImmediate(root);
             int restored = 0;
-            foreach (var id in Object.FindObjectsByType<ASHResourceId>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            foreach (var id in Object.FindObjectsByType<ASHResourceId>(FindObjectsInactive.Include))
             {
                 if (!id || !id.disabledByRedistribute) continue;
                 Undo.RecordObject(id.gameObject, "ASH redistribute revert");
@@ -192,9 +192,9 @@ namespace ASH.EditorTools
         static List<Vector3> CollectBlocked()
         {
             var list = new List<Vector3>();
-            foreach (var t in Object.FindObjectsByType<Transform>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            foreach (var t in Object.FindObjectsByType<Transform>(FindObjectsInactive.Include))
                 if (t && IsProtected(t)) list.Add(t.position);
-            foreach (var l in Object.FindObjectsByType<Light>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            foreach (var l in Object.FindObjectsByType<Light>(FindObjectsInactive.Include))
                 if (l && l.type != LightType.Directional) list.Add(l.transform.position);
             var player = GameObject.FindGameObjectWithTag("Player");
             if (player) list.Add(player.transform.position);
@@ -214,7 +214,7 @@ namespace ASH.EditorTools
 
         static string ShortGuid(GameObject go)
         {
-            return Mathf.Abs(go.GetInstanceID()).ToString("x");
+            return Mathf.Abs(go.GetHashCode()).ToString("x");
         }
     }
 }

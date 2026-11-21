@@ -45,7 +45,6 @@ namespace ASH.Rendering
                 if (!comp) continue;
                 var cl = Instantiate(comp); cl.name = comp.name; cl.hideFlags = HideFlags.DontSave; _runtime.components.Add(cl);
             }
-            _runtime.isDirty = true;
             volume.profile = _runtime;
             if (!_runtime.TryGet(out _f)) _f = _runtime.Add<BetterFogVolumeComponent>(true);
             ApplyExclusive();
