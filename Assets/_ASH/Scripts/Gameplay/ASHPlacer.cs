@@ -139,6 +139,7 @@ namespace ASH.Gameplay
                 if (h.transform.IsChildOf(transform)) { InvalidReason = "Too close to you"; return; }
                 InvalidReason = "Blocked"; return;
             }
+            if (ASHTent.TryRejectPlacement(_item, aim, out var why)) { InvalidReason = why; return; }
             IsValid = true; InvalidReason = null;
         }
 

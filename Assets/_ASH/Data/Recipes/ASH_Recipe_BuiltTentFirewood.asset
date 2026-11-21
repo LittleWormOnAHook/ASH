@@ -1,0 +1,37 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f33e8ceadb27f414fbe6b19827d3ba9f, type: 3}
+  m_Name: ASH_Recipe_BuiltTentFirewood
+  m_EditorClassIdentifier: Assembly-CSharp::ASH.Inventory.ASHRecipe
+  recipeId: builttent_firewood
+  displayName: Built Tent (firewood)
+  description: The same built tent, using split firewood instead of deadwood.
+  category: 4
+  ingredients:
+  - item: {fileID: 11400000, guid: 0d309887d3d74564faeda75273494ee9, type: 2}
+    amount: 4
+  - item: {fileID: 11400000, guid: 2bb36505d94f8914fba669eb78d3e44d, type: 2}
+    amount: 2
+  - item: {fileID: 11400000, guid: 0ecc23791726bb14bab54becc49cf048, type: 2}
+    amount: 4
+  outputItem: {fileID: 11400000, guid: 92457dc84a452524194185157d0c7e49, type: 2}
+  outputAmount: 1
+  icon: {fileID: 21300000, guid: cc487205161cff04191191765fe511e5, type: 3}
+  requiredCraftingLevel: 1
+  upgradeId: 
+  upgradeTier: 0
+  craftSeconds: 3
+  requiredTool: 0
+  station: 0
+  waterPercent: 0
+  cookGameMinutes: 0
+  cookSeconds: 0

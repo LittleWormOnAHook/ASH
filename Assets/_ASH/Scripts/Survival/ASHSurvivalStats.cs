@@ -1,4 +1,5 @@
 using System;
+using ASH.Gameplay;
 using ASH.Inventory;
 using UnityEngine;
 
@@ -35,11 +36,13 @@ namespace ASH.Survival
 
         public bool HungerLow => Hunger <= MaxHunger * tuning.lowNeedThreshold;
         public bool ThirstLow => Thirst <= MaxThirst * tuning.lowNeedThreshold;
-        public float StaminaRecoveryMultiplier => (HungerLow || ThirstLow ? tuning.lowNeedsRecoveryMultiplier : 1f) * ExposureRecoveryMultiplier * ColdRecoveryMultiplier;
+        public float StaminaRecoveryMultiplier => (HungerLow || ThirstLow ? tuning.lowNeedsRecoveryMultiplier : 1f) * ExposureRecoveryMultiplier * ColdRecoveryMultiplier * TentFireRecoveryMultiplier;
         /// <summary>Set by ash exposure (1 = no effect): slows stamina recovery outside in ash.</summary>
         public float ExposureRecoveryMultiplier { get; set; } = 1f;
         /// <summary>Set by ASHBodyTemperature (cold slows stamina recovery).</summary>
         public float ColdRecoveryMultiplier { get; set; } = 1f;
+        /// <summary>Set each tick from ASHTent: 1.5 (default) while inside a tent with a lit campfire nearby, otherwise 1.</summary>
+        public float TentFireRecoveryMultiplier { get; private set; } = 1f;
 
         /// <summary>Save restore: absolute values (clamped).</summary>
         public void RestoreValues(float health, float hunger, float thirst)
@@ -90,13 +93,14 @@ namespace ASH.Survival
             Hunger = Mathf.Max(0f, Hunger - tuning.hungerPerMinute * mul * dt);
             Thirst = Mathf.Max(0f, Thirst - tuning.thirstPerMinute * mul * dt);
 
+            TentFireRecoveryMultiplier = ASHTent.RecoveryBonusAt(transform.position);
             float drain = 0f;
             if (Hunger <= 0f) drain += tuning.emptyNeedHealthDrainPerSecond;
             if (Thirst <= 0f) drain += tuning.emptyNeedHealthDrainPerSecond;
             if (drain > 0f) Damage(drain * dt, false);
             else if (Hunger >= MaxHunger * tuning.regenNeedThreshold && Thirst >= MaxThirst * tuning.regenNeedThreshold
                      && _sinceDamage > tuning.regenDelayAfterDamage && Health < MaxHealth)
-                Health = Mathf.Min(MaxHealth, Health + tuning.healthRegenPerSecond * dt);
+                Health = Mathf.Min(MaxHealth, Health + tuning.healthRegenPerSecond * TentFireRecoveryMultiplier * dt);
 
             if (Time.unscaledTime >= _nextNotify) { _nextNotify = Time.unscaledTime + NotifyInterval; Changed?.Invoke(); }
         }

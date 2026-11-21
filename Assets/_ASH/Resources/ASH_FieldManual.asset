@@ -506,3 +506,19 @@ MonoBehaviour:
     row: 11
     parents:
     - {fileID: 11400000, guid: 8f2b0af0e09c1ee4a97a3a60e10e02a2, type: 2}
+  - recipe: {fileID: 11400000, guid: 4677e02396ef5f94bb8145f868a44d1f, type: 2}
+    basic: 1
+    conditions: []
+    requireAll: 1
+    hint: 
+    column: 0
+    row: 13
+    parents: []
+  - recipe: {fileID: 11400000, guid: ac7a95b3057a97049b0d284ee254785f, type: 2}
+    basic: 1
+    conditions: []
+    requireAll: 1
+    hint: 
+    column: 1
+    row: 13
+    parents: []
