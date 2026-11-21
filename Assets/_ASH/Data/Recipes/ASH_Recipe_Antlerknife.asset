@@ -1,0 +1,37 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f33e8ceadb27f414fbe6b19827d3ba9f, type: 3}
+  m_Name: ASH_Recipe_Antlerknife
+  m_EditorClassIdentifier: Assembly-CSharp::ASH.Inventory.ASHRecipe
+  recipeId: antlerknife
+  displayName: Antler Knife
+  description: Haft a bone blade on an antler handle.
+  category: 3
+  ingredients:
+  - item: {fileID: 11400000, guid: eb6ae979827009c4db3a28044bf300aa, type: 2}
+    amount: 1
+  - item: {fileID: 11400000, guid: 5abc93b8e4ac5864c96ebb3bc63402b1, type: 2}
+    amount: 1
+  - item: {fileID: 11400000, guid: 19765f60cef101b45b3a4a92756ad43c, type: 2}
+    amount: 1
+  outputItem: {fileID: 11400000, guid: e18586ddc3ed8264cb8fc259b8cc3245, type: 2}
+  outputAmount: 1
+  icon: {fileID: 21300000, guid: d49d3bb3f276af74ca7fdef31afa1372, type: 3}
+  requiredCraftingLevel: 1
+  upgradeId: 
+  upgradeTier: 0
+  craftSeconds: 3.5
+  requiredTool: 0
+  station: 0
+  waterPercent: 0
+  cookGameMinutes: 0
+  cookSeconds: 0

@@ -1,0 +1,37 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f33e8ceadb27f414fbe6b19827d3ba9f, type: 3}
+  m_Name: ASH_Recipe_Boneknife
+  m_EditorClassIdentifier: Assembly-CSharp::ASH.Inventory.ASHRecipe
+  recipeId: boneknife
+  displayName: Bone Knife
+  description: Lash a bone blade to a deadwood handle.
+  category: 3
+  ingredients:
+  - item: {fileID: 11400000, guid: 5abc93b8e4ac5864c96ebb3bc63402b1, type: 2}
+    amount: 2
+  - item: {fileID: 11400000, guid: c3f9bdd2a328f9742a740367d3a41d6d, type: 2}
+    amount: 1
+  - item: {fileID: 11400000, guid: 19765f60cef101b45b3a4a92756ad43c, type: 2}
+    amount: 1
+  outputItem: {fileID: 11400000, guid: 8cf3c185fbd92844c9695981e2a863a2, type: 2}
+  outputAmount: 1
+  icon: {fileID: 21300000, guid: 927829d66acc50c49a6d0e1a861c7e83, type: 3}
+  requiredCraftingLevel: 1
+  upgradeId: 
+  upgradeTier: 0
+  craftSeconds: 3
+  requiredTool: 0
+  station: 0
+  waterPercent: 0
+  cookGameMinutes: 0
+  cookSeconds: 0

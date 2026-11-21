@@ -12,22 +12,46 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bcc659a571fc8054e917299db0da3698, type: 3}
   m_Name: ASH_WildlifeSettings
   m_EditorClassIdentifier: Assembly-CSharp::ASH.Wildlife.ASHWildlifeSettings
+  youngScale: 0.7
+  alphaScale: 1.18
+  youngHealthMul: 0.6
+  alphaHealthMul: 1.45
+  youngDamageMul: 0.55
+  alphaDamageMul: 1.35
+  youngSpeedMul: 1.08
+  alphaSpeedMul: 0.96
   wolf:
     kind: 0
     displayName: Wolf
+    temperament: 2
+    trapSize: 2
+    dogPolicy: 0
     maxHealth: 40
     damage: 8
     detectRange: 24
+    stalkRange: 32
     attackRange: 2.1
     walkSpeed: 2.4
     runSpeed: 7.2
     attackCooldown: 1.5
     harvestHold: 3.2
     wanderRadius: 20
-    dogPolicy: 0
+    shortFleeMeters: 8
+    longFleeMeters: 22
+    shortFleeChance: 0.4
+    baseScale: 1
     scaredByTorch: 1
     torchScareRadius: 8
     torchScareSeconds: 6
+    placeCount: 2
+    packSize: 1
+    trotSpeed: 0
+    walkClipSpeed: 0.17072695
+    trotClipSpeed: 1
+    runClipSpeed: 1.5947839
+    bodyRadius: 0
+    bodyLength: 0
+    bodyHeight: 0
     drops:
     - item: {fileID: 11400000, guid: 49aeecd77bdc047408ab2bf59e2992fc, type: 2}
       min: 1
@@ -48,19 +72,35 @@ MonoBehaviour:
   bear:
     kind: 1
     displayName: Bear
+    temperament: 1
+    trapSize: 0
+    dogPolicy: 1
     maxHealth: 120
     damage: 16
     detectRange: 18
+    stalkRange: 32
     attackRange: 2.6
     walkSpeed: 2
     runSpeed: 5.4
     attackCooldown: 2.2
     harvestHold: 5.5
     wanderRadius: 16
-    dogPolicy: 1
+    shortFleeMeters: 8
+    longFleeMeters: 22
+    shortFleeChance: 0.4
+    baseScale: 1
     scaredByTorch: 0
     torchScareRadius: 8
     torchScareSeconds: 6
+    placeCount: 2
+    packSize: 1
+    trotSpeed: 0
+    walkClipSpeed: 0.23987989
+    trotClipSpeed: 1
+    runClipSpeed: 0.8379886
+    bodyRadius: 0
+    bodyLength: 0
+    bodyHeight: 0
     drops:
     - item: {fileID: 11400000, guid: 49aeecd77bdc047408ab2bf59e2992fc, type: 2}
       min: 2
@@ -78,11 +118,427 @@ MonoBehaviour:
       min: 1
       max: 3
       chance: 1
-  wolfCount: 3
-  bearCount: 1
+  fox:
+    kind: 2
+    displayName: Fox
+    temperament: 0
+    trapSize: 0
+    dogPolicy: 2
+    maxHealth: 18
+    damage: 0
+    detectRange: 16
+    stalkRange: 16
+    attackRange: 1.6
+    walkSpeed: 2
+    runSpeed: 8
+    attackCooldown: 2
+    harvestHold: 2.8
+    wanderRadius: 22
+    shortFleeMeters: 8
+    longFleeMeters: 22
+    shortFleeChance: 0.4
+    baseScale: 1
+    scaredByTorch: 1
+    torchScareRadius: 8
+    torchScareSeconds: 6
+    placeCount: 2
+    packSize: 1
+    trotSpeed: 0
+    walkClipSpeed: 0.06476048
+    trotClipSpeed: 1
+    runClipSpeed: 1.3737272
+    bodyRadius: 0
+    bodyLength: 0
+    bodyHeight: 0
+    drops:
+    - item: {fileID: 11400000, guid: 49aeecd77bdc047408ab2bf59e2992fc, type: 2}
+      min: 1
+      max: 1
+      chance: 1
+    - item: {fileID: 11400000, guid: 53c08f03dd40f5c42954af292d66a91f, type: 2}
+      min: 1
+      max: 1
+      chance: 0.8
+    - item: {fileID: 11400000, guid: 5abc93b8e4ac5864c96ebb3bc63402b1, type: 2}
+      min: 1
+      max: 2
+      chance: 1
+    - item: {fileID: 11400000, guid: 6a9d317fdb82dd446b8e29aca3f854c4, type: 2}
+      min: 0
+      max: 1
+      chance: 0.75
+    - item: {fileID: 11400000, guid: 19765f60cef101b45b3a4a92756ad43c, type: 2}
+      min: 0
+      max: 2
+      chance: 0.65
+  rabbit:
+    kind: 3
+    displayName: Rabbit
+    temperament: 0
+    trapSize: 1
+    dogPolicy: 2
+    maxHealth: 8
+    damage: 0
+    detectRange: 12
+    stalkRange: 12
+    attackRange: 1.2
+    walkSpeed: 1.8
+    runSpeed: 9
+    attackCooldown: 2
+    harvestHold: 2
+    wanderRadius: 14
+    shortFleeMeters: 8
+    longFleeMeters: 22
+    shortFleeChance: 0.4
+    baseScale: 1
+    scaredByTorch: 1
+    torchScareRadius: 8
+    torchScareSeconds: 6
+    placeCount: 6
+    packSize: 1
+    trotSpeed: 0
+    walkClipSpeed: 1
+    trotClipSpeed: 0.09452552
+    runClipSpeed: 0.7847873
+    bodyRadius: 0
+    bodyLength: 0
+    bodyHeight: 0
+    drops:
+    - item: {fileID: 11400000, guid: 49aeecd77bdc047408ab2bf59e2992fc, type: 2}
+      min: 1
+      max: 1
+      chance: 1
+    - item: {fileID: 11400000, guid: 7059747964b53414db8d5511fbfa8820, type: 2}
+      min: 1
+      max: 1
+      chance: 0.5
+    - item: {fileID: 11400000, guid: 5abc93b8e4ac5864c96ebb3bc63402b1, type: 2}
+      min: 1
+      max: 2
+      chance: 1
+    - item: {fileID: 11400000, guid: 6a9d317fdb82dd446b8e29aca3f854c4, type: 2}
+      min: 0
+      max: 1
+      chance: 0.75
+    - item: {fileID: 11400000, guid: 19765f60cef101b45b3a4a92756ad43c, type: 2}
+      min: 0
+      max: 2
+      chance: 0.65
+  raccoon:
+    kind: 4
+    displayName: Raccoon
+    temperament: 0
+    trapSize: 1
+    dogPolicy: 2
+    maxHealth: 14
+    damage: 0
+    detectRange: 11
+    stalkRange: 11
+    attackRange: 1.4
+    walkSpeed: 1.6
+    runSpeed: 6.5
+    attackCooldown: 2
+    harvestHold: 2.6
+    wanderRadius: 16
+    shortFleeMeters: 8
+    longFleeMeters: 22
+    shortFleeChance: 0.4
+    baseScale: 1
+    scaredByTorch: 1
+    torchScareRadius: 8
+    torchScareSeconds: 6
+    placeCount: 3
+    packSize: 1
+    trotSpeed: 0
+    walkClipSpeed: 1
+    trotClipSpeed: 0.2407734
+    runClipSpeed: 0.403476
+    bodyRadius: 0
+    bodyLength: 0
+    bodyHeight: 0
+    drops:
+    - item: {fileID: 11400000, guid: 49aeecd77bdc047408ab2bf59e2992fc, type: 2}
+      min: 1
+      max: 2
+      chance: 1
+    - item: {fileID: 11400000, guid: a0a98d63388b76c4ab33a330ce546ee9, type: 2}
+      min: 1
+      max: 1
+      chance: 0.7
+    - item: {fileID: 11400000, guid: 5abc93b8e4ac5864c96ebb3bc63402b1, type: 2}
+      min: 1
+      max: 3
+      chance: 1
+    - item: {fileID: 11400000, guid: 6a9d317fdb82dd446b8e29aca3f854c4, type: 2}
+      min: 0
+      max: 1
+      chance: 0.75
+    - item: {fileID: 11400000, guid: 19765f60cef101b45b3a4a92756ad43c, type: 2}
+      min: 0
+      max: 2
+      chance: 0.65
+  deer:
+    kind: 5
+    displayName: Deer
+    temperament: 0
+    trapSize: 0
+    dogPolicy: 2
+    maxHealth: 45
+    damage: 0
+    detectRange: 20
+    stalkRange: 20
+    attackRange: 2
+    walkSpeed: 2.4
+    runSpeed: 11
+    attackCooldown: 2
+    harvestHold: 4
+    wanderRadius: 24
+    shortFleeMeters: 8
+    longFleeMeters: 22
+    shortFleeChance: 0.4
+    baseScale: 1
+    scaredByTorch: 1
+    torchScareRadius: 8
+    torchScareSeconds: 6
+    placeCount: 3
+    packSize: 1
+    trotSpeed: 0
+    walkClipSpeed: 0.067158416
+    trotClipSpeed: 1
+    runClipSpeed: 1
+    bodyRadius: 0
+    bodyLength: 0
+    bodyHeight: 0
+    drops:
+    - item: {fileID: 11400000, guid: 49aeecd77bdc047408ab2bf59e2992fc, type: 2}
+      min: 2
+      max: 3
+      chance: 1
+    - item: {fileID: 11400000, guid: 2af7fba988aa1c84e811f06aab39c0ca, type: 2}
+      min: 1
+      max: 1
+      chance: 0.9
+    - item: {fileID: 11400000, guid: 5abc93b8e4ac5864c96ebb3bc63402b1, type: 2}
+      min: 2
+      max: 4
+      chance: 1
+    - item: {fileID: 11400000, guid: 6a9d317fdb82dd446b8e29aca3f854c4, type: 2}
+      min: 0
+      max: 2
+      chance: 0.75
+    - item: {fileID: 11400000, guid: 19765f60cef101b45b3a4a92756ad43c, type: 2}
+      min: 0
+      max: 2
+      chance: 0.65
+    - item: {fileID: 11400000, guid: eb6ae979827009c4db3a28044bf300aa, type: 2}
+      min: 1
+      max: 2
+      chance: 0.8
+  fawn:
+    kind: 6
+    displayName: Fawn
+    temperament: 0
+    trapSize: 2
+    dogPolicy: 2
+    maxHealth: 22
+    damage: 0
+    detectRange: 14
+    stalkRange: 14
+    attackRange: 1.6
+    walkSpeed: 2
+    runSpeed: 8.5
+    attackCooldown: 2
+    harvestHold: 3.2
+    wanderRadius: 16
+    shortFleeMeters: 8
+    longFleeMeters: 22
+    shortFleeChance: 0.4
+    baseScale: 1
+    scaredByTorch: 1
+    torchScareRadius: 8
+    torchScareSeconds: 6
+    placeCount: 2
+    packSize: 1
+    trotSpeed: 0
+    walkClipSpeed: 0.067158416
+    trotClipSpeed: 1
+    runClipSpeed: 1
+    bodyRadius: 0
+    bodyLength: 0
+    bodyHeight: 0
+    drops:
+    - item: {fileID: 11400000, guid: 49aeecd77bdc047408ab2bf59e2992fc, type: 2}
+      min: 1
+      max: 2
+      chance: 1
+    - item: {fileID: 11400000, guid: 2af7fba988aa1c84e811f06aab39c0ca, type: 2}
+      min: 1
+      max: 1
+      chance: 0.6
+    - item: {fileID: 11400000, guid: 5abc93b8e4ac5864c96ebb3bc63402b1, type: 2}
+      min: 1
+      max: 3
+      chance: 1
+    - item: {fileID: 11400000, guid: 6a9d317fdb82dd446b8e29aca3f854c4, type: 2}
+      min: 0
+      max: 1
+      chance: 0.75
+    - item: {fileID: 11400000, guid: 19765f60cef101b45b3a4a92756ad43c, type: 2}
+      min: 0
+      max: 2
+      chance: 0.65
+  boar:
+    kind: 7
+    displayName: Boar
+    temperament: 1
+    trapSize: 0
+    dogPolicy: 0
+    maxHealth: 80
+    damage: 14
+    detectRange: 16
+    stalkRange: 22
+    attackRange: 2.2
+    walkSpeed: 2.1
+    runSpeed: 8
+    attackCooldown: 1.8
+    harvestHold: 4.2
+    wanderRadius: 18
+    shortFleeMeters: 8
+    longFleeMeters: 22
+    shortFleeChance: 0.4
+    baseScale: 1
+    scaredByTorch: 1
+    torchScareRadius: 8
+    torchScareSeconds: 6
+    placeCount: 2
+    packSize: 1
+    trotSpeed: 0
+    walkClipSpeed: 1
+    trotClipSpeed: 1
+    runClipSpeed: 1
+    bodyRadius: 0
+    bodyLength: 0
+    bodyHeight: 0
+    drops:
+    - item: {fileID: 11400000, guid: 49aeecd77bdc047408ab2bf59e2992fc, type: 2}
+      min: 2
+      max: 3
+      chance: 1
+    - item: {fileID: 11400000, guid: f8439ada79f87c649bb011b6ad3b8de1, type: 2}
+      min: 1
+      max: 1
+      chance: 1
+    - item: {fileID: 11400000, guid: 5abc93b8e4ac5864c96ebb3bc63402b1, type: 2}
+      min: 2
+      max: 4
+      chance: 1
+    - item: {fileID: 11400000, guid: 6a9d317fdb82dd446b8e29aca3f854c4, type: 2}
+      min: 0
+      max: 2
+      chance: 0.75
+    - item: {fileID: 11400000, guid: 19765f60cef101b45b3a4a92756ad43c, type: 2}
+      min: 0
+      max: 2
+      chance: 0.65
+    - item: {fileID: 11400000, guid: 62d4ac35aa6493144915fa32e66ba1f2, type: 2}
+      min: 1
+      max: 1
+      chance: 0.7
+  cougar:
+    kind: 8
+    displayName: Cougar
+    temperament: 2
+    trapSize: 0
+    dogPolicy: 0
+    maxHealth: 70
+    damage: 18
+    detectRange: 26
+    stalkRange: 42
+    attackRange: 2.2
+    walkSpeed: 2.6
+    runSpeed: 9.2
+    attackCooldown: 1.4
+    harvestHold: 4
+    wanderRadius: 22
+    shortFleeMeters: 8
+    longFleeMeters: 22
+    shortFleeChance: 0.4
+    baseScale: 1
+    scaredByTorch: 1
+    torchScareRadius: 8
+    torchScareSeconds: 6
+    placeCount: 1
+    packSize: 1
+    trotSpeed: 0
+    walkClipSpeed: 0.21841685
+    trotClipSpeed: 1
+    runClipSpeed: 2.0385356
+    bodyRadius: 0
+    bodyLength: 0
+    bodyHeight: 0
+    drops:
+    - item: {fileID: 11400000, guid: 49aeecd77bdc047408ab2bf59e2992fc, type: 2}
+      min: 2
+      max: 3
+      chance: 1
+    - item: {fileID: 11400000, guid: 54373fb804cd30946aeef18c71672fc4, type: 2}
+      min: 1
+      max: 1
+      chance: 1
+    - item: {fileID: 11400000, guid: 5abc93b8e4ac5864c96ebb3bc63402b1, type: 2}
+      min: 2
+      max: 4
+      chance: 1
+    - item: {fileID: 11400000, guid: 6a9d317fdb82dd446b8e29aca3f854c4, type: 2}
+      min: 0
+      max: 2
+      chance: 0.75
+    - item: {fileID: 11400000, guid: 19765f60cef101b45b3a4a92756ad43c, type: 2}
+      min: 0
+      max: 2
+      chance: 0.65
+    - item: {fileID: 11400000, guid: 399f8f6e14611b641a96b2d3114c1442, type: 2}
+      min: 1
+      max: 1
+      chance: 0.7
+  wolfPrefab: {fileID: 2505689248885541101, guid: 90477145a02bd564ab856b45bbc93ddf, type: 3}
+  bearPrefab: {fileID: 5610414547883767365, guid: c1145d84f9d6f964ebbea73bfd4557d1, type: 3}
+  foxPrefab: {fileID: 5041636853550733748, guid: 6594ca83b077e2041a685e3d55ce4ad8, type: 3}
+  rabbitPrefab: {fileID: 5976964573012707784, guid: 78ae5e15c7b0d994cbc84378acb8af6b, type: 3}
+  raccoonPrefab: {fileID: 1236620915589279067, guid: c2cffc1813c66854a8669543836f6dfc, type: 3}
+  deerPrefab: {fileID: 3385046615160643203, guid: 6cd6a4c8d4e2ff642a67af648c91dfbf, type: 3}
+  fawnPrefab: {fileID: 6547232371813118885, guid: 0a1b3846d65a2fb43b21b747162e5d73, type: 3}
+  boarPrefab: {fileID: 8843920857640585356, guid: 6c0b06cc849392a4ea512510a8d05483, type: 3}
+  cougarPrefab: {fileID: 206543460368646962, guid: f65a36b8ea2d5264d813fe7835bd9b50, type: 3}
+  acceleration: 6
+  turnSpeed: 300
+  turnSmoothTime: 0.18
+  turnInPlaceAngle: 100
+  turnInPlaceDone: 30
+  arcTurnSlow: 0.55
+  turnBlendFullRate: 160
+  animSpeedScale: 1
+  animRateMin: 0.6
+  animRateMax: 2.6
+  maxSlope: 45
+  maxStepUp: 0.45
+  whiskerLength: 1.3
+  whiskerAngle: 35
+  depenetrate: 1
+  environmentLayers:
+    serializedVersion: 2
+    m_Bits: 4294967259
+  trapProximityRadius: 1.15
+  wolfBreakFreeSeconds: 60
+  snareRabbitChance: 0.7
+  snareRaccoonChance: 0.3
+  largeTrapFawnChance: 0.6
+  largeTrapWolfChance: 0.4
   campExclusionMeters: 80
   packSpacing: 14
   spawnSeed: 0
+  youngChance: 0.25
+  alphaChance: 0.12
   dogAssistRange: 28
   dogDistractDistance: 5
   dogDistractRetreatSeconds: 3.5

@@ -1,0 +1,37 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f33e8ceadb27f414fbe6b19827d3ba9f, type: 3}
+  m_Name: ASH_Recipe_Furgloves
+  m_EditorClassIdentifier: Assembly-CSharp::ASH.Inventory.ASHRecipe
+  recipeId: furgloves
+  displayName: Fur Gloves
+  description: Hide mittens lined with fur.
+  category: 4
+  ingredients:
+  - item: {fileID: 11400000, guid: 6f6730c2241d5564dbf68e96316f6f63, type: 2}
+    amount: 2
+  - item: {fileID: 11400000, guid: 7059747964b53414db8d5511fbfa8820, type: 2}
+    amount: 1
+  - item: {fileID: 11400000, guid: a0a1069a120be034c90010d86b266c3b, type: 2}
+    amount: 1
+  outputItem: {fileID: 11400000, guid: 66beba2aaa697af41af6c3566510395d, type: 2}
+  outputAmount: 1
+  icon: {fileID: 21300000, guid: 9e7198c80db72274cbae83634e9fdfa7, type: 3}
+  requiredCraftingLevel: 1
+  upgradeId: 
+  upgradeTier: 0
+  craftSeconds: 4
+  requiredTool: 0
+  station: 0
+  waterPercent: 0
+  cookGameMinutes: 0
+  cookSeconds: 0

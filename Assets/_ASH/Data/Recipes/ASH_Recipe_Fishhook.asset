@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f33e8ceadb27f414fbe6b19827d3ba9f, type: 3}
+  m_Name: ASH_Recipe_Fishhook
+  m_EditorClassIdentifier: Assembly-CSharp::ASH.Inventory.ASHRecipe
+  recipeId: fishhook
+  displayName: Bone Fishhooks
+  description: Carve small barbed hooks.
+  category: 3
+  ingredients:
+  - item: {fileID: 11400000, guid: 5abc93b8e4ac5864c96ebb3bc63402b1, type: 2}
+    amount: 1
+  outputItem: {fileID: 11400000, guid: a86cc2f81f62f8a4cacbe221774ff565, type: 2}
+  outputAmount: 3
+  icon: {fileID: 21300000, guid: 14e96252b4bf052458461e962d45d167, type: 3}
+  requiredCraftingLevel: 1
+  upgradeId: 
+  upgradeTier: 0
+  craftSeconds: 2
+  requiredTool: 0
+  station: 0
+  waterPercent: 0
+  cookGameMinutes: 0
+  cookSeconds: 0

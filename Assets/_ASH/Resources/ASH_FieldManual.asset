@@ -600,3 +600,484 @@ MonoBehaviour:
     row: 6
     parents:
     - {fileID: 11400000, guid: 175d1959d24317743b87ba6da11c0d39, type: 2}
+  - recipe: {fileID: 11400000, guid: 0509a80166bdb424c91528cf0682c086, type: 2}
+    basic: 0
+    conditions:
+    - kind: 2
+      item: {fileID: 0}
+      quantity: 1
+      page: 4
+      upgradeId: 
+      upgradeTier: 1
+      collection: grandpa
+      pageId: 
+    requireAll: 1
+    hint: A heavier trap, shown with the snare in the hunting shack (page 4).
+    column: 3
+    row: 8
+    parents:
+    - {fileID: 11400000, guid: e0c947428c252544395f84d52760137a, type: 2}
+  - recipe: {fileID: 11400000, guid: 37a25fdf5e840c44d80d94273e86a74b, type: 2}
+    basic: 0
+    conditions:
+    - kind: 0
+      item: {fileID: 11400000, guid: 1d05d02e4972300468567f0859f6b7f8, type: 2}
+      quantity: 1
+      page: 1
+      upgradeId: 
+      upgradeTier: 1
+      collection: grandpa
+      pageId: 
+    - kind: 0
+      item: {fileID: 11400000, guid: 6e671ec55d5ac0243afd7d2801dc6c4b, type: 2}
+      quantity: 1
+      page: 1
+      upgradeId: 
+      upgradeTier: 1
+      collection: grandpa
+      pageId: 
+    - kind: 0
+      item: {fileID: 11400000, guid: 2af7fba988aa1c84e811f06aab39c0ca, type: 2}
+      quantity: 1
+      page: 1
+      upgradeId: 
+      upgradeTier: 1
+      collection: grandpa
+      pageId: 
+    - kind: 0
+      item: {fileID: 11400000, guid: 53c08f03dd40f5c42954af292d66a91f, type: 2}
+      quantity: 1
+      page: 1
+      upgradeId: 
+      upgradeTier: 1
+      collection: grandpa
+      pageId: 
+    requireAll: 0
+    hint: Gather the right animal material, or find the hunting notes (page 4).
+    column: 5
+    row: 0
+    parents: []
+  - recipe: {fileID: 11400000, guid: e71717c97fc419f46ba5736ecf24d4d8, type: 2}
+    basic: 0
+    conditions:
+    - kind: 0
+      item: {fileID: 11400000, guid: 6a9d317fdb82dd446b8e29aca3f854c4, type: 2}
+      quantity: 1
+      page: 1
+      upgradeId: 
+      upgradeTier: 1
+      collection: grandpa
+      pageId: 
+    requireAll: 1
+    hint: Gather the right animal material, or find the hunting notes (page 4).
+    column: 5
+    row: 2
+    parents: []
+  - recipe: {fileID: 11400000, guid: b485a201e6febbe4db4d009a63c58c62, type: 2}
+    basic: 0
+    conditions:
+    - kind: 0
+      item: {fileID: 11400000, guid: 19765f60cef101b45b3a4a92756ad43c, type: 2}
+      quantity: 1
+      page: 1
+      upgradeId: 
+      upgradeTier: 1
+      collection: grandpa
+      pageId: 
+    requireAll: 1
+    hint: Gather the right animal material, or find the hunting notes (page 4).
+    column: 6
+    row: 1
+    parents: []
+  - recipe: {fileID: 11400000, guid: 3ca432e0db5e9a8429284cd9e2917262, type: 2}
+    basic: 0
+    conditions:
+    - kind: 0
+      item: {fileID: 11400000, guid: 19765f60cef101b45b3a4a92756ad43c, type: 2}
+      quantity: 1
+      page: 1
+      upgradeId: 
+      upgradeTier: 1
+      collection: grandpa
+      pageId: 
+    requireAll: 1
+    hint: Gather the right animal material, or find the hunting notes (page 4).
+    column: 6
+    row: 3
+    parents: []
+  - recipe: {fileID: 11400000, guid: b1f1a3eb7b1d3154387572d38be391c6, type: 2}
+    basic: 0
+    conditions:
+    - kind: 0
+      item: {fileID: 11400000, guid: 5abc93b8e4ac5864c96ebb3bc63402b1, type: 2}
+      quantity: 1
+      page: 1
+      upgradeId: 
+      upgradeTier: 1
+      collection: grandpa
+      pageId: 
+    requireAll: 1
+    hint: Gather the right animal material, or find the hunting notes (page 4).
+    column: 6
+    row: 4
+    parents: []
+  - recipe: {fileID: 11400000, guid: 690277366d91dcf48bc4b6238ee3284a, type: 2}
+    basic: 0
+    conditions:
+    - kind: 0
+      item: {fileID: 11400000, guid: 5abc93b8e4ac5864c96ebb3bc63402b1, type: 2}
+      quantity: 1
+      page: 1
+      upgradeId: 
+      upgradeTier: 1
+      collection: grandpa
+      pageId: 
+    requireAll: 1
+    hint: Gather the right animal material, or find the hunting notes (page 4).
+    column: 6
+    row: 5
+    parents: []
+  - recipe: {fileID: 11400000, guid: 942577f169081c44b946ccf517eb5edd, type: 2}
+    basic: 0
+    conditions:
+    - kind: 0
+      item: {fileID: 11400000, guid: 5abc93b8e4ac5864c96ebb3bc63402b1, type: 2}
+      quantity: 1
+      page: 1
+      upgradeId: 
+      upgradeTier: 1
+      collection: grandpa
+      pageId: 
+    requireAll: 1
+    hint: Gather the right animal material, or find the hunting notes (page 4).
+    column: 6
+    row: 6
+    parents: []
+  - recipe: {fileID: 11400000, guid: 26c12d5c0a298734d97d444e946bbc26, type: 2}
+    basic: 0
+    conditions:
+    - kind: 0
+      item: {fileID: 11400000, guid: 5abc93b8e4ac5864c96ebb3bc63402b1, type: 2}
+      quantity: 1
+      page: 1
+      upgradeId: 
+      upgradeTier: 1
+      collection: grandpa
+      pageId: 
+    requireAll: 1
+    hint: Gather the right animal material, or find the hunting notes (page 4).
+    column: 6
+    row: 7
+    parents: []
+  - recipe: {fileID: 11400000, guid: 90c28fd6c3fc0fc48b2f445085d49e46, type: 2}
+    basic: 0
+    conditions:
+    - kind: 0
+      item: {fileID: 11400000, guid: eb6ae979827009c4db3a28044bf300aa, type: 2}
+      quantity: 1
+      page: 1
+      upgradeId: 
+      upgradeTier: 1
+      collection: grandpa
+      pageId: 
+    requireAll: 1
+    hint: Gather the right animal material, or find the hunting notes (page 4).
+    column: 6
+    row: 8
+    parents: []
+  - recipe: {fileID: 11400000, guid: 5e9afdfe54e9c274584279514b7f6cd8, type: 2}
+    basic: 0
+    conditions:
+    - kind: 0
+      item: {fileID: 11400000, guid: d23c029774472bf4aaceb3fe5e2c9053, type: 2}
+      quantity: 1
+      page: 1
+      upgradeId: 
+      upgradeTier: 1
+      collection: grandpa
+      pageId: 
+    requireAll: 1
+    hint: Gather the right animal material, or find the hunting notes (page 4).
+    column: 7
+    row: 5
+    parents: []
+  - recipe: {fileID: 11400000, guid: 23105da2806e78248b0d0a5b12174323, type: 2}
+    basic: 0
+    conditions:
+    - kind: 1
+      item: {fileID: 11400000, guid: 6f6730c2241d5564dbf68e96316f6f63, type: 2}
+      quantity: 1
+      page: 1
+      upgradeId: 
+      upgradeTier: 1
+      collection: grandpa
+      pageId: 
+    requireAll: 1
+    hint: Gather the right animal material, or find the hunting notes (page 4).
+    column: 5
+    row: 3
+    parents: []
+  - recipe: {fileID: 11400000, guid: 88e1327d2e302bb498f9705a8fb8d109, type: 2}
+    basic: 0
+    conditions:
+    - kind: 1
+      item: {fileID: 11400000, guid: 6f6730c2241d5564dbf68e96316f6f63, type: 2}
+      quantity: 1
+      page: 1
+      upgradeId: 
+      upgradeTier: 1
+      collection: grandpa
+      pageId: 
+    requireAll: 1
+    hint: Gather the right animal material, or find the hunting notes (page 4).
+    column: 5
+    row: 4
+    parents: []
+  - recipe: {fileID: 11400000, guid: 538fe1a131dc79c43a2eac928732f208, type: 2}
+    basic: 0
+    conditions:
+    - kind: 2
+      item: {fileID: 0}
+      quantity: 1
+      page: 4
+      upgradeId: 
+      upgradeTier: 1
+      collection: grandpa
+      pageId: 
+    requireAll: 1
+    hint: Gather the right animal material, or find the hunting notes (page 4).
+    column: 5
+    row: 5
+    parents: []
+  - recipe: {fileID: 11400000, guid: efcae38d279e5b4418973fa267b70ba3, type: 2}
+    basic: 0
+    conditions:
+    - kind: 1
+      item: {fileID: 11400000, guid: 6f6730c2241d5564dbf68e96316f6f63, type: 2}
+      quantity: 1
+      page: 1
+      upgradeId: 
+      upgradeTier: 1
+      collection: grandpa
+      pageId: 
+    requireAll: 1
+    hint: Gather the right animal material, or find the hunting notes (page 4).
+    column: 5
+    row: 6
+    parents: []
+  - recipe: {fileID: 11400000, guid: f3b2527c1ec7e564084f9a4239d6e831, type: 2}
+    basic: 0
+    conditions:
+    - kind: 2
+      item: {fileID: 0}
+      quantity: 1
+      page: 4
+      upgradeId: 
+      upgradeTier: 1
+      collection: grandpa
+      pageId: 
+    requireAll: 1
+    hint: Gather the right animal material, or find the hunting notes (page 4).
+    column: 5
+    row: 7
+    parents: []
+  - recipe: {fileID: 11400000, guid: e0f1327c243c36249a48758ca39f97a1, type: 2}
+    basic: 0
+    conditions:
+    - kind: 0
+      item: {fileID: 11400000, guid: 2af7fba988aa1c84e811f06aab39c0ca, type: 2}
+      quantity: 1
+      page: 1
+      upgradeId: 
+      upgradeTier: 1
+      collection: grandpa
+      pageId: 
+    - kind: 0
+      item: {fileID: 11400000, guid: 1d05d02e4972300468567f0859f6b7f8, type: 2}
+      quantity: 1
+      page: 1
+      upgradeId: 
+      upgradeTier: 1
+      collection: grandpa
+      pageId: 
+    - kind: 0
+      item: {fileID: 11400000, guid: 6e671ec55d5ac0243afd7d2801dc6c4b, type: 2}
+      quantity: 1
+      page: 1
+      upgradeId: 
+      upgradeTier: 1
+      collection: grandpa
+      pageId: 
+    requireAll: 0
+    hint: Gather the right animal material, or find the hunting notes (page 4).
+    column: 5
+    row: 8
+    parents: []
+  - recipe: {fileID: 11400000, guid: d4a3e95000eceb04fb162ee8c5266533, type: 2}
+    basic: 0
+    conditions:
+    - kind: 0
+      item: {fileID: 11400000, guid: d261bddfd6bab6d46885141fddc81145, type: 2}
+      quantity: 1
+      page: 1
+      upgradeId: 
+      upgradeTier: 1
+      collection: grandpa
+      pageId: 
+    requireAll: 1
+    hint: Gather the right animal material, or find the hunting notes (page 4).
+    column: 5
+    row: 9
+    parents: []
+  - recipe: {fileID: 11400000, guid: 7bb9fd3c37d4262448bee657a626850e, type: 2}
+    basic: 0
+    conditions:
+    - kind: 1
+      item: {fileID: 11400000, guid: 6f6730c2241d5564dbf68e96316f6f63, type: 2}
+      quantity: 1
+      page: 1
+      upgradeId: 
+      upgradeTier: 1
+      collection: grandpa
+      pageId: 
+    requireAll: 1
+    hint: Gather the right animal material, or find the hunting notes (page 4).
+    column: 5
+    row: 10
+    parents: []
+  - recipe: {fileID: 11400000, guid: 89c88cd645b33e54bbdac6a6be9e848f, type: 2}
+    basic: 0
+    conditions:
+    - kind: 1
+      item: {fileID: 11400000, guid: 43c304021ddaf854b8fde3a0dc39aed8, type: 2}
+      quantity: 1
+      page: 1
+      upgradeId: 
+      upgradeTier: 1
+      collection: grandpa
+      pageId: 
+    requireAll: 1
+    hint: Gather the right animal material, or find the hunting notes (page 4).
+    column: 7
+    row: 1
+    parents: []
+  - recipe: {fileID: 11400000, guid: 9cddb0d637dc6a944b47c6d255db074b, type: 2}
+    basic: 0
+    conditions:
+    - kind: 1
+      item: {fileID: 11400000, guid: 43c304021ddaf854b8fde3a0dc39aed8, type: 2}
+      quantity: 1
+      page: 1
+      upgradeId: 
+      upgradeTier: 1
+      collection: grandpa
+      pageId: 
+    requireAll: 1
+    hint: Gather the right animal material, or find the hunting notes (page 4).
+    column: 7
+    row: 2
+    parents: []
+  - recipe: {fileID: 11400000, guid: 18b14d7efb1628949b54f04906ae5567, type: 2}
+    basic: 0
+    conditions:
+    - kind: 0
+      item: {fileID: 11400000, guid: 49aeecd77bdc047408ab2bf59e2992fc, type: 2}
+      quantity: 1
+      page: 1
+      upgradeId: 
+      upgradeTier: 1
+      collection: grandpa
+      pageId: 
+    requireAll: 1
+    hint: Gather the right animal material, or find the hunting notes (page 4).
+    column: 4
+    row: 8
+    parents: []
+  - recipe: {fileID: 11400000, guid: 6e3e26af96e09454eace78b9c234aab7, type: 2}
+    basic: 0
+    conditions:
+    - kind: 0
+      item: {fileID: 11400000, guid: 49aeecd77bdc047408ab2bf59e2992fc, type: 2}
+      quantity: 1
+      page: 1
+      upgradeId: 
+      upgradeTier: 1
+      collection: grandpa
+      pageId: 
+    requireAll: 1
+    hint: Gather the right animal material, or find the hunting notes (page 4).
+    column: 4
+    row: 9
+    parents: []
+  - recipe: {fileID: 11400000, guid: b1b4aee426794944198edcf7352a7d8d, type: 2}
+    basic: 0
+    conditions:
+    - kind: 0
+      item: {fileID: 11400000, guid: 2ac5740ae5a64704487dd4f9422e25b4, type: 2}
+      quantity: 1
+      page: 1
+      upgradeId: 
+      upgradeTier: 1
+      collection: grandpa
+      pageId: 
+    - kind: 0
+      item: {fileID: 11400000, guid: 49aeecd77bdc047408ab2bf59e2992fc, type: 2}
+      quantity: 1
+      page: 1
+      upgradeId: 
+      upgradeTier: 1
+      collection: grandpa
+      pageId: 
+    requireAll: 0
+    hint: Gather the right animal material, or find the hunting notes (page 4).
+    column: 4
+    row: 10
+    parents: []
+  - recipe: {fileID: 11400000, guid: bfa4ff7b9175ac149a2d1f329ec95cd3, type: 2}
+    basic: 0
+    conditions:
+    - kind: 0
+      item: {fileID: 11400000, guid: 4315e96b101839e4c8bef1fedda78a9f, type: 2}
+      quantity: 1
+      page: 1
+      upgradeId: 
+      upgradeTier: 1
+      collection: grandpa
+      pageId: 
+    requireAll: 1
+    hint: Gather the right animal material, or find the hunting notes (page 4).
+    column: 7
+    row: 7
+    parents: []
+  - recipe: {fileID: 11400000, guid: 846bd0a77402b7d4f9b8110a9ffe5161, type: 2}
+    basic: 0
+    conditions:
+    - kind: 0
+      item: {fileID: 11400000, guid: 62d4ac35aa6493144915fa32e66ba1f2, type: 2}
+      quantity: 1
+      page: 1
+      upgradeId: 
+      upgradeTier: 1
+      collection: grandpa
+      pageId: 
+    requireAll: 1
+    hint: Gather the right animal material, or find the hunting notes (page 4).
+    column: 7
+    row: 8
+    parents: []
+  - recipe: {fileID: 11400000, guid: 75ab575b979dbee4ab8167b4e4bcb96f, type: 2}
+    basic: 0
+    conditions:
+    - kind: 0
+      item: {fileID: 11400000, guid: 399f8f6e14611b641a96b2d3114c1442, type: 2}
+      quantity: 1
+      page: 1
+      upgradeId: 
+      upgradeTier: 1
+      collection: grandpa
+      pageId: 
+    requireAll: 1
+    hint: Gather the right animal material, or find the hunting notes (page 4).
+    column: 7
+    row: 9
+    parents: []

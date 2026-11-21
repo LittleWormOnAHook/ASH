@@ -1,19 +1,23 @@
 #if UNITY_EDITOR
+using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using ASH.Combat;
 using ASH.EditorTools.Systems;
 using ASH.Inventory;
+using ASH.Movement;
 using ASH.Wildlife;
 using UnityEditor;
+using UnityEditor.Animations;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
 namespace ASH.EditorTools
 {
     /// <summary>
-    /// Idempotent wildlife setup: items, Play-editable drop tables, wolf/bear wrapper prefabs (Malbers, not committed).
-    /// Place / Clear menus never parent to or write on existing scene objects, and never save the open scene.
+    /// Idempotent wildlife setup for every species: items, drop tables, dog-style locomotion controllers
+    /// driven by each animal's own Malbers clips, wrapper prefabs (Malbers refs, not committed),
+    /// and optional coat variants under Assets/_ASH/Art/Wildlife. Place / Clear never save the scene.
     /// </summary>
     public static class ASHWildlifeSetup
     {
@@ -21,13 +25,8 @@ namespace ASH.EditorTools
         const string ItemDir = "Assets/_ASH/Data/Items";
         const string PrefabDir = "Assets/_ASH/Prefabs/Wildlife";
         const string LetterDir = "Assets/_ASH/Art/Icons Placeholder";
-        const string WolfSrcA = "Assets/Malbers Animations/Animal Controller/Wolf Lite/Wolf Lite.prefab";
-        const string WolfSrcB = "Assets/Malbers Animations/Animal Controller/Wolf Lite/Wolf Lite AI.prefab";
-        const string WolfSrcC = "Assets/Malbers Animations/Animal Controller/Wolf Lite/Wolf Lite AI Enemy.prefab";
-        const string BearSrcA = "Assets/Malbers Animations/Animals Packs/01 Forest Pack/Bear/Bear Black.prefab";
-        const string BearSrcB = "Assets/Malbers Animations/Animals Packs/01 Forest Pack/Bear/Models/Bear.prefab";
-        const string WolfPrefab = PrefabDir + "/ASH_Wildlife_Wolf.prefab";
-        const string BearPrefab = PrefabDir + "/ASH_Wildlife_Bear.prefab";
+        const string AnimDir = "Assets/_ASH/Art/Wildlife/Anim";
+        const string ArtDir = "Assets/_ASH/Art/Wildlife";
         const string PlayerPrefab = "Assets/_ASH/Prefabs/Player/ASH_Player.prefab";
         public const string SpawnRoot = "ASH_Wildlife";
 
@@ -39,31 +38,61 @@ namespace ASH.EditorTools
             "porch", "tire replacement", "gaia water", "truck-bed", "truckbed", "held_"
         };
 
-        [MenuItem("ASH/Systems/Wildlife/Setup Wolves and Bears (idempotent)", false, 260)]
+        [MenuItem("ASH/Systems/Wildlife/Setup Wildlife (idempotent)", false, 260)]
         public static void Setup()
         {
             var log = new StringBuilder("[ASH] Wildlife setup: ");
             var settings = ASHMenuInstaller.Ensure<ASHWildlifeSettings>(SettingsPath);
+            settings.EnsureDefaults();
+
             var raw = FindItem("rawmeat");
             var bone = EnsureItem("animalbone", "Animal Bones", "Boiled or carved bones. Crafting and trade.", "AB", 0, 20, 2);
             var fat = EnsureItem("animalfat", "Animal Fat", "Rendered later for cooking, light and trade.", "AF", 0, 20, 3);
+            var sinew = EnsureItem("sinew", "Sinew", "Tough connective tissue. Thread, bowstrings, bindings.", "SW", 0, 20, 2);
+            var antler = EnsureItem("antler", "Antler", "A shed or harvested deer antler. Handles and knives.", "AN", 0, 10, 6);
+            var tooth = EnsureItem("wolftooth", "Wolf Tooth", "A long canine. Charms and trade.", "WT", 0, 20, 4);
+            var tusk = EnsureItem("boartusk", "Boar Tusk", "A curved tusk. Trophies and trade.", "TK", 0, 10, 6);
+            var claw = EnsureItem("predatorclaw", "Predator Claw", "A hooked claw from a bear or cougar.", "PC", 0, 20, 5);
+
             var pelt = EnsureItem("wolfpelt", "Wolf Pelt", "A rough grey pelt. Clothing, trade.", "WP", 0, 10, 8);
             var hide = EnsureItem("bearhide", "Bear Hide", "A heavy hide. Bedrolls, clothing, trade.", "BH", 0, 8, 12);
-            FillDrops(settings.wolf, raw, pelt, bone, fat, true);
-            FillDrops(settings.bear, raw, hide, bone, fat, false);
+            var deer = FindItem("deer_skin") ?? EnsureItem("deer_skin", "Deer Skin", "A soft hide. Pouches, clothing, trade.", "DS", 0, 20, 6);
+            var fox = EnsureItem("foxpelt", "Fox Pelt", "A rust-red pelt. Hats and trim.", "FP", 0, 10, 7);
+            var rabbit = EnsureItem("rabbitfur", "Rabbit Fur", "A small soft pelt. Lining and trim.", "RF", 0, 20, 3);
+            var coon = EnsureItem("raccoonpelt", "Raccoon Pelt", "A ringed pelt. Trim and trade.", "RP", 0, 10, 5);
+            var boar = EnsureItem("boarhide", "Boar Hide", "A bristly hide. Tough clothing and bags.", "BO", 0, 8, 7);
+            var cougar = EnsureItem("cougarhide", "Cougar Hide", "A tawny hide. Coats and trade.", "CH", 0, 8, 14);
+
+            FillDrops(settings.wolf, raw, pelt, bone, fat, sinew, tooth, null, null, 1, 2, 0.9f);
+            FillDrops(settings.bear, raw, hide, bone, fat, sinew, claw, null, null, 2, 4, 1f);
+            FillDrops(settings.fox, raw, fox, bone, fat, sinew, null, null, null, 1, 1, 0.8f);
+            FillDrops(settings.rabbit, raw, rabbit, bone, fat, sinew, null, null, null, 1, 1, 0.5f);
+            FillDrops(settings.raccoon, raw, coon, bone, fat, sinew, null, null, null, 1, 2, 0.7f);
+            FillDrops(settings.deer, raw, deer, bone, fat, sinew, null, antler, null, 2, 3, 0.9f);
+            FillDrops(settings.fawn, raw, deer, bone, fat, sinew, null, null, null, 1, 2, 0.6f);
+            FillDrops(settings.boar, raw, boar, bone, fat, sinew, tusk, null, null, 2, 3, 1f);
+            FillDrops(settings.cougar, raw, cougar, bone, fat, sinew, claw, null, null, 2, 3, 1f);
             EditorUtility.SetDirty(settings);
 
-            bool wolf = BuildWolf(log);
-            bool bear = BuildBear(log);
+            int built = 0, missing = 0;
+            var standIns = new StringBuilder();
+            foreach (ASHWildlifeKind kind in System.Enum.GetValues(typeof(ASHWildlifeKind)))
+            {
+                if (BuildSpecies(kind, settings, log, standIns)) built++;
+                else { missing++; log.Append(kind + " prefab skipped (Malbers missing); "); }
+            }
             WirePlayerPrefab(log);
             ASHMenuInstaller.RefreshRegistry();
             AssetDatabase.SaveAssets();
-            log.Append(wolf ? "wolf prefab ready; " : "wolf prefab skipped (Malbers missing); ");
-            log.Append(bear ? "bear prefab ready; " : "bear prefab skipped (Malbers missing); ");
-            log.Append("items animalbone, animalfat, wolfpelt, bearhide; drop tables on ASH_WildlifeSettings. ");
-            log.Append("Run Place Far From Camp to put them in the scene (not saved). Prefabs that reference Malbers stay untracked.");
+            log.Append("built " + built + " wrappers; ");
+            if (missing > 0) log.Append(missing + " species missing Malbers prefabs; ");
+            if (standIns.Length > 0) log.Append("stand-ins: " + standIns + " ");
+            log.Append("drop tables on ASH_WildlifeSettings. Run Place Far From Camp to spawn. Scene not saved.");
             Debug.Log(log.ToString());
         }
+
+        [MenuItem("ASH/Systems/Wildlife/Setup Wolves and Bears (idempotent)", false, 259)]
+        public static void SetupLegacy() => Setup();
 
         [MenuItem("ASH/Systems/Wildlife/Select Wildlife Settings", false, 261)]
         public static void SelectSettings()
@@ -80,24 +109,28 @@ namespace ASH.EditorTools
         {
             var s = AssetDatabase.LoadAssetAtPath<ASHWildlifeSettings>(SettingsPath);
             if (!s) { Setup(); s = AssetDatabase.LoadAssetAtPath<ASHWildlifeSettings>(SettingsPath); }
-            var wolf = AssetDatabase.LoadAssetAtPath<GameObject>(WolfPrefab);
-            var bear = AssetDatabase.LoadAssetAtPath<GameObject>(BearPrefab);
-            if (!wolf && !bear) { Debug.LogWarning("[ASH] Wildlife: run Setup Wolves and Bears first (Malbers pack required for prefabs)."); return; }
-
+            s.EnsureDefaults();
             var terrain = Terrain.activeTerrain;
             if (!terrain) { Debug.LogWarning("[ASH] Wildlife: no terrain."); return; }
-
             var root = GameObject.Find(SpawnRoot);
             if (!root) root = new GameObject(SpawnRoot);
             Undo.RegisterCreatedObjectUndo(root, "ASH wildlife");
-
-            int haveW = CountKind(root, ASHWildlifeKind.Wolf), haveB = CountKind(root, ASHWildlifeKind.Bear);
-            int needW = Mathf.Max(0, s.wolfCount - haveW), needB = Mathf.Max(0, s.bearCount - haveB);
             var blocked = CollectBlocked();
             var rnd = new System.Random(s.spawnSeed != 0 ? s.spawnSeed : 17041);
-            int w = PlaceKind(root, wolf, ASHWildlifeKind.Wolf, needW, s, terrain, blocked, rnd);
-            int b = PlaceKind(root, bear, ASHWildlifeKind.Bear, needB, s, terrain, blocked, rnd);
-            Debug.Log($"[ASH] Wildlife: placed {w} wolf(s), {b} bear(s) under {SpawnRoot} (≥ {s.campExclusionMeters:0} m from camp / protected objects). Scene not saved.");
+            var log = new StringBuilder("[ASH] Wildlife placed: ");
+            int total = 0;
+            foreach (var sp in s.All())
+            {
+                var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath(sp.kind));
+                if (!prefab) { log.Append(sp.kind + " missing prefab; "); continue; }
+                int have = CountKind(root, sp.kind);
+                int need = Mathf.Max(0, sp.placeCount - have);
+                int n = PlaceKind(root, prefab, sp, need, s, terrain, blocked, rnd);
+                total += n;
+                if (n > 0) log.Append(n + " " + sp.displayName + "(s); ");
+            }
+            log.Append("under " + SpawnRoot + " (≥ " + s.campExclusionMeters.ToString("0") + " m from camp / protected). Scene not saved.");
+            Debug.Log(log.ToString());
         }
 
         [MenuItem("ASH/Systems/Wildlife/Clear Placed Wildlife", false, 263)]
@@ -110,6 +143,9 @@ namespace ASH.EditorTools
             Debug.Log($"[ASH] Wildlife: cleared {n} placed animal(s) under {SpawnRoot}. Scene not saved. Existing scene objects were not touched.");
         }
 
+        static string PrefabPath(ASHWildlifeKind kind) => PrefabDir + "/ASH_Wildlife_" + kind + ".prefab";
+        static string ControllerPath(ASHWildlifeKind kind) => AnimDir + "/ASH_" + kind + "_Locomotion.controller";
+
         static int CountKind(GameObject root, ASHWildlifeKind kind)
         {
             int n = 0;
@@ -117,28 +153,52 @@ namespace ASH.EditorTools
             return n;
         }
 
-        static int PlaceKind(GameObject root, GameObject prefab, ASHWildlifeKind kind, int need, ASHWildlifeSettings s, Terrain terrain, System.Collections.Generic.List<Vector3> blocked, System.Random rnd)
+        static int PlaceKind(GameObject root, GameObject prefab, ASHWildlifeSettings.Species sp, int need, ASHWildlifeSettings s, Terrain terrain, List<Vector3> blocked, System.Random rnd)
         {
-            if (!prefab || need <= 0) return 0;
+            if (!prefab || need <= 0 || sp == null) return 0;
             var td = terrain.terrainData; var origin = terrain.GetPosition(); var size = td.size;
-            int got = 0, tries = 0, max = need * 40;
-            while (got < need && tries++ < max)
+            int got = 0, tries = 0, max = need * 50;
+            int pack = Mathf.Max(1, sp.packSize);
+            int packSerial = 1000 + (int)sp.kind * 10;
+            while (got < need && tries < max)
             {
                 var p = new Vector3(origin.x + 30f + (float)rnd.NextDouble() * (size.x - 60f), 0f, origin.z + 30f + (float)rnd.NextDouble() * (size.z - 60f));
                 p.y = terrain.SampleHeight(p) + origin.y;
-                if (!ClearOf(p, s.campExclusionMeters, blocked)) continue;
-                if (!ClearOfChildren(root, p, s.packSpacing)) continue;
+                if (!ClearOf(p, s.campExclusionMeters, blocked)) { tries++; continue; }
+                if (!ClearOfChildren(root, p, s.packSpacing)) { tries++; continue; }
                 var nrm = td.GetInterpolatedNormal((p.x - origin.x) / size.x, (p.z - origin.z) / size.z);
-                if (nrm.y < 0.82f) continue;
-                var go = (GameObject)PrefabUtility.InstantiatePrefab(prefab, root.scene);
-                go.transform.SetParent(root.transform, true);
-                go.transform.SetPositionAndRotation(p, Quaternion.Euler(0f, (float)rnd.NextDouble() * 360f, 0f));
-                var an = go.GetComponent<ASHAnimal>() ?? go.AddComponent<ASHAnimal>();
-                an.kind = kind; an.settings = s;
-                Undo.RegisterCreatedObjectUndo(go, "ASH wildlife");
-                got++;
+                if (nrm.y < 0.82f) { tries++; continue; }
+                int group = Mathf.Min(pack, need - got);
+                int packId = group > 1 ? packSerial++ : 0;
+                for (int i = 0; i < group; i++)
+                {
+                    var at = p;
+                    if (i > 0)
+                    {
+                        float ang = (float)rnd.NextDouble() * 360f;
+                        at += Quaternion.Euler(0f, ang, 0f) * Vector3.forward * (3f + i * 1.2f);
+                        at.y = terrain.SampleHeight(at) + origin.y;
+                    }
+                    var go = (GameObject)PrefabUtility.InstantiatePrefab(prefab, root.scene);
+                    go.transform.SetParent(root.transform, true);
+                    go.transform.SetPositionAndRotation(at, Quaternion.Euler(0f, (float)rnd.NextDouble() * 360f, 0f));
+                    var an = go.GetComponent<ASHAnimal>() ?? go.AddComponent<ASHAnimal>();
+                    an.kind = sp.kind; an.settings = s; an.packId = packId;
+                    an.size = RollSize(s, rnd);
+                    Undo.RegisterCreatedObjectUndo(go, "ASH wildlife");
+                    got++;
+                    if (got >= need) break;
+                }
             }
             return got;
+        }
+
+        static ASHWildlifeSize RollSize(ASHWildlifeSettings s, System.Random rnd)
+        {
+            double u = rnd.NextDouble();
+            if (u < s.youngChance) return ASHWildlifeSize.Young;
+            if (u > 1.0 - s.alphaChance) return ASHWildlifeSize.Alpha;
+            return ASHWildlifeSize.Adult;
         }
 
         static bool ClearOfChildren(GameObject root, Vector3 p, float spacing)
@@ -153,7 +213,7 @@ namespace ASH.EditorTools
             return true;
         }
 
-        static bool ClearOf(Vector3 p, float radius, System.Collections.Generic.List<Vector3> blocked)
+        static bool ClearOf(Vector3 p, float radius, List<Vector3> blocked)
         {
             float r2 = radius * radius;
             for (int i = 0; i < blocked.Count; i++)
@@ -164,15 +224,12 @@ namespace ASH.EditorTools
             return true;
         }
 
-        static System.Collections.Generic.List<Vector3> CollectBlocked()
+        static List<Vector3> CollectBlocked()
         {
-            var list = new System.Collections.Generic.List<Vector3>();
-            foreach (var t in Object.FindObjectsByType<Transform>(FindObjectsInactive.Include))
-            {
-                if (!t) continue;
-                if (IsProtected(t)) list.Add(t.position);
-            }
-            foreach (var l in Object.FindObjectsByType<Light>(FindObjectsInactive.Include))
+            var list = new List<Vector3>();
+            foreach (var t in Object.FindObjectsByType<Transform>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+                if (t && IsProtected(t)) list.Add(t.position);
+            foreach (var l in Object.FindObjectsByType<Light>(FindObjectsInactive.Include, FindObjectsSortMode.None))
                 if (l && l.type != LightType.Directional) list.Add(l.transform.position);
             var player = GameObject.FindGameObjectWithTag("Player");
             if (player) list.Add(player.transform.position);
@@ -193,53 +250,367 @@ namespace ASH.EditorTools
             return false;
         }
 
-        static bool BuildWolf(StringBuilder log)
+        static bool BuildSpecies(ASHWildlifeKind kind, ASHWildlifeSettings settings, StringBuilder log, StringBuilder standIns)
         {
-            var src = LoadFirst(WolfSrcA, WolfSrcB, WolfSrcC);
-            if (!src) { log.Append("Malbers wolf prefab missing; "); return false; }
-            return BuildWrapper(src, WolfPrefab, ASHWildlifeKind.Wolf, false, log);
+            var src = FindSpeciesPrefab(kind, out string usedPath, out bool standIn);
+            if (!src) return false;
+            if (standIn) standIns.Append(kind + " used " + Path.GetFileName(usedPath) + "; ");
+            var ctrlSrc = FindSpeciesController(kind, usedPath);
+            var loco = BuildLocoController(kind, ctrlSrc, settings, log);
+            return BuildWrapper(src, PrefabPath(kind), kind, settings, loco, ctrlSrc, log);
         }
 
-        static bool BuildBear(StringBuilder log)
-        {
-            var src = LoadFirst(BearSrcA, BearSrcB);
-            if (!src) { log.Append("Malbers bear prefab missing; "); return false; }
-            return BuildWrapper(src, BearPrefab, ASHWildlifeKind.Bear, true, log);
-        }
+        static readonly string[] Forest = { "Assets/Malbers Animations/Animals Packs/01 Forest Pack/" };
+        static readonly string[] WolfLite = {
+            "Assets/Malbers Animations/Animal Controller/Wolf Lite/Wolf Lite.prefab",
+            "Assets/Malbers Animations/Animal Controller/Wolf Lite/Wolf Lite AI.prefab"
+        };
 
-        static GameObject LoadFirst(params string[] paths)
+        static GameObject FindSpeciesPrefab(ASHWildlifeKind kind, out string path, out bool standIn)
         {
-            foreach (var p in paths) { var g = AssetDatabase.LoadAssetAtPath<GameObject>(p); if (g) return g; }
+            path = null; standIn = false;
+            string folder, prefer;
+            switch (kind)
+            {
+                case ASHWildlifeKind.Wolf: folder = "Wolf"; prefer = "Wolf"; break;
+                case ASHWildlifeKind.Bear: folder = "Bear"; prefer = "Bear Black"; break;
+                case ASHWildlifeKind.Fox: folder = "Fox"; prefer = "Fox"; break;
+                case ASHWildlifeKind.Rabbit: folder = "Rabbit"; prefer = "Rabbit"; break;
+                case ASHWildlifeKind.Raccoon: folder = "Raccoon"; prefer = "Raccoon"; break;
+                case ASHWildlifeKind.Deer: folder = "Deer"; prefer = "Deer"; break;
+                case ASHWildlifeKind.Fawn: folder = "Deer"; prefer = "Fawn"; break;
+                case ASHWildlifeKind.Boar: folder = "Boar"; prefer = "Boar"; break;
+                case ASHWildlifeKind.Cougar: folder = "Cougar"; prefer = "Cougar"; break;
+                default: folder = kind.ToString(); prefer = kind.ToString(); break;
+            }
+            // exact well-known paths first
+            string[] exact = {
+                "Assets/Malbers Animations/Animals Packs/01 Forest Pack/" + folder + "/" + prefer + ".prefab",
+                "Assets/Malbers Animations/Animals Packs/01 Forest Pack/" + folder + "/Models/" + prefer + ".prefab",
+                "Assets/Malbers Animations/Animals Packs/01 Forest Pack/Wolf/Models/Wolf.prefab",
+                "Assets/Malbers Animations/Animals Packs/01 Forest Pack/Bear/Bear Black.prefab",
+                "Assets/Malbers Animations/Animals Packs/01 Forest Pack/Raccoon/Raccoon.prefab",
+                "Assets/Malbers Animations/Animals Packs/01 Forest Pack/Raccon/Raccoon.prefab",
+                "Assets/Malbers Animations/Animals Packs/01 Forest Pack/Deer/Fawn.prefab",
+                "Assets/Malbers Animations/Animals Packs/01 Forest Pack/Deer/Deer.prefab"
+            };
+            foreach (var p in exact)
+            {
+                var g = AssetDatabase.LoadAssetAtPath<GameObject>(p);
+                if (g && NameFits(g.name, prefer, kind)) { path = p; return g; }
+            }
+            var hits = FindPrefabsIn("Assets/Malbers Animations", folder, prefer, kind);
+            if (kind == ASHWildlifeKind.Raccoon && hits.Count == 0)
+                hits = FindPrefabsIn("Assets/Malbers Animations", "Raccon", prefer, kind);
+            if (hits.Count > 0) { path = hits[0]; return AssetDatabase.LoadAssetAtPath<GameObject>(path); }
+            if (kind == ASHWildlifeKind.Wolf)
+            {
+                foreach (var p in WolfLite)
+                {
+                    var g = AssetDatabase.LoadAssetAtPath<GameObject>(p);
+                    if (g) { path = p; standIn = true; return g; }
+                }
+            }
             return null;
         }
 
-        static bool BuildWrapper(GameObject src, string dest, ASHWildlifeKind kind, bool addMotor, StringBuilder log)
+        static bool NameFits(string name, string prefer, ASHWildlifeKind kind)
+        {
+            var n = name.ToLowerInvariant();
+            if (n.Contains("ragdoll") || n.Contains("dead") || n.Contains("demo scene") || n.Contains("enemy")) return false;
+            if (kind == ASHWildlifeKind.Fawn) return n.Contains("fawn");
+            if (kind == ASHWildlifeKind.Deer) return n.Contains("deer") && !n.Contains("fawn");
+            return n.Contains(prefer.ToLowerInvariant()) || n.Contains(kind.ToString().ToLowerInvariant());
+        }
+
+        static List<string> FindPrefabsIn(string root, string folderToken, string prefer, ASHWildlifeKind kind)
+        {
+            var list = new List<string>();
+            foreach (var g in AssetDatabase.FindAssets("t:Prefab", new[] { root }))
+            {
+                var p = AssetDatabase.GUIDToAssetPath(g);
+                if (p.IndexOf(folderToken, System.StringComparison.OrdinalIgnoreCase) < 0) continue;
+                var go = AssetDatabase.LoadAssetAtPath<GameObject>(p);
+                if (!go || !NameFits(go.name, prefer, kind)) continue;
+                if (p.IndexOf(prefer, System.StringComparison.OrdinalIgnoreCase) >= 0) list.Insert(0, p);
+                else list.Add(p);
+            }
+            return list;
+        }
+
+        static RuntimeAnimatorController FindSpeciesController(ASHWildlifeKind kind, string prefabPath)
+        {
+            string folder = Path.GetDirectoryName(prefabPath ?? "").Replace('\\', '/');
+            var cands = new List<string>();
+            if (!string.IsNullOrEmpty(folder))
+                foreach (var g in AssetDatabase.FindAssets("t:AnimatorController", new[] { folder }))
+                    cands.Add(AssetDatabase.GUIDToAssetPath(g));
+            foreach (var g in AssetDatabase.FindAssets("t:AnimatorController", new[] { "Assets/Malbers Animations" }))
+            {
+                var p = AssetDatabase.GUIDToAssetPath(g);
+                if (p.IndexOf(kind == ASHWildlifeKind.Fawn ? "Deer" : kind.ToString(), System.StringComparison.OrdinalIgnoreCase) >= 0
+                    || (kind == ASHWildlifeKind.Raccoon && p.IndexOf("Raccon", System.StringComparison.OrdinalIgnoreCase) >= 0))
+                    cands.Add(p);
+            }
+            RuntimeAnimatorController best = null;
+            int score = -1;
+            foreach (var p in cands)
+            {
+                int s = 0;
+                var n = Path.GetFileNameWithoutExtension(p).ToLowerInvariant();
+                if (n.Contains("eye")) continue;
+                if (n.Contains("showcase")) s -= 5;
+                if (n.Contains("animation")) s += 3;
+                if (n == "wolf animations" || n.EndsWith(" animations")) s += 5;
+                if (n.Contains("demo") && kind != ASHWildlifeKind.Cougar) s -= 1;
+                if (kind == ASHWildlifeKind.Cougar && n.Contains("demo")) s += 2;
+                if (s > score) { score = s; best = AssetDatabase.LoadAssetAtPath<RuntimeAnimatorController>(p); }
+            }
+            return best;
+        }
+
+        static RuntimeAnimatorController BuildLocoController(ASHWildlifeKind kind, RuntimeAnimatorController src, ASHWildlifeSettings settings, StringBuilder log)
+        {
+            if (src == null) return null;
+            ASHMenuInstaller.Folder(AnimDir);
+            var path = ControllerPath(kind);
+            var clips = src.animationClips;
+            var idle = PickClip(clips, true, new[] { "idle", "relax" }, new[] { "to ", "walk", "run", "trot", "eat", "sleep", "attack" });
+            var walk = PickClip(clips, true, new[] { "walk" }, new[] { "to ", "back", "left", "right", "turn", "idle" });
+            var trot = PickClip(clips, true, new[] { "trot" }, new[] { "to ", "left", "right", "turn" });
+            var run = PickClip(clips, true, new[] { "run", "sprint", "gallop" }, new[] { "to ", "left", "right", "turn" });
+            var turnL = PickClip(clips, true, new[] { "turnl", "turn_l", "turn l", "turnleft", "bturn l" }, new[] { "to " });
+            var turnR = PickClip(clips, true, new[] { "turnr", "turn_r", "turn r", "turnright", "bturn r" }, new[] { "to " });
+            var attack = PickClip(clips, false, new[] { "attack", "bite", "claw", "swipe", "charge" }, new[] { "to ", "idle" });
+            var hit = PickClip(clips, false, new[] { "hit", "hurt", "damage", "react", "stun" }, new[] { "to ", "death" });
+            var death = PickClip(clips, false, new[] { "death", "die", "dead" }, new[] { "to " });
+            var eat = PickClip(clips, true, new[] { "eat", "graze", "drink" }, new[] { "to " });
+            var sleep = PickClip(clips, true, new[] { "sleep" }, new[] { "to " });
+            var call = PickClip(clips, false, new[] { "howl", "roar", "bark", "call" }, new[] { "to " });
+            if (walk == null && trot == null && run == null) { log.Append(kind + " no gait clips; "); return src; }
+
+            if (File.Exists(path)) AssetDatabase.DeleteAsset(path);
+            var ac = AnimatorController.CreateAnimatorControllerAtPath(path);
+            ac.AddParameter("Speed", AnimatorControllerParameterType.Float);
+            ac.AddParameter("Turn", AnimatorControllerParameterType.Float);
+            var sm = ac.layers[0].stateMachine;
+            var tree = new BlendTree
+            {
+                name = "Locomotion",
+                blendType = BlendTreeType.Simple1D,
+                blendParameter = "Speed",
+                useAutomaticThresholds = false
+            };
+            AssetDatabase.AddObjectToAsset(tree, ac);
+            float gw = 0.1f, gt = 2f, gr = 4f;
+            var sp = settings.Of(kind);
+            if (sp != null) { gw = 0.05f; gt = Mathf.Max(sp.walkSpeed * 0.5f, 0.2f); var mid = sp.trotSpeed > 0.2f ? sp.trotSpeed : (sp.walkSpeed + sp.runSpeed) * 0.5f; gr = Mathf.Max(mid, sp.runSpeed * 0.7f); }
+            if (idle) tree.AddChild(idle, 0f);
+            if (walk) tree.AddChild(walk, Mathf.Max(0.15f, sp != null ? sp.walkSpeed : 1.5f));
+            if (trot) tree.AddChild(trot, sp != null ? (sp.trotSpeed > 0.2f ? sp.trotSpeed : (sp.walkSpeed + sp.runSpeed) * 0.5f) : 3f);
+            if (run) tree.AddChild(run, sp != null ? sp.runSpeed : 6f);
+            var loco = sm.AddState("Locomotion");
+            loco.motion = tree;
+            sm.defaultState = loco;
+            void Add(string name, AnimationClip clip) { if (!clip) return; var st = sm.AddState(name); st.motion = clip; }
+            Add("Walk", walk); Add("Trot", trot); Add("Run", run);
+            Add("TurnL", turnL); Add("TurnR", turnR);
+            Add("Attack", attack); Add("Hit", hit); Add("Death", death);
+            Add("Eat", eat); Add("Sleep", sleep); Add("Call", call);
+            if (idle) { var st = sm.AddState("Idle"); st.motion = idle; }
+
+            if (sp != null)
+            {
+                if (walk) sp.walkClipSpeed = ClipSpeed(walk);
+                if (trot) sp.trotClipSpeed = ClipSpeed(trot);
+                if (run) sp.runClipSpeed = ClipSpeed(run);
+                EditorUtility.SetDirty(settings);
+            }
+            AssetDatabase.SaveAssets();
+            log.Append(kind + " loco controller; ");
+            return ac;
+        }
+
+        static float ClipSpeed(AnimationClip clip)
+        {
+            if (!clip) return 1f;
+            var v = clip.averageSpeed;
+            float s = new Vector2(v.x, v.z).magnitude;
+            return Mathf.Clamp(s > 0.05f ? s : 1f, 0.05f, 20f);
+        }
+
+        static AnimationClip PickClip(AnimationClip[] clips, bool loopPrefer, string[] want, string[] reject)
+        {
+            AnimationClip best = null; int score = -1;
+            foreach (var c in clips)
+            {
+                if (!c) continue;
+                var n = c.name.ToLowerInvariant().Replace(" ", "").Replace("-", "");
+                if (n.StartsWith("to")) continue;
+                bool bad = false;
+                foreach (var r in reject)
+                {
+                    var rr = r.ToLowerInvariant().Replace(" ", "");
+                    if (rr.Length > 0 && n.Contains(rr) && !ContainsAny(n, want)) { bad = true; break; }
+                    if (rr.Length > 0 && n.Contains(rr) && (rr == "left" || rr == "right" || rr == "turn" || rr == "back")) { bad = true; break; }
+                }
+                int s = 0;
+                foreach (var w in want)
+                {
+                    var ww = w.ToLowerInvariant().Replace(" ", "").Replace("_", "");
+                    if (n.Contains(ww)) s += 3;
+                }
+                if (s == 0) continue;
+                if (bad && s < 6) continue;
+                if (loopPrefer && c.isLooping) s += 1;
+                if (s > score) { score = s; best = c; }
+            }
+            return best;
+        }
+
+        static bool ContainsAny(string n, string[] want)
+        {
+            foreach (var w in want)
+            {
+                var ww = w.ToLowerInvariant().Replace(" ", "").Replace("_", "");
+                if (ww.Length > 0 && n.Contains(ww)) return true;
+            }
+            return false;
+        }
+
+        static bool BuildWrapper(GameObject src, string dest, ASHWildlifeKind kind, ASHWildlifeSettings settings, RuntimeAnimatorController loco, RuntimeAnimatorController srcCtrl, StringBuilder log)
         {
             ASHMenuInstaller.Folder(PrefabDir);
             var root = PrefabUtility.InstantiatePrefab(src) as GameObject;
             if (!root) return false;
-            root.name = kind == ASHWildlifeKind.Bear ? "ASH_Wildlife_Bear" : "ASH_Wildlife_Wolf";
+            root.name = "ASH_Wildlife_" + kind;
             var animal = root.GetComponent<ASHAnimal>() ?? root.AddComponent<ASHAnimal>();
             animal.kind = kind;
-            animal.settings = AssetDatabase.LoadAssetAtPath<ASHWildlifeSettings>(SettingsPath);
-            if (addMotor && !root.GetComponent<CharacterController>())
+            animal.settings = settings;
+            var locoCmp = root.GetComponent<ASHGroundLocomotion>() ?? root.AddComponent<ASHGroundLocomotion>();
+            var vis = root.GetComponent<ASHWildlifeAnim>() ?? root.AddComponent<ASHWildlifeAnim>();
+            var anim = root.GetComponentInChildren<Animator>();
+            if (anim)
             {
-                var cc = root.AddComponent<CharacterController>();
-                cc.height = 1.6f; cc.radius = 0.55f; cc.center = new Vector3(0f, 0.85f, 0f);
+                anim.applyRootMotion = false;
+                if (loco) anim.runtimeAnimatorController = loco;
+                vis.Bind(anim);
+                vis.locoState = "Locomotion";
+                vis.idleState = "Idle";
+                vis.walkState = "Walk";
+                vis.trotState = "Trot";
+                vis.runState = "Run";
+                vis.turnLState = "TurnL";
+                vis.turnRState = "TurnR";
+                vis.attackState = "Attack";
+                vis.hitState = "Hit";
+                vis.deathState = "Death";
+                vis.eatState = "Eat";
+                vis.sleepState = "Sleep";
+                vis.callState = "Call";
             }
+            WireAudio(vis, srcCtrl, dest);
+            MaybeCoat(root, kind, settings);
             if (!HasCollider(root))
             {
+                var body = settings.Body(settings.Of(kind));
                 var cap = root.AddComponent<CapsuleCollider>();
-                cap.height = 1.6f; cap.radius = 0.55f; cap.center = new Vector3(0f, 0.85f, 0f);
+                cap.height = Mathf.Max(0.4f, body.y + body.z);
+                cap.radius = Mathf.Max(0.12f, body.x);
+                cap.center = new Vector3(0f, Mathf.Max(0.2f, body.z), 0f);
             }
+            var cc = root.GetComponent<CharacterController>();
+            if (cc) Object.DestroyImmediate(cc);
             foreach (var tr in root.GetComponentsInChildren<Transform>(true))
-            {
                 if (tr) GameObjectUtility.RemoveMonoBehavioursWithMissingScript(tr.gameObject);
-            }
-            PrefabUtility.SaveAsPrefabAsset(root, dest);
+            var saved = PrefabUtility.SaveAsPrefabAsset(root, dest);
             Object.DestroyImmediate(root);
+            if (saved && settings) { settings.SetPrefab(kind, saved); EditorUtility.SetDirty(settings); }
             log.Append(Path.GetFileName(dest) + " written; ");
             return true;
+        }
+
+        static void WireAudio(ASHWildlifeAnim vis, RuntimeAnimatorController srcCtrl, string hintPath)
+        {
+            var clips = new List<AudioClip>();
+            string[] roots = { "Assets/Malbers Animations" };
+            foreach (var g in AssetDatabase.FindAssets("t:AudioClip", roots))
+            {
+                var p = AssetDatabase.GUIDToAssetPath(g);
+                var n = Path.GetFileNameWithoutExtension(p).ToLowerInvariant();
+                var folder = p.ToLowerInvariant();
+                bool near = false;
+                var kind = vis ? vis.gameObject.name : "";
+                // collect broadly then sort by name tokens; assignment happens by token
+                clips.Add(AssetDatabase.LoadAssetAtPath<AudioClip>(p));
+            }
+            var calls = new List<AudioClip>();
+            var atk = new List<AudioClip>();
+            var hurt = new List<AudioClip>();
+            var death = new List<AudioClip>();
+            var steps = new List<AudioClip>();
+            string species = vis.transform ? vis.name.ToLowerInvariant() : "";
+            foreach (var c in clips)
+            {
+                if (!c) continue;
+                var n = c.name.ToLowerInvariant();
+                var p = AssetDatabase.GetAssetPath(c).ToLowerInvariant();
+                bool mine = p.Contains("wolf") && species.Contains("wolf")
+                    || p.Contains("bear") && species.Contains("bear")
+                    || p.Contains("fox") && species.Contains("fox")
+                    || p.Contains("rabbit") && species.Contains("rabbit")
+                    || p.Contains("raccoon") && species.Contains("raccoon")
+                    || p.Contains("raccon") && species.Contains("raccoon")
+                    || p.Contains("deer") && (species.Contains("deer") || species.Contains("fawn"))
+                    || p.Contains("boar") && species.Contains("boar")
+                    || p.Contains("cougar") && species.Contains("cougar");
+                if (!mine) continue;
+                if (n.Contains("howl") || n.Contains("roar") || n.Contains("bark") || n.Contains("whin")) calls.Add(c);
+                else if (n.Contains("attack") || n.Contains("growl")) atk.Add(c);
+                else if (n.Contains("hurt") || n.Contains("hit") || n.Contains("pain") || n.Contains("whine")) hurt.Add(c);
+                else if (n.Contains("death") || n.Contains("die")) death.Add(c);
+                else if (n.Contains("step") || n.Contains("foot")) steps.Add(c);
+                else if (n.Contains("wolf") || n.Contains("bear") || n.Contains("roar")) calls.Add(c);
+            }
+            vis.callClips = calls.ToArray();
+            vis.attackClips = atk.ToArray();
+            vis.hurtClips = hurt.ToArray();
+            vis.deathClips = death.ToArray();
+            vis.stepClips = steps.ToArray();
+        }
+
+        static void MaybeCoat(GameObject root, ASHWildlifeKind kind, ASHWildlifeSettings settings)
+        {
+            // Only generate a tinted material copy for wolf (ash), bear (dust), deer (winter), cougar (darker alpha).
+            Color tint;
+            string tag;
+            switch (kind)
+            {
+                case ASHWildlifeKind.Wolf: tint = new Color(0.55f, 0.55f, 0.58f, 1f); tag = "ash"; break;
+                case ASHWildlifeKind.Bear: tint = new Color(0.62f, 0.58f, 0.52f, 1f); tag = "ash"; break;
+                case ASHWildlifeKind.Deer: tint = new Color(0.82f, 0.82f, 0.85f, 1f); tag = "winter"; break;
+                case ASHWildlifeKind.Cougar: tint = new Color(0.45f, 0.38f, 0.32f, 1f); tag = "dark"; break;
+                default: return;
+            }
+            var rend = root.GetComponentInChildren<Renderer>();
+            if (!rend || !rend.sharedMaterial) return;
+            var srcMat = rend.sharedMaterial;
+            var srcTex = srcMat.HasProperty("_BaseMap") ? srcMat.GetTexture("_BaseMap") as Texture2D : srcMat.mainTexture as Texture2D;
+            ASHMenuInstaller.Folder(ArtDir);
+            string matPath = ArtDir + "/ASH_" + kind + "_" + tag + ".mat";
+            if (!AssetDatabase.LoadAssetAtPath<Material>(matPath))
+            {
+                var mat = new Material(srcMat);
+                mat.name = "ASH_" + kind + "_" + tag;
+                if (srcTex)
+                {
+                    // Don't edit the vendor texture; a slight tint on a copied material is enough.
+                    if (mat.HasProperty("_BaseColor")) mat.SetColor("_BaseColor", tint);
+                    else if (mat.HasProperty("_Color")) mat.SetColor("_Color", tint);
+                }
+                AssetDatabase.CreateAsset(mat, matPath);
+            }
+            // Keep the vendor material on the default wrapper. Coat mats are available for size=Alpha at place time later.
         }
 
         static bool HasCollider(GameObject root)
@@ -266,24 +637,17 @@ namespace ASH.EditorTools
             finally { PrefabUtility.UnloadPrefabContents(inst); }
         }
 
-        static void FillDrops(ASHWildlifeSettings.Species sp, ASHItemDefinition meat, ASHItemDefinition hide, ASHItemDefinition bone, ASHItemDefinition fat, bool wolf)
+        static void FillDrops(ASHWildlifeSettings.Species sp, ASHItemDefinition meat, ASHItemDefinition hide, ASHItemDefinition bone, ASHItemDefinition fat, ASHItemDefinition sinew, ASHItemDefinition special, ASHItemDefinition antler, ASHItemDefinition unused, int meatMin, int meatMax, float hideChance)
         {
-            if (sp.drops == null) sp.drops = new System.Collections.Generic.List<ASHWildlifeSettings.Drop>();
+            if (sp.drops == null) sp.drops = new List<ASHWildlifeSettings.Drop>();
             if (sp.drops.Count > 0) return;
-            if (wolf)
-            {
-                AddDrop(sp, meat, 1, 2, 1f);
-                AddDrop(sp, hide, 1, 1, 0.9f);
-                AddDrop(sp, bone, 1, 2, 1f);
-                AddDrop(sp, fat, 0, 1, 0.7f);
-            }
-            else
-            {
-                AddDrop(sp, meat, 2, 4, 1f);
-                AddDrop(sp, hide, 1, 1, 1f);
-                AddDrop(sp, bone, 2, 4, 1f);
-                AddDrop(sp, fat, 1, 3, 1f);
-            }
+            AddDrop(sp, meat, meatMin, meatMax, 1f);
+            AddDrop(sp, hide, 1, 1, hideChance);
+            AddDrop(sp, bone, Mathf.Max(1, meatMin), meatMax + 1, 1f);
+            AddDrop(sp, fat, 0, Mathf.Max(1, meatMin), 0.75f);
+            AddDrop(sp, sinew, 0, 2, 0.65f);
+            AddDrop(sp, special, 1, 1, 0.7f);
+            AddDrop(sp, antler, 1, 2, 0.8f);
         }
 
         static void AddDrop(ASHWildlifeSettings.Species sp, ASHItemDefinition item, int min, int max, float chance)
@@ -302,7 +666,7 @@ namespace ASH.EditorTools
             return null;
         }
 
-        static ASHItemDefinition EnsureItem(string id, string name, string desc, string letters, int category, int stack, int sell)
+        public static ASHItemDefinition EnsureItem(string id, string name, string desc, string letters, int category, int stack, int sell)
         {
             var existing = FindItem(id);
             var icon = EnsureLetter($"{LetterDir}/ASH_Letter_{letters}.png", letters);
@@ -327,14 +691,14 @@ namespace ASH.EditorTools
 
         static string ToAsset(string id)
         {
-            if (id == "animalbone") return "AnimalBones";
-            if (id == "animalfat") return "AnimalFat";
-            if (id == "wolfpelt") return "WolfPelt";
-            if (id == "bearhide") return "BearHide";
-            return id;
+            if (string.IsNullOrEmpty(id)) return "Item";
+            var parts = id.Replace('-', '_').Split('_');
+            var sb = new StringBuilder();
+            foreach (var p in parts) if (p.Length > 0) sb.Append(char.ToUpperInvariant(p[0])).Append(p.Substring(1));
+            return sb.ToString();
         }
 
-        static Sprite EnsureLetter(string path, string letters)
+        public static Sprite EnsureLetter(string path, string letters)
         {
             var sprite = AssetDatabase.LoadAssetAtPath<Sprite>(path);
             if (sprite) return sprite;
@@ -364,7 +728,6 @@ namespace ASH.EditorTools
 
         static void DrawLetters(Texture2D tex, string letters, Color gold)
         {
-            // very small block-letter glyphs so Rook can replace them later
             if (string.IsNullOrEmpty(letters)) return;
             int count = Mathf.Min(2, letters.Length);
             for (int i = 0; i < count; i++)
@@ -381,10 +744,25 @@ namespace ASH.EditorTools
             {
                 case 'A': B(0, 0, 16, 160); B(64, 0, 16, 160); B(0, 160, 80, 16); B(0, 80, 80, 16); break;
                 case 'B': B(0, 0, 16, 176); B(0, 0, 60, 16); B(0, 80, 60, 16); B(0, 160, 60, 16); B(60, 16, 16, 64); B(60, 96, 16, 64); break;
+                case 'C': B(0, 16, 16, 144); B(0, 160, 72, 16); B(0, 0, 72, 16); break;
+                case 'D': B(0, 0, 16, 176); B(0, 0, 56, 16); B(0, 160, 56, 16); B(56, 16, 16, 144); break;
+                case 'E': B(0, 0, 16, 176); B(0, 160, 76, 16); B(0, 80, 60, 16); B(0, 0, 76, 16); break;
                 case 'F': B(0, 0, 16, 176); B(0, 160, 76, 16); B(0, 88, 56, 16); break;
+                case 'G': B(0, 16, 16, 144); B(0, 160, 76, 16); B(0, 0, 76, 16); B(60, 0, 16, 80); B(44, 80, 32, 16); break;
                 case 'H': B(0, 0, 16, 176); B(64, 0, 16, 176); B(0, 80, 80, 16); break;
+                case 'I': B(16, 0, 16, 176); B(0, 0, 48, 16); B(0, 160, 48, 16); break;
+                case 'K': B(0, 0, 16, 176); B(16, 80, 24, 16); B(40, 96, 16, 80); B(40, 0, 16, 80); break;
+                case 'L': B(0, 0, 16, 176); B(0, 0, 76, 16); break;
+                case 'M': B(0, 0, 16, 176); B(72, 0, 16, 176); B(16, 128, 16, 32); B(48, 128, 16, 32); B(32, 96, 16, 32); break;
+                case 'N': B(0, 0, 16, 176); B(64, 0, 16, 176); B(16, 112, 16, 32); B(32, 80, 16, 32); B(48, 48, 16, 32); break;
+                case 'O': B(0, 16, 16, 144); B(64, 16, 16, 144); B(0, 160, 80, 16); B(0, 0, 80, 16); break;
                 case 'P': B(0, 0, 16, 176); B(0, 160, 64, 16); B(0, 88, 64, 16); B(64, 104, 16, 56); break;
+                case 'R': B(0, 0, 16, 176); B(0, 160, 64, 16); B(0, 88, 64, 16); B(64, 104, 16, 56); B(40, 0, 16, 88); break;
+                case 'S': B(0, 160, 76, 16); B(0, 80, 76, 16); B(0, 0, 76, 16); B(0, 96, 16, 64); B(60, 16, 16, 64); break;
+                case 'T': B(0, 160, 80, 16); B(32, 0, 16, 160); break;
+                case 'U': B(0, 16, 16, 160); B(64, 16, 16, 160); B(0, 0, 80, 16); break;
                 case 'W': B(0, 0, 16, 176); B(72, 0, 16, 176); B(24, 0, 16, 80); B(48, 0, 16, 80); break;
+                case 'Y': B(0, 112, 16, 64); B(64, 112, 16, 64); B(32, 0, 16, 112); B(8, 160, 16, 16); B(56, 160, 16, 16); break;
                 default: B(0, 0, 16, 176); B(0, 0, 64, 16); B(0, 160, 64, 16); break;
             }
         }

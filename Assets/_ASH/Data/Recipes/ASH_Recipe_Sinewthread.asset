@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f33e8ceadb27f414fbe6b19827d3ba9f, type: 3}
+  m_Name: ASH_Recipe_Sinewthread
+  m_EditorClassIdentifier: Assembly-CSharp::ASH.Inventory.ASHRecipe
+  recipeId: sinewthread
+  displayName: Sinew Thread
+  description: Twist sinew into sewing thread.
+  category: 4
+  ingredients:
+  - item: {fileID: 11400000, guid: 19765f60cef101b45b3a4a92756ad43c, type: 2}
+    amount: 1
+  outputItem: {fileID: 11400000, guid: a0a1069a120be034c90010d86b266c3b, type: 2}
+  outputAmount: 2
+  icon: {fileID: 21300000, guid: 23d3f2384b96ee249899e6df8fc0dd0e, type: 3}
+  requiredCraftingLevel: 1
+  upgradeId: 
+  upgradeTier: 0
+  craftSeconds: 1.2
+  requiredTool: 0
+  station: 0
+  waterPercent: 0
+  cookGameMinutes: 0
+  cookSeconds: 0
