@@ -170,11 +170,20 @@ namespace ASH.Inventory
                 case ASHUnlockKind.Crafted: return c.item && CraftedCount(c.item) >= Mathf.Max(1, c.quantity);
                 case ASHUnlockKind.ManualPage: return _pages.Contains(c.page);
                 case ASHUnlockKind.UpgradeTier: return !string.IsNullOrEmpty(c.upgradeId) && ASHUpgrades.Tier(c.upgradeId) >= Mathf.Max(1, c.upgradeTier);
+                case ASHUnlockKind.JournalPage: return ASH.Prologue.ASHGrandpaJournal.Has(c.collection, c.pageId);
             }
             return false;
         }
 
         public bool ConditionMet(ASHUnlockCondition c) => c != null && Met(c);
+
+        /// <summary>Re-check unlocks now (story journal pages call this).</summary>
+        public void Reevaluate() { Evaluate(); Changed?.Invoke(); }
+        /// <summary>Basic = unlocked when the manual is read. ASH_PrologueSettings (overrideBasics) replaces the manual's own flags without editing the manual asset.</summary>
+        public static bool IsBasic(ASHFieldManualEntry e) { if (e == null) return false; var s = ASH.Prologue.ASHPrologueSettings.I; return s && s.overrideBasics ? s.basicRecipes.Contains(e.recipe) : e.basic; }
+        static readonly List<ASHUnlockCondition> _noConds = new List<ASHUnlockCondition>();
+        public static List<ASHUnlockCondition> Conditions(ASHFieldManualEntry e) { if (e == null) return _noConds; var s = ASH.Prologue.ASHPrologueSettings.I; var o = s && s.overrideBasics ? s.Override(e.recipe) : null; return o != null ? o.conditions : e.conditions; }
+        public static bool RequireAll(ASHFieldManualEntry e) { if (e == null) return true; var s = ASH.Prologue.ASHPrologueSettings.I; var o = s && s.overrideBasics ? s.Override(e.recipe) : null; return o != null ? o.requireAll : e.requireAll; }
 
         public string ConditionText(ASHUnlockCondition c)
         {
@@ -184,6 +193,7 @@ namespace ASH.Inventory
                 case ASHUnlockKind.FirstPickup: return $"Find {(c.item ? c.item.displayName : "?")}";
                 case ASHUnlockKind.Crafted: return c.quantity > 1 ? $"Craft {c.quantity} {(c.item ? c.item.displayName : "?")}  ({Mathf.Min(CraftedCount(c.item), c.quantity)}/{c.quantity})" : $"Craft {(c.item ? c.item.displayName : "?")}";
                 case ASHUnlockKind.ManualPage: return $"Find manual page {c.page}";
+                case ASHUnlockKind.JournalPage: { var col = ASH.Prologue.ASHJournalCollection.Get(c.collection); var pg = col ? col.Page(c.pageId) : null; return $"Find {(col ? col.title : "journal")} page {(pg != null ? pg.number + " (" + pg.title + ")" : c.pageId)}"; }
                 case ASHUnlockKind.UpgradeTier: return $"Craft Ammo Pouch tier {Mathf.Max(1, c.upgradeTier)}" + (string.IsNullOrEmpty(c.upgradeId) ? "" : $"  ({ASHUpgrades.Tier(c.upgradeId)}/{Mathf.Max(1, c.upgradeTier)})");
             }
             return "";
@@ -193,9 +203,9 @@ namespace ASH.Inventory
         {
             if (e == null) return "";
             if (!string.IsNullOrEmpty(e.hint)) return e.hint;
-            if (e.basic) return "Read the manual";
-            var parts = new List<string>(); foreach (var c in e.conditions) parts.Add(ConditionText(c));
-            return string.Join(e.requireAll ? " + " : " or ", parts);
+            if (IsBasic(e)) return "Read the manual";
+            var parts = new List<string>(); foreach (var c in Conditions(e)) parts.Add(ConditionText(c));
+            return string.Join(RequireAll(e) ? " + " : " or ", parts);
         }
 
         void Evaluate(bool silent = false)
@@ -205,13 +215,13 @@ namespace ASH.Inventory
             {
                 if (e == null || !e.recipe || _unlocked.Contains(Key(e.recipe))) continue;
                 bool ok;
-                if (e.basic) ok = true;
-                else if (e.conditions.Count == 0) ok = false;
-                else if (e.requireAll) { ok = true; foreach (var c in e.conditions) if (!Met(c)) { ok = false; break; } }
-                else { ok = false; foreach (var c in e.conditions) if (Met(c)) { ok = true; break; } }
+                var conds = Conditions(e); if (IsBasic(e)) ok = true;
+                else if (conds.Count == 0) ok = false;
+                else if (RequireAll(e)) { ok = true; foreach (var c in conds) if (!Met(c)) { ok = false; break; } }
+                else { ok = false; foreach (var c in conds) if (Met(c)) { ok = true; break; } }
                 if (!ok) continue;
                 _unlocked.Add(Key(e.recipe));
-                if (e.basic && silent) continue; // the basics arrive with the manual (badged "new", no toast spam)
+                if (IsBasic(e) && silent) continue; // the basics arrive with the manual (badged "new", no toast spam)
                 var hud = FindAnyObjectByType<UI.ASHHud>();
                 if (hud) hud.Toast($"New in Grandpa's manual: {e.recipe.displayName}");
                 Unlocked?.Invoke(e.recipe);

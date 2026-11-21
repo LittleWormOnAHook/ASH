@@ -9,7 +9,8 @@ namespace ASH.Inventory
         [Tooltip("First time the item enters the pack.")] FirstPickup,
         [Tooltip("Item crafted (total output, at least Quantity).")] Crafted,
         [Tooltip("Torn manual page number found.")] ManualPage,
-        [Tooltip("A saved upgrade has reached this tier (upgradeId + upgradeTier).")] UpgradeTier
+        [Tooltip("A saved upgrade has reached this tier (upgradeId + upgradeTier).")] UpgradeTier,
+        [Tooltip("A story page (Grandpa's Journal collection) was found: collection + pageId. Not a Survival Guide torn page.")] JournalPage
     }
 
     [Serializable]
@@ -21,6 +22,8 @@ namespace ASH.Inventory
         [Tooltip("ManualPage: page number (1-based).")] [Min(1)] public int page = 1;
         [Tooltip("UpgradeTier: the upgrade id (e.g. ammo_pouch).")] public string upgradeId;
         [Tooltip("UpgradeTier: unlocked once this many tiers have been crafted.")] [Min(1)] public int upgradeTier = 1;
+        [Tooltip("JournalPage: story collection id (grandpa = Grandpa's Journal).")] public string collection = "grandpa";
+        [Tooltip("JournalPage: page id in that collection (e.g. gj_01).")] public string pageId;
     }
 
     /// <summary>One recipe in Grandpa's Field Manual tree.</summary>

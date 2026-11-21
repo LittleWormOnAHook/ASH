@@ -1,4 +1,4 @@
-using ASH.Gameplay;
+﻿using ASH.Gameplay;
 using ASH.Interaction;
 using ASH.Map;
 using ASH.World;
@@ -63,6 +63,7 @@ namespace ASH.Opening
         /// <summary>Start the slice objectives ("Get your bearings" ...) now: opening Done (Secure the cabin has ended), suppressed, or not running.</summary>
         void ReleaseSlice()
         {
+            if (ASH.Prologue.ASHPrologueDirector.BlocksLegacySlice) { ASHObjectiveTracker.HoldIntroMessage = false; return; } // M1: legacy slice is debug-only
             var tr = FindAnyObjectByType<ASHObjectiveTracker>();
             if (tr) tr.StartSlice(); else { ASHObjectiveTracker.HoldSlice = false; ASHObjectiveTracker.HoldIntroMessage = false; }
         }
@@ -74,6 +75,7 @@ namespace ASH.Opening
             _cc = FindAnyObjectByType<vThirdPersonController>();
             if (_cc) { _origPos = _cc.transform.position; _origRot = _cc.transform.rotation; _haveOrig = true; }
             if (ASH.Core.ASHSaveSystem.PendingLoad != null) return; // loading a save: RestoreFromSave sets the stage (no replay / skip)
+            if (ASH.Prologue.ASHPrologueDirector.TakesOverOpening) { if (profile) PrepareWorld(); if (logStages) Debug.Log("[ASH] Opening: prologue car start (cabin opening not run; the warning starts it later)"); return; }
             if (playOnStart && profile) { if (skipStartSequence) SkipStartSequence(); else Begin(); } else ReleaseSlice();
         }
 
@@ -143,6 +145,49 @@ namespace ASH.Opening
         }
 
         public void Replay() => Begin();
+
+        /// <summary>M1 prologue new game: the opening's start state (weather, fog, ground cover, time) without the cabin spawn,
+        /// door lock, music or stages. The prologue later calls BeginFromWarning.</summary>
+        public void PrepareWorld()
+        {
+            if (!profile) return;
+            ASHObjectiveTracker.HoldSlice = true;
+            _aftershocksOver = false; _nextAftershock = -1f;
+            Suppressed = false; _journalBroadcast = false; _quakeStarted = false; _ashStarted = false;
+            ASHQuakeProp.ResetAll();
+            if (quake) quake.Stop();
+            EndObjective();
+            if (director) { director.SetScheduler(false); director.Snap(director.Profile(profile.startState) ? profile.startState : ASHWeatherKind.Clear); }
+            FogSet(profile.startFogMultiplier); FogWeight(1f, 0f);
+            var acc = ASHAccumulationController.Instance;
+            if (acc) { if (profile.groundAshAtStart >= 0f) acc.ashAmount = profile.groundAshAtStart; if (profile.groundSnowAtStart >= 0f) acc.snowAmount = profile.groundSnowAtStart; }
+            if (clock && profile.startTimeOfDay >= 0f) clock.timeOfDay = profile.startTimeOfDay;
+            var ash = FindAnyObjectByType<ASHAshFall>(); if (ash) ash.SetWeather(0f, Vector3.zero, 1f, true);
+            UnlockCabin(false);
+            Current = Stage.Inactive; _t = 0f;
+        }
+
+        /// <summary>M1 prologue P02: start at the broadcast (alert + announcement) with the quake exactly graceSeconds (real time) away.
+        /// No teleport, no door lock. Safe to call again on a checkpoint retry (resets the opening flags first, so nothing doubles).</summary>
+        public void BeginFromWarning(float graceSeconds)
+        {
+            if (!profile) return;
+            ASHObjectiveTracker.HoldSlice = true;
+            _aftershocksOver = false; _nextAftershock = -1f;
+            Suppressed = false; _journalBroadcast = false; _quakeStarted = false; _ashStarted = false;
+            ASHQuakeProp.ResetAll();
+            if (quake) quake.Stop();
+            EndObjective();
+            UnlockCabin(false);
+            if (director) director.SetScheduler(false);
+            Enter(Stage.Broadcast);
+            float sp = Mathf.Max(0.01f, debugSpeed);
+            _t = profile.musicFadeSeconds + profile.alertSeconds + profile.quakeDelay - Mathf.Max(0f, graceSeconds) * sp;
+            if (logStages) Debug.Log($"[ASH] Opening: warning started, quake in {graceSeconds:F0} s");
+        }
+
+        /// <summary>Stop aftershocks for good (M1: once the truck objective starts).</summary>
+        public void EndAftershocks() { _aftershocksOver = true; _nextAftershock = -1f; }
 
         public void SkipTo(Stage s)
         {
@@ -259,7 +304,9 @@ namespace ASH.Opening
         /// step ends it at once and starts the slice ("Get your bearings"); otherwise it runs until Done as before.</summary>
         void StartObjective()
         {
-            if (_objStarted || !objective || !profile) return; _objStarted = true;
+            if (_objStarted || !objective || !profile) return;
+            if (ASH.Prologue.ASHPrologueDirector.BlocksLegacySlice && !ASH.Prologue.ASHPrologueSettings.I.legacySecureCabin) return; // M1: prologue objectives own the post-quake flow
+            _objStarted = true;
             objective.Completed -= OnObjectiveComplete; objective.Completed += OnObjectiveComplete;
             objective.Begin(profile.objectiveTitle, profile.objectiveMessage);
             if (logStages) Debug.Log("[ASH] Opening objective -> Secure the cabin");

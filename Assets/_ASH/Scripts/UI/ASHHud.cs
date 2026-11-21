@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using ASH.Core;
 using ASH.Gameplay;
 using ASH.Interaction;
@@ -760,20 +760,26 @@ namespace ASH.UI
             if (objective && Time.unscaledTime >= _objRefreshAt) // 5 Hz: the objective text allocates strings (was a per-frame GC source)
             {
                 _objRefreshAt = Time.unscaledTime + 0.2f;
+                var hs = ASHObjectiveHudSettings.I; // t438: live layout (focused on top, larger + darker; up to N others below)
                 string ot = objective.Title();
                 _objTitle.transform.parent.gameObject.SetActive(!string.IsNullOrEmpty(ot)); // nothing active yet (slice waits for the opening)
                 _objTitle.text = ot;
+                _objTitle.fontSize = hs.focusTitleSize; _objTitle.color = hs.focusTitleColor;
+                var trT = _objTitle.rectTransform; trT.sizeDelta = new Vector2(trT.sizeDelta.x, hs.focusTitleSize + 8f);
+                var trL = _objLines.rectTransform; trL.anchoredPosition = new Vector2(trL.anchoredPosition.x, -(hs.focusTitleSize + 12f + hs.titleGap));
+                _objLines.fontSize = hs.focusLineSize; _objLines.color = hs.focusLineColor;
+                string doneHex = ColorUtility.ToHtmlStringRGB(hs.doneLineColor), oTitleHex = ColorUtility.ToHtmlStringRGB(hs.otherTitleColor), oLineHex = ColorUtility.ToHtmlStringRGB(hs.otherLineColor);
                 var sb = new System.Text.StringBuilder();
-                foreach (var (text, done) in objective.Lines()) sb.AppendLine((done ? "<color=#9fd39b>√ " : "• ") + text + (done ? "</color>" : ""));
-                int shownOthers = Mathf.Max(0, MaxObjectivesShown - 1);
+                foreach (var (text, done) in objective.Lines()) sb.AppendLine((done ? $"<color=#{doneHex}>√ " : "• ") + text + (done ? "</color>" : ""));
+                int shownOthers = Mathf.Max(0, hs.maxOtherObjectives);
                 foreach (var o in objective.OtherActive(shownOthers))
                 {
                     sb.AppendLine();
-                    sb.AppendLine($"<color=#{ColorUtility.ToHtmlStringRGB(Accent)}><size=22>{o.Title}</size></color>");
-                    foreach (var (text, done) in o.GetLines()) if (!done) { sb.AppendLine("• " + text); break; } // its current step only
+                    sb.AppendLine($"<color=#{oTitleHex}><size={hs.otherTitleSize}>{o.Title}</size></color>");
+                    foreach (var (text, done) in o.GetLines()) if (!done) { sb.AppendLine($"<size={hs.otherLineSize}><color=#{oLineHex}>• {text}</color></size>"); if (hs.otherCurrentStepOnly) break; }
                 }
                 int others = objective.OtherActiveCount - shownOthers;
-                if (others > 0) sb.AppendLine($"<size=16><color=#b8ae9f>+{others} more  ·  journal [J]</color></size>");
+                if (hs.showMoreHint && others > 0) sb.AppendLine($"<size={hs.moreHintSize}><color=#{ColorUtility.ToHtmlStringRGB(hs.moreHintColor)}>+{others} more  ·  journal [J]</color></size>");
                 _objLines.text = sb.ToString();
             }
             if (clock) { int h = (int)clock.timeOfDay; int m = (int)((clock.timeOfDay - h) * 60f); _clock.text = $"{h:00}:{m:00}"; }

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using ASH.Core;
@@ -22,6 +22,20 @@ namespace ASH.Vehicles
         public static readonly List<ASHVehicle> All = new List<ASHVehicle>();
         /// <summary>Set by ASHVehicleMenu: E at the door opens the vehicle menu (Drive / Fuel Up / Repair). Null = E gets straight in.</summary>
         public static System.Func<ASHVehicle, ASH.Inventory.ASHInventory, Transform, bool> OpenMenu;
+        /// <summary>E on a destroyed vehicle (prologue: inspect the crushed car).</summary>
+        public static event Action<ASHVehicle> Inspected;
+        /// <summary>Story damage (M1: the tree on the car): no entry or driving, an Inspect prompt instead, physics frozen. Saved.</summary>
+        public bool Destroyed { get; private set; }
+        public void SetDestroyed(bool on)
+        {
+            if (Destroyed == on) return;
+            Destroyed = on;
+            if (on && Driving == this) Exit(true);
+            var rb = GetComponent<Rigidbody>();
+            if (rb) { if (on && !rb.isKinematic) { rb.linearVelocity = Vector3.zero; rb.angularVelocity = Vector3.zero; } rb.isKinematic = on; }
+            if (_vc) { if (on) { _vc.input.Vertical = 0f; _vc.input.Horizontal = 0f; _vc.input.Handbrake = 1f; try { if (_vc.engine.IsRunning) _vc.engine.Stop(); } catch { } _vc.Active = false; } }
+            if (on && _lights) _lights.Set(false);
+        }
         [Tooltip("E at the door opens the vehicle menu (E again drives). Off = E gets straight in.")] public bool useMenu = true;
 
         [Header("Identity")]
@@ -41,6 +55,7 @@ namespace ASH.Vehicles
         [Range(0.5f, 20f)] public float throttleResponse = 6f;
         [Header("Dog")]
         [Range(2f, 80f)] public float dogRideRange = 25f;
+        [Tooltip("Runtime: keep the handbrake on until the driver steers or presses throttle (prologue car start on a slope).")] [System.NonSerialized] public bool holdBrakeUntilInput;
         [Tooltip("The dog may ride in the passenger seat (chance: companion settings passengerSeatChance). Pickup only by default.")] public bool dogPassengerSeat = true;
         [Tooltip("Dog passenger seat point (made at Play: the driver seat mirrored across the cab).")] public Transform passengerSeat;
         [Tooltip("Dog passenger door point (the driver exit point mirrored).")] public Transform passengerDoor;
@@ -152,20 +167,22 @@ namespace ASH.Vehicles
         public Transform UseTransform => exitPoint ? exitPoint : transform;
         public float GetUsePriority(in ASHUseContext ctx)
         {
+            if (Destroyed) return Vector3.Distance(ctx.PlayerPosition, exitPoint ? exitPoint.position : transform.position) <= enterRange + 1.5f ? 6f : -1f;
             if (_busy || Driving) return -1f;
             var p = exitPoint ? exitPoint.position : transform.position;
             return Vector3.Distance(ctx.PlayerPosition, p) <= enterRange ? 6f : -1f;
         }
-        public string GetPrompt(in ASHUseContext ctx) => useMenu && OpenMenu != null ? displayName : "Get in " + displayName;
+        public string GetPrompt(in ASHUseContext ctx) => Destroyed ? "Inspect " + displayName : useMenu && OpenMenu != null ? displayName : "Get in " + displayName;
         public float GetHoldDuration(in ASHUseContext ctx) => 0f;
         public bool TryUse(in ASHUseContext ctx)
         {
+            if (Destroyed) { Inspected?.Invoke(this); return true; }
             if (_busy || Driving) return false;
             if (useMenu && OpenMenu != null) return OpenMenu(this, ctx.Inventory, ctx.PlayerTransform ? ctx.PlayerTransform : transform);
             StartCoroutine(EnterRoutine(PlayerRoot(ctx.PlayerTransform), false)); return true;
         }
 
-        public void Enter(bool instant = false) { if (!_busy && !Driving) StartCoroutine(EnterRoutine(PlayerRoot(null), instant)); }
+        public void Enter(bool instant = false) { if (!_busy && !Driving && !Destroyed) StartCoroutine(EnterRoutine(PlayerRoot(null), instant)); }
 
         /// <summary>The player's root (the Invector controller with the Rigidbody), never a tagged child mesh (t369: the tagged
         /// object is the character model, so moving it left the real body, its colliders and the camera target behind).</summary>
@@ -238,7 +255,8 @@ namespace ASH.Vehicles
                 _steer = Mathf.MoveTowards(_steer, mv.x, steerResponse * dt);
                 _throttle = Mathf.MoveTowards(_throttle, mv.y, throttleResponse * dt);
                 _vc.input.Horizontal = _steer; _vc.input.Vertical = _throttle;
-                _vc.input.Handbrake = kb != null && kb.spaceKey.isPressed ? 1f : 0f;
+                if (holdBrakeUntilInput && mv.sqrMagnitude > 0.04f) holdBrakeUntilInput = false;
+                _vc.input.Handbrake = kb != null && kb.spaceKey.isPressed || holdBrakeUntilInput ? 1f : 0f;
                 _vc.input.horn = kb != null && kb.hKey.isPressed;
                 if (input && !input.GameplayBlocked)
                 {
@@ -399,13 +417,13 @@ namespace ASH.Vehicles
         static void Toast(string m) { var h = FindAnyObjectByType<ASH.UI.ASHHud>(); if (h) h.Toast(m); else Debug.Log("[ASH] Vehicle: " + m); }
 
         // ------------------------------------------------------------------ save
-        [Serializable] sealed class State { public Vector3 pos; public Quaternion rot; public float fuel = -1f, battery = 1f, belt = 1f; public bool hasBattery = true, hasBelt = true, lights, occupied, engine; public int view, tireMask; }
+        [Serializable] sealed class State { public Vector3 pos; public Quaternion rot; public float fuel = -1f, battery = 1f, belt = 1f; public bool hasBattery = true, hasBelt = true, lights, occupied, engine; public int view, tireMask; public bool destroyed; }
         bool _restored;
         public string SaveKey => "vehicle_" + vehicleId;
         public int RestoreOrder => 40;
         public string CaptureJson()
         {
-            var s = new State { pos = transform.position, rot = transform.rotation, fuel = _fuel ? _fuel.litres : -1f, lights = LightsOn, occupied = Driving == this, engine = EngineRunning, view = (int)_cam.view };
+            var s = new State { pos = transform.position, rot = transform.rotation, fuel = _fuel ? _fuel.litres : -1f, lights = LightsOn, occupied = Driving == this, engine = EngineRunning, view = (int)_cam.view, destroyed = Destroyed };
             if (_cond) { s.battery = _cond.batteryCharge; s.belt = _cond.beltCondition; s.hasBattery = _cond.batteryInstalled; s.hasBelt = _cond.beltInstalled; s.tireMask = _cond.MissingMask; }
             return JsonUtility.ToJson(s);
         }
@@ -419,7 +437,8 @@ namespace ASH.Vehicles
             transform.SetPositionAndRotation(s.pos, s.rot);
             if (_fuel && s.fuel >= 0f) _fuel.litres = Mathf.Clamp(s.fuel, 0f, _fuel.capacityLitres);
             if (_cond) { _cond.batteryCharge = s.battery; _cond.beltCondition = s.belt; _cond.batteryInstalled = s.hasBattery; _cond.beltInstalled = s.hasBelt; _cond.SetMissingMask(s.tireMask); }
-            if (_lights) _lights.Set(s.lights && s.occupied);
+            SetDestroyed(s.destroyed);
+            if (_lights) _lights.Set(s.lights && s.occupied && !s.destroyed);
             if (_cam) _cam.view = (ASHVehicleCamera.View)Mathf.Clamp(s.view, 0, 1);
             if (s.occupied) StartCoroutine(EnterNextFrame());
             else { var st = GetComponent<ASHVehicleSettle>(); if (st) st.QueueLoadCheck(); } // t414: repaired but tilted -> settle

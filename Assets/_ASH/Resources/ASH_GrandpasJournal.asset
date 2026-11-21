@@ -1,0 +1,149 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a24b9bf0f54f2724d9d632e8749df982, type: 3}
+  m_Name: ASH_GrandpasJournal
+  m_EditorClassIdentifier: Assembly-CSharp::ASH.Prologue.ASHJournalCollection
+  collectionId: grandpa
+  title: Grandpa's Journal
+  contentVersion: 2
+  pages:
+  - id: gj_01
+    number: 1
+    title: Water you can trust
+    type: 0
+    text: 'Creek water looks clean and isn''t. Boil it - a rolling boil, a full minute
+      - or it''ll lay you flat for a week. Keep two bottles full, always. If the
+      sky ever turns grey, wet a rag and tie it over your mouth before you do anything
+      else.
+
+
+      If the car gives up on you, the old Ford is out by the shed.'
+    sketch: {fileID: 0}
+    area: Grandpa's cabin
+    location: Kitchen table
+    pointsTo: Grandpa's truck (out by the shed)
+    placed: 1
+    compassMarker: 0
+    markerPosition: {x: 0, y: 0, z: 0}
+    chainFlag: 
+    rareRecipeName: 
+  - id: gj_02
+    number: 2
+    title: The old Ford
+    type: 1
+    text: The Ford still has some life in her, if you treat her right. Tires are
+      shot - I've got one spare by the shed and I left the other at the old camp.
+      Battery's on the porch. The fan belt I took up to the hunting shack to match
+      a new one. Twenty litres in the can will get you to Red Rock.
+    sketch: {fileID: 0}
+    area: Grandpa's truck
+    location: On the ground by the truck
+    pointsTo: Hunting shack (fan belt), abandoned camp (tire)
+    placed: 1
+    compassMarker: 0
+    markerPosition: {x: 0, y: 0, z: 0}
+    chainFlag: truckFound
+    rareRecipeName: 
+  - id: gj_03
+    number: 3
+    title: The shack spur
+    type: 1
+    text: Past the cattle guard the shack spur turns off this road - follow the cairns
+      uphill. The shack roof leaks but the stove draws. If the valley road floods,
+      that trail and the ridge get you around it.
+    sketch: {fileID: 0}
+    area: Arrival road
+    location: Roadside, near where you drive in
+    pointsTo: Hunting shack (shack spur trail)
+    placed: 1
+    compassMarker: 1
+    markerPosition: {x: 3413.7358, y: 117.606606, z: 3275.9597}
+    chainFlag: page:gj_03
+    rareRecipeName: 
+  - id: gj_04
+    number: 4
+    title: The hunting shack
+    type: 2
+    text: 'Loose board by the stove - that''s my cache. Arrows: straight shoots,
+      dried a week, fletch with three feathers and a spit-wet thread. Make a dozen;
+      you''ll lose half. The old camp is down the ridge, past the burnt pines.'
+    sketch: {fileID: 0}
+    area: Hunting shack
+    location: Under the loose floorboard (M3)
+    pointsTo: Abandoned camp
+    placed: 0
+    compassMarker: 0
+    markerPosition: {x: 0, y: 0, z: 0}
+    chainFlag: 
+    rareRecipeName: ASH_Recipe_WoodenArrows
+  - id: gj_05
+    number: 5
+    title: Shelter that seals
+    type: 1
+    text: A tent stops rain, not ash. Pitch it behind a wall, wet sheet over the
+      door, fire outside the flap. Spare tire's under the tarp here. I left supplies
+      in the old ore box past the ridge - follow the rail ties.
+    sketch: {fileID: 0}
+    area: Abandoned camp
+    location: Camp entrance (M3)
+    pointsTo: Supply cache (ore box past the ridge)
+    placed: 0
+    compassMarker: 0
+    markerPosition: {x: 553.5288, y: 431.96774, z: 2306.3574}
+    chainFlag: page:gj_05
+    rareRecipeName: 
+  - id: gj_06
+    number: 6
+    title: Breathing in the grey
+    type: 2
+    text: 'Those old masks take a can filter. Pack one yourself: tin shell, charcoal
+      from a cold fire, cloth both ends, wax the seam. Change it when breathing gets
+      hard. From here the Red Rock road is a day''s walk east.'
+    sketch: {fileID: 0}
+    area: Supply cache
+    location: Inside the ore box (M3, position TBD)
+    pointsTo: Red Rock road
+    placed: 0
+    compassMarker: 0
+    markerPosition: {x: 0, y: 0, z: 0}
+    chainFlag: 
+    rareRecipeName: ASH_Recipe_FilterCartridge
+  - id: gj_07
+    number: 7
+    title: Before I go
+    type: 1
+    text: The bridge at the turnoff holds a truck if you go slow. Red Rock has a
+      radio and a doctor. Don't stop in the cut when it's falling heavy.
+    sketch: {fileID: 0}
+    area: Red Rock road
+    location: Turnoff sign (M4, position TBD)
+    pointsTo: Red Rock
+    placed: 0
+    compassMarker: 0
+    markerPosition: {x: 0, y: 0, z: 0}
+    chainFlag: 
+    rareRecipeName: 
+  - id: gj_08
+    number: 8
+    title: Scooter
+    type: 0
+    text: Scooter rides up front and growls before you see trouble. Trust that dog.
+      Feed him first, he earns it.
+    sketch: {fileID: 0}
+    area: Grandpa's truck
+    location: Sun visor, once the truck runs (M4)
+    pointsTo: Red Rock
+    placed: 0
+    compassMarker: 0
+    markerPosition: {x: 0, y: 0, z: 0}
+    chainFlag: 
+    rareRecipeName: 

@@ -97,6 +97,9 @@ namespace ASH.Gameplay
             public string Id, Title; public bool Completed, Priority; public int Order;
             /// <summary>t411: main (story) objective - the tracked one shows as a gold compass dot. Side objectives: false.</summary>
             public bool Main;
+            /// <summary>t438: final main quest of a chapter (e.g. "Repair Grandpa's truck"): listed after every other active objective and
+            /// only auto-focused when nothing else is open (the player can still pick it in the journal).</summary>
+            public bool Final;
             /// <summary>t411: optional world target for the compass (null / returns null = no dot).</summary>
             public Func<Vector3?> Target;
             public Func<IEnumerable<(string text, bool done)>> Lines;
@@ -106,7 +109,7 @@ namespace ASH.Gameplay
         readonly List<Objective> _objectives = new List<Objective>(); int _order; Objective _slice;
         /// <summary>All objectives: active (newest first), then completed (newest first).</summary>
         public IEnumerable<Objective> Objectives { get { foreach (var o in Sorted()) yield return o; } }
-        List<Objective> Sorted() { EnsureSlice(); var l = new List<Objective>(_objectives); if (SliceHeld) l.Remove(_slice); l.Sort((x, y) => x.Completed != y.Completed ? (x.Completed ? 1 : -1) : y.Order.CompareTo(x.Order)); return l; }
+        List<Objective> Sorted() { EnsureSlice(); var l = new List<Objective>(_objectives); if (SliceHeld) l.Remove(_slice); l.Sort((x, y) => x.Completed != y.Completed ? (x.Completed ? 1 : -1) : !x.Completed && x.Final != y.Final ? (x.Final ? 1 : -1) : y.Order.CompareTo(x.Order)); return l; }
         /// <summary>Id of the objective the player picked in the journal (null = automatic: newest active).</summary>
         public string TrackedId { get; private set; }
         public bool PlayerPicked { get; private set; }
@@ -129,7 +132,7 @@ namespace ASH.Gameplay
                 EnsureSlice(); _slice.Title = SliceTitle(); _slice.Completed = Current == Stage.Complete;
                 var t = TrackedId != null ? Find(TrackedId) : null;
                 if (t != null && !t.Completed) return t;
-                Objective best = null; foreach (var o in _objectives) if (!o.Completed && !(SliceHeld && o == _slice) && (best == null || o.Order > best.Order)) best = o;
+                Objective best = null; foreach (var o in _objectives) if (!o.Completed && !(SliceHeld && o == _slice) && (best == null || (best.Final && !o.Final) || (best.Final == o.Final && o.Order > best.Order))) best = o;
                 if (best == null) best = t ?? (SliceHeld ? _none : _slice);
                 if (t != null && t.Completed && best != t && best != _none) { TrackedId = best.Id; TrackedChanged?.Invoke(TrackedId); } // tracked one finished: follow the next active one
                 return best;

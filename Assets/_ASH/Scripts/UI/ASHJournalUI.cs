@@ -35,6 +35,7 @@ namespace ASH.UI
         // Grandpa's Field Manual tree (replaces the category list when the manual exists)
         RectTransform _legacyRoot, _treeRoot, _treeContent, _pageBoxes; Text _treeTitle, _pageLabel; ASHFieldManual _manualHooked;
         // torn-page reader (a book over the Survival Guide tab): found pages only, prev/next flips
+        Button _gpBtn; Text _gpLbl; string _bookCol, _gpPage; // t443: Grandpa's Journal pages in the same page reader
         RectTransform _book; Text _bookTitle, _bookText, _bookNum, _readLbl; Image _bookSketch; Button _bookPrev, _bookNext, _readBtn; int _bookPage = -1;
         const float NodeW = 128f, NodeH = 52f, ColStep = 142f, RowStep = 68f, TreePad = 14f;
 
@@ -280,6 +281,8 @@ namespace ASH.UI
             _pageBoxes = K.At("PageBoxes", _treeRoot, new Vector2(0, 1), new Vector2(172, -36), new Vector2(400, 20));
             _readBtn = K.Button(K.At("ReadPages", _treeRoot, new Vector2(1, 1), new Vector2(-8, -4), new Vector2(160, 28)), "READ PAGES", 15, () => OpenBook(-1), new Color(1, 1, 1, 0.12f));
             _readLbl = _readBtn.GetComponentInChildren<Text>(); _readLbl.color = K.Ink;
+            _gpBtn = K.Button(K.At("GrandpaPages", _treeRoot, new Vector2(1, 1), new Vector2(-176, -4), new Vector2(200, 28)), "GRANDPA'S JOURNAL", 15, () => OpenGrandpa(null), new Color(1, 1, 1, 0.12f));
+            _gpLbl = _gpBtn.GetComponentInChildren<Text>(); _gpLbl.color = K.Ink; _gpBtn.gameObject.SetActive(false);
             var area = K.Stretch("Area", _treeRoot, 0, 0, 0, 66);
             K.Image(area, new Color(0, 0, 0, 0.12f), true);
             var vp = K.Stretch("Viewport", area); vp.gameObject.AddComponent<RectMask2D>();
@@ -312,13 +315,38 @@ namespace ASH.UI
         public void OpenBook(int n)
         {
             var m = ASHFieldManual.Instance; if (!m || !_book) return;
-            var found = m.FoundPages; if (found.Count == 0) return;
+            var found = m.FoundPages; if (found.Count == 0) return; _bookCol = null;
             if (n < 1 || !found.Contains(n)) { n = found[0]; foreach (var p in found) if (m.IsPageUnread(p)) { n = p; break; } }
             _bookPage = n; _book.gameObject.SetActive(true); _book.SetAsLastSibling();
             ShowBookPage();
         }
+        static List<ASH.Prologue.ASHJournalCollectionPage> GpFound()
+        {
+            var c = ASH.Prologue.ASHJournalCollection.Grandpa; var l = new List<ASH.Prologue.ASHJournalCollectionPage>(); if (!c) return l;
+            foreach (var p in c.pages) if (p != null && ASH.Prologue.ASHGrandpaJournal.Has(c.collectionId, p.id)) l.Add(p);
+            l.Sort((a, b) => a.number.CompareTo(b.number)); return l;
+        }
+        /// <summary>t443: open the page reader on Grandpa's Journal (id null = first found page).</summary>
+        public void OpenGrandpa(string id)
+        {
+            if (!_book) return; var f = GpFound(); if (f.Count == 0) return;
+            _bookCol = "grandpa"; _gpPage = id != null && f.Exists(p => p.id == id) ? id : f[0].id;
+            _book.gameObject.SetActive(true); _book.SetAsLastSibling(); ShowGrandpaPage();
+        }
+        void ShowGrandpaPage()
+        {
+            var c = ASH.Prologue.ASHJournalCollection.Grandpa; var f = GpFound(); int i = f.FindIndex(p => p.id == _gpPage); if (!c || i < 0) { CloseBook(); return; }
+            var pg = f[i];
+            _bookNum.text = $"{c.title} - page {pg.number} of {c.pages.Count}  ·  {pg.TypeLabel}{(string.IsNullOrEmpty(pg.area) ? "" : "  ·  " + pg.area)}      ({i + 1}/{f.Count} found)";
+            _bookTitle.text = pg.title;
+            bool sk = pg.sketch; _bookSketch.gameObject.SetActive(sk); if (sk) _bookSketch.sprite = pg.sketch;
+            _bookText.rectTransform.sizeDelta = new Vector2(sk ? 420 : 700, 400);
+            _bookText.text = string.IsNullOrEmpty(pg.text) ? "<color=#00000080>The ink has run. Only a few words are left.</color>" : pg.text;
+            _bookPrev.interactable = i > 0; _bookNext.interactable = i < f.Count - 1;
+        }
         void FlipBook(int dir)
         {
+            if (_bookCol != null) { var f = GpFound(); int k = f.FindIndex(p => p.id == _gpPage); if (k < 0) return; k = Mathf.Clamp(k + dir, 0, f.Count - 1); _gpPage = f[k].id; ShowGrandpaPage(); return; }
             var m = ASHFieldManual.Instance; if (!m) return;
             var found = m.FoundPages; int i = found.IndexOf(_bookPage); if (i < 0) return;
             i = Mathf.Clamp(i + dir, 0, found.Count - 1); _bookPage = found[i]; ShowBookPage();
@@ -337,7 +365,7 @@ namespace ASH.UI
             _bookPrev.interactable = i > 0; _bookNext.interactable = i < found.Count - 1;
             m.MarkPageRead(_bookPage); // raises Changed: the strip's unread dot and the tab count update
         }
-        void CloseBook() { if (_book) _book.gameObject.SetActive(false); _bookPage = -1; }
+        void CloseBook() { if (_book) _book.gameObject.SetActive(false); _bookPage = -1; _bookCol = null; }
 
         void HookManual()
         {
@@ -346,7 +374,10 @@ namespace ASH.UI
             if (_manualHooked) _manualHooked.Changed -= MarkDirty;
             _manualHooked = m;
             if (m) m.Changed += MarkDirty;
+            ASH.Prologue.ASHGrandpaJournal.PageFound -= OnGpFound; ASH.Prologue.ASHGrandpaJournal.PageFound += OnGpFound;
         }
+
+        void OnGpFound(string col, string id) { if (this) MarkDirty(); else ASH.Prologue.ASHGrandpaJournal.PageFound -= OnGpFound; }
 
         static Vector2 NodePos(ASHFieldManualEntry e) => new Vector2(TreePad + e.column * ColStep, -(TreePad + e.row * RowStep));
 
@@ -379,7 +410,8 @@ namespace ASH.UI
             int unread = m.UnreadPages;
             _readBtn.interactable = m.PagesFound > 0;
             _readLbl.text = unread > 0 ? $"READ PAGES <color=#f08a6b>({unread} new)</color>" : "READ PAGES";
-            if (_book && _book.gameObject.activeSelf) ShowBookPage();
+            if (_book && _book.gameObject.activeSelf) { if (_bookCol != null) ShowGrandpaPage(); else ShowBookPage(); }
+            if (_gpBtn) { var gc = ASH.Prologue.ASHJournalCollection.Grandpa; int gn = GpFound().Count; _gpBtn.gameObject.SetActive(gn > 0); if (gn > 0) _gpLbl.text = $"GRANDPA'S JOURNAL ({gn}/{(gc ? gc.pages.Count : 8)})"; }
 
             K.Clear(_treeContent);
             // unlocked recipes, plus "?" nodes only for the next step (a parent is unlocked); deeper ones stay hidden
@@ -592,8 +624,8 @@ namespace ASH.UI
                 if (e != null)
                 {
                     if (!string.IsNullOrEmpty(e.hint)) hs.AppendLine($"<i>{e.hint}</i>\n");
-                    hs.AppendLine(e.requireAll || e.conditions.Count < 2 ? "Unlocks when you:" : "Unlocks when you do any of:");
-                    foreach (var c in e.conditions) { bool ok = man.ConditionMet(c); hs.AppendLine($"<color=#{(ok ? "9fd39b" : "a59e93")}>{(ok ? "√" : "•")}</color>  {man.ConditionText(c)}"); }
+                    hs.AppendLine(ASHFieldManual.RequireAll(e) || ASHFieldManual.Conditions(e).Count < 2 ? "Unlocks when you:" : "Unlocks when you do any of:");
+                    foreach (var c in ASHFieldManual.Conditions(e)) { bool ok = man.ConditionMet(c); hs.AppendLine($"<color=#{(ok ? "9fd39b" : "a59e93")}>{(ok ? "√" : "•")}</color>  {man.ConditionText(c)}"); }
                 }
                 _dReq.text = hs.ToString();
                 _dStatus.text = "<color=#a59e93>Locked</color>";

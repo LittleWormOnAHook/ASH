@@ -12,6 +12,10 @@ namespace ASH.UI
     {
         public static ASHDeathScreen Current { get; private set; }
         public static bool Active => Current != null;
+        /// <summary>Optional first button (M1 prologue: "Retry from Checkpoint" while the quake checkpoint applies).</summary>
+        public static System.Func<bool> RetryAvailable;
+        public static System.Action Retry;
+        public static string RetryLabel = "Retry from Checkpoint";
         [Range(0.2f, 10f)] public float fadeSeconds = 2.5f;
 
         RectTransform _root, _content; Image _fade; Text _title; float _t;
@@ -34,11 +38,14 @@ namespace ASH.UI
             var newest = ASHSaveSystem.Newest();
             string sub = newest != null ? $"Last save: {newest.location} · {newest.savedAt}" : "No save yet.";
             K.Text(K.At("Sub", _content, new Vector2(0.5f, 0.5f), new Vector2(0, 50), new Vector2(1000, 40)), sub, 22, K.Dim, TextAnchor.MiddleCenter);
-            W.MenuButton(_content, newest != null ? "Load Last Save" : "Restart", new Vector2(0, -50), new Vector2(380, 62), () =>
+            bool retry = Retry != null && RetryAvailable != null && RetryAvailable();
+            float dy = retry ? -74f : 0f;
+            if (retry) { var r = Retry; W.MenuButton(_content, RetryLabel, new Vector2(0, -50), new Vector2(380, 62), () => r()); }
+            W.MenuButton(_content, newest != null ? "Load Last Save" : "Restart", new Vector2(0, -50 + dy), new Vector2(380, 62), () =>
             {
                 var d = ASHSaveSystem.Newest(); if (d != null) ASHSaveSystem.Load(d); else ASHSceneFlow.NewGame();
             });
-            W.MenuButton(_content, "Main Menu", new Vector2(0, -124), new Vector2(380, 62), ASHSceneFlow.MainMenu);
+            W.MenuButton(_content, "Main Menu", new Vector2(0, -124 + dy), new Vector2(380, 62), ASHSceneFlow.MainMenu);
             _content.gameObject.SetActive(false);
         }
 

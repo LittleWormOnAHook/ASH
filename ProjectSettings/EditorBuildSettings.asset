@@ -6,6 +6,9 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
+    path: Assets/_ASH/Scenes/ASH_MainMenu.unity
+    guid: 5e9b85c233d540c4e998a63759390050
+  - enabled: 1
     path: Assets/_ASH/Scenes/ASH_Prototype.unity
     guid: d388f1f8a3cbcfa40a9d5e8a3d1c8007
   - enabled: 1

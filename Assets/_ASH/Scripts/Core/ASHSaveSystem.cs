@@ -56,6 +56,9 @@ namespace ASH.Core
         public static float PlaySeconds;
         /// <summary>Extra autosave blockers (exposure warnings, cutscenes...). Return true to skip.</summary>
         public static readonly List<Func<bool>> AutosaveBlockers = new List<Func<bool>>();
+        /// <summary>Checked by every Save (manual, quick, auto): returns a reason to refuse that slot, or null. M1: the prologue blocks
+        /// saves from the warning to the end of the quake, except its own checkpoint slot.</summary>
+        public static Func<string, string> SaveGuard;
         public static event Action<string> Saved;
         public static event Action Restored;
 
@@ -64,7 +67,7 @@ namespace ASH.Core
         public static void Unregister(IASHSaveable s) { _saveables.Remove(s); }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        static void ResetStatics() { Instance = null; PendingLoad = null; IsRestoring = false; PlaySeconds = 0f; _saveables.Clear(); AutosaveBlockers.Clear(); Saved = null; Restored = null; }
+        static void ResetStatics() { Instance = null; PendingLoad = null; IsRestoring = false; PlaySeconds = 0f; _saveables.Clear(); AutosaveBlockers.Clear(); SaveGuard = null; Saved = null; Restored = null; }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         static void Hook() { SceneManager.sceneLoaded -= OnSceneLoaded; SceneManager.sceneLoaded += OnSceneLoaded; }
@@ -188,6 +191,7 @@ namespace ASH.Core
 
         public bool Save(string slot)
         {
+            if (SaveGuard != null) { var why = SaveGuard(slot); if (!string.IsNullOrEmpty(why)) { ASHLog.Info($"Save: slot '{slot}' refused ({why})"); return false; } }
             try
             {
                 var d = new ASHSaveData { slot = slot, savedTicks = DateTime.Now.Ticks, savedAt = DateTime.Now.ToString("yyyy-MM-dd HH:mm"), playSeconds = PlaySeconds, scenePath = SceneManager.GetActiveScene().path };

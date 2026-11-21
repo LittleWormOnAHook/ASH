@@ -26,6 +26,8 @@ namespace ASH.Companion
         public bool InVehicle => _ride == RidePhase.Riding;
         public bool InPassengerSeat => InVehicle && _passenger;
         public BedAct CurrentBedAct => _bedAct;
+        /// <summary>The next BeginRide may be instant (prologue start: the dog is already in the car with the player).</summary>
+        public void AllowInstantRide() { _rideFromSave = true; }
         public Collider BedCollider => _bed;
 
         public bool BeginRide(Transform seat, Transform tailgate, float range, bool instant = false) => BeginRide(seat, tailgate, null, null, range, instant);

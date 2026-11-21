@@ -15,6 +15,8 @@ namespace ASH.Survival
         [Range(0f, 1f)] public float sealing = 1f;
         [Tooltip("Location name used for saves while inside (empty = nearest survey point).")]
         public string label = "Shelter";
+        [Tooltip("Solid building (cabin, shack): protects from the prologue quake. Tents, lean-tos and vehicles are not structural.")]
+        public bool structural = false;
         [Tooltip("Collider used for the inside test (empty = the first collider on this object).")]
         public Collider volume;
 
@@ -42,6 +44,12 @@ namespace ASH.Survival
             return best;
         }
 
+        /// <summary>True when the point is inside any structural shelter (the cabin and other designated buildings).</summary>
+        public static bool StructuralAt(Vector3 feet)
+        {
+            foreach (var z in _all) if (z && z.structural && z.Contains(feet)) return true;
+            return false;
+        }
         void OnDrawGizmosSelected()
         {
             var c = volume ? volume : GetComponent<Collider>(); if (!c) return;

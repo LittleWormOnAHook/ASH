@@ -1,0 +1,149 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a53f2db8875fd7846b12a4f18e791096, type: 3}
+  m_Name: ASH_PrologueChain
+  m_EditorClassIdentifier: Assembly-CSharp::ASH.Prologue.ASHObjectiveChain
+  chainEnabled: 1
+  announceMain: 1
+  announceSide: 1
+  hintSeconds: 6
+  steps:
+  - id: p00_home
+    title: Returning Home
+    kind: 0
+    final: 0
+    prerequisites: []
+    next:
+    - p01_home_again
+    revealFlag: 
+    completeFlag: arrived
+    recipeName: 
+    hint: Follow the road to Grandpa's cabin and park by it.
+  - id: p01_home_again
+    title: Home Again
+    kind: 0
+    final: 0
+    prerequisites:
+    - p00_home
+    next:
+    - p02_shelter
+    - c01_kindling
+    revealFlag: 
+    completeFlag: homeAgain
+    recipeName: 
+    hint: Grandpa's journal and his supplies are inside the cabin.
+  - id: c01_kindling
+    title: Split some kindling
+    kind: 2
+    final: 0
+    prerequisites:
+    - p01_home_again
+    next:
+    - c02_campfire
+    revealFlag: 
+    completeFlag: 
+    recipeName: ASH_Recipe_SplitKindling
+    hint: Use Grandpa's hatchet. Journal crafting tab [Q].
+  - id: c02_campfire
+    title: Build a campfire
+    kind: 2
+    final: 0
+    prerequisites:
+    - c01_kindling
+    next:
+    - c05_boilwater
+    revealFlag: 
+    completeFlag: 
+    recipeName: ASH_Recipe_Campfire
+    hint: Kindling and a few stones. Journal crafting tab [Q].
+  - id: p02_shelter
+    title: SEEK SHELTER
+    kind: 0
+    final: 0
+    prerequisites:
+    - p01_home_again
+    next:
+    - p03_car
+    - c03_bandage
+    - c04_wetrag
+    revealFlag: warning
+    completeFlag: sheltered
+    recipeName: 
+    hint: Get inside the cabin, now.
+  - id: c03_bandage
+    title: Make a bandage
+    kind: 2
+    final: 0
+    prerequisites:
+    - p02_shelter
+    next: []
+    revealFlag: 
+    completeFlag: 
+    recipeName: ASH_Recipe_Bandage
+    hint: The quake left you bruised. Cloth makes a bandage.
+  - id: c04_wetrag
+    title: Make a wet rag
+    kind: 2
+    final: 0
+    prerequisites:
+    - p02_shelter
+    next: []
+    revealFlag: 
+    completeFlag: 
+    recipeName: ASH_Recipe_WetRag
+    hint: Ash in the air. A wet rag over your face helps.
+  - id: p03_car
+    title: No Way Back
+    kind: 0
+    final: 0
+    prerequisites:
+    - p02_shelter
+    next:
+    - p03_wayout
+    revealFlag: 
+    completeFlag: carInspected
+    recipeName: 
+    hint: Go and see what's left of the car.
+  - id: c05_boilwater
+    title: Boil some water
+    kind: 2
+    final: 0
+    prerequisites:
+    - c02_campfire
+    next: []
+    revealFlag: 
+    completeFlag: 
+    recipeName: ASH_Recipe_BoilWater
+    hint: Boil water over your campfire to make it safe.
+  - id: p03_wayout
+    title: Find a way out of the wilderness
+    kind: 0
+    final: 0
+    prerequisites:
+    - p03_car
+    next:
+    - p03_truck
+    revealFlag: 
+    completeFlag: truckFound
+    recipeName: 
+    hint: Grandpa kept an old pickup near the cabin.
+  - id: p03_truck
+    title: Repair Grandpa's truck
+    kind: 0
+    final: 1
+    prerequisites:
+    - p03_wayout
+    next: []
+    revealFlag: 
+    completeFlag: truckReady
+    recipeName: 
+    hint: Tires, battery, fan belt and fuel. Parts found earlier count.

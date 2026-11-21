@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -326,10 +326,13 @@ namespace ASH.Inventory
         [SerializeField] private List<ASHRecipeIngredient> startingItems = new List<ASHRecipeIngredient>();
         [Tooltip("Off: the GPS and Grandpa's journal are never starting items (both are found as pickups), even if listed above.")]
         public bool startWithGpsAndJournal = false;
+        /// <summary>M1 prologue hook: true = skip the starting items on this new game (Grandpa's supplies are the kit).</summary>
+        public static System.Func<bool> SuppressStartingItems;
         private bool _startingGiven;
         private void Start()
         {
             if (_startingGiven) return; _startingGiven = true;
+            if (SuppressStartingItems != null && SuppressStartingItems()) { Debug.Log("[ASH] Inventory: starting items skipped (prologue kit only)"); return; }
             foreach (var s in startingItems)
             {
                 if (s.item == null || Count(s.item) > 0) continue;

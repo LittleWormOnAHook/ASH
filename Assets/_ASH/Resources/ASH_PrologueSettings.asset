@@ -1,0 +1,187 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2dd6e3ff1079c2a438cb4a2ad596141b, type: 3}
+  m_Name: ASH_PrologueSettings
+  m_EditorClassIdentifier: Assembly-CSharp::ASH.Prologue.ASHPrologueSettings
+  startInCar: 1
+  useLegacySliceChain: 0
+  legacySecureCabin: 0
+  prologueKitOnly: 1
+  noAshBeforeQuake: 1
+  preQuakeWeather: 7
+  arrivalRadio:
+  - 'RADIO: ...continued seismic activity across the region overnight. Officials
+    say there is no cause for alarm.'
+  - 'RADIO: The survey office reports ground deformation near the caldera of several
+    centimetres this week.'
+  - 'RADIO: Residents are reminded to keep an emergency kit: water, food, medicine
+    and a radio.'
+  - 'RADIO: ...caldera unrest remains at advisory level. We''ll keep you updated.
+    Now, the weather...'
+  arrivalRadioInterval: 9
+  arrivalRadioDelay: 3
+  parkingRadius: 7
+  cabinEntryCompletesArrival: 1
+  warningSeconds: 75
+  retryRefireDelay: 1.5
+  killAtIntensity: 0.85
+  exitConfirmSeconds: 0.6
+  warningBanner: SEEK SHELTER NOW
+  warningSubtitle: 'EMERGENCY ALERT: Major seismic event imminent. Take shelter in
+    a solid building immediately.'
+  deathOutsideToast: You were caught outside when the ground tore open.
+  checkpointSlot: prologue_checkpoint
+  saveBlockedToast: You can't save right now. Get to shelter.
+  treeFallSeconds: 2.2
+  cinematicSeconds: 4.5
+  treeDelay: 0.4
+  carInspectText: A pine has crushed the roof. The car isn't going anywhere.
+  truckFoundRadius: 9
+  truckVehicleId: pickup
+  arrivalVehicleId: car
+  endAftershocksOnTruckObjective: 1
+  supplies:
+  - item: {fileID: 11400000, guid: 7cd557381b29b784494aba3006fe97c5, type: 2}
+    amount: 1
+  - item: {fileID: 11400000, guid: 60a01e34ee84bf8478b4e029262354c3, type: 2}
+    amount: 1
+  - item: {fileID: 11400000, guid: 9788539a33748784b9934ff73ae9466d, type: 2}
+    amount: 2
+  - item: {fileID: 11400000, guid: bd04ca413ce93144a853e0da8ee70c00, type: 2}
+    amount: 2
+  - item: {fileID: 11400000, guid: e9451fa1dcacc5f469627c4659267b61, type: 2}
+    amount: 1
+  - item: {fileID: 11400000, guid: d1e9c7f5fd1e1424eb51203ea530c973, type: 2}
+    amount: 5
+  - item: {fileID: 11400000, guid: 9d969f68cd66efe419e68a447220f35c, type: 2}
+    amount: 1
+  - item: {fileID: 11400000, guid: 9eda505d7e69f3d4fb93aad7debb1c9a, type: 2}
+    amount: 1
+  - item: {fileID: 11400000, guid: 9eb5b8d96d908bf42b67fc88fea28070, type: 2}
+    amount: 1
+  overrideBasics: 1
+  basicRecipes:
+  - {fileID: 11400000, guid: 9402e347331a3444d945573bda75760a, type: 2}
+  - {fileID: 11400000, guid: 9f9da71f035e6c24fb7495fc0473eaf9, type: 2}
+  - {fileID: 11400000, guid: 3cab41a01b23b544fbe4be21c95bf29d, type: 2}
+  - {fileID: 11400000, guid: b99683d183699524da7f4667d45cc33e, type: 2}
+  - {fileID: 11400000, guid: 41d2eb98ede82f641816564643375414, type: 2}
+  unlockOverrides:
+  - recipe: {fileID: 11400000, guid: 8d2175ff244b4f54bb1c363b3ad8775e, type: 2}
+    requireAll: 0
+    conditions:
+    - kind: 0
+      item: {fileID: 11400000, guid: 9eda505d7e69f3d4fb93aad7debb1c9a, type: 2}
+      quantity: 1
+      page: 1
+      upgradeId: 
+      upgradeTier: 1
+      collection: grandpa
+      pageId: 
+    - kind: 4
+      item: {fileID: 0}
+      quantity: 1
+      page: 1
+      upgradeId: 
+      upgradeTier: 1
+      collection: grandpa
+      pageId: gj_01
+  - recipe: {fileID: 11400000, guid: 175d1959d24317743b87ba6da11c0d39, type: 2}
+    requireAll: 0
+    conditions:
+    - kind: 0
+      item: {fileID: 11400000, guid: f545e6f90b132c94988a957c07aa07e6, type: 2}
+      quantity: 1
+      page: 1
+      upgradeId: 
+      upgradeTier: 1
+      collection: grandpa
+      pageId: 
+  - recipe: {fileID: 11400000, guid: e3544ec2c47e15b4780a9ddaa973dee9, type: 2}
+    requireAll: 0
+    conditions:
+    - kind: 0
+      item: {fileID: 11400000, guid: fe9fdabe84f11f34cbb2e2848567bb85, type: 2}
+      quantity: 1
+      page: 1
+      upgradeId: 
+      upgradeTier: 1
+      collection: grandpa
+      pageId: 
+  - recipe: {fileID: 11400000, guid: c5fa66851d1b30f4b89f68e9054fc51b, type: 2}
+    requireAll: 0
+    conditions:
+    - kind: 0
+      item: {fileID: 11400000, guid: d6ff4dbd01e3cd14fac83d6f01c0c757, type: 2}
+      quantity: 1
+      page: 1
+      upgradeId: 
+      upgradeTier: 1
+      collection: grandpa
+      pageId: 
+  - recipe: {fileID: 11400000, guid: cf3fe87b129f4f44086db8db654253f2, type: 2}
+    requireAll: 0
+    conditions:
+    - kind: 0
+      item: {fileID: 11400000, guid: 0ecc23791726bb14bab54becc49cf048, type: 2}
+      quantity: 1
+      page: 1
+      upgradeId: 
+      upgradeTier: 1
+      collection: grandpa
+      pageId: 
+  - recipe: {fileID: 11400000, guid: fcebbcf4030a3cf4baa05093b70a89e3, type: 2}
+    requireAll: 0
+    conditions:
+    - kind: 1
+      item: {fileID: 11400000, guid: ca85a0ffeece51942b4f305b7da5688d, type: 2}
+      quantity: 1
+      page: 1
+      upgradeId: 
+      upgradeTier: 1
+      collection: grandpa
+      pageId: 
+    - kind: 4
+      item: {fileID: 0}
+      quantity: 1
+      page: 1
+      upgradeId: 
+      upgradeTier: 1
+      collection: grandpa
+      pageId: gj_04
+  - recipe: {fileID: 11400000, guid: 280549b6d24a17447bc390e0adeb46f7, type: 2}
+    requireAll: 0
+    conditions:
+    - kind: 0
+      item: {fileID: 11400000, guid: 367788899950da34182abdd767a69fd3, type: 2}
+      quantity: 1
+      page: 1
+      upgradeId: 
+      upgradeTier: 1
+      collection: grandpa
+      pageId: 
+    - kind: 2
+      item: {fileID: 0}
+      quantity: 1
+      page: 7
+      upgradeId: 
+      upgradeTier: 1
+      collection: grandpa
+      pageId: 
+    - kind: 4
+      item: {fileID: 0}
+      quantity: 1
+      page: 1
+      upgradeId: 
+      upgradeTier: 1
+      collection: grandpa
+      pageId: gj_06
