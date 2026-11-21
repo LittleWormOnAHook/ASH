@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using ASH.Core;
 using ASH.Gameplay;
 using ASH.Inventory;
+using ASH.Survival;
 using ASH.UI;
 using UnityEngine;
 
@@ -17,11 +18,11 @@ namespace ASH.Prologue
         static ASHObjectiveChain C => ASHObjectiveChain.I;
 
         readonly HashSet<string> _done = new HashSet<string>(), _shown = new HashSet<string>(), _crafted = new HashSet<string>();
-        ASHObjectiveTracker _tracker; ASHCrafting _craft; ASHInventory _inv; ASH.Gameplay.ASHPlacer _placer; float _t; bool _restored;
+        ASHObjectiveTracker _tracker; ASHCrafting _craft; ASHInventory _inv; ASH.Gameplay.ASHPlacer _placer; ASHSurvivalStats _stats; float _t; bool _restored;
 
         void Awake() { Instance = this; }
         void OnEnable() { ASHSaveSystem.Register(this); }
-        void OnDisable() { ASHSaveSystem.Unregister(this); if (_craft) _craft.Crafted -= OnCrafted; _craft = null; if (_placer) _placer.PlacedObject -= OnPlaced; _placer = null; if (_inv) _inv.Changed -= OnInventoryChanged; _inv = null; }
+        void OnDisable() { ASHSaveSystem.Unregister(this); if (_craft) _craft.Crafted -= OnCrafted; _craft = null; if (_placer) _placer.PlacedObject -= OnPlaced; _placer = null; if (_inv) _inv.Changed -= OnInventoryChanged; _inv = null; if (_stats) _stats.Consumed -= OnConsumed; _stats = null; }
         // t475: anything entering / leaving the pack re-checks every objective at once (counts + auto-complete)
         void OnInventoryChanged() { _t = 0f; _countsDirty = true; }
         bool _countsDirty;
@@ -43,11 +44,13 @@ namespace ASH.Prologue
             if (!_craft) { _craft = FindAnyObjectByType<ASHCrafting>(); if (_craft) _craft.Crafted += OnCrafted; }
             if (!_inv) { _inv = FindAnyObjectByType<ASHInventory>(); if (_inv) _inv.Changed += OnInventoryChanged; }
             if (!_placer) { _placer = FindAnyObjectByType<ASH.Gameplay.ASHPlacer>(); if (_placer) _placer.PlacedObject += OnPlaced; }
+            if (!_stats) { _stats = FindAnyObjectByType<ASHSurvivalStats>(); if (_stats) _stats.Consumed += OnConsumed; }
         }
         // t454: remember the recipe AND its output item, so any recipe making the same thing counts (campfire variants)
         void OnCrafted(ASHRecipe r) { if (!r) return; _crafted.Add(r.name); if (r.outputItem) _crafted.Add("out:" + r.outputItem.itemId); _t = 0f; }
         // t454: placing an item (e.g. a campfire from the pack) counts for steps with completeOnPlace
         void OnPlaced(ASHItemDefinition item, GameObject go) { if (item) { _crafted.Add("placed:" + item.itemId); _t = 0f; } }
+        void OnConsumed(ASHItemDefinition item) { if (item && !string.IsNullOrEmpty(item.itemId)) { _crafted.Add("ate:" + item.itemId); _t = 0f; } }
 
         void Update()
         {
@@ -91,12 +94,38 @@ namespace ASH.Prologue
             bool any = false, ok = false;
             if (!string.IsNullOrEmpty(s.completeFlag)) { any = true; ok |= Flag(s.completeFlag, false); }
             if (!string.IsNullOrEmpty(s.recipeName)) { any = true; ok |= Crafted(s); }
-            if (!any && s.items != null && s.items.Count > 0) // t475: collect-only steps complete once every item is in the pack (or fitted)
-            {
-                bool all = true; foreach (var n in s.items) { if (n == null || string.IsNullOrEmpty(n.itemId)) continue; if (Have(n, out int need) < need) { all = false; break; } }
-                return all;
-            }
+            if (s.completeOnPlace && !string.IsNullOrEmpty(PlaceId(s))) { any = true; ok |= _crafted.Contains("placed:" + PlaceId(s)); }
+            if (s.completeOnConsume) { any = true; ok |= AteNeeded(s) || ItemsMet(s); }
+            if (!any && s.items != null && s.items.Count > 0) return ItemsMet(s); // collect-only: every item is in the pack (or fitted)
             return any && ok;
+        }
+        bool ItemsMet(ASHObjectiveChain.Step s)
+        {
+            if (s.items == null || s.items.Count == 0) return false;
+            foreach (var n in s.items)
+            {
+                if (n == null || string.IsNullOrEmpty(n.itemId)) continue;
+                if (Have(n, out int need) < need) return false;
+            }
+            return true;
+        }
+        bool AteNeeded(ASHObjectiveChain.Step s)
+        {
+            if (s.items == null) return false;
+            foreach (var n in s.items)
+            {
+                if (n == null) continue;
+                if (Ate(n.itemId)) return true;
+                if (n.anyOf != null) foreach (var id in n.anyOf) if (Ate(id)) return true;
+            }
+            return false;
+        }
+        bool Ate(string id) => !string.IsNullOrEmpty(id) && _crafted.Contains("ate:" + id);
+        string PlaceId(ASHObjectiveChain.Step s)
+        {
+            if (!string.IsNullOrEmpty(s.placeItemId)) return s.placeItemId;
+            var r = !string.IsNullOrEmpty(s.recipeName) ? Recipe(s.recipeName) : null;
+            return r && r.outputItem ? r.outputItem.itemId : null;
         }
         bool Crafted(ASHObjectiveChain.Step s)
         {
@@ -146,9 +175,19 @@ namespace ASH.Prologue
         /// <summary>t475: items held now (pack) plus parts already fitted to the truck; need = how many the step wants.</summary>
         int Have(ASHObjectiveChain.ItemNeed n, out int need)
         {
-            Cache(); var d = ASHPrologueDirector.Instance; var reg = ASHItemRegistry.I; var def = reg ? reg.Find(n.itemId) : null;
+            Cache(); var d = ASHPrologueDirector.Instance;
             need = n.countInstalled && d ? d.PartNeeded(n.itemId, n.count) : n.count;
-            return (n.countInstalled && d ? d.PartInstalled(n.itemId) : 0) + (def && _inv ? _inv.Count(def) : 0);
+            int have = CountId(n.itemId, n.countInstalled);
+            if (n.anyOf != null)
+                foreach (var id in n.anyOf)
+                    if (!string.IsNullOrEmpty(id) && id != n.itemId) have += CountId(id, false);
+            return have;
+        }
+        int CountId(string id, bool installed)
+        {
+            if (string.IsNullOrEmpty(id)) return 0;
+            var d = ASHPrologueDirector.Instance; var reg = ASHItemRegistry.I; var def = reg ? reg.Find(id) : null;
+            return (installed && d ? d.PartInstalled(id) : 0) + (def && _inv ? _inv.Count(def) : 0);
         }
         static IEnumerable<(string, bool)> Concat(IEnumerable<(string, bool)> a, IEnumerable<(string, bool)> b) { foreach (var x in a) yield return x; foreach (var x in b) yield return x; }
 

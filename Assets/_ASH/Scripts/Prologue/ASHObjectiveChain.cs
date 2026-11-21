@@ -23,7 +23,21 @@ namespace ASH.Prologue
             [Min(1)] public int count = 1;
             [Tooltip("Optional HUD label (empty = the item's display name).")] public string label;
             [Tooltip("Also count parts already fitted to Grandpa's truck (tire, carbattery, fanbelt, fuel_can).")] public bool countInstalled;
+            [Tooltip("Other item ids that also count toward this need (OR). Used for '2 boiled or bottled waters'.")]
+            public List<string> anyOf = new List<string>();
             public static ItemNeed Of(string id, int n, string label = null, bool installed = false) => new ItemNeed { itemId = id, count = n, label = label, countInstalled = installed };
+            public static ItemNeed Any(string label, int n, params string[] ids)
+            {
+                var x = new ItemNeed { count = Mathf.Max(1, n), label = label, anyOf = new List<string>() };
+                if (ids != null)
+                    for (int i = 0; i < ids.Length; i++)
+                    {
+                        if (string.IsNullOrEmpty(ids[i])) continue;
+                        if (string.IsNullOrEmpty(x.itemId)) x.itemId = ids[i];
+                        else if (ids[i] != x.itemId) x.anyOf.Add(ids[i]);
+                    }
+                return x;
+            }
         }
 
         [Serializable]
@@ -47,6 +61,10 @@ namespace ASH.Prologue
             public string recipeName;
             [Tooltip("Placing the recipe's output in the world also completes the step (e.g. a campfire placed from the pack).")]
             public bool completeOnPlace;
+            [Tooltip("Item id that completes the step when placed (used with completeOnPlace when there is no recipe).")]
+            public string placeItemId;
+            [Tooltip("Eating a needed item also completes the step (keeps credit if you eat the last one).")]
+            public bool completeOnConsume;
             [Tooltip("Crafting steps: list the recipe's ingredients as item lines with have/need counts.")]
             public bool listRecipeIngredients = true;
             [Tooltip("Items this step needs, one HUD line each with a live count (added after the recipe ingredients).")]
@@ -67,7 +85,7 @@ namespace ASH.Prologue
 
         public Step Get(string id) { foreach (var s in steps) if (s != null && s.id == id) return s; return null; }
 
-        void OnEnable() { if (steps != null && steps.Count > 0 && contentVersion < 2) Upgrade2(); if (steps != null && steps.Count > 0 && contentVersion < 3) Upgrade3(); }
+        void OnEnable() { if (steps != null && steps.Count > 0 && contentVersion < 2) Upgrade2(); if (steps != null && steps.Count > 0 && contentVersion < 3) Upgrade3(); if (steps != null && steps.Count > 0 && contentVersion < 4) Upgrade4(); }
         /// <summary>t462: the locked cabin door adds "Find Grandpa's key" (after Home Again in the list).</summary>
         void Upgrade3()
         {
@@ -76,6 +94,39 @@ namespace ASH.Prologue
 #if UNITY_EDITOR
             UnityEditor.EditorUtility.SetDirty(this);
 #endif
+        }
+        /// <summary>M2-C2: P04 Water First, P05 Fire and Shelter, P06 Finding Food (parallel to the truck, after SEEK SHELTER).</summary>
+        void Upgrade4()
+        {
+            var p04 = WaterStep(); var p05 = TentStep(); var p06 = FoodStep();
+            if (Get("p04_water") == null) steps.Add(p04);
+            if (Get("p05_tent") == null) steps.Add(p05);
+            if (Get("p06_food") == null) steps.Add(p06);
+            var p02 = Get("p02_shelter");
+            if (p02 != null && p02.next != null && !p02.next.Contains("p04_water")) p02.next.Add("p04_water");
+            contentVersion = 4;
+#if UNITY_EDITOR
+            UnityEditor.EditorUtility.SetDirty(this);
+#endif
+        }
+        static Step WaterStep()
+        {
+            var s = S("p04_water", "Water First", Kind.Main, new[] { "p02_shelter" }, new[] { "p05_tent" }, null, null, "Boil creek water or find bottled water. Hold two safe drinks.");
+            s.items = new List<ItemNeed> { ItemNeed.Any("Safe water", 2, "boiledwater", "bottledwater") };
+            return s;
+        }
+        static Step TentStep()
+        {
+            var s = S("p05_tent", "Fire and Shelter", Kind.Main, new[] { "p04_water" }, new[] { "p06_food" }, null, null, "Pitch Grandpa's packed tent and keep a campfire close for warmth.");
+            s.completeOnPlace = true; s.placeItemId = "packedtent";
+            return s;
+        }
+        static Step FoodStep()
+        {
+            var s = S("p06_food", "Finding Food", Kind.Main, new[] { "p05_tent" }, new string[0], null, null, "Hunt, fish or cook a meal. Cabin cans don't count — this is food you find or make.");
+            s.completeOnConsume = true;
+            s.items = new List<ItemNeed> { ItemNeed.Any("Food", 1, "rawmeat", "cookedmeat", "rawfish", "cookedfish", "deadrabbit", "wholetrout", "glazedmeat", "smokedfish", "meatstew", "fishbroth", "heartychili", "chokecherries", "driedchokecherries") };
+            return s;
         }
         static Step KeyStep()
         {
@@ -134,18 +185,21 @@ namespace ASH.Prologue
                 S("p01_home_again", "Home Again", Kind.Main, new[] { "p00_home" }, new[] { "p02_shelter", "c01_kindling" }, "homeAgain", null, "Grandpa's journal and his supplies are inside the cabin."),
                 S("c01_kindling", "Split some kindling", Kind.Craft, new[] { "p01_home_again" }, new[] { "c02_campfire" }, null, "ASH_Recipe_SplitKindling", "Use Grandpa's hatchet. Journal crafting tab [Q]."),
                 S("c02_campfire", "Build a campfire", Kind.Craft, new[] { "c01_kindling" }, new[] { "c05_boilwater" }, null, "ASH_Recipe_Campfire", "Kindling and a few stones. Journal crafting tab [Q], then place it."),
-                S("p02_shelter", "SEEK SHELTER", Kind.Main, new[] { "p01_home_again" }, new[] { "p03_car", "c03_bandage", "c04_wetrag" }, "sheltered", null, "Get inside the cabin, now.", reveal: "warning"),
+                S("p02_shelter", "SEEK SHELTER", Kind.Main, new[] { "p01_home_again" }, new[] { "p03_car", "c03_bandage", "c04_wetrag", "p04_water" }, "sheltered", null, "Get inside the cabin, now.", reveal: "warning"),
                 S("c03_bandage", "Make a bandage", Kind.Craft, new[] { "p02_shelter" }, new string[0], null, "ASH_Recipe_Bandage", "The quake left you bruised. Cloth makes a bandage."),
                 S("c04_wetrag", "Make a wet rag", Kind.Craft, new[] { "p02_shelter" }, new string[0], null, "ASH_Recipe_WetRag", "Ash in the air. A wet rag over your face helps."),
                 S("p03_car", "No Way Back", Kind.Main, new[] { "p02_shelter" }, new[] { "p03_wayout" }, "carInspected", null, "Go and see what's left of the car."),
                 S("c05_boilwater", "Boil some water", Kind.Craft, new[] { "c02_campfire" }, new string[0], null, "ASH_Recipe_BoilWater", "Boil water over your campfire to make it safe."),
                 S("p03_wayout", "Find a way out of the wilderness", Kind.Main, new[] { "p03_car" }, new[] { "p03_truck" }, "truckFound", null, "Grandpa kept an old pickup near the cabin."),
                 S("p03_truck", "Repair Grandpa's truck", Kind.Main, new[] { "p03_wayout" }, new string[0], "truckReady", null, "Tires, battery, fan belt and fuel. Parts found earlier count.", final: true),
+                WaterStep(),
+                TentStep(),
+                FoodStep(),
             };
             Get("c02_campfire").completeOnPlace = true;
             Get("p03_truck").items = TruckParts();
             steps.Insert(2, KeyStep());
-            contentVersion = 3;
+            contentVersion = 4;
         }
     }
 }

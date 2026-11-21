@@ -16,7 +16,7 @@ MonoBehaviour:
   announceMain: 1
   announceSide: 1
   hintSeconds: 6
-  contentVersion: 3
+  contentVersion: 4
   steps:
   - id: p00_home
     title: Returning Home
@@ -106,6 +106,7 @@ MonoBehaviour:
     - p03_car
     - c03_bandage
     - c04_wetrag
+    - p04_water
     revealFlag: warning
     completeFlag: sheltered
     recipeName: 
@@ -113,6 +114,79 @@ MonoBehaviour:
     listRecipeIngredients: 1
     items: []
     hint: Get inside the cabin, now.
+  - id: p04_water
+    title: Water First
+    kind: 0
+    final: 0
+    prerequisites:
+    - p02_shelter
+    next:
+    - p05_tent
+    revealFlag: 
+    completeFlag: 
+    recipeName: 
+    completeOnPlace: 0
+    placeItemId: 
+    completeOnConsume: 0
+    listRecipeIngredients: 1
+    items:
+    - itemId: boiledwater
+      count: 2
+      label: Safe water
+      countInstalled: 0
+      anyOf:
+      - bottledwater
+    hint: Boil creek water or find bottled water. Hold two safe drinks.
+  - id: p05_tent
+    title: Fire and Shelter
+    kind: 0
+    final: 0
+    prerequisites:
+    - p04_water
+    next:
+    - p06_food
+    revealFlag: 
+    completeFlag: 
+    recipeName: 
+    completeOnPlace: 1
+    placeItemId: packedtent
+    completeOnConsume: 0
+    listRecipeIngredients: 1
+    items: []
+    hint: Pitch Grandpa's packed tent and keep a campfire close for warmth.
+  - id: p06_food
+    title: Finding Food
+    kind: 0
+    final: 0
+    prerequisites:
+    - p05_tent
+    next: []
+    revealFlag: 
+    completeFlag: 
+    recipeName: 
+    completeOnPlace: 0
+    placeItemId: 
+    completeOnConsume: 1
+    listRecipeIngredients: 1
+    items:
+    - itemId: rawmeat
+      count: 1
+      label: Food
+      countInstalled: 0
+      anyOf:
+      - cookedmeat
+      - rawfish
+      - cookedfish
+      - deadrabbit
+      - wholetrout
+      - glazedmeat
+      - smokedfish
+      - meatstew
+      - fishbroth
+      - heartychili
+      - chokecherries
+      - driedchokecherries
+    hint: Hunt, fish or cook a meal. Cabin cans don't count — this is food you find or make.
   - id: c03_bandage
     title: Make a bandage
     kind: 2
