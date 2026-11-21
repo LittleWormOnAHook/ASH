@@ -34,7 +34,7 @@ namespace ASH.Combat
 
         ASHEquipment _eq; ASHInvectorInput _in; vShooterManager _sm; vMeleeManager _mm; vAmmoManager _am; vThirdPersonController _cc;
         ASHSurvivalStats _stats; ASHWeaponAim _aim; ASHChopAnimator _chop; Animator _anim;
-        ASHItemDefinition _cur; GameObject _curGo; vShooterWeapon _gun; vMeleeWeapon _melee; bool _gunLeft, _lastCrit, _wasCharging, _camDone;
+        ASHItemDefinition _cur, _offItem; GameObject _curGo, _offGo; vShooterWeapon _gun; vMeleeWeapon _melee; bool _gunLeft, _lastCrit, _wasCharging, _camDone, _torchLit;
         float _staggerImmuneUntil;
         readonly Dictionary<vShooterWeapon, bool> _primed = new Dictionary<vShooterWeapon, bool>();
 
@@ -105,7 +105,9 @@ namespace ASH.Combat
             if (_eq)
             {
                 var main = _eq.Main; var go = _eq.MainVisual;
-                if (main != _cur || go != _curGo) Rebind(main, go);
+                bool torchLit = _eq.HandLightOn;
+                if (main != _cur || go != _curGo || _eq.Off != _offItem || _eq.OffVisual != _offGo || torchLit != _torchLit)
+                    Rebind(main, go);
             }
             if (_gun && _cur && _cur.ammoItem)
             {
@@ -145,7 +147,13 @@ namespace ASH.Combat
             if (_bowRig) _bowRig.RestoreIdle(_anim);
             _gun = null; _melee = null; CurrentData = null; _wasCharging = false; _bowRig = null;
             _cur = main; _curGo = go;
-            if (!main || !go) return;
+            _offItem = _eq ? _eq.Off : null; _offGo = _eq ? _eq.OffVisual : null;
+            _torchLit = _eq && _eq.HandLightOn;
+            if (!main || !go)
+            {
+                BindOffhandTorch();
+                return;
+            }
             CurrentData = ASHWeaponData.For(main);
             _gun = go.GetComponent<vShooterWeapon>();
             _melee = _gun ? null : go.GetComponent<vMeleeWeapon>();
@@ -162,6 +170,34 @@ namespace ASH.Combat
             else _gun = null;
             if (_melee && _mm) { ApplyMelee(); _mm.SetRightWeapon(_melee); _melee.onEnableDamage.AddListener(RollMelee); }
             else _melee = null;
+            if (!_gun && !_melee) BindOffhandTorch();
+        }
+
+        void BindOffhandTorch()
+        {
+            var off = _eq ? _eq.Off : null;
+            var go = _eq ? _eq.OffVisual : null;
+            if (!off || !go || off.itemId != "torch") return;
+            ASHTorchStrike.Ensure(go);
+            var s = ASHTorchSettings.Live;
+            if (s && s.requireLitToStrike)
+            {
+                var light = go.GetComponentInChildren<ASHLightSource>(true);
+                if (!light || !light.On) return;
+            }
+            var w = go.GetComponent<vMeleeWeapon>();
+            if (!w || !_mm) return;
+            _melee = w;
+            CurrentData = ASHWeaponData.For(off);
+            ApplyMelee();
+            if (!CurrentData && s)
+            {
+                _melee.distanceToAttack = s.fallbackReach;
+                _melee.staminaCost = s.fallbackStamina;
+                _melee.meleeType = vMeleeType.OnlyAttack;
+            }
+            _mm.SetRightWeapon(_melee);
+            _melee.onEnableDamage.AddListener(RollMelee);
         }
 
         void ApplyGun(ASHItemDefinition main)
@@ -219,6 +255,7 @@ namespace ASH.Combat
             var rb = hi.targetCollider ? hi.targetCollider.attachedRigidbody : null;
             if (rb && !rb.isKinematic && CurrentData) rb.AddForceAtPosition(-n.normalized * CurrentData.knockback, hi.hitPoint, ForceMode.Impulse);
             var b = ASHSoundBank.Instance; if (b && b.axeChop != null) ASHSfx.Play("meleeHit", b.axeChop, hi.hitPoint, b.volume, Random.Range(0.85f, 1.05f), 0.05f, 1f, 30f);
+            ASHTorchStrike.NotifyHit(hi);
         }
 
         void OnShot(vShooterWeapon w)

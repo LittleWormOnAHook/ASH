@@ -945,6 +945,78 @@ Transform:
   - {fileID: 6931194428081761804}
   m_Father: {fileID: 4886419740590092302}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1699017655449542891
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2300247658111682334}
+  - component: {fileID: 8823916553875445319}
+  - component: {fileID: 3928321999591708402}
+  m_Layer: 0
+  m_Name: ASH_HitBox
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2300247658111682334
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1699017655449542891}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0.315}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 6621471441874789478}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!65 &8823916553875445319
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1699017655449542891}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 0
+  serializedVersion: 3
+  m_Size: {x: 0.12000005, y: 0.11999995, z: 0.17999995}
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &3928321999591708402
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1699017655449542891}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fb97f58541b05b24ab37661346298ff2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Invector.vMelee.vHitBox
+  openCloseEvents: 0
+  openCloseWindow: 0
+  selectedToolbar: 0
+  attackObject: {fileID: 8477136271051900595}
+  damagePercentage: 100
+  triggerType: 3
 --- !u!1 &1863600245217492831
 GameObject:
   m_ObjectHideFlags: 0
@@ -5260,6 +5332,8 @@ GameObject:
   m_Component:
   - component: {fileID: 6621471441874789478}
   - component: {fileID: 4920856025738382443}
+  - component: {fileID: 6454586862002003226}
+  - component: {fileID: 8477136271051900595}
   m_Layer: 0
   m_Name: Held_Torch
   m_TagString: Untagged
@@ -5284,6 +5358,7 @@ Transform:
   - {fileID: 1216134965759785940}
   - {fileID: 2962116802431341921}
   - {fileID: 8334139669865216240}
+  - {fileID: 2300247658111682334}
   m_Father: {fileID: 6347052598291756073}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &4920856025738382443
@@ -5315,6 +5390,85 @@ MonoBehaviour:
   anchorFlameToMeshTip: 1
   flameSimulationSpace: 0
   playToggleSound: 1
+--- !u!114 &6454586862002003226
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3278027695096463575}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ff7d128bcd59038448cf41adce802f59, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ASH.Combat.ASHTorchStrike
+--- !u!114 &8477136271051900595
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3278027695096463575}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0ebe2ea9c9ea0544d84d9c27f7470915, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Invector.vMelee.vMeleeWeapon
+  openCloseEvents: 0
+  openCloseWindow: 0
+  selectedToolbar: 0
+  attackObjectName: 
+  damage:
+    damageValue: 6
+    staminaBlockCost: 5
+    staminaRecoveryDelay: 1
+    ignoreDefense: 0
+    activeRagdoll: 0
+    senselessTime: 0
+    sender: {fileID: 0}
+    receiver: {fileID: 0}
+    hitPosition: {x: 0, y: 0, z: 0}
+    hitReaction: 1
+    recoil_id: 0
+    reaction_id: 0
+    damageType: 
+    force: {x: 0, y: 0, z: 0}
+  overrideDamageSender: {fileID: 0}
+  hitBoxes:
+  - {fileID: 3928321999591708402}
+  damageModifier: 0
+  canApplyDamage: 0
+  onDamageHit:
+    m_PersistentCalls:
+      m_Calls: []
+  onRecoilHit:
+    m_PersistentCalls:
+      m_Calls: []
+  onPassDamage:
+    m_PersistentCalls:
+      m_Calls: []
+  onEnableDamage:
+    m_PersistentCalls:
+      m_Calls: []
+  onDisableDamage:
+    m_PersistentCalls:
+      m_Calls: []
+  meleeManager: {fileID: 0}
+  meleeType: 1
+  useStrongAttack: 0
+  distanceToAttack: 1
+  attackID: 0
+  movesetID: 0
+  staminaCost: 0
+  staminaRecoveryDelay: 0
+  defenseRate: 100
+  defenseRange: 90
+  defenseID: 0
+  recoilID: 0
+  breakAttack: 0
+  onDefense:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!1 &3296605908935084893
 GameObject:
   m_ObjectHideFlags: 0

@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fa603065c03ba924db4df361c80a51a7, type: 3}
+  m_Name: ASH_TorchSettings
+  m_EditorClassIdentifier: Assembly-CSharp::ASH.Combat.ASHTorchSettings
+  requireLitToStrike: 1
+  fallbackDamage: 6
+  fallbackStamina: 8
+  fallbackReach: 1.6
+  burnSeconds: 3
+  burnDps: 2
+  burnTick: 0.5
+  scareRadius: 8
+  scareSeconds: 6
+  presenceInterval: 0.5
+  hitScareSeconds: 8
