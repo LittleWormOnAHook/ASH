@@ -19,7 +19,7 @@ MonoBehaviour:
   rainAsh: 0.39
   snowstorm: 0.15
   thunderstorm: 0.5
-  lightSnowMorning: 0.3
+  lightSnowMorning: 0
   weatherBlendPerGameHour: 5.1
   healthDrainPerGameHour: 10
   staminaDrainPerGameHour: 0

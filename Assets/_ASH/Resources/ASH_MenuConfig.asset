@@ -13,5 +13,5 @@ MonoBehaviour:
   m_Name: ASH_MenuConfig
   m_EditorClassIdentifier: Assembly-CSharp::ASH.Core.ASHMenuConfig
   mainMenuScene: Assets/_ASH/Scenes/ASH_MainMenu.unity
-  gameScene: Assets/_ASH/Scenes/ASH_Prototype.unity
+  gameScene: Assets/_ASH/Scenes/ASH_Prologue.unity
   subtitle: Survive the fallout.

@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using ASH.Core;
 using ASH.Gameplay;
 using ASH.Interaction;
@@ -770,13 +770,24 @@ namespace ASH.UI
                 _objLines.fontSize = hs.focusLineSize; _objLines.color = hs.focusLineColor;
                 string doneHex = ColorUtility.ToHtmlStringRGB(hs.doneLineColor), oTitleHex = ColorUtility.ToHtmlStringRGB(hs.otherTitleColor), oLineHex = ColorUtility.ToHtmlStringRGB(hs.otherLineColor);
                 var sb = new System.Text.StringBuilder();
-                foreach (var (text, done) in objective.Lines()) sb.AppendLine((done ? $"<color=#{doneHex}>√ " : "• ") + text + (done ? "</color>" : ""));
+                string itemHex = ColorUtility.ToHtmlStringRGB(hs.itemLineColor), itemDoneHex = ColorUtility.ToHtmlStringRGB(hs.itemDoneColor), ind = new string(' ', Mathf.Max(0, hs.itemIndent));
+                foreach (var (text, done) in objective.Lines())
+                {
+                    if (text != null && text.StartsWith(ASHObjectiveHudSettings.ItemPrefix)) { sb.AppendLine($"<size={hs.itemLineSize}>{ind}<color=#{(done ? itemDoneHex : itemHex)}>{(done ? "√ " : "- ")}{text.Substring(1)}</color></size>"); continue; }
+                    sb.AppendLine((done ? $"<color=#{doneHex}>√ " : "• ") + text + (done ? "</color>" : ""));
+                }
                 int shownOthers = Mathf.Max(0, hs.maxOtherObjectives);
                 foreach (var o in objective.OtherActive(shownOthers))
                 {
                     sb.AppendLine();
                     sb.AppendLine($"<color=#{oTitleHex}><size={hs.otherTitleSize}>{o.Title}</size></color>");
-                    foreach (var (text, done) in o.GetLines()) if (!done) { sb.AppendLine($"<size={hs.otherLineSize}><color=#{oLineHex}>• {text}</color></size>"); if (hs.otherCurrentStepOnly) break; }
+                    bool stepShown = false;
+                    foreach (var (text, done) in o.GetLines())
+                    {
+                        if (text != null && text.StartsWith(ASHObjectiveHudSettings.ItemPrefix)) { if (hs.showItemsForOthers) sb.AppendLine($"<size={hs.otherItemLineSize}>{ind}<color=#{(done ? itemDoneHex : itemHex)}>{(done ? "√ " : "- ")}{text.Substring(1)}</color></size>"); continue; }
+                        if (done || (stepShown && hs.otherCurrentStepOnly)) continue;
+                        sb.AppendLine($"<size={hs.otherLineSize}><color=#{oLineHex}>• {text}</color></size>"); stepShown = true;
+                    }
                 }
                 int others = objective.OtherActiveCount - shownOthers;
                 if (hs.showMoreHint && others > 0) sb.AppendLine($"<size={hs.moreHintSize}><color=#{ColorUtility.ToHtmlStringRGB(hs.moreHintColor)}>+{others} more  ·  journal [J]</color></size>");

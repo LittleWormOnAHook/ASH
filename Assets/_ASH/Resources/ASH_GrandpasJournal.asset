@@ -27,7 +27,7 @@ MonoBehaviour:
 
 
       If the car gives up on you, the old Ford is out by the shed.'
-    sketch: {fileID: 0}
+    sketch: {fileID: 21300000, guid: b5c09d1390df7744cbb50dd08bdb9d6d, type: 3}
     area: Grandpa's cabin
     location: Kitchen table
     pointsTo: Grandpa's truck (out by the shed)
@@ -44,7 +44,7 @@ MonoBehaviour:
       shot - I've got one spare by the shed and I left the other at the old camp.
       Battery's on the porch. The fan belt I took up to the hunting shack to match
       a new one. Twenty litres in the can will get you to Red Rock.
-    sketch: {fileID: 0}
+    sketch: {fileID: 21300000, guid: 329a5521ae314c14aa017e065bfed68e, type: 3}
     area: Grandpa's truck
     location: On the ground by the truck
     pointsTo: Hunting shack (fan belt), abandoned camp (tire)
@@ -60,7 +60,7 @@ MonoBehaviour:
     text: Past the cattle guard the shack spur turns off this road - follow the cairns
       uphill. The shack roof leaks but the stove draws. If the valley road floods,
       that trail and the ridge get you around it.
-    sketch: {fileID: 0}
+    sketch: {fileID: 21300000, guid: db2f0404fc6147bbb18941848157348e, type: 3}
     area: Arrival road
     location: Roadside, near where you drive in
     pointsTo: Hunting shack (shack spur trail)
@@ -76,7 +76,7 @@ MonoBehaviour:
     text: 'Loose board by the stove - that''s my cache. Arrows: straight shoots,
       dried a week, fletch with three feathers and a spit-wet thread. Make a dozen;
       you''ll lose half. The old camp is down the ridge, past the burnt pines.'
-    sketch: {fileID: 0}
+    sketch: {fileID: 21300000, guid: 3f7cef8026546394f9794cf90382c939, type: 3}
     area: Hunting shack
     location: Under the loose floorboard (M3)
     pointsTo: Abandoned camp
@@ -92,7 +92,7 @@ MonoBehaviour:
     text: A tent stops rain, not ash. Pitch it behind a wall, wet sheet over the
       door, fire outside the flap. Spare tire's under the tarp here. I left supplies
       in the old ore box past the ridge - follow the rail ties.
-    sketch: {fileID: 0}
+    sketch: {fileID: 21300000, guid: f4d4250c2ad20184c937e8ed358e4f07, type: 3}
     area: Abandoned camp
     location: Camp entrance (M3)
     pointsTo: Supply cache (ore box past the ridge)
@@ -108,7 +108,7 @@ MonoBehaviour:
     text: 'Those old masks take a can filter. Pack one yourself: tin shell, charcoal
       from a cold fire, cloth both ends, wax the seam. Change it when breathing gets
       hard. From here the Red Rock road is a day''s walk east.'
-    sketch: {fileID: 0}
+    sketch: {fileID: 21300000, guid: 5cdf580a9039f5747ac241acf99c50de, type: 3}
     area: Supply cache
     location: Inside the ore box (M3, position TBD)
     pointsTo: Red Rock road
@@ -123,7 +123,7 @@ MonoBehaviour:
     type: 1
     text: The bridge at the turnoff holds a truck if you go slow. Red Rock has a
       radio and a doctor. Don't stop in the cut when it's falling heavy.
-    sketch: {fileID: 0}
+    sketch: {fileID: 21300000, guid: 47d1e9efe54c4b7982dfec455e2ee2ee, type: 3}
     area: Red Rock road
     location: Turnoff sign (M4, position TBD)
     pointsTo: Red Rock
@@ -138,7 +138,7 @@ MonoBehaviour:
     type: 0
     text: Scooter rides up front and growls before you see trouble. Trust that dog.
       Feed him first, he earns it.
-    sketch: {fileID: 0}
+    sketch: {fileID: 21300000, guid: be4370de09a640d086b8fe3a08fbec94, type: 3}
     area: Grandpa's truck
     location: Sun visor, once the truck runs (M4)
     pointsTo: Red Rock

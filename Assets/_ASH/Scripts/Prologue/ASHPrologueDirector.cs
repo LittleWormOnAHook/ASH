@@ -290,6 +290,20 @@ namespace ASH.Prologue
             yield return ("Install a fan belt", c.beltInstalled);
             var f = _truck.Fuel; yield return (f ? $"Fuel it up ({f.litres:F0} L)" : "Fuel it up", !f || f.litres >= 10f);
         }
+        /// <summary>t453: truck parts already fitted / fuelled (objective item counts).</summary>
+        public int PartInstalled(string itemId)
+        {
+            var c = _truck ? _truck.Condition : null; var f = _truck ? _truck.Fuel : null;
+            switch (itemId)
+            {
+                case "tire": return c ? Mathf.Clamp(_tiresNeeded - c.MissingTireCount, 0, _tiresNeeded) : 0;
+                case "carbattery": return c && c.batteryInstalled ? 1 : 0;
+                case "fanbelt": return c && c.beltInstalled ? 1 : 0;
+                case "fuel_can": return f && f.litres >= 10f ? 1 : 0;
+            }
+            return 0;
+        }
+        public int PartNeeded(string itemId, int fallback) => itemId == "tire" ? _tiresNeeded : fallback;
         bool TruckReady() { var c = _truck ? _truck.Condition : null; var f = _truck ? _truck.Fuel : null; return c && c.MissingTireCount == 0 && c.batteryInstalled && c.beltInstalled && (!f || f.litres >= 10f); }
 
         // ------------------------------------------------------------------ update

@@ -29,6 +29,7 @@ namespace ASH.EditorTools
         {
             var sb = new StringBuilder("[ASH] M1 STATUS ");
             sb.Append(D ? D.Describe() : "no director").Append('\n');
+            { var ex = ASH.Survival.ASHExposure.Instance; if (ex) sb.Append($" exposure: air={ex.AirStrength:F2} airBad={ex.AirBad} exposure={ex.Exposure:F2} warning={ex.Warning}\n"); }
             var inv = Inv;
             if (inv)
             {
@@ -84,6 +85,16 @@ namespace ASH.EditorTools
             if (ui) { ui.Open(ASH.UI.ASHJournalUI.Tab.Notes); ui.OpenGrandpa(null); var bf = System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance;
                 title = (typeof(ASH.UI.ASHJournalUI).GetField("_bookTitle", bf)?.GetValue(ui) as UnityEngine.UI.Text)?.text; num = (typeof(ASH.UI.ASHJournalUI).GetField("_bookNum", bf)?.GetValue(ui) as UnityEngine.UI.Text)?.text; }
             Debug.Log($"[ASH] Dev GpPage3: pickup={(bool)pk} used={used} has={ASHGrandpaJournal.Has("grandpa", "gj_03")} pickupActive={(pk ? pk.gameObject.activeSelf : false)} marker gj_gj_03={(md != null && md.Contains("gj_gj_03"))} reader='{num}' / '{title}'");
+        }
+        /// <summary>t450: build list = ASH_MainMenu, ASH_Prologue (game), then the rest minus the old ASH_Prototype (file kept).</summary>
+        [MenuItem("ASH/Dev/Prologue/Build List: MainMenu + ASH_Prologue")]
+        public static void UsePrologueScene()
+        {
+            const string menu = "Assets/_ASH/Scenes/ASH_MainMenu.unity", game = "Assets/_ASH/Scenes/ASH_Prologue.unity", old = "Assets/_ASH/Scenes/ASH_Prototype.unity";
+            var list = new System.Collections.Generic.List<EditorBuildSettingsScene> { new EditorBuildSettingsScene(menu, true), new EditorBuildSettingsScene(game, true) };
+            foreach (var s in EditorBuildSettings.scenes) if (s.path != menu && s.path != game && s.path != old) list.Add(s);
+            EditorBuildSettings.scenes = list.ToArray(); AssetDatabase.SaveAssets();
+            Debug.Log("[ASH] Dev: build list = " + string.Join(", ", list.Select(s => s.path + (s.enabled ? "" : " (off)"))));
         }
         [MenuItem("ASH/Dev/Prologue/Start Warning Now")]
         public static void Warn() { if (D) D.DevStartWarning(); }

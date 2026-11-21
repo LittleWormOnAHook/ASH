@@ -23,11 +23,22 @@ namespace ASH.UI
         public Color otherLineColor = new Color(0.93f, 0.90f, 0.85f);
         [Tooltip("Show only the current step of each other objective (off = all its open steps).")] public bool otherCurrentStepOnly = true;
 
+        [Header("Item lines (t453: what an objective needs, live have/need counts)")]
+        [Range(8, 60)] public int itemLineSize = 16;
+        public Color itemLineColor = new Color(0.86f, 0.83f, 0.77f);
+        [Tooltip("Colour of an item line once enough is collected (dimmed + ticked).")] public Color itemDoneColor = new Color(0.55f, 0.62f, 0.55f);
+        [Tooltip("Spaces in front of an item line.")] [Range(0, 12)] public int itemIndent = 4;
+        [Range(8, 60)] public int otherItemLineSize = 14;
+        [Tooltip("Also list the item lines of the other objectives (below the focused one).")] public bool showItemsForOthers = true;
+
         [Header("More hint")]
         public bool showMoreHint = true;
         [Range(8, 40)] public int moreHintSize = 15;
         public Color moreHintColor = new Color(0.72f, 0.68f, 0.62f);
         public Color doneLineColor = new Color(0.62f, 0.83f, 0.61f);
+
+        /// <summary>Lines starting with this are item lines (drawn in the item style, prefix removed).</summary>
+        public const string ItemPrefix = "\u0001";
 
         static ASHObjectiveHudSettings _i;
         public static ASHObjectiveHudSettings I

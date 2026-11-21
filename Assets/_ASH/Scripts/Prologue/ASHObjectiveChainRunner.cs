@@ -17,11 +17,11 @@ namespace ASH.Prologue
         static ASHObjectiveChain C => ASHObjectiveChain.I;
 
         readonly HashSet<string> _done = new HashSet<string>(), _shown = new HashSet<string>(), _crafted = new HashSet<string>();
-        ASHObjectiveTracker _tracker; ASHCrafting _craft; ASHInventory _inv; float _t;
+        ASHObjectiveTracker _tracker; ASHCrafting _craft; ASHInventory _inv; ASH.Gameplay.ASHPlacer _placer; float _t;
 
         void Awake() { Instance = this; }
         void OnEnable() { ASHSaveSystem.Register(this); }
-        void OnDisable() { ASHSaveSystem.Unregister(this); if (_craft) _craft.Crafted -= OnCrafted; _craft = null; }
+        void OnDisable() { ASHSaveSystem.Unregister(this); if (_craft) _craft.Crafted -= OnCrafted; _craft = null; if (_placer) _placer.PlacedObject -= OnPlaced; _placer = null; }
         void OnDestroy() { if (Instance == this) Instance = null; }
 
         void Cache()
@@ -29,8 +29,12 @@ namespace ASH.Prologue
             if (!_tracker) _tracker = FindAnyObjectByType<ASHObjectiveTracker>();
             if (!_craft) { _craft = FindAnyObjectByType<ASHCrafting>(); if (_craft) _craft.Crafted += OnCrafted; }
             if (!_inv) _inv = FindAnyObjectByType<ASHInventory>();
+            if (!_placer) { _placer = FindAnyObjectByType<ASH.Gameplay.ASHPlacer>(); if (_placer) _placer.PlacedObject += OnPlaced; }
         }
-        void OnCrafted(ASHRecipe r) { if (r && _crafted.Add(r.name)) _t = 0f; }
+        // t454: remember the recipe AND its output item, so any recipe making the same thing counts (campfire variants)
+        void OnCrafted(ASHRecipe r) { if (!r) return; _crafted.Add(r.name); if (r.outputItem) _crafted.Add("out:" + r.outputItem.itemId); _t = 0f; }
+        // t454: placing an item (e.g. a campfire from the pack) counts for steps with completeOnPlace
+        void OnPlaced(ASHItemDefinition item, GameObject go) { if (item) { _crafted.Add("placed:" + item.itemId); _t = 0f; } }
 
         void Update()
         {
@@ -71,13 +75,16 @@ namespace ASH.Prologue
         {
             bool any = false, ok = false;
             if (!string.IsNullOrEmpty(s.completeFlag)) { any = true; ok |= Flag(s.completeFlag, false); }
-            if (!string.IsNullOrEmpty(s.recipeName)) { any = true; ok |= Crafted(s.recipeName); }
+            if (!string.IsNullOrEmpty(s.recipeName)) { any = true; ok |= Crafted(s); }
             return any && ok;
         }
-        bool Crafted(string recipeName)
+        bool Crafted(ASHObjectiveChain.Step s)
         {
-            if (_crafted.Contains(recipeName)) return true;
-            return false; // crafted only: owning the output (e.g. supply bandages) is not crafting it
+            if (_crafted.Contains(s.recipeName)) return true;
+            var r = Recipe(s.recipeName); var outId = r && r.outputItem ? r.outputItem.itemId : null;
+            if (outId != null && _crafted.Contains("out:" + outId)) return true; // any recipe with the same output
+            if (s.completeOnPlace && outId != null && _crafted.Contains("placed:" + outId)) return true; // placed in the world
+            return false; // owning the output (e.g. supply bandages) is not crafting it
         }
         static ASHRecipe Recipe(string name)
         {
@@ -102,11 +109,9 @@ namespace ASH.Prologue
             var d = ASHPrologueDirector.Instance;
             Func<IEnumerable<(string, bool)>> lines = null; Func<Vector3?> target = null;
             if (s.kind == ASHObjectiveChain.Kind.Main && d) d.ChainContent(s.id, out lines, out target);
-            if (lines == null)
-            {
-                var step = s; // lines read the asset live (edits in Play show at once)
-                lines = () => StepLines(step);
-            }
+            var step = s; // lines read the asset live (edits in Play show at once)
+            if (lines == null) lines = () => StepLines(step);
+            else { var main0 = lines; lines = () => Concat(main0(), ItemLines(step)); }
             bool main = s.kind == ASHObjectiveChain.Kind.Main;
             var o = _tracker.Register(s.id, s.title, lines, main && !s.final, main, target);
             o.Final = s.final;
@@ -114,8 +119,38 @@ namespace ASH.Prologue
         IEnumerable<(string, bool)> StepLines(ASHObjectiveChain.Step s)
         {
             bool sat = Satisfied(s);
-            if (!string.IsNullOrEmpty(s.recipeName)) { var r = Recipe(s.recipeName); yield return ($"Craft: {(r && r.outputItem ? r.outputItem.displayName : s.title)}", sat); }
+            if (!string.IsNullOrEmpty(s.recipeName)) { var r = Recipe(s.recipeName); yield return ($"{(s.completeOnPlace ? "Craft and place" : "Craft")}: {(r && r.outputItem ? r.outputItem.displayName : s.title)}", sat); }
+            foreach (var l in ItemLines(s)) yield return l;
             if (!string.IsNullOrEmpty(s.hint)) yield return (s.hint, sat);
+        }
+        static IEnumerable<(string, bool)> Concat(IEnumerable<(string, bool)> a, IEnumerable<(string, bool)> b) { foreach (var x in a) yield return x; foreach (var x in b) yield return x; }
+
+        /// <summary>t453: one line per needed item with a live have/need count (prefixed for the HUD item style). Recipe ingredients
+        /// first (crafting steps), then the step's own items. Done once the step is complete or enough is in the pack (or fitted).</summary>
+        IEnumerable<(string, bool)> ItemLines(ASHObjectiveChain.Step s)
+        {
+            Cache(); bool sat = Satisfied(s) || _done.Contains(s.id);
+            if (s.listRecipeIngredients && !string.IsNullOrEmpty(s.recipeName))
+            {
+                var r = Recipe(s.recipeName);
+                if (r) foreach (var ing in r.ingredients) if (ing != null && ing.item)
+                {
+                    int have = _inv ? _inv.Count(ing.item) : 0;
+                    yield return (ASHObjectiveHudSettings.ItemPrefix + $"{ing.item.displayName}  {Mathf.Min(have, ing.amount)}/{ing.amount}", sat || have >= ing.amount);
+                }
+            }
+            if (s.items == null) yield break;
+            var d = ASHPrologueDirector.Instance; var reg = ASHItemRegistry.I;
+            foreach (var n in s.items)
+            {
+                if (n == null || string.IsNullOrEmpty(n.itemId)) continue;
+                var def = reg ? reg.Find(n.itemId) : null;
+                int need = n.countInstalled && d ? d.PartNeeded(n.itemId, n.count) : n.count;
+                int fitted = n.countInstalled && d ? d.PartInstalled(n.itemId) : 0;
+                int have = fitted + (def && _inv ? _inv.Count(def) : 0);
+                string name = !string.IsNullOrEmpty(n.label) ? n.label : def ? def.displayName : n.itemId;
+                yield return (ASHObjectiveHudSettings.ItemPrefix + $"{name}  {Mathf.Min(have, need)}/{need}{(fitted > 0 ? $"  ({fitted} fitted)" : "")}", sat || have >= need);
+            }
         }
 
         void Finish(ASHObjectiveChain.Step s)

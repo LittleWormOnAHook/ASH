@@ -21,7 +21,7 @@ namespace ASH.EditorTools.Build
     /// </summary>
     public static class ASHSceneSetup
     {
-        public const string PrototypeScene = "Assets/_ASH/Scenes/ASH_Prototype.unity";
+        public const string PrototypeScene = "Assets/_ASH/Scenes/ASH_Prologue.unity"; // t450: the game scene is now ASH_Prologue (ASH_Prototype kept on disk)
         public const string TestScene = "Assets/_ASH/Scenes/Tests/ASH_ControllerTest.unity";
         public const string SkyPath = "Assets/_ASH/Materials/ASH_Sky_Procedural.mat";
 

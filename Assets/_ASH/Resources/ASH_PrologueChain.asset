@@ -16,6 +16,7 @@ MonoBehaviour:
   announceMain: 1
   announceSide: 1
   hintSeconds: 6
+  contentVersion: 2
   steps:
   - id: p00_home
     title: Returning Home
@@ -27,6 +28,9 @@ MonoBehaviour:
     revealFlag: 
     completeFlag: arrived
     recipeName: 
+    completeOnPlace: 0
+    listRecipeIngredients: 1
+    items: []
     hint: Follow the road to Grandpa's cabin and park by it.
   - id: p01_home_again
     title: Home Again
@@ -40,6 +44,9 @@ MonoBehaviour:
     revealFlag: 
     completeFlag: homeAgain
     recipeName: 
+    completeOnPlace: 0
+    listRecipeIngredients: 1
+    items: []
     hint: Grandpa's journal and his supplies are inside the cabin.
   - id: c01_kindling
     title: Split some kindling
@@ -52,6 +59,9 @@ MonoBehaviour:
     revealFlag: 
     completeFlag: 
     recipeName: ASH_Recipe_SplitKindling
+    completeOnPlace: 0
+    listRecipeIngredients: 1
+    items: []
     hint: Use Grandpa's hatchet. Journal crafting tab [Q].
   - id: c02_campfire
     title: Build a campfire
@@ -64,6 +74,9 @@ MonoBehaviour:
     revealFlag: 
     completeFlag: 
     recipeName: ASH_Recipe_Campfire
+    completeOnPlace: 1
+    listRecipeIngredients: 1
+    items: []
     hint: Kindling and a few stones. Journal crafting tab [Q].
   - id: p02_shelter
     title: SEEK SHELTER
@@ -78,6 +91,9 @@ MonoBehaviour:
     revealFlag: warning
     completeFlag: sheltered
     recipeName: 
+    completeOnPlace: 0
+    listRecipeIngredients: 1
+    items: []
     hint: Get inside the cabin, now.
   - id: c03_bandage
     title: Make a bandage
@@ -89,6 +105,9 @@ MonoBehaviour:
     revealFlag: 
     completeFlag: 
     recipeName: ASH_Recipe_Bandage
+    completeOnPlace: 0
+    listRecipeIngredients: 1
+    items: []
     hint: The quake left you bruised. Cloth makes a bandage.
   - id: c04_wetrag
     title: Make a wet rag
@@ -100,6 +119,9 @@ MonoBehaviour:
     revealFlag: 
     completeFlag: 
     recipeName: ASH_Recipe_WetRag
+    completeOnPlace: 0
+    listRecipeIngredients: 1
+    items: []
     hint: Ash in the air. A wet rag over your face helps.
   - id: p03_car
     title: No Way Back
@@ -112,6 +134,9 @@ MonoBehaviour:
     revealFlag: 
     completeFlag: carInspected
     recipeName: 
+    completeOnPlace: 0
+    listRecipeIngredients: 1
+    items: []
     hint: Go and see what's left of the car.
   - id: c05_boilwater
     title: Boil some water
@@ -123,6 +148,9 @@ MonoBehaviour:
     revealFlag: 
     completeFlag: 
     recipeName: ASH_Recipe_BoilWater
+    completeOnPlace: 0
+    listRecipeIngredients: 1
+    items: []
     hint: Boil water over your campfire to make it safe.
   - id: p03_wayout
     title: Find a way out of the wilderness
@@ -135,6 +163,9 @@ MonoBehaviour:
     revealFlag: 
     completeFlag: truckFound
     recipeName: 
+    completeOnPlace: 0
+    listRecipeIngredients: 1
+    items: []
     hint: Grandpa kept an old pickup near the cabin.
   - id: p03_truck
     title: Repair Grandpa's truck
@@ -146,4 +177,23 @@ MonoBehaviour:
     revealFlag: 
     completeFlag: truckReady
     recipeName: 
+    completeOnPlace: 0
+    listRecipeIngredients: 1
+    items:
+    - itemId: tire
+      count: 2
+      label: Tire
+      countInstalled: 1
+    - itemId: carbattery
+      count: 1
+      label: Car battery
+      countInstalled: 1
+    - itemId: fanbelt
+      count: 1
+      label: Fan belt
+      countInstalled: 1
+    - itemId: fuel_can
+      count: 1
+      label: Fuel can
+      countInstalled: 1
     hint: Tires, battery, fan belt and fuel. Parts found earlier count.

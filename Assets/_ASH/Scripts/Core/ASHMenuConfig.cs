@@ -8,7 +8,7 @@ namespace ASH.Core
     public sealed class ASHMenuConfig : ScriptableObject
     {
         public string mainMenuScene = "Assets/_ASH/Scenes/ASH_MainMenu.unity";
-        public string gameScene = "Assets/_ASH/Scenes/ASH_Prototype.unity";
+        public string gameScene = "Assets/_ASH/Scenes/ASH_Prologue.unity"; // t450: Anthony re-saved the game scene as ASH_Prologue
         [TextArea(1, 3)] public string subtitle = "Survive the fallout.";
 
         static ASHMenuConfig _i;
