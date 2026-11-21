@@ -262,13 +262,16 @@ namespace ASH.Wildlife.Birds
             if (_all.Count >= s.maxBirds) return null;
             var go = Instantiate(s.birdPrefab, transform);
             go.name = "ASH_Bird_" + _all.Count;
-            var b = go.GetComponent<ASHBird>() ?? go.AddComponent<ASHBird>();
+            // explicit Unity null checks: '??' doesn't see Unity's fake-null missing component (that threw every spawn)
+            var b = go.GetComponent<ASHBird>();
+            if (!b) b = go.AddComponent<ASHBird>();
             b.mgr = this;
             int layer = LayerMask.NameToLayer("Enemy");
             if (layer >= 0) go.layer = layer;
             if (s.cullScreenSize > 0f)
             {
-                var lod = go.GetComponent<LODGroup>() ?? go.AddComponent<LODGroup>();
+                var lod = go.GetComponent<LODGroup>();
+                if (!lod) lod = go.AddComponent<LODGroup>();
                 lod.SetLODs(new[] { new LOD(s.cullScreenSize, go.GetComponentsInChildren<Renderer>(true)) });
                 lod.RecalculateBounds();
             }

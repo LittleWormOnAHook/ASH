@@ -180,6 +180,22 @@ namespace ASH.Wildlife
             [Tooltip("Set by defaults once; untick to re-apply this species' temperament range.")]
             public bool m4TemperamentApplied;
 
+            [Header("Lunge + circle (aggressive species; Play-editable)")]
+            [Tooltip("Lunge speed as a share of this species' run speed (lower = slower, readable lunge).")]
+            [Range(0.2f, 2f)] public float lungeSpeed = 0.8f;
+            [Tooltip("The lunge starts from this far out (metres). From the buffer it walks in to here first, so the fast part is short.")]
+            [Range(0.5f, 15f)] public float lungeDistance = 3f;
+            [Tooltip("After each attack (or when crowded without its turn) it circles the target instead of backing straight off.")]
+            public bool circleAfterAttack = true;
+            [Range(0f, 15f)] public float circleSecondsMin = 1.5f;
+            [Range(0f, 20f)] public float circleSecondsMax = 3.5f;
+            [Tooltip("Circle radius as a share of the stand-off buffer.")]
+            [Range(0.3f, 3f)] public float circleRadiusMul = 1f;
+            [Tooltip("Circling speed as a share of trot speed.")]
+            [Range(0.2f, 2f)] public float circleSpeedMul = 0.8f;
+            [Tooltip("Set by defaults once; untick to re-apply this species' lunge / circle defaults.")]
+            public bool m5LungeApplied;
+
             public List<Drop> drops = new List<Drop>();
         }
 
@@ -274,6 +290,20 @@ namespace ASH.Wildlife
         [Range(0f, 90f)] public float circleDegPerSecond = 22f;
         [Range(0.5f, 1.6f)] public float lungeSpeedMul = 1.0f;
         [Range(0.5f, 6f)] public float backOffMaxSeconds = 2.4f;
+        [Tooltip("Hold deadband (m): while holding, the animal only re-spaces when it is this far off its buffer ring (stops forward/back jitter).")]
+        [Range(0f, 4f)] public float holdDeadband = 0.9f;
+
+        [Header("Corpses on the ash / snow layer (Play-editable)")]
+        [Tooltip("Dead animals sit on top of the visible ash/snow surface instead of on the terrain under it.")]
+        public bool corpseOnSurface = true;
+        [Tooltip("Share of the layer depth to lift the corpse by (1 = on top of the layer, 0.7 = slightly sunk in).")]
+        [Range(0f, 2f)] public float corpseDepthFactor = 0.85f;
+        [Tooltip("Extra lift (m, can be negative).")]
+        [Range(-0.5f, 0.5f)] public float corpseLiftOffset = 0.02f;
+        [Tooltip("Seconds to ease onto the surface after the death clip starts.")]
+        [Range(0f, 5f)] public float corpseSettleSeconds = 0.8f;
+        [Tooltip("Re-sample the layer depth this often (snow keeps falling).")]
+        [Range(0.2f, 10f)] public float corpseRefreshSeconds = 1.5f;
 
         [Header("Lethality (Play-editable)")]
         [Tooltip("Bow/rifle/shotgun damage uses each species' bodyShotsToKill instead of raw weapon damage.")]
@@ -308,6 +338,10 @@ namespace ASH.Wildlife
         [Range(1f, 30f)] public float passiveProvokeMeters = 7f;
         [Tooltip("Passive-aggressive: seconds between warnings / bluffs.")]
         [Range(1f, 120f)] public float passiveWarnCooldown = 12f;
+        [Tooltip("Passive-aggressive: after this many warnings / bluffs while the target stays around, it commits and attacks.")]
+        [Range(1, 10)] public int passiveMaxWarnings = 2;
+        [Tooltip("Passive-aggressive: once committed, it stays committed until it has not sensed the target for this long.")]
+        [Range(3f, 120f)] public float passiveCommitForgetSeconds = 20f;
         [Tooltip("Passive-aggressive: retreat-chance multiplier when hurt.")]
         [Range(1f, 4f)] public float passiveRetreatMul = 1.8f;
         [Tooltip("Passive-aggressive: hold time multiplier between attacks.")]
@@ -431,6 +465,20 @@ namespace ASH.Wildlife
             ApplyTemperament(bear,    0.2f,  0.65f);
             ApplyTemperament(boar,    0f,    0.55f);
             ApplyTemperament(cougar,  0.55f, 1f);
+            //                   lungeSpd lungeDist circleMin circleMax radiusMul circleSpd
+            ApplyLunge(boar,     0.6f,    2.5f,     2f,       4f,       1f,       0.75f, 4.5f);
+            ApplyLunge(wolf,     0.85f,   3.5f,     1.5f,     3f,       1f,       0.85f, 0f);
+            ApplyLunge(bear,     0.75f,   3.5f,     2f,       4f,       1.1f,     0.7f,  0f);
+            ApplyLunge(cougar,   0.95f,   4f,       1.5f,     3f,       1f,       0.9f,  0f);
+        }
+
+        static void ApplyLunge(Species sp, float spd, float dist, float cMin, float cMax, float rMul, float cSpd, float standOff)
+        {
+            if (sp == null || sp.m5LungeApplied) return;
+            sp.lungeSpeed = spd; sp.lungeDistance = dist; sp.circleAfterAttack = true;
+            sp.circleSecondsMin = cMin; sp.circleSecondsMax = cMax; sp.circleRadiusMul = rMul; sp.circleSpeedMul = cSpd;
+            if (standOff > 0f) sp.standOffMeters = standOff;
+            sp.m5LungeApplied = true;
         }
 
         static void ApplyTemperament(Species sp, float min, float max)

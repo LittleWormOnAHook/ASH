@@ -336,7 +336,12 @@ namespace ASH.World.Accumulation
             Shader.SetGlobalTexture(ID_DetNrm, detailNormal ? detailNormal : Texture2D.normalTexture);
             Shader.SetGlobalVector(ID_SurfTex, new Vector4(surfaceNormalStrength, Mathf.Max(detailTiling, 0.01f), detailTexture ? detailAlbedoStrength : 0f, detailNormal ? detailNormalStrength : 0f));
             Shader.SetGlobalVector(ID_SurfTex2, new Vector4(surfaceMipBias, (ashNormal || snowNormal) ? 1f : 0f, (detailTexture || detailNormal) ? 1f : 0f, 0f));
+            bool rip = L && L.rippleNormal && L.rippleStrength > 0.001f;
+            Shader.SetGlobalTexture(ID_RipNrm, rip ? L.rippleNormal : Texture2D.normalTexture);
+            Shader.SetGlobalVector(ID_Ripple, new Vector4(rip ? L.rippleStrength : 0f, L ? Mathf.Max(L.rippleTiling, 0.01f) : 1f, 0f, 0f));
         }
+
+        static readonly int ID_RipNrm = Shader.PropertyToID("_ASH_RippleNrm"), ID_Ripple = Shader.PropertyToID("_ASH_Ripple");
 
 #if UNITY_EDITOR
         [ContextMenu("Surface Texture/Apply Max Texture Size")]

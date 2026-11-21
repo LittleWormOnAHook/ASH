@@ -17,7 +17,7 @@ MonoBehaviour:
   trailCoverageKeep: 0.75
   snowColor: {r: 0.8388252, g: 0.8454921, b: 0.85660374, a: 1}
   ashTexture: {fileID: 2800000, guid: 728135340b744414a9d4280bfe536c51, type: 3}
-  ashNormal: {fileID: 2800000, guid: 45f9228508951874a860d3616bd0c113, type: 3}
+  ashNormal: {fileID: 2800000, guid: db99a3a909f34ca4b459da027805f8a2, type: 3}
   snowTexture: {fileID: 2800000, guid: 1cff50f696e47004793933731f01ff8e, type: 3}
   snowNormal: {fileID: 2800000, guid: 5f00806f215844043a324a7613dd212d, type: 3}
   ashTiling: 1.1
@@ -25,10 +25,13 @@ MonoBehaviour:
   surfaceNormalStrength: 0.8
   ashTextureMean: 0.05
   detailTexture: {fileID: 0}
-  detailNormal: {fileID: 2800000, guid: a4e60d649c7f3f444b01ffe03e9d6658, type: 3}
+  detailNormal: {fileID: 2800000, guid: 760100881f0148f8a12dfb739c990333, type: 3}
   detailTiling: 0.35
   detailAlbedoStrength: 0.5
   detailNormalStrength: 0.45
+  rippleNormal: {fileID: 2800000, guid: a4e60d649c7f3f444b01ffe03e9d6658, type: 3}
+  rippleStrength: 0
+  rippleTiling: 0.35
   surfaceMipBias: 0
   surfaceMaxTextureSize: 2048
   ashTextureColour: 0.6

@@ -22,7 +22,7 @@ namespace ASH.Wildlife
         AudioSource _audio;
         string _state;
         float _stepT;
-        bool _hasSpeed;
+        bool _hasSpeed, _deathLock;
 
         public bool HasEat => Has(eatState);
         public bool HasSleep => Has(sleepState);
@@ -44,6 +44,9 @@ namespace ASH.Wildlife
             _anim = anim ? anim : GetComponentInChildren<Animator>();
             if (_anim) _anim.applyRootMotion = false;
             _hasSpeed = HasParam("Speed");
+            _deathLock = false;
+            // vendor clips (e.g. bear 'Be_Stand Roar') fire Malbers 'PlaySound' events: give them a receiver on the Animator object
+            if (_anim && _anim.gameObject != gameObject && !_anim.GetComponent<ASHWildlifeAnimEvents>()) _anim.gameObject.AddComponent<ASHWildlifeAnimEvents>();
             if (!_audio)
             {
                 _audio = gameObject.GetComponent<AudioSource>();
@@ -81,7 +84,12 @@ namespace ASH.Wildlife
 
         public void PlayAttack() { Fade(attackState); Play(attackClips, 0.9f); }
         public void PlayHit() { Fade(hitState); Play(hurtClips, 0.85f); }
-        public void PlayDeath() { Fade(Has(deathState) ? deathState : sleepState); Play(deathClips, 1f); }
+        /// <summary>Real death: always restarts the clip (even if a play-dead pose already used it) and locks the Animator there.</summary>
+        public void PlayDeath() { Fade(Has(deathState) ? deathState : sleepState, true); _deathLock = true; Play(deathClips, 1f); }
+        /// <summary>Play-dead pose (raccoon surprise): same clip, no lock, so it can get up again.</summary>
+        public void PlayFakeDeath() { Fade(Has(deathState) ? deathState : sleepState, true); }
+        /// <summary>Malbers animation event receiver (animator on the root object).</summary>
+        public void PlaySound(AnimationEvent e) { if (e != null && e.objectReferenceParameter is AudioClip c && _audio) _audio.PlayOneShot(c, 0.9f); }
         public void PlayCall() { Fade(callState); Play(callClips, 0.8f); }
         public void PlayEat() => Fade(eatState);
         public void PlaySleep() => Fade(sleepState);
@@ -102,15 +110,15 @@ namespace ASH.Wildlife
 
         bool IsLocked()
         {
-            if (Has(deathState) && InState(deathState)) return true;
+            if (_deathLock) return true;
             if (InState(attackState) && NormalizedTime < 0.95f) return true;
             if (InState(hitState) && NormalizedTime < 0.85f) return true;
             return false;
         }
 
-        void Fade(string state)
+        void Fade(string state, bool force = false)
         {
-            if (string.IsNullOrEmpty(state) || !_anim || state == _state) return;
+            if (string.IsNullOrEmpty(state) || !_anim || (state == _state && !force)) return;
             if (!_anim.runtimeAnimatorController) return;
             int hash = Animator.StringToHash(state);
             if (!_anim.HasState(0, hash)) return;

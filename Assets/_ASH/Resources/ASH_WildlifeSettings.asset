@@ -117,6 +117,14 @@ MonoBehaviour:
     temperamentMin: 0.15
     temperamentMax: 0.9
     m4TemperamentApplied: 1
+    lungeSpeed: 0.85
+    lungeDistance: 3.5
+    circleAfterAttack: 1
+    circleSecondsMin: 1.5
+    circleSecondsMax: 3
+    circleRadiusMul: 1
+    circleSpeedMul: 0.85
+    m5LungeApplied: 1
     drops:
     - item: {fileID: 11400000, guid: 49aeecd77bdc047408ab2bf59e2992fc, type: 2}
       min: 1
@@ -231,6 +239,14 @@ MonoBehaviour:
     temperamentMin: 0.2
     temperamentMax: 0.65
     m4TemperamentApplied: 1
+    lungeSpeed: 0.75
+    lungeDistance: 3.5
+    circleAfterAttack: 1
+    circleSecondsMin: 2
+    circleSecondsMax: 4
+    circleRadiusMul: 1.1
+    circleSpeedMul: 0.7
+    m5LungeApplied: 1
     drops:
     - item: {fileID: 11400000, guid: 49aeecd77bdc047408ab2bf59e2992fc, type: 2}
       min: 2
@@ -345,6 +361,14 @@ MonoBehaviour:
     temperamentMin: 0
     temperamentMax: 1
     m4TemperamentApplied: 0
+    lungeSpeed: 0.8
+    lungeDistance: 3
+    circleAfterAttack: 1
+    circleSecondsMin: 1.5
+    circleSecondsMax: 3.5
+    circleRadiusMul: 1
+    circleSpeedMul: 0.8
+    m5LungeApplied: 0
     drops:
     - item: {fileID: 11400000, guid: 49aeecd77bdc047408ab2bf59e2992fc, type: 2}
       min: 1
@@ -463,6 +487,14 @@ MonoBehaviour:
     temperamentMin: 0
     temperamentMax: 1
     m4TemperamentApplied: 0
+    lungeSpeed: 0.8
+    lungeDistance: 3
+    circleAfterAttack: 1
+    circleSecondsMin: 1.5
+    circleSecondsMax: 3.5
+    circleRadiusMul: 1
+    circleSpeedMul: 0.8
+    m5LungeApplied: 0
     drops:
     - item: {fileID: 11400000, guid: 49aeecd77bdc047408ab2bf59e2992fc, type: 2}
       min: 1
@@ -581,6 +613,14 @@ MonoBehaviour:
     temperamentMin: 0
     temperamentMax: 1
     m4TemperamentApplied: 0
+    lungeSpeed: 0.8
+    lungeDistance: 3
+    circleAfterAttack: 1
+    circleSecondsMin: 1.5
+    circleSecondsMax: 3.5
+    circleRadiusMul: 1
+    circleSpeedMul: 0.8
+    m5LungeApplied: 0
     drops:
     - item: {fileID: 11400000, guid: 49aeecd77bdc047408ab2bf59e2992fc, type: 2}
       min: 1
@@ -699,6 +739,14 @@ MonoBehaviour:
     temperamentMin: 0
     temperamentMax: 1
     m4TemperamentApplied: 0
+    lungeSpeed: 0.8
+    lungeDistance: 3
+    circleAfterAttack: 1
+    circleSecondsMin: 1.5
+    circleSecondsMax: 3.5
+    circleRadiusMul: 1
+    circleSpeedMul: 0.8
+    m5LungeApplied: 0
     drops:
     - item: {fileID: 11400000, guid: 49aeecd77bdc047408ab2bf59e2992fc, type: 2}
       min: 2
@@ -821,6 +869,14 @@ MonoBehaviour:
     temperamentMin: 0
     temperamentMax: 1
     m4TemperamentApplied: 0
+    lungeSpeed: 0.8
+    lungeDistance: 3
+    circleAfterAttack: 1
+    circleSecondsMin: 1.5
+    circleSecondsMax: 3.5
+    circleRadiusMul: 1
+    circleSpeedMul: 0.8
+    m5LungeApplied: 0
     drops:
     - item: {fileID: 11400000, guid: 49aeecd77bdc047408ab2bf59e2992fc, type: 2}
       min: 1
@@ -906,7 +962,7 @@ MonoBehaviour:
     ambush: 0
     chargeAndTurn: 1
     bodyShotsToKill: 3
-    standOffMeters: 6
+    standOffMeters: 4.5
     standOffHoldMin: 0.9
     standOffHoldMax: 2.2
     personality:
@@ -939,6 +995,14 @@ MonoBehaviour:
     temperamentMin: 0
     temperamentMax: 0.55
     m4TemperamentApplied: 1
+    lungeSpeed: 0.6
+    lungeDistance: 2.5
+    circleAfterAttack: 1
+    circleSecondsMin: 2
+    circleSecondsMax: 4
+    circleRadiusMul: 1
+    circleSpeedMul: 0.75
+    m5LungeApplied: 1
     drops:
     - item: {fileID: 11400000, guid: 49aeecd77bdc047408ab2bf59e2992fc, type: 2}
       min: 2
@@ -1061,6 +1125,14 @@ MonoBehaviour:
     temperamentMin: 0.55
     temperamentMax: 1
     m4TemperamentApplied: 1
+    lungeSpeed: 0.95
+    lungeDistance: 4
+    circleAfterAttack: 1
+    circleSecondsMin: 1.5
+    circleSecondsMax: 3
+    circleRadiusMul: 1
+    circleSpeedMul: 0.9
+    m5LungeApplied: 1
     drops:
     - item: {fileID: 11400000, guid: 49aeecd77bdc047408ab2bf59e2992fc, type: 2}
       min: 2
@@ -1127,6 +1199,12 @@ MonoBehaviour:
   circleDegPerSecond: 22
   lungeSpeedMul: 1
   backOffMaxSeconds: 2.4
+  holdDeadband: 0.9
+  corpseOnSurface: 1
+  corpseDepthFactor: 0.85
+  corpseLiftOffset: 0.02
+  corpseSettleSeconds: 0.8
+  corpseRefreshSeconds: 1.5
   shotCountLethality: 1
   bowVitalOneShot: 1
   rifleVitalOneShot: 1
@@ -1144,6 +1222,8 @@ MonoBehaviour:
   aggressiveEagerness: 0.5
   passiveProvokeMeters: 7
   passiveWarnCooldown: 12
+  passiveMaxWarnings: 2
+  passiveCommitForgetSeconds: 20
   passiveRetreatMul: 1.8
   passiveHoldMul: 1.4
   sneakyWithdrawMul: 1.7

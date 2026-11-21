@@ -9,6 +9,8 @@ TEXTURE2D(_ASH_AshTex);     SAMPLER(sampler_ASH_AshTex);
 TEXTURE2D(_ASH_SnowTex);    SAMPLER(sampler_ASH_SnowTex);
 // Surface Texture (top of the layer): share the ash sampler (terrain pass is near the 16-sampler limit)
 TEXTURE2D(_ASH_AshNrm); TEXTURE2D(_ASH_SnowNrm); TEXTURE2D(_ASH_DetailTex); TEXTURE2D(_ASH_DetailNrm);
+TEXTURE2D(_ASH_RippleNrm); // optional directional ripple normal (Look > Ripple Strength, 0 = off)
+float4 _ASH_Ripple;        // x ripple normal strength, y ripple tiling (m)
 TEXTURE2D(_ASH_DriftMask);  SAMPLER(sampler_ASH_DriftMask);   // R depth01 (0.35 ankle, 1 knee), G wind exposure, B slope keep, A main-path factor (1 on road/trail)
 TEXTURE2D(_ASH_DeformTex);  SAMPLER(sampler_ASH_DeformTex);   // phase 2: trail depth (R) around the player, not yet written
 
@@ -287,6 +289,8 @@ void ASH_ApplyAccumulation(float3 positionWS, half3 geomNormalWS, half4 drift, h
         half m = lerp(1.0, dA * 2.0, _ASH_SurfTex.z); snowAlb *= m; ashAlb *= m;
         tn.xy += UnpackNormalScale(SAMPLE_TEXTURE2D_BIAS(_ASH_DetailNrm, sampler_ASH_AshTex, uvD, bias), _ASH_SurfTex.w).xy;
     }
+    if (_ASH_Ripple.x > 0.001)
+        tn.xy += UnpackNormalScale(SAMPLE_TEXTURE2D_BIAS(_ASH_RippleNrm, sampler_ASH_AshTex, xz / _ASH_Ripple.y + warp, bias), _ASH_Ripple.x).xy;
     // t471: thin dustings follow the ground; the bump grows to full strength with layer depth
     tn.xy *= lerp(1.0, saturate((ashLeft + snowLeft) / max(_ASH_Look3.z, 0.01)), _ASH_Look2.w);
     layerN = normalize(geomNormalWS + half3(tn.x, 0, tn.y));

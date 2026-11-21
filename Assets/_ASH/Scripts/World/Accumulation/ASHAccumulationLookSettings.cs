@@ -31,6 +31,12 @@ namespace ASH.World.Accumulation
         [Tooltip("Metres per detail repeat.")] [Range(0.02f, 10f)] public float detailTiling = 0.5f;
         [Range(0f, 2f)] public float detailAlbedoStrength = 0.5f;
         [Range(0f, 4f)] public float detailNormalStrength = 0.5f;
+        [Tooltip("Optional directional ripple normal (wind ripples / dunes). The old detail look used Snow Cover_N_v1 here. 0 strength = off.")]
+        public Texture2D rippleNormal;
+        [Tooltip("Ripple normal strength (0 = off: natural irregular snow/ash, no regular wavy lines).")]
+        [Range(0f, 4f)] public float rippleStrength = 0f;
+        [Tooltip("Metres per ripple repeat.")]
+        [Range(0.05f, 20f)] public float rippleTiling = 0.35f;
         [Tooltip("Mip bias for all surface textures (negative = sharper).")] [Range(-3f, 3f)] public float surfaceMipBias = 0f;
         [Tooltip("Editor: max import size for the ASH surface textures (controller context menu).")] public int surfaceMaxTextureSize = 2048;
 

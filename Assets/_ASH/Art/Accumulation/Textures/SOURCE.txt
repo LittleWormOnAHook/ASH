@@ -1,0 +1,5 @@
+ASH_Accum_Grain_N.png / ASH_Accum_Ash_N.png
+Procedurally generated for ASH (2026-11-21): seamless, isotropic FFT noise height fields converted to tangent-space normals (Python/NumPy).
+No third-party source; owned by the project. Replace freely.
+ASH_Accum_Ash_N replaces the HQ Survival Pack Campfire_Ash_NRM (a round campfire-pile normal whose radial edges tiled as a star/fan pattern).
+ASH_Accum_Grain_N replaces Snow Cover_N_v1 as the fine detail normal (its wind-ripple bands tiled into regular wavy lines); that texture is kept as the optional Ripple Normal (strength 0 by default).
