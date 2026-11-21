@@ -15,7 +15,7 @@ MonoBehaviour:
   itemId: wolfpelt
   displayName: Wolf Pelt
   description: A rough grey pelt. Clothing, trade.
-  icon: {fileID: 21300000, guid: e2c2418bed1a2bb4e8488b3ac06db270, type: 3}
+  icon: {fileID: 21300000, guid: 18c2b2f29eae4ba45b4ccde04771b13d, type: 3}
   uiTint: {r: 0.85, g: 0.8, b: 0.7, a: 1}
   category: 0
   maxStack: 10

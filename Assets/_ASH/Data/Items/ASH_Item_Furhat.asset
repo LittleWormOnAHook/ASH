@@ -15,7 +15,7 @@ MonoBehaviour:
   itemId: furhat
   displayName: Fur Hat
   description: A warm cap lined with rabbit or fox fur.
-  icon: {fileID: 21300000, guid: 5cf9451b29759a9458ac4698e211d059, type: 3}
+  icon: {fileID: 21300000, guid: 8e7511d5d5784bd45932b879d2e3100d, type: 3}
   uiTint: {r: 0.85, g: 0.8, b: 0.7, a: 1}
   category: 3
   maxStack: 1

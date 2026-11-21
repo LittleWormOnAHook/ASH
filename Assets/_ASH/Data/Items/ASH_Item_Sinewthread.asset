@@ -15,7 +15,7 @@ MonoBehaviour:
   itemId: sinewthread
   displayName: Sinew Thread
   description: Twisted sinew for sewing.
-  icon: {fileID: 21300000, guid: 23d3f2384b96ee249899e6df8fc0dd0e, type: 3}
+  icon: {fileID: 21300000, guid: 442e8961a9fd23d4c93ac1ade6e34ea9, type: 3}
   uiTint: {r: 0.85, g: 0.8, b: 0.7, a: 1}
   category: 0
   maxStack: 20

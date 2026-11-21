@@ -15,7 +15,7 @@ MonoBehaviour:
   itemId: bedroll
   displayName: Bedroll
   description: A hide and cloth roll. Pitch it for a rough night's sleep.
-  icon: {fileID: 21300000, guid: 5dd089b430897ec46b37a4045dd6345e, type: 3}
+  icon: {fileID: 21300000, guid: 3a6fc5b17371371489e5a1c31ececcd6, type: 3}
   uiTint: {r: 0.85, g: 0.8, b: 0.7, a: 1}
   category: 2
   maxStack: 1

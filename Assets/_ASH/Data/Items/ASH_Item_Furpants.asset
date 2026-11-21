@@ -15,7 +15,7 @@ MonoBehaviour:
   itemId: furpants
   displayName: Fur Pants
   description: Hide trousers lined with fur.
-  icon: {fileID: 21300000, guid: 92912d42382cc16408b06d3a7208ecba, type: 3}
+  icon: {fileID: 21300000, guid: 8ecf806c55178ce4b82e4438bf623b70, type: 3}
   uiTint: {r: 0.85, g: 0.8, b: 0.7, a: 1}
   category: 3
   maxStack: 1

@@ -15,7 +15,7 @@ MonoBehaviour:
   itemId: sinew
   displayName: Sinew
   description: Tough connective tissue. Thread, bowstrings, bindings.
-  icon: {fileID: 21300000, guid: d1a4c8c5cb1db68438f376beda932ba3, type: 3}
+  icon: {fileID: 21300000, guid: 9f80855e2f4e7d94684b77f3a5c0ac85, type: 3}
   uiTint: {r: 0.85, g: 0.8, b: 0.7, a: 1}
   category: 0
   maxStack: 20

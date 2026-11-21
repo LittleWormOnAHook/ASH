@@ -15,7 +15,7 @@ MonoBehaviour:
   itemId: foxpelt
   displayName: Fox Pelt
   description: A rust-red pelt. Hats and trim.
-  icon: {fileID: 21300000, guid: 0cc466e14e71808498c9c164dcd97c66, type: 3}
+  icon: {fileID: 21300000, guid: d9a0d8644e535604cb0ce1408a60c72c, type: 3}
   uiTint: {r: 0.85, g: 0.8, b: 0.7, a: 1}
   category: 0
   maxStack: 10

@@ -15,7 +15,7 @@ MonoBehaviour:
   itemId: boarhide
   displayName: Boar Hide
   description: A bristly hide. Tough clothing and bags.
-  icon: {fileID: 21300000, guid: 92b4ab5d9e4db7c4e9da5744f17ee0fc, type: 3}
+  icon: {fileID: 21300000, guid: 4094b5384b25b834c99ff35c1d356daf, type: 3}
   uiTint: {r: 0.85, g: 0.8, b: 0.7, a: 1}
   category: 0
   maxStack: 8

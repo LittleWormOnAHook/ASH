@@ -15,7 +15,7 @@ MonoBehaviour:
   itemId: animalbone
   displayName: Animal Bones
   description: Boiled or carved bones. Crafting and trade.
-  icon: {fileID: 21300000, guid: 628f69856ade20242871601aeb444b65, type: 3}
+  icon: {fileID: 21300000, guid: 3d9203667a7fc0644803486f092b8827, type: 3}
   uiTint: {r: 0.85, g: 0.8, b: 0.7, a: 1}
   category: 0
   maxStack: 20

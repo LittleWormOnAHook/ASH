@@ -15,7 +15,7 @@ MonoBehaviour:
   itemId: cougarhide
   displayName: Cougar Hide
   description: A tawny hide. Coats and trade.
-  icon: {fileID: 21300000, guid: 74e5ec2586177d5469f0f0efb330bbbf, type: 3}
+  icon: {fileID: 21300000, guid: ad7ffca73fab3ab408566ba08bf583bc, type: 3}
   uiTint: {r: 0.85, g: 0.8, b: 0.7, a: 1}
   category: 0
   maxStack: 8

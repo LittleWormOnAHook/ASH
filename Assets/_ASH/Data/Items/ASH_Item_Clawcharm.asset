@@ -15,7 +15,7 @@ MonoBehaviour:
   itemId: clawcharm
   displayName: Claw Charm
   description: A hooked predator claw, tied off as a keepsake.
-  icon: {fileID: 21300000, guid: 446f8e8f64ad55243b73f1513300be40, type: 3}
+  icon: {fileID: 21300000, guid: e768162c4b66e0d43addae153d6607f9, type: 3}
   uiTint: {r: 0.85, g: 0.8, b: 0.7, a: 1}
   category: 4
   maxStack: 1

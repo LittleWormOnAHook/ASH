@@ -15,7 +15,7 @@ MonoBehaviour:
   itemId: boneknife
   displayName: Bone Knife
   description: A sharp splinter of bone bound to a stick. Harvests and cuts.
-  icon: {fileID: 21300000, guid: 927829d66acc50c49a6d0e1a861c7e83, type: 3}
+  icon: {fileID: 21300000, guid: 0321e33dc8efff94989da432a9b9b36c, type: 3}
   uiTint: {r: 0.85, g: 0.8, b: 0.7, a: 1}
   category: 3
   maxStack: 1

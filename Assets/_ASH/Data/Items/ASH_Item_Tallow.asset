@@ -15,7 +15,7 @@ MonoBehaviour:
   itemId: tallow
   displayName: Tallow
   description: Rendered fat. Candles, waterproofing, cooking fat.
-  icon: {fileID: 21300000, guid: 8194eca2ca2630c45bab1742fdce65eb, type: 3}
+  icon: {fileID: 21300000, guid: b22bff9f8084cbf40bda5ee07331203a, type: 3}
   uiTint: {r: 0.85, g: 0.8, b: 0.7, a: 1}
   category: 0
   maxStack: 20

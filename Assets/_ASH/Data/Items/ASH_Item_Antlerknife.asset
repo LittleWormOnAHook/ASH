@@ -15,7 +15,7 @@ MonoBehaviour:
   itemId: antlerknife
   displayName: Antler Knife
   description: A knife with a deer-antler handle and a bone blade.
-  icon: {fileID: 21300000, guid: d49d3bb3f276af74ca7fdef31afa1372, type: 3}
+  icon: {fileID: 21300000, guid: b31ad3aa7f0aa134dbc9999719e0639e, type: 3}
   uiTint: {r: 0.85, g: 0.8, b: 0.7, a: 1}
   category: 3
   maxStack: 1

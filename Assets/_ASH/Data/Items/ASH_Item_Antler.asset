@@ -15,7 +15,7 @@ MonoBehaviour:
   itemId: antler
   displayName: Antler
   description: A shed or harvested deer antler. Handles and knives.
-  icon: {fileID: 21300000, guid: 92525da514c00ae49a748a5b18995a34, type: 3}
+  icon: {fileID: 21300000, guid: 66fc38c806a1f9048abb8b603eca8fd9, type: 3}
   uiTint: {r: 0.85, g: 0.8, b: 0.7, a: 1}
   category: 0
   maxStack: 10

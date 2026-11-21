@@ -15,7 +15,7 @@ MonoBehaviour:
   itemId: emptywaterskin
   displayName: Empty Waterskin
   description: A sewn hide flask, waiting to be filled.
-  icon: {fileID: 21300000, guid: 467c155c015f483409ab61c03f8dc38b, type: 3}
+  icon: {fileID: 21300000, guid: 48b35cbc303b2964891387bb5cf9590c, type: 3}
   uiTint: {r: 0.85, g: 0.8, b: 0.7, a: 1}
   category: 0
   maxStack: 5

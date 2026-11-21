@@ -23,7 +23,7 @@ MonoBehaviour:
     amount: 1
   outputItem: {fileID: 11400000, guid: 97a394bad8d7cd043b683fac8419621e, type: 2}
   outputAmount: 1
-  icon: {fileID: 21300000, guid: acedf1079987fd144b672e44fd8cde65, type: 3}
+  icon: {fileID: 21300000, guid: ec41a4fe4b5f6634d858a02cf4c0d905, type: 3}
   requiredCraftingLevel: 1
   upgradeId: 
   upgradeTier: 0
