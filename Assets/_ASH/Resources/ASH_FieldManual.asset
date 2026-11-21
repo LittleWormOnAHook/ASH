@@ -222,26 +222,50 @@ MonoBehaviour:
     parents:
     - {fileID: 11400000, guid: 9f9da71f035e6c24fb7495fc0473eaf9, type: 2}
   - recipe: {fileID: 11400000, guid: 8d2175ff244b4f54bb1c363b3ad8775e, type: 2}
-    basic: 1
-    conditions: []
+    basic: 0
+    conditions:
+    - kind: 2
+      item: {fileID: 0}
+      quantity: 1
+      page: 3
+      upgradeId: 
+      upgradeTier: 1
+      collection: grandpa
+      pageId: 
     requireAll: 1
-    hint: 
+    hint: A note on making fire (Survival Guide page 3) shows how to bind a torch.
     column: 0
     row: 5
     parents: []
   - recipe: {fileID: 11400000, guid: e3544ec2c47e15b4780a9ddaa973dee9, type: 2}
-    basic: 1
-    conditions: []
+    basic: 0
+    conditions:
+    - kind: 0
+      item: {fileID: 11400000, guid: fe9fdabe84f11f34cbb2e2848567bb85, type: 2}
+      quantity: 1
+      page: 1
+      upgradeId: 
+      upgradeTier: 1
+      collection: grandpa
+      pageId: 
     requireAll: 1
-    hint: 
+    hint: Find an old shirt, then you can cut it into cloth.
     column: 0
     row: 6
     parents: []
   - recipe: {fileID: 11400000, guid: 175d1959d24317743b87ba6da11c0d39, type: 2}
-    basic: 1
-    conditions: []
+    basic: 0
+    conditions:
+    - kind: 0
+      item: {fileID: 11400000, guid: f545e6f90b132c94988a957c07aa07e6, type: 2}
+      quantity: 1
+      page: 1
+      upgradeId: 
+      upgradeTier: 1
+      collection: grandpa
+      pageId: 
     requireAll: 1
-    hint: 
+    hint: Gather plant fiber, then you can twist it into rope.
     column: 1
     row: 6
     parents: []
@@ -256,16 +280,17 @@ MonoBehaviour:
       upgradeTier: 1
       collection: grandpa
       pageId: 
-    - kind: 2
+    - kind: 4
       item: {fileID: 0}
       quantity: 1
-      page: 5
+      page: 1
       upgradeId: 
       upgradeTier: 1
       collection: grandpa
-      pageId: 
+      pageId: gj_04
     requireAll: 1
-    hint: 
+    hint: Grandpa's note at the hunting shack (journal page 4) shows how to make
+      a bow.
     column: 2
     row: 6
     parents:
@@ -281,8 +306,17 @@ MonoBehaviour:
       upgradeTier: 1
       collection: grandpa
       pageId: 
+    - kind: 4
+      item: {fileID: 0}
+      quantity: 1
+      page: 1
+      upgradeId: 
+      upgradeTier: 1
+      collection: grandpa
+      pageId: gj_04
     requireAll: 1
-    hint: 
+    hint: Grandpa's note at the hunting shack (journal page 4) shows how to fletch
+      arrows.
     column: 3
     row: 6
     parents:
@@ -355,10 +389,18 @@ MonoBehaviour:
     parents:
     - {fileID: 11400000, guid: 3cab41a01b23b544fbe4be21c95bf29d, type: 2}
   - recipe: {fileID: 11400000, guid: c5fa66851d1b30f4b89f68e9054fc51b, type: 2}
-    basic: 1
-    conditions: []
+    basic: 0
+    conditions:
+    - kind: 0
+      item: {fileID: 11400000, guid: d6ff4dbd01e3cd14fac83d6f01c0c757, type: 2}
+      quantity: 1
+      page: 1
+      upgradeId: 
+      upgradeTier: 1
+      collection: grandpa
+      pageId: 
     requireAll: 1
-    hint: 
+    hint: "Keep an empty tin can \u2014 flatten it into a blade blank."
     column: 0
     row: 9
     parents: []
@@ -507,34 +549,53 @@ MonoBehaviour:
     parents:
     - {fileID: 11400000, guid: 8f2b0af0e09c1ee4a97a3a60e10e02a2, type: 2}
   - recipe: {fileID: 11400000, guid: 4677e02396ef5f94bb8145f868a44d1f, type: 2}
-    basic: 1
-    conditions: []
+    basic: 0
+    conditions:
+    - kind: 4
+      item: {fileID: 0}
+      quantity: 1
+      page: 1
+      upgradeId: 
+      upgradeTier: 1
+      collection: grandpa
+      pageId: gj_05
     requireAll: 1
-    hint: 
+    hint: Grandpa's note at the abandoned camp (journal page 5) shows how to build
+      a tent.
     column: 0
     row: 13
     parents: []
   - recipe: {fileID: 11400000, guid: ac7a95b3057a97049b0d284ee254785f, type: 2}
-    basic: 1
-    conditions: []
+    basic: 0
+    conditions:
+    - kind: 4
+      item: {fileID: 0}
+      quantity: 1
+      page: 1
+      upgradeId: 
+      upgradeTier: 1
+      collection: grandpa
+      pageId: gj_05
     requireAll: 1
-    hint: 
+    hint: Grandpa's note at the abandoned camp (journal page 5) shows how to build
+      a tent.
     column: 1
     row: 13
     parents: []
   - recipe: {fileID: 11400000, guid: e0c947428c252544395f84d52760137a, type: 2}
     basic: 0
     conditions:
-    - kind: 2
+    - kind: 4
       item: {fileID: 0}
       quantity: 1
-      page: 4
+      page: 1
       upgradeId: 
       upgradeTier: 1
       collection: grandpa
-      pageId: 
+      pageId: gj_04
     requireAll: 1
-    hint: A note in the hunting shack (page 4) shows how to set a snare.
+    hint: Grandpa's note at the hunting shack (journal page 4) shows how to set a
+      snare.
     column: 3
     row: 6
     parents:
