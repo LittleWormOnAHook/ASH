@@ -47,8 +47,13 @@ namespace ASH.EditorTools
             var s = EnsureSettings(prefab, items.feather, items.meat);
             EnsureSpotPrefab("ASH_Bird_AggressiveCrowSpot", "crow");
             EnsureSpotPrefab("ASH_Bird_AggressiveRavenSpot", "raven");
+            EnsureSpotPrefab("ASH_Bird_FlockSpot", "");
+            EnsureRoostPrefab("ASH_Bird_CrowRoostSpot", ASHBirdRoostSpot.Style.Crow);
+            EnsureRoostPrefab("ASH_Bird_GullRoostSpot", ASHBirdRoostSpot.Style.Seagull);
+            ASHBirdVendorSetup.Run(s);
+            EditorUtility.SetDirty(s);
             AssetDatabase.SaveAssets();
-            Debug.Log($"[ASH] Birds ready: prefab {PrefabPath}, {s.types.Count} types, settings {SettingsPath}. Items: feather, rawsmallmeat, cookedsmallmeat. Recipes: cooksmallmeat, fletchedarrows. Spots: {PrefabDir}/ASH_Bird_AggressiveCrowSpot / RavenSpot.");
+            Debug.Log($"[ASH] Birds ready: prefab {PrefabPath}, {s.types.Count} types, settings {SettingsPath}. Items: feather, rawsmallmeat, cookedsmallmeat. Recipes: cooksmallmeat, fletchedarrows. Spots: {PrefabDir}/ASH_Bird_FlockSpot, AggressiveCrowSpot / RavenSpot, CrowRoostSpot / GullRoostSpot.");
         }
 
         // ------------------------------------------------------------------ import
@@ -153,7 +158,7 @@ namespace ASH.EditorTools
                     r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
                     if (r is SkinnedMeshRenderer smr) { smr.updateWhenOffscreen = false; smr.quality = SkinQuality.Bone2; }
                 }
-                var anim = inst.GetComponentInChildren<Animator>() ?? inst.AddComponent<Animator>();
+                var anim = inst.GetComponentInChildren<Animator>(); if (!anim) anim = inst.AddComponent<Animator>();
                 anim.runtimeAnimatorController = ctrl;
                 anim.applyRootMotion = false;
                 anim.cullingMode = AnimatorCullingMode.CullCompletely;
@@ -181,6 +186,7 @@ namespace ASH.EditorTools
 
                 var bird = root.AddComponent<ASHBird>();
                 bird.animator = anim;
+                bird.placedTypeId = "crow";
                 var col = root.AddComponent<SphereCollider>();
                 float hy = hips ? root.transform.InverseTransformPoint(hips.position).y : 0.13f;
                 col.center = new Vector3(0f, Mathf.Max(0.08f, hy + 0.03f), 0f);
@@ -240,8 +246,25 @@ namespace ASH.EditorTools
             {
                 var spot = go.AddComponent<ASHBirdSpot>();
                 spot.typeId = typeId;
-                spot.countMin = 2; spot.countMax = typeId == "raven" ? 3 : 4;
-                spot.aggressiveFraction = 1f;
+                bool normal = string.IsNullOrEmpty(typeId); // ASH_Bird_FlockSpot: a calm flock of a random ground type
+                spot.countMin = normal ? 3 : 2; spot.countMax = normal ? 7 : (typeId == "raven" ? 3 : 4);
+                spot.aggressiveFraction = normal ? 0f : 1f;
+                PrefabUtility.SaveAsPrefabAsset(go, path);
+            }
+            finally { Object.DestroyImmediate(go); }
+        }
+
+        /// <summary>Drag-in vendor roost: a Bird Flocks flock that lands on real perches around the spot and scatters when you come close.</summary>
+        static void EnsureRoostPrefab(string name, ASHBirdRoostSpot.Style style)
+        {
+            ASHMenuInstaller.Folder(PrefabDir);
+            string path = PrefabDir + "/" + name + ".prefab";
+            if (AssetDatabase.LoadAssetAtPath<GameObject>(path)) return;
+            var go = new GameObject(name);
+            try
+            {
+                var spot = go.AddComponent<ASHBirdRoostSpot>();
+                spot.style = style;
                 PrefabUtility.SaveAsPrefabAsset(go, path);
             }
             finally { Object.DestroyImmediate(go); }
@@ -296,7 +319,8 @@ namespace ASH.EditorTools
 
             AudioClip[] A(params string[] names) => names.Select(n => AssetDatabase.LoadAssetAtPath<AudioClip>(n)).Where(c => c).ToArray();
             string[] Seq(string prefix, int n) => Enumerable.Range(1, n).Select(i => $"{AudioDir}/{prefix}_{i:00}.ogg").ToArray();
-            var raven = A(Seq("ASH_Bird_Raven", 8));
+            // Raven_01..04 (voice-like low recording) were removed; only the real caws 05..08 remain
+            var raven = A(Enumerable.Range(5, 4).Select(i => $"{AudioDir}/ASH_Bird_Raven_{i:00}.ogg").ToArray());
             var robin = A(Seq("ASH_Bird_Robin", 4));
             var blue = A(Seq("ASH_Bird_Bluebird", 4));
             var black = A(Seq("ASH_Bird_Blackbird", 4));

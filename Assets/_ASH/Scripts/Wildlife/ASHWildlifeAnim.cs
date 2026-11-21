@@ -22,7 +22,8 @@ namespace ASH.Wildlife
         AudioSource _audio;
         string _state;
         float _stepT;
-        bool _hasSpeed, _deathLock;
+        bool _deathLock;
+        int _hasSpeed = -1; // -1 = not resolved yet (Animator had no controller / wasn't active at Bind)
 
         public bool HasEat => Has(eatState);
         public bool HasSleep => Has(sleepState);
@@ -39,11 +40,36 @@ namespace ASH.Wildlife
             }
         }
 
+        /// <summary>The Animator that actually drives the rig: prefers one with a controller that is active, so a stray
+        /// controller-less Animator on a child (vendor model import) isn't picked.</summary>
+        public static Animator PickAnimator(GameObject go, Animator fallback = null)
+        {
+            if (!go) return fallback;
+            Animator withCtrl = null;
+            foreach (var a in go.GetComponentsInChildren<Animator>(true))
+            {
+                if (!a || !a.runtimeAnimatorController) continue;
+                if (a.isActiveAndEnabled) return a;
+                if (!withCtrl) withCtrl = a;
+            }
+            return withCtrl ? withCtrl : (fallback ? fallback : go.GetComponentInChildren<Animator>());
+        }
+
+        static readonly System.Collections.Generic.HashSet<string> _notReadyLogged = new System.Collections.Generic.HashSet<string>();
+        void LogNotReady()
+        {
+            string n = gameObject.name.Replace("(Clone)", "").Trim();
+            if (!_notReadyLogged.Add(n)) return;
+            string why = !_anim.runtimeAnimatorController ? "has no AnimatorController" : (!_anim.isActiveAndEnabled ? "is inactive/disabled" : "is not initialised yet");
+            Debug.Log($"[ASH] Wildlife: '{n}' Animator on '{_anim.gameObject.name}' {why} at Awake; parameters are read once it plays (no warning).");
+        }
+
         public void Bind(Animator anim)
         {
-            _anim = anim ? anim : GetComponentInChildren<Animator>();
+            _anim = anim && anim.runtimeAnimatorController ? anim : PickAnimator(gameObject, anim);
+            if (_anim && !AnimReady()) LogNotReady();
             if (_anim) _anim.applyRootMotion = false;
-            _hasSpeed = HasParam("Speed");
+            _hasSpeed = -1; // resolved lazily once the Animator is actually playing its controller
             _deathLock = false;
             // vendor clips (e.g. bear 'Be_Stand Roar') fire Malbers 'PlaySound' events: give them a receiver on the Animator object
             if (_anim && _anim.gameObject != gameObject && !_anim.GetComponent<ASHWildlifeAnimEvents>()) _anim.gameObject.AddComponent<ASHWildlifeAnimEvents>();
@@ -63,7 +89,8 @@ namespace ASH.Wildlife
         {
             if (!_anim || !_anim.runtimeAnimatorController) return;
             if (IsLocked()) return;
-            if (_hasSpeed)
+            if (_hasSpeed < 0 && AnimReady()) _hasSpeed = HasParam("Speed") ? 1 : 0;
+            if (_hasSpeed == 1)
             {
                 if (turningInPlace && Has(turnLState) && Has(turnRState))
                     Fade(turnRate >= 0f ? turnRState : turnLState);
@@ -145,9 +172,12 @@ namespace ASH.Wildlife
             if (c) _audio.PlayOneShot(c, vol);
         }
 
+        bool AnimReady() => _anim && _anim.runtimeAnimatorController && _anim.isActiveAndEnabled && _anim.isInitialized;
+
         bool HasParam(string name)
         {
-            if (!_anim) return false;
+            // Animator.parameters warns "Animator is not playing an AnimatorController" on inactive / uninitialised animators
+            if (!AnimReady()) return false;
             var ps = _anim.parameters;
             for (int i = 0; i < ps.Length; i++) if (ps[i].name == name) return true;
             return false;

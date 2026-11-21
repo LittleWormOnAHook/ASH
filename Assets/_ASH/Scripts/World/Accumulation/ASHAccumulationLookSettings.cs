@@ -22,7 +22,8 @@ namespace ASH.World.Accumulation
         [Tooltip("Ash albedo (world-projected).")] public Texture2D ashTexture;
         [Tooltip("Ash normal map (world-projected). Optional.")] public Texture2D ashNormal;
         [Tooltip("Snow albedo (world-projected).")] public Texture2D snowTexture;
-        [Tooltip("Snow normal map (world-projected). Optional.")] public Texture2D snowNormal;
+        [Tooltip("Snow normal map (world-projected). Optional. t547: a generated seamless, even one (ASH_Accum_Snow_N); the old rippled T_Ground_Snow_1_N is kept in Legacy Snow Normal.")] public Texture2D snowNormal;
+        [Tooltip("t547: the previous snow normal (T_Ground_Snow_1_N, has its own ripples). Drag it into Snow Normal to get the old look back.")] public Texture2D legacySnowNormal;
         [Tooltip("Metres per texture repeat.")] [Range(0.05f, 50f)] public float ashTiling = 3f, snowTiling = 4f;
         [Tooltip("Strength of the ash/snow normal maps.")] [Range(0f, 4f)] public float surfaceNormalStrength = 1f;
         [Tooltip("Mean linear luminance of the ash texture (0.05 for ASH_TL_Ash_D).")] [Range(0.005f, 1f)] public float ashTextureMean = 0.05f;
@@ -62,6 +63,18 @@ namespace ASH.World.Accumulation
         [Tooltip("0 = normal strength the same everywhere. 1 = thin dustings are flat and the bump grows to full with depth.")]
         [Range(0f, 1f)] public float normalDepthFade = 0f;
         [Tooltip("Relative layer thickness (0..1) where the normals reach full strength.")] [Range(0.01f, 2f)] public float normalFullDepth = 0.35f;
+
+        [Header("Debug (t549: live in Edit mode and Play, flip to find what draws a pattern; leave all off)")]
+        [Tooltip("Ignore the drift mask (flat, typical depth everywhere).")] public bool debugDisableDriftMask;
+        [Tooltip("No snow sparkle glints.")] public bool debugDisableSparkle;
+        [Tooltip("No slope mask (layer on steep ground too).")] public bool debugDisableSlope;
+        [Tooltip("No fine detail normal.")] public bool debugDisableDetailNormal;
+        [Tooltip("No ash/snow surface normal maps.")] public bool debugDisableSurfaceNormal;
+        [Tooltip("No ash grain and grey-brown clumps.")] public bool debugDisableGrain;
+        [Tooltip("No breakup noise at the layer edges.")] public bool debugDisableBreakup;
+        [Tooltip("No macro patches / uv warp.")] public bool debugDisableMacro;
+        [Tooltip("No ripple normal.")] public bool debugDisableRipple;
+        [Tooltip("Use the OLD noise hash: brings back the straight diagonal stripes (t549 cause). For comparison only.")] public bool debugUseOldHash;
 
         void OnValidate() { var c = ASHAccumulationController.Instance; if (c && c.isActiveAndEnabled) c.PushGlobals(); }
 

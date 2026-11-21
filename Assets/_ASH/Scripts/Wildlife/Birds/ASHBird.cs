@@ -1,3 +1,4 @@
+using System;
 using ASH.Interaction;
 using ASH.Inventory;
 using Invector;
@@ -14,7 +15,24 @@ namespace ASH.Wildlife.Birds
     [DisallowMultipleComponent]
     public sealed class ASHBird : MonoBehaviour, vIDamageReceiver, IASHUsable
     {
+        /// <summary>Per-model animation names (filled by Setup Birds from the vendor clips). Empty = the global names in ASH_BirdSettings.</summary>
+        [Serializable]
+        public sealed class AnimSet
+        {
+            public bool use;
+            [Tooltip("Clips don't loop on import (Birds Misc): loop them by hand.")]
+            public bool manualLoop;
+            public string[] idle = new string[0];
+            public string[] peck = new string[0];
+            public string walk = "", fly = "", glide = "", takeOff = "", land = "", death = "";
+        }
+
         public Animator animator;
+        [Tooltip("Legacy Animation (Bird Flocks crow / seagull models). Used instead of the Animator when set.")]
+        public Animation legacy;
+        public AnimSet anims = new AnimSet();
+        [Tooltip("Type id used when this bird is placed by hand in a scene (it registers itself with the bird manager).")]
+        public string placedTypeId = "crow";
         public SphereCollider body;
         [Tooltip("Radius of the alive hit sphere at scale 1 (set by Setup Birds from the mesh).")]
         public float bodyRadius = 0.16f;
@@ -36,6 +54,13 @@ namespace ASH.Wildlife.Birds
         internal int atkPasses, atkPhase;
         internal float atkPhaseAt, attackReadyAt;
         public bool Aggressive => aggressive;
+        // pooling / placement / swarm
+        internal GameObject poolKey;
+        internal bool placed, swarm, fromGround;
+        internal int idleIdx, peckIdx;
+        internal float placedScale = 1f;
+        int _animHash;
+        bool _loop;
         // ground behaviour: 0 idle, 1 peck, 2 walk
         internal int gMode;
         internal Vector3 groundHome, walkTo;
@@ -62,6 +87,8 @@ namespace ASH.Wildlife.Birds
         void Awake()
         {
             if (!animator) animator = GetComponentInChildren<Animator>();
+            if (!legacy) legacy = GetComponentInChildren<Animation>();
+            if (legacy) { legacy.playAutomatically = false; legacy.cullingType = AnimationCullingType.BasedOnRenderers; if (animator && !animator.runtimeAnimatorController) animator = null; }
             if (animator) { animator.applyRootMotion = false; animator.cullingMode = AnimatorCullingMode.CullCompletely; }
             if (!body) body = GetComponent<SphereCollider>();
             if (!body) { body = gameObject.AddComponent<SphereCollider>(); body.radius = bodyRadius; }
@@ -86,7 +113,7 @@ namespace ASH.Wildlife.Birds
             atkTarget = null; attackReadyAt = 0f;
             float sc = t != null ? t.scale : 1f;
             sc *= 1f + ((float)rng.NextDouble() - 0.5f) * 0.12f;
-            transform.localScale = Vector3.one * Mathf.Max(0.05f, sc);
+            transform.localScale = Vector3.one * Mathf.Max(0.05f, sc * placedScale);
             speedMul = 1f + ((float)rng.NextDouble() * 2f - 1f) * (t != null ? t.speedJitter : 0.1f);
             if (_mpb == null) _mpb = new MaterialPropertyBlock();
             var c = t != null ? t.tint : Color.white;
@@ -101,6 +128,9 @@ namespace ASH.Wildlife.Birds
             if (body) { body.enabled = true; body.isTrigger = false; body.radius = bodyRadius; }
             if (_harvestTrigger) _harvestTrigger.enabled = false;
             if (animator) { animator.enabled = true; animator.speed = 1f; }
+            if (legacy) legacy.enabled = true;
+            swarm = false; fromGround = false;
+            idleIdx = rng.Next(16); peckIdx = rng.Next(16);
             _anim = null;
             perchFails = 0;
             gliding = false;
@@ -134,20 +164,63 @@ namespace ASH.Wildlife.Birds
             setRot = bone.localRotation;
         }
 
-        internal void Play(string st, float speed)
+        internal void Play(string st, float speed, bool loop = true)
         {
-            if (!animator || !animator.isActiveAndEnabled || string.IsNullOrEmpty(st)) return;
+            if (string.IsNullOrEmpty(st)) return;
+            if (legacy)
+            {
+                if (!legacy.enabled) return;
+                var a = legacy[st];
+                if (!a) return;
+                if (_anim != st)
+                {
+                    a.wrapMode = loop ? WrapMode.Loop : WrapMode.ClampForever;
+                    legacy.CrossFade(st, 0.18f);
+                    _anim = st;
+                }
+                a.speed = speed;
+                return;
+            }
+            if (!animator || !animator.isActiveAndEnabled) return;
             if (_anim != st)
             {
-                animator.CrossFadeInFixedTime(st, 0.18f);
-                _anim = st;
+                int h = Animator.StringToHash(st);
+                if (!animator.HasState(0, h)) return;
+                animator.CrossFadeInFixedTime(h, 0.18f);
+                _anim = st; _animHash = h;
             }
+            _loop = loop && anims != null && anims.manualLoop;
             animator.speed = speed;
+        }
+
+        /// <summary>True if this bird's rig has the named state / clip.</summary>
+        internal bool Has(string st)
+        {
+            if (string.IsNullOrEmpty(st)) return false;
+            if (legacy) return legacy[st] != null;
+            return animator && animator.runtimeAnimatorController && animator.HasState(0, Animator.StringToHash(st));
+        }
+
+        void Update()
+        {
+            // Birds Misc clips import without loop time (vendor files stay untouched): restart looping states by hand
+            if (!_loop || !animator || !animator.isActiveAndEnabled || animator.IsInTransition(0)) return;
+            var i = animator.GetCurrentAnimatorStateInfo(0);
+            if (i.shortNameHash == _animHash && i.normalizedTime >= 0.985f) animator.Play(_animHash, 0, 0f);
         }
 
         internal void SetAnimatorOn(bool on)
         {
             if (animator && animator.enabled != on) { animator.enabled = on; if (on) _anim = null; }
+            if (legacy && legacy.enabled != on) { legacy.enabled = on; if (on) _anim = null; }
+        }
+
+        // ------------------------------------------------------------------ hand-placed birds register themselves (no manager wiring needed)
+        void Start()
+        {
+            if (mgr || state != ASHBirdState.Pooled || !Application.isPlaying) return;
+            var m = ASHBirdManager.EnsureActive();
+            if (m) m.AdoptPlaced(this);
         }
 
         internal void BecomeCorpse()
@@ -164,7 +237,15 @@ namespace ASH.Wildlife.Birds
 
         public void TakeDamage(vDamage damage)
         {
-            if (damage == null || state == ASHBirdState.Pooled || IsDead || !mgr) return;
+            if (damage == null || IsDead) return;
+            if (!mgr || state == ASHBirdState.Pooled)
+            {
+                // placed bird hit before its first tick: register now so the hit still counts
+                var m = ASHBirdManager.EnsureActive();
+                if (!m) return;
+                m.AdoptPlaced(this);
+                if (!mgr) return;
+            }
             _onStart.Invoke(damage);
             Vector3 push = transform.position - damage.hitPosition;
             if (damage.hitPosition.sqrMagnitude < 0.0001f || push.sqrMagnitude < 0.0001f)

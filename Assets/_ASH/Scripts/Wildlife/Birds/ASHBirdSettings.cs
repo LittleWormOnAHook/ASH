@@ -25,6 +25,12 @@ namespace ASH.Wildlife.Birds
             [Tooltip("Multiplies the model's base colour (all types share the one animated crow rig).")]
             public Color tint = Color.white;
             [Range(0.1f, 3f)] public float scale = 1f;
+            [Tooltip("Model prefab for this type (built by Setup Birds from the vendor packs). Empty = the shared birdPrefab.")]
+            public GameObject prefab;
+            [Tooltip("Set by Setup Birds once it has assigned the vendor model / audio; untick to let it re-apply.")]
+            public bool vendorApplied;
+            [Tooltip("Share of this type's flocks that only circle high in the sky and never land.")]
+            [Range(0f, 1f)] public float skyOnlyChance = 0f;
 
             [Header("Group")]
             [Range(0f, 1f)] public float soloChance = 0.3f;
@@ -51,6 +57,8 @@ namespace ASH.Wildlife.Birds
 
             [Header("Audio")]
             public AudioClip[] calls;
+            [Tooltip("Alarm / scared calls on take-off (empty = the normal calls).")]
+            public AudioClip[] alarmCalls;
             [Range(0f, 1.5f)] public float callVolume = 0.8f;
             [Range(0.3f, 2.5f)] public float callPitch = 1f;
             [Range(0.5f, 120f)] public float callIntervalMin = 4f;
@@ -63,6 +71,8 @@ namespace ASH.Wildlife.Birds
             [Range(0f, 1f)] public float attackerChance = 0.25f;
             [Tooltip("Set by Setup Birds once; untick to re-apply attack defaults for this type.")]
             public bool attackDefaultsApplied;
+            [Tooltip("Whole flocks of this type can swarm the player (rare, see Swarms).")]
+            public bool canSwarm;
 
             [Header("Harvest")]
             [Range(0, 20)] public int feathersMin = 2;
@@ -208,6 +218,99 @@ namespace ASH.Wildlife.Birds
         [Range(0.2f, 3f)] public float flapAnimSpeed = 1f;
         [Range(0f, 1f)] public float glideAnimSpeed = 0.08f;
         [Range(0.2f, 3f)] public float groundAnimSpeed = 1f;
+
+        [Header("Ground variety (vendor rigs: idle_01/02, idle_eat, walk, take_off, land, death...)")]
+        [Tooltip("Chance a landed bird stretches / flaps its wings in place at a behaviour change.")]
+        [Range(0f, 1f)] public float groundFlapChance = 0.08f;
+        [Range(0.2f, 5f)] public float groundFlapSeconds = 0.8f;
+        [Tooltip("Seconds the take-off clip plays after leaving the ground (rigs that have one).")]
+        [Range(0f, 3f)] public float takeOffClipSeconds = 0.55f;
+        [Tooltip("Distance from the perch where the landing clip starts (rigs that have one).")]
+        [Range(0f, 10f)] public float landClipDistance = 2.2f;
+        [Tooltip("Play the rig's death clip while falling (rigs that have one); otherwise the body goes limp.")]
+        public bool deathClipEnabled = true;
+
+        [Header("Sky birds (Bird Flocks vendor flocks: high, circling, never land; still killable)")]
+        public bool skyBirdsEnabled = true;
+        [Tooltip("Vendor flock prefabs (Bird Flocks: Avoidance, Free Roam, Ultra Synced, Wild, Wild Few, Wild Synced; crow + seagull). One is picked at random per sky flock.")]
+        public GameObject[] skyFlockPrefabs = new GameObject[0];
+        [Tooltip("Bird type id for each sky flock prefab above (what a shot one turns into: crow / gull ...).")]
+        public string[] skyFlockTypeIds = new string[0];
+        [Range(0, 12)] public int skyMaxFlocks = 3;
+        [Range(1, 60)] public int skyBirdsMin = 5;
+        [Range(1, 120)] public int skyBirdsMax = 14;
+        [Tooltip("Height above the ground for sky flocks (vendor flocks and sky-only ASH flocks).")]
+        [Range(10f, 300f)] public float skyHeightMin = 40f;
+        [Range(10f, 400f)] public float skyHeightMax = 85f;
+        [Range(20f, 600f)] public float skySpawnRadiusMin = 60f;
+        [Range(30f, 800f)] public float skySpawnRadiusMax = 170f;
+        [Range(50f, 1200f)] public float skyDespawnDistance = 340f;
+        [Range(1f, 120f)] public float skySpawnInterval = 12f;
+        [Tooltip("Every this many seconds a sky flock drifts its centre back toward the player's area.")]
+        [Range(2f, 300f)] public float skyFollowSeconds = 25f;
+        public bool skyKillable = true;
+        [Tooltip("Hit sphere radius on each vendor sky bird (metres).")]
+        [Range(0.1f, 2f)] public float skyBirdHitRadius = 0.45f;
+        [Tooltip("A gunshot within this distance scatters a sky flock this far away.")]
+        [Range(0f, 400f)] public float skyScatterMeters = 60f;
+        [Tooltip("Sky-only ASH flocks (eagles, storks, swallows...): circle radius and speed.")]
+        [Range(5f, 200f)] public float skyOrbitRadiusMin = 18f;
+        [Range(5f, 300f)] public float skyOrbitRadiusMax = 50f;
+        [Range(1f, 90f)] public float skyOrbitDegreesPerSecond = 9f;
+        [Tooltip("Vendor materials use Built-in shaders (pink in URP). Setup Birds fills URP replacements here; swapped on each vendor bird at spawn.")]
+        public Material[] vendorMaterialFrom = new Material[0];
+        public Material[] vendorMaterialTo = new Material[0];
+
+        [Header("Vendor roosts (ASH_Bird_CrowRoostSpot / GullRoostSpot: vendor Landing Spot Controller)")]
+        public GameObject roostCrowFlock;
+        public GameObject roostCrowLanding;
+        public GameObject roostGullFlock;
+        public GameObject roostGullLanding;
+
+        [Header("Lake ducks (float on named lakes, circle them, keep the shore free for fishing)")]
+        public bool lakeDucksEnabled = true;
+        [Tooltip("Scene objects whose name contains one of these are lakes (the largest flat renderer is the water surface).")]
+        public string[] lakeObjectNames = { "Lake Tinkiller" };
+        public string lakeBirdTypeId = "duck";
+        [Range(0, 10)] public int lakeFlocksPerLake = 2;
+        [Range(1, 20)] public int lakeGroupMin = 2;
+        [Range(1, 30)] public int lakeGroupMax = 5;
+        [Range(20f, 1000f)] public float lakeActivateDistance = 220f;
+        [Tooltip("Water surface height correction (m) if the lake mesh top isn't the visible water line.")]
+        [Range(-3f, 3f)] public float lakeSurfaceOffset = 0f;
+        [Range(0.05f, 5f)] public float lakeMinDepth = 0.4f;
+        [Tooltip("Ducks stay this far from the shore (room for fishing).")]
+        [Range(0f, 30f)] public float lakeShoreClear = 4f;
+        [Range(0.05f, 3f)] public float lakeSwimSpeed = 0.35f;
+        [Range(0.5f, 30f)] public float lakeSwimRoam = 5f;
+        [Range(0f, 0.3f)] public float lakeBobHeight = 0.025f;
+        [Range(0.1f, 6f)] public float lakeBobRate = 1.6f;
+        [Tooltip("How deep the body sits in the water (x type scale).")]
+        [Range(0f, 0.3f)] public float lakeFloatDepth = 0.05f;
+        [Range(2f, 60f)] public float lakeFlyHeightMin = 6f;
+        [Range(4f, 120f)] public float lakeFlyHeightMax = 16f;
+        [Tooltip("Fraction of the lake radius the flock circles at.")]
+        [Range(0.2f, 2.5f)] public float lakeCircleRadiusMul = 1.1f;
+
+        [Header("Swarms (rare whole-flock attacks; Play-editable)")]
+        public bool swarmEnabled = true;
+        [Tooltip("Chance per minute that a nearby swarm-capable flock attacks unprovoked.")]
+        [Range(0f, 1f)] public float swarmChancePerMinute = 0.04f;
+        [Tooltip("Chance a gunshot near a swarm-capable flock sets off a swarm.")]
+        [Range(0f, 1f)] public float swarmOnShotChance = 0.15f;
+        [Range(0f, 3600f)] public float swarmCooldown = 480f;
+        [Range(2, 40)] public int swarmMinBirds = 4;
+        [Range(2, 60)] public int swarmMaxBirds = 10;
+        [Tooltip("Only flocks within this distance of the player can swarm.")]
+        [Range(10f, 400f)] public float swarmRange = 90f;
+        [Range(0f, 30f)] public float swarmPlayerDamage = 1.5f;
+        [Range(0f, 30f)] public float swarmDogDamage = 1f;
+        [Range(1, 10)] public int swarmPassesMin = 2;
+        [Range(1, 10)] public int swarmPassesMax = 3;
+        [Tooltip("The swarm breaks off after this many of them are killed.")]
+        [Range(1, 20)] public int swarmDisperseKills = 2;
+        [Tooltip("Chance a swarm comes from a sky flock (crows / gulls drop out of the sky) instead of a ground flock.")]
+        [Range(0f, 1f)] public float swarmFromSkyChance = 0.5f;
 
         [Header("LOD / culling")]
         [Tooltip("Beyond this camera distance, landed birds freeze their Animator (flying birds keep it).")]

@@ -1,7 +1,5 @@
 Bird call clips (trimmed, high-passed, normalised, OGG) - all PUBLIC DOMAIN. Verified via Wikimedia Commons extmetadata on 2026-11-21.
 
-ASH_Bird_Raven_01..04  <- "Common Raven.ogg" (public domain)
-    https://commons.wikimedia.org/wiki/File:Common_Raven.ogg
 ASH_Bird_Raven_05..08  <- "Yellowstone sound library - Common Raven - 001.mp3" (US National Park Service, public domain)
     https://commons.wikimedia.org/wiki/File:Yellowstone_sound_library_-_Common_Raven_-_001.mp3
     (also downloaded, not used: "Common Raven Grand Teton National Park.ogg", NPS, public domain)
@@ -14,6 +12,7 @@ ASH_Bird_Nutcracker_01..03 <- "Yellowstone sound library - Clark's Nutcracker - 
 ASH_Bird_Robin_01..04 <- "Yellowstone sound library - American Robin - 001.mp3" (NPS, public domain)
     https://commons.wikimedia.org/wiki/File:Yellowstone_sound_library_-_American_Robin_-_001.mp3
 
-Crows use the raven caws pitched up (ASH_BirdSettings > crow > callPitch 1.22); no PD hooded/American crow recording was clean enough.
+t541: ASH_Bird_Raven_01..04 (Wikimedia "Common Raven.ogg") were removed: their low, voice-like calls sounded like human voices. Only the real caws 05..08 remain.
+With the Bird Flocks pack installed, crows use its "Crow 001/002" caws and "Crow Scared 001" alarm, gulls its "Seagull 001-004" + "Seagull Scared 001" (vendor pack, untracked); without it crows fall back to Raven_05..08.
 Sparrow tweets reuse the project's own "Assets/Audio/QP01 0067 Coniferous forest bird twitter.wav" (purchased pack, untracked).
 Take-off flaps reuse Malbers "Common/Audio/Wings" clips (vendor pack, untracked).

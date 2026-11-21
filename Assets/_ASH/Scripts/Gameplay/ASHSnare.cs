@@ -152,7 +152,7 @@ namespace ASH.Gameplay
             if (!prefab) return null;
             var go = Instantiate(prefab, transform.position + Vector3.up * 0.05f + transform.forward * 0.3f, transform.rotation);
             go.name = prefab.name;
-            var a = go.GetComponent<ASHAnimal>() ?? go.AddComponent<ASHAnimal>();
+            var a = go.GetComponent<ASHAnimal>(); if (!a) a = go.AddComponent<ASHAnimal>(); // Unity fake-null: no ??
             a.kind = kind;
             a.size = kind == ASHWildlifeKind.Fawn ? ASHWildlifeSize.Young : ASHWildlifeSize.Adult;
             if (dead) a.Die();

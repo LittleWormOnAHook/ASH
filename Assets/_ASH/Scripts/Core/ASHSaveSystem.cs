@@ -326,6 +326,7 @@ namespace ASH.Core
         public static void LoadScene(string path)
         {
             ASHUIState.SetOpen(ASHPanels.Pause, false); ASHUIState.SetOpen(ASHPanels.Death, false);
+            if (ASHLoadingScreen.TryLoad(path)) return; // t540: async load behind the loading screen (shader warmup, world settle)
 #if UNITY_EDITOR
             if (!string.IsNullOrEmpty(path) && System.IO.File.Exists(path))
             {

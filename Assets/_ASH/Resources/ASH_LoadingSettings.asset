@@ -1,0 +1,53 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2d7a32eff8e9b894fb17d2869907af20, type: 3}
+  m_Name: ASH_LoadingSettings
+  m_EditorClassIdentifier: Assembly-CSharp::ASH.Core.ASHLoadingSettings
+  loadingScreenEnabled: 1
+  coverEditorPlayInGameScene: 1
+  coverMainMenuLoads: 1
+  minDisplaySeconds: 2
+  fadeInSeconds: 0.25
+  fadeOutSeconds: 0.8
+  lockPlayerInput: 1
+  settleTimeScale: 1
+  warmupTimeScale: 0
+  warmupShaders: 1
+  shaderVariants: {fileID: 20000000, guid: c4cdd8bd1ce122a49827d0e85f6c3ca5, type: 2}
+  variantsPerFrame: 64
+  graphicsStateCollection: {fileID: 0}
+  graphicsStatesPerFrame: 64
+  prerenderWorld: 1
+  prerenderDirections: 8
+  framesPerDirection: 2
+  prerenderPitches:
+  - 8
+  - -30
+  prewarmPrefabs: []
+  prewarmMaterials: []
+  prewarmDrawFrames: 3
+  settleMinSeconds: 1.5
+  settleMaxSeconds: 15
+  settleStableSeconds: 0.75
+  settleMaxFrameMs: 60
+  background: {fileID: 0}
+  backgroundTint: {r: 0.06, g: 0.055, b: 0.05, a: 1}
+  tipSeconds: 6
+  tips:
+  - Wet clothes steal heat fast. Dry them by a fire before night falls.
+  - Birds scatter when you sprint. Crouch and move slowly to get close.
+  - A gunshot carries far. Wildlife for a long way around will hear it.
+  - Big birds defend their roost. Ravens and eagles will dive at you.
+  - Shelter with good sealing triggers an autosave.
+  - 'Feathers and small meat: harvest a downed bird with your knife.'
+  - Cook small meat before eating it.
+  - Your dog can draw birds off you, and they can't kill it.

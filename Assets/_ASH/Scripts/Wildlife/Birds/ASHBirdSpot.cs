@@ -13,7 +13,7 @@ namespace ASH.Wildlife.Birds
     {
         public static readonly List<ASHBirdSpot> All = new List<ASHBirdSpot>();
 
-        [Tooltip("Bird type id from ASH_BirdSettings > types (crow, raven, ...).")]
+        [Tooltip("Bird type id from ASH_BirdSettings > types (crow, raven, sparrow, ...). Empty = a random ground type each time it spawns.")]
         public string typeId = "crow";
         [Range(1, 12)] public int countMin = 2;
         [Range(1, 12)] public int countMax = 4;

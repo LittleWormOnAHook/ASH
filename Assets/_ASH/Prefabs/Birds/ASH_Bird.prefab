@@ -552,6 +552,19 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ASH.Wildlife.Birds.ASHBird
   animator: {fileID: 7360922074235779243}
+  legacy: {fileID: 0}
+  anims:
+    use: 0
+    manualLoop: 0
+    idle: []
+    peck: []
+    walk: 
+    fly: 
+    glide: 
+    takeOff: 
+    land: 
+    death: 
+  placedTypeId: crow
   body: {fileID: 5192640293803456800}
   bodyRadius: 0.17
   harvestRadius: 0.35

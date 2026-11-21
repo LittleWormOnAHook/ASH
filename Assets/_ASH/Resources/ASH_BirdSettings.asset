@@ -23,6 +23,9 @@ MonoBehaviour:
     weight: 1.4
     tint: {r: 1, g: 1, b: 1, a: 1}
     scale: 1
+    prefab: {fileID: 6419604250282040118, guid: 3366f8db8c6256f43bfd3351309d820a, type: 3}
+    vendorApplied: 1
+    skyOnlyChance: 0
     soloChance: 0.3
     flockMin: 2
     flockMax: 6
@@ -38,21 +41,18 @@ MonoBehaviour:
     landedMinSeconds: 10
     landedMaxSeconds: 45
     calls:
-    - {fileID: 8300000, guid: 82ca782f059c10247a7d8b29235ff4fe, type: 3}
-    - {fileID: 8300000, guid: 7c30c8e21d76c2b4ca1948eeca4c8801, type: 3}
-    - {fileID: 8300000, guid: fec76d8308e2f0747b19273aabafa8d7, type: 3}
-    - {fileID: 8300000, guid: 0ef4c81cb71e4f0488889cb8f20c9244, type: 3}
-    - {fileID: 8300000, guid: 574fcae135ef7a746b07210a67e4d95c, type: 3}
-    - {fileID: 8300000, guid: f6ba4be2ad9132b448e6bb1297505b15, type: 3}
-    - {fileID: 8300000, guid: 1a85927988f10d840b08c2313af6cfb1, type: 3}
-    - {fileID: 8300000, guid: 78b81d36ac301994f83e1feed6453d1d, type: 3}
+    - {fileID: 8300000, guid: f550433b4d46e154a9d98c53d128d99c, type: 3}
+    - {fileID: 8300000, guid: a5053fa93c22d604e897b543f164106b, type: 3}
+    alarmCalls:
+    - {fileID: 8300000, guid: 64fac923550709240a53ba402e3598fa, type: 3}
     callVolume: 0.85
-    callPitch: 1.22
+    callPitch: 1
     callIntervalMin: 4
     callIntervalMax: 12
     canAttack: 1
     attackerChance: 0.2
     attackDefaultsApplied: 1
+    canSwarm: 1
     feathersMin: 2
     feathersMax: 4
     meatMin: 1
@@ -62,6 +62,9 @@ MonoBehaviour:
     weight: 0.6
     tint: {r: 0.28, g: 0.28, b: 0.32, a: 1}
     scale: 1.3
+    prefab: {fileID: 6419604250282040118, guid: 3366f8db8c6256f43bfd3351309d820a, type: 3}
+    vendorApplied: 1
+    skyOnlyChance: 0
     soloChance: 0.6
     flockMin: 1
     flockMax: 3
@@ -77,10 +80,11 @@ MonoBehaviour:
     landedMinSeconds: 10
     landedMaxSeconds: 45
     calls:
-    - {fileID: 8300000, guid: 82ca782f059c10247a7d8b29235ff4fe, type: 3}
-    - {fileID: 8300000, guid: 7c30c8e21d76c2b4ca1948eeca4c8801, type: 3}
-    - {fileID: 8300000, guid: fec76d8308e2f0747b19273aabafa8d7, type: 3}
-    - {fileID: 8300000, guid: 0ef4c81cb71e4f0488889cb8f20c9244, type: 3}
+    - {fileID: 8300000, guid: 574fcae135ef7a746b07210a67e4d95c, type: 3}
+    - {fileID: 8300000, guid: f6ba4be2ad9132b448e6bb1297505b15, type: 3}
+    - {fileID: 8300000, guid: 1a85927988f10d840b08c2313af6cfb1, type: 3}
+    - {fileID: 8300000, guid: 78b81d36ac301994f83e1feed6453d1d, type: 3}
+    alarmCalls:
     - {fileID: 8300000, guid: 574fcae135ef7a746b07210a67e4d95c, type: 3}
     - {fileID: 8300000, guid: f6ba4be2ad9132b448e6bb1297505b15, type: 3}
     - {fileID: 8300000, guid: 1a85927988f10d840b08c2313af6cfb1, type: 3}
@@ -92,6 +96,7 @@ MonoBehaviour:
     canAttack: 1
     attackerChance: 0.35
     attackDefaultsApplied: 1
+    canSwarm: 0
     feathersMin: 3
     feathersMax: 5
     meatMin: 1
@@ -99,8 +104,11 @@ MonoBehaviour:
   - id: blackbird
     displayName: Red-winged Blackbird
     weight: 0.8
-    tint: {r: 0.3, g: 0.28, b: 0.28, a: 1}
+    tint: {r: 0.685, g: 0.676, b: 0.676, a: 1}
     scale: 0.5
+    prefab: {fileID: 109318151296600823, guid: 9d8b19bab1771a8489b394d6bd2b692f, type: 3}
+    vendorApplied: 1
+    skyOnlyChance: 0
     soloChance: 0.2
     flockMin: 3
     flockMax: 8
@@ -120,6 +128,7 @@ MonoBehaviour:
     - {fileID: 8300000, guid: 83ad524d8fd90bf45bc73e8d5d26293f, type: 3}
     - {fileID: 8300000, guid: 5e69470b1dbf2ef419b46ef3836d9693, type: 3}
     - {fileID: 8300000, guid: 9c76e4cdaec8fc74a9b35cfdc8c1ae7c, type: 3}
+    alarmCalls: []
     callVolume: 0.7
     callPitch: 1
     callIntervalMin: 3
@@ -127,6 +136,7 @@ MonoBehaviour:
     canAttack: 0
     attackerChance: 0
     attackDefaultsApplied: 1
+    canSwarm: 0
     feathersMin: 1
     feathersMax: 2
     meatMin: 1
@@ -134,8 +144,11 @@ MonoBehaviour:
   - id: robin
     displayName: Robin
     weight: 0.9
-    tint: {r: 0.78, g: 0.5, b: 0.36, a: 1}
+    tint: {r: 0.90099996, g: 0.775, b: 0.712, a: 1}
     scale: 0.5
+    prefab: {fileID: 109318151296600823, guid: 9d8b19bab1771a8489b394d6bd2b692f, type: 3}
+    vendorApplied: 1
+    skyOnlyChance: 0
     soloChance: 0.6
     flockMin: 1
     flockMax: 3
@@ -155,6 +168,7 @@ MonoBehaviour:
     - {fileID: 8300000, guid: a771e54359e89764f91e017effc0dc4e, type: 3}
     - {fileID: 8300000, guid: d3278f0b949d21346bc581d1c09e3415, type: 3}
     - {fileID: 8300000, guid: d6cab54a46c6cfa469f404aedb138fb0, type: 3}
+    alarmCalls: []
     callVolume: 0.7
     callPitch: 1
     callIntervalMin: 3
@@ -162,6 +176,7 @@ MonoBehaviour:
     canAttack: 0
     attackerChance: 0
     attackDefaultsApplied: 1
+    canSwarm: 0
     feathersMin: 1
     feathersMax: 2
     meatMin: 1
@@ -169,8 +184,11 @@ MonoBehaviour:
   - id: bluebird
     displayName: Mountain Bluebird
     weight: 0.7
-    tint: {r: 0.5, g: 0.7, b: 1, a: 1}
+    tint: {r: 0.775, g: 0.865, b: 1, a: 1}
     scale: 0.45
+    prefab: {fileID: 109318151296600823, guid: 9d8b19bab1771a8489b394d6bd2b692f, type: 3}
+    vendorApplied: 1
+    skyOnlyChance: 0
     soloChance: 0.4
     flockMin: 2
     flockMax: 5
@@ -190,6 +208,7 @@ MonoBehaviour:
     - {fileID: 8300000, guid: 2195405df5339994fb1bc14a933c07d7, type: 3}
     - {fileID: 8300000, guid: 72c4c733fa478e848bd009e3d5051feb, type: 3}
     - {fileID: 8300000, guid: ec6e6d9e5d0c9d740a412f89681a6939, type: 3}
+    alarmCalls: []
     callVolume: 0.65
     callPitch: 1
     callIntervalMin: 3
@@ -197,6 +216,7 @@ MonoBehaviour:
     canAttack: 0
     attackerChance: 0
     attackDefaultsApplied: 1
+    canSwarm: 0
     feathersMin: 1
     feathersMax: 2
     meatMin: 1
@@ -204,8 +224,11 @@ MonoBehaviour:
   - id: nutcracker
     displayName: Nutcracker
     weight: 0.6
-    tint: {r: 0.85, g: 0.85, b: 0.82, a: 1}
+    tint: {r: 0.9325, g: 0.9325, b: 0.91899997, a: 1}
     scale: 0.7
+    prefab: {fileID: 109318151296600823, guid: 9d8b19bab1771a8489b394d6bd2b692f, type: 3}
+    vendorApplied: 1
+    skyOnlyChance: 0
     soloChance: 0.5
     flockMin: 1
     flockMax: 3
@@ -224,6 +247,7 @@ MonoBehaviour:
     - {fileID: 8300000, guid: 09fffc1269e97ad4cabcdf364d4bcbcb, type: 3}
     - {fileID: 8300000, guid: 409f237503b81034a992276efcb4ccfe, type: 3}
     - {fileID: 8300000, guid: 48e4bd17beffd0a4f84b41cfa4dd7397, type: 3}
+    alarmCalls: []
     callVolume: 0.8
     callPitch: 1
     callIntervalMin: 4
@@ -231,6 +255,7 @@ MonoBehaviour:
     canAttack: 0
     attackerChance: 0
     attackDefaultsApplied: 1
+    canSwarm: 0
     feathersMin: 1
     feathersMax: 3
     meatMin: 1
@@ -239,7 +264,10 @@ MonoBehaviour:
     displayName: Sparrow
     weight: 1
     tint: {r: 0.72, g: 0.56, b: 0.4, a: 1}
-    scale: 0.36
+    scale: 0.32
+    prefab: {fileID: 109318151296600823, guid: 9d8b19bab1771a8489b394d6bd2b692f, type: 3}
+    vendorApplied: 1
+    skyOnlyChance: 0
     soloChance: 0.15
     flockMin: 4
     flockMax: 10
@@ -256,6 +284,7 @@ MonoBehaviour:
     landedMaxSeconds: 45
     calls:
     - {fileID: 8300000, guid: c9ccacc5e928b064e9d120caf7d204b7, type: 3}
+    alarmCalls: []
     callVolume: 0.55
     callPitch: 1.1
     callIntervalMin: 2.5
@@ -263,6 +292,273 @@ MonoBehaviour:
     canAttack: 0
     attackerChance: 0
     attackDefaultsApplied: 1
+    canSwarm: 0
+    feathersMin: 1
+    feathersMax: 1
+    meatMin: 1
+    meatMax: 1
+  - id: hoodedcrow
+    displayName: Hooded Crow
+    weight: 0.4
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    scale: 1
+    prefab: {fileID: 0}
+    vendorApplied: 1
+    skyOnlyChance: 0
+    soloChance: 0.3
+    flockMin: 2
+    flockMax: 5
+    flySpeed: 8.5
+    speedJitter: 0.15
+    maxAccel: 7
+    glideShare: 0.5
+    altitudeMin: 9
+    altitudeMax: 28
+    takeOffDistance: 14
+    peckChance: 0.55
+    perchOnObjectsChance: 0.5
+    landedMinSeconds: 10
+    landedMaxSeconds: 45
+    calls:
+    - {fileID: 8300000, guid: f550433b4d46e154a9d98c53d128d99c, type: 3}
+    - {fileID: 8300000, guid: a5053fa93c22d604e897b543f164106b, type: 3}
+    alarmCalls:
+    - {fileID: 8300000, guid: 64fac923550709240a53ba402e3598fa, type: 3}
+    callVolume: 0.8
+    callPitch: 1.05
+    callIntervalMin: 4
+    callIntervalMax: 14
+    canAttack: 1
+    attackerChance: 0.15
+    attackDefaultsApplied: 1
+    canSwarm: 1
+    feathersMin: 2
+    feathersMax: 4
+    meatMin: 1
+    meatMax: 1
+  - id: gull
+    displayName: Gull
+    weight: 0.5
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    scale: 1.1
+    prefab: {fileID: 8188462756823737501, guid: c720da345799dac4b9fd2659382d95a6, type: 3}
+    vendorApplied: 1
+    skyOnlyChance: 0.3
+    soloChance: 0.3
+    flockMin: 2
+    flockMax: 6
+    flySpeed: 9
+    speedJitter: 0.15
+    maxAccel: 7
+    glideShare: 0.5
+    altitudeMin: 9
+    altitudeMax: 28
+    takeOffDistance: 16
+    peckChance: 0.4
+    perchOnObjectsChance: 0.5
+    landedMinSeconds: 10
+    landedMaxSeconds: 45
+    calls:
+    - {fileID: 8300000, guid: 7add9378450828744887b4b57a76bcde, type: 3}
+    - {fileID: 8300000, guid: f8dbea1ff911ae947bde21225744de15, type: 3}
+    - {fileID: 8300000, guid: d96939c6ba73a704db5b1a044dc5829d, type: 3}
+    - {fileID: 8300000, guid: 3d60d842c7eb7b4468d8bed6e92472c3, type: 3}
+    alarmCalls:
+    - {fileID: 8300000, guid: 1ec61915f64d38c4ea22dbea39b1c81a, type: 3}
+    callVolume: 0.8
+    callPitch: 1
+    callIntervalMin: 4
+    callIntervalMax: 14
+    canAttack: 1
+    attackerChance: 0.1
+    attackDefaultsApplied: 1
+    canSwarm: 1
+    feathersMin: 2
+    feathersMax: 4
+    meatMin: 1
+    meatMax: 1
+  - id: seagull
+    displayName: Herring Gull
+    weight: 0.3
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    scale: 1.1
+    prefab: {fileID: 2186335179982540917, guid: 72151d60dc416cf4885974ecab0cf3cc, type: 3}
+    vendorApplied: 1
+    skyOnlyChance: 0.3
+    soloChance: 0.4
+    flockMin: 1
+    flockMax: 4
+    flySpeed: 9
+    speedJitter: 0.15
+    maxAccel: 7
+    glideShare: 0.5
+    altitudeMin: 9
+    altitudeMax: 28
+    takeOffDistance: 16
+    peckChance: 0.4
+    perchOnObjectsChance: 0.5
+    landedMinSeconds: 10
+    landedMaxSeconds: 45
+    calls:
+    - {fileID: 8300000, guid: 7add9378450828744887b4b57a76bcde, type: 3}
+    - {fileID: 8300000, guid: f8dbea1ff911ae947bde21225744de15, type: 3}
+    - {fileID: 8300000, guid: d96939c6ba73a704db5b1a044dc5829d, type: 3}
+    - {fileID: 8300000, guid: 3d60d842c7eb7b4468d8bed6e92472c3, type: 3}
+    alarmCalls:
+    - {fileID: 8300000, guid: 1ec61915f64d38c4ea22dbea39b1c81a, type: 3}
+    callVolume: 0.8
+    callPitch: 1.08
+    callIntervalMin: 4
+    callIntervalMax: 14
+    canAttack: 0
+    attackerChance: 0.25
+    attackDefaultsApplied: 1
+    canSwarm: 1
+    feathersMin: 2
+    feathersMax: 4
+    meatMin: 1
+    meatMax: 1
+  - id: eagle
+    displayName: Golden Eagle
+    weight: 0.15
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    scale: 1.7
+    prefab: {fileID: 7754430668018895885, guid: af67fd392bf3b9a48a7f8695704bb5fd, type: 3}
+    vendorApplied: 1
+    skyOnlyChance: 0.6
+    soloChance: 0.9
+    flockMin: 1
+    flockMax: 2
+    flySpeed: 11
+    speedJitter: 0.15
+    maxAccel: 7
+    glideShare: 0.5
+    altitudeMin: 9
+    altitudeMax: 28
+    takeOffDistance: 26
+    peckChance: 0.2
+    perchOnObjectsChance: 0.6
+    landedMinSeconds: 10
+    landedMaxSeconds: 45
+    calls: []
+    alarmCalls: []
+    callVolume: 0.8
+    callPitch: 1
+    callIntervalMin: 4
+    callIntervalMax: 14
+    canAttack: 1
+    attackerChance: 0.5
+    attackDefaultsApplied: 1
+    canSwarm: 0
+    feathersMin: 4
+    feathersMax: 7
+    meatMin: 1
+    meatMax: 3
+  - id: stork
+    displayName: Stork
+    weight: 0.1
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    scale: 1.8
+    prefab: {fileID: 9086586061337287927, guid: e4fb2d220bf46024cb380f1c14863fac, type: 3}
+    vendorApplied: 1
+    skyOnlyChance: 0.5
+    soloChance: 0.6
+    flockMin: 1
+    flockMax: 3
+    flySpeed: 9
+    speedJitter: 0.15
+    maxAccel: 7
+    glideShare: 0.5
+    altitudeMin: 9
+    altitudeMax: 28
+    takeOffDistance: 22
+    peckChance: 0.5
+    perchOnObjectsChance: 0.3
+    landedMinSeconds: 10
+    landedMaxSeconds: 45
+    calls: []
+    alarmCalls: []
+    callVolume: 0.8
+    callPitch: 1
+    callIntervalMin: 4
+    callIntervalMax: 14
+    canAttack: 0
+    attackerChance: 0.25
+    attackDefaultsApplied: 1
+    canSwarm: 0
+    feathersMin: 3
+    feathersMax: 6
+    meatMin: 1
+    meatMax: 2
+  - id: duck
+    displayName: Duck
+    weight: 0
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    scale: 0.95
+    prefab: {fileID: 7292497445303059383, guid: 37651ee19bd52b14e9d185d0b33350e1, type: 3}
+    vendorApplied: 1
+    skyOnlyChance: 0
+    soloChance: 0.2
+    flockMin: 2
+    flockMax: 5
+    flySpeed: 10
+    speedJitter: 0.15
+    maxAccel: 7
+    glideShare: 0.5
+    altitudeMin: 9
+    altitudeMax: 28
+    takeOffDistance: 15
+    peckChance: 0.65
+    perchOnObjectsChance: 0.05
+    landedMinSeconds: 10
+    landedMaxSeconds: 45
+    calls: []
+    alarmCalls: []
+    callVolume: 0.8
+    callPitch: 1
+    callIntervalMin: 4
+    callIntervalMax: 14
+    canAttack: 0
+    attackerChance: 0.25
+    attackDefaultsApplied: 1
+    canSwarm: 0
+    feathersMin: 2
+    feathersMax: 4
+    meatMin: 1
+    meatMax: 2
+  - id: swallow
+    displayName: Swallow
+    weight: 0.5
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    scale: 0.32
+    prefab: {fileID: 5532150726584700687, guid: 909e1080caf7833498632b487ffaa30f, type: 3}
+    vendorApplied: 1
+    skyOnlyChance: 0.4
+    soloChance: 0.2
+    flockMin: 3
+    flockMax: 8
+    flySpeed: 9
+    speedJitter: 0.15
+    maxAccel: 12
+    glideShare: 0.15
+    altitudeMin: 5
+    altitudeMax: 16
+    takeOffDistance: 8
+    peckChance: 0.3
+    perchOnObjectsChance: 0.6
+    landedMinSeconds: 10
+    landedMaxSeconds: 45
+    calls:
+    - {fileID: 8300000, guid: c9ccacc5e928b064e9d120caf7d204b7, type: 3}
+    alarmCalls: []
+    callVolume: 0.8
+    callPitch: 1.15
+    callIntervalMin: 4
+    callIntervalMax: 14
+    canAttack: 0
+    attackerChance: 0.25
+    attackDefaultsApplied: 1
+    canSwarm: 0
     feathersMin: 1
     feathersMax: 1
     meatMin: 1
@@ -349,6 +645,96 @@ MonoBehaviour:
   flapAnimSpeed: 1
   glideAnimSpeed: 0.08
   groundAnimSpeed: 1
+  groundFlapChance: 0.08
+  groundFlapSeconds: 0.8
+  takeOffClipSeconds: 0.55
+  landClipDistance: 2.2
+  deathClipEnabled: 1
+  skyBirdsEnabled: 1
+  skyFlockPrefabs:
+  - {fileID: 100000, guid: b6f45f477cce18d499434a078e983fa1, type: 3}
+  - {fileID: 100000, guid: 51dce9a475472bc4e81f2550d625aa3b, type: 3}
+  - {fileID: 100000, guid: 5851f0cb1eacda744934fe4690d1885a, type: 3}
+  - {fileID: 100000, guid: 2e23f62ecf9b36944b60e3e5631c5c1a, type: 3}
+  - {fileID: 100000, guid: 47f4a7095fb060b428b625737521fe3b, type: 3}
+  - {fileID: 100000, guid: 469edbf4d817d1e4cafa932917bc74b3, type: 3}
+  - {fileID: 100000, guid: 8eee713501911334aaad3d560db93ca7, type: 3}
+  - {fileID: 100000, guid: d30be34a77f7ee64f9f11eca789a86b5, type: 3}
+  - {fileID: 100000, guid: 2ad4f4c983d92d846985f1832a6aa672, type: 3}
+  - {fileID: 100000, guid: e5318f3df9556c9479596abbe290a849, type: 3}
+  - {fileID: 100000, guid: 6d51a70ad24f45046b26dab8e9a5a8fa, type: 3}
+  - {fileID: 100000, guid: 6808485d45efc32449b5d78b6a06169c, type: 3}
+  skyFlockTypeIds:
+  - crow
+  - crow
+  - crow
+  - crow
+  - crow
+  - crow
+  - gull
+  - gull
+  - gull
+  - gull
+  - gull
+  - gull
+  skyMaxFlocks: 3
+  skyBirdsMin: 5
+  skyBirdsMax: 14
+  skyHeightMin: 40
+  skyHeightMax: 85
+  skySpawnRadiusMin: 60
+  skySpawnRadiusMax: 170
+  skyDespawnDistance: 340
+  skySpawnInterval: 12
+  skyFollowSeconds: 25
+  skyKillable: 1
+  skyBirdHitRadius: 0.45
+  skyScatterMeters: 60
+  skyOrbitRadiusMin: 18
+  skyOrbitRadiusMax: 50
+  skyOrbitDegreesPerSecond: 9
+  vendorMaterialFrom:
+  - {fileID: 2100000, guid: 67b09138b48beb84f8e90a9969cfe545, type: 2}
+  - {fileID: 2100000, guid: 021e7a84206ee49439fc0ece069cc154, type: 2}
+  vendorMaterialTo:
+  - {fileID: 2100000, guid: 9b2014f45e7ec5748aeffa96c6332395, type: 2}
+  - {fileID: 2100000, guid: f120904cf20da8844805bdd9ae21eca8, type: 2}
+  roostCrowFlock: {fileID: 100000, guid: 2e23f62ecf9b36944b60e3e5631c5c1a, type: 3}
+  roostCrowLanding: {fileID: 100056, guid: 6fe24667087e2c24d9aa105565653953, type: 3}
+  roostGullFlock: {fileID: 100000, guid: e5318f3df9556c9479596abbe290a849, type: 3}
+  roostGullLanding: {fileID: 100054, guid: a3d9cd6ae55fb784fb5895bddabaaa34, type: 3}
+  lakeDucksEnabled: 1
+  lakeObjectNames:
+  - Lake Tinkiller
+  lakeBirdTypeId: duck
+  lakeFlocksPerLake: 2
+  lakeGroupMin: 2
+  lakeGroupMax: 5
+  lakeActivateDistance: 220
+  lakeSurfaceOffset: 0
+  lakeMinDepth: 0.4
+  lakeShoreClear: 4
+  lakeSwimSpeed: 0.35
+  lakeSwimRoam: 5
+  lakeBobHeight: 0.025
+  lakeBobRate: 1.6
+  lakeFloatDepth: 0.05
+  lakeFlyHeightMin: 6
+  lakeFlyHeightMax: 16
+  lakeCircleRadiusMul: 1.1
+  swarmEnabled: 1
+  swarmChancePerMinute: 0.04
+  swarmOnShotChance: 0.15
+  swarmCooldown: 480
+  swarmMinBirds: 4
+  swarmMaxBirds: 10
+  swarmRange: 90
+  swarmPlayerDamage: 1.5
+  swarmDogDamage: 1
+  swarmPassesMin: 2
+  swarmPassesMax: 3
+  swarmDisperseKills: 2
+  swarmFromSkyChance: 0.5
   animCullDistance: 60
   tickLodDistance: 45
   farTickEvery: 3

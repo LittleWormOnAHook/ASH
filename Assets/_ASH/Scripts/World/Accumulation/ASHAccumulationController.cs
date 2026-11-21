@@ -329,6 +329,11 @@ namespace ASH.World.Accumulation
             Shader.SetGlobalVector(ID_Look, L ? new Vector4(1f / Mathf.Max(L.macroScale, 0.01f), L.macroAlbedoVariation, L.snowSparkle, L.sparkleScale) : Vector4.zero);
             Shader.SetGlobalVector(ID_Look2, L ? new Vector4(L.ashGrain, L.ashGrainScale, L.ashTextureColour, L.normalDepthFade) : Vector4.zero);
             Shader.SetGlobalVector(ID_Look3, L ? new Vector4(L.sparkleDensity, L.macroUvWarp, Mathf.Max(L.normalFullDepth, 0.01f), 0f) : new Vector4(0f, 0f, 1f, 0f));
+            // t549: live debug toggles (ASH_AccumulationLook > Debug)
+            static float B(bool v) => v ? 1f : 0f;
+            Shader.SetGlobalVector("_ASH_Debug", L ? new Vector4(B(L.debugDisableDriftMask), B(L.debugDisableSparkle), B(L.debugDisableSlope), B(L.debugDisableDetailNormal)) : Vector4.zero);
+            Shader.SetGlobalVector("_ASH_Debug2", L ? new Vector4(B(L.debugDisableSurfaceNormal), B(L.debugDisableGrain), B(L.debugDisableBreakup), B(L.debugDisableMacro)) : Vector4.zero);
+            Shader.SetGlobalVector("_ASH_Debug3", L ? new Vector4(B(L.debugUseOldHash), B(L.debugDisableRipple), 0f, 0f) : Vector4.zero);
             Shader.SetGlobalColor(ID_AshCol2, L ? new Color(L.ashColorVariation.r, L.ashColorVariation.g, L.ashColorVariation.b, L.ashColorVariationAmount) : Color.clear);
             Shader.SetGlobalTexture(ID_AshNrm, ashNormal ? ashNormal : Texture2D.normalTexture);
             Shader.SetGlobalTexture(ID_SnowNrm, snowNormal ? snowNormal : Texture2D.normalTexture);

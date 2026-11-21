@@ -1,0 +1,589 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!200 &20000000
+ShaderVariantCollection:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: ASH_ShaderVariants
+  m_Shaders:
+  - first: {fileID: 66, guid: 0000000000000000f000000000000000, type: 0}
+    second:
+      variants:
+      - keywords: 
+        passType: 0
+  - first: {fileID: 106, guid: 0000000000000000f000000000000000, type: 0}
+    second:
+      variants:
+      - keywords: _SUNDISK_HIGH_QUALITY
+        passType: 0
+  - first: {fileID: 9000, guid: 0000000000000000f000000000000000, type: 0}
+    second:
+      variants:
+      - keywords: 
+        passType: 0
+  - first: {fileID: 9001, guid: 0000000000000000f000000000000000, type: 0}
+    second:
+      variants:
+      - keywords: 
+        passType: 0
+  - first: {fileID: 9002, guid: 0000000000000000f000000000000000, type: 0}
+    second:
+      variants:
+      - keywords: 
+        passType: 0
+  - first: {fileID: 9003, guid: 0000000000000000f000000000000000, type: 0}
+    second:
+      variants:
+      - keywords: 
+        passType: 0
+  - first: {fileID: 9004, guid: 0000000000000000f000000000000000, type: 0}
+    second:
+      variants:
+      - keywords: 
+        passType: 0
+  - first: {fileID: 9007, guid: 0000000000000000f000000000000000, type: 0}
+    second:
+      variants:
+      - keywords: 
+        passType: 0
+  - first: {fileID: 9100, guid: 0000000000000000f000000000000000, type: 0}
+    second:
+      variants:
+      - keywords: _UIE_FORCE_GAMMA
+        passType: 0
+  - first: {fileID: 9101, guid: 0000000000000000f000000000000000, type: 0}
+    second:
+      variants:
+      - keywords: 
+        passType: 0
+  - first: {fileID: 18002, guid: 0000000000000000f000000000000000, type: 0}
+    second:
+      variants:
+      - keywords: 
+        passType: 0
+  - first: {fileID: 19011, guid: 0000000000000000f000000000000000, type: 0}
+    second:
+      variants:
+      - keywords: 
+        passType: 0
+  - first: {fileID: 4800000, guid: d6dae50ee9e1bfa4db75f19f99355220, type: 3}
+    second:
+      variants:
+      - keywords: _OUTPUT_DEPTH
+        passType: 0
+  - first: {fileID: 4800000, guid: 0f854b35a0cf61a429bd5dcfea30eddd, type: 3}
+    second:
+      variants:
+      - keywords: _MAIN_LIGHT_SHADOWS_CASCADE
+        passType: 0
+      - keywords: _MAIN_LIGHT_SHADOWS_CASCADE _SHADOWS_SOFT
+        passType: 0
+  - first: {fileID: 4800000, guid: 65df88701913c224d95fc554db28381a, type: 3}
+    second:
+      variants:
+      - keywords: 
+        passType: 0
+  - first: {fileID: 4800000, guid: e7857e9d0c934dc4f83f270f8447b006, type: 3}
+    second:
+      variants:
+      - keywords: 
+        passType: 0
+      - keywords: _BLOOM_LQ _CHROMATIC_ABERRATION
+        passType: 0
+  - first: {fileID: 4800000, guid: 5f1864addb451f54bae8c86d230f736e, type: 3}
+    second:
+      variants:
+      - keywords: 
+        passType: 0
+  - first: {fileID: 4800000, guid: 701880fecb344ea4c9cd0db3407ab287, type: 3}
+    second:
+      variants:
+      - keywords: 
+        passType: 0
+      - keywords: 
+        passType: 13
+  - first: {fileID: 4800000, guid: 29868e73b638e48ca99a19ea58c48d90, type: 3}
+    second:
+      variants:
+      - keywords: 
+        passType: 13
+      - keywords: REFLECTION_PROBE_ROTATION _ADDITIONAL_LIGHT_SHADOWS _CLUSTER_LIGHT_LOOP
+          _MAIN_LIGHT_SHADOWS_SCREEN _SHADOWS_SOFT
+        passType: 13
+      - keywords: _CLUSTER_LIGHT_LOOP _MAIN_LIGHT_SHADOWS_SCREEN
+        passType: 13
+  - first: {fileID: 4800000, guid: 933532a4fcc9baf4fa0491de14d08ed7, type: 3}
+    second:
+      variants:
+      - keywords: 
+        passType: 8
+      - keywords: INSTANCING_ON
+        passType: 8
+      - keywords: INSTANCING_ON _ALPHATEST_ON
+        passType: 8
+      - keywords: _ALPHATEST_ON
+        passType: 8
+      - keywords: 
+        passType: 13
+      - keywords: DOTS_INSTANCING_ON REFLECTION_PROBE_ROTATION USE_LEGACY_LIGHTMAPS
+          _ADDITIONAL_LIGHT_SHADOWS _CLUSTER_LIGHT_LOOP _LIGHT_LAYERS _MAIN_LIGHT_SHADOWS_SCREEN
+          _REFLECTION_PROBE_ATLAS _REFLECTION_PROBE_BLENDING _REFLECTION_PROBE_BOX_PROJECTION
+          _SCREEN_SPACE_OCCLUSION _SHADOWS_SOFT
+        passType: 13
+      - keywords: DOTS_INSTANCING_ON USE_LEGACY_LIGHTMAPS _CLUSTER_LIGHT_LOOP _LIGHT_LAYERS
+          _MAIN_LIGHT_SHADOWS_SCREEN
+        passType: 13
+      - keywords: INSTANCING_ON REFLECTION_PROBE_ROTATION USE_LEGACY_LIGHTMAPS _ADDITIONAL_LIGHT_SHADOWS
+          _ALPHATEST_ON _CLUSTER_LIGHT_LOOP _LIGHT_LAYERS _MAIN_LIGHT_SHADOWS_SCREEN
+          _NORMALMAP _REFLECTION_PROBE_ATLAS _REFLECTION_PROBE_BLENDING _REFLECTION_PROBE_BOX_PROJECTION
+          _SCREEN_SPACE_OCCLUSION _SHADOWS_SOFT
+        passType: 13
+      - keywords: INSTANCING_ON REFLECTION_PROBE_ROTATION USE_LEGACY_LIGHTMAPS _ADDITIONAL_LIGHT_SHADOWS
+          _CLUSTER_LIGHT_LOOP _DETAIL_MULX2 _LIGHT_LAYERS _MAIN_LIGHT_SHADOWS_SCREEN
+          _METALLICSPECGLOSSMAP _NORMALMAP _OCCLUSIONMAP _REFLECTION_PROBE_ATLAS
+          _REFLECTION_PROBE_BLENDING _REFLECTION_PROBE_BOX_PROJECTION _SCREEN_SPACE_OCCLUSION
+          _SHADOWS_SOFT
+        passType: 13
+      - keywords: INSTANCING_ON REFLECTION_PROBE_ROTATION USE_LEGACY_LIGHTMAPS _ADDITIONAL_LIGHT_SHADOWS
+          _CLUSTER_LIGHT_LOOP _LIGHT_LAYERS _MAIN_LIGHT_SHADOWS_SCREEN _METALLICSPECGLOSSMAP
+          _NORMALMAP _OCCLUSIONMAP _REFLECTION_PROBE_ATLAS _REFLECTION_PROBE_BLENDING
+          _REFLECTION_PROBE_BOX_PROJECTION _SCREEN_SPACE_OCCLUSION _SHADOWS_SOFT
+        passType: 13
+      - keywords: INSTANCING_ON USE_LEGACY_LIGHTMAPS _CLUSTER_LIGHT_LOOP _DETAIL_MULX2
+          _LIGHT_LAYERS _MAIN_LIGHT_SHADOWS_SCREEN _NORMALMAP
+        passType: 13
+      - keywords: INSTANCING_ON USE_LEGACY_LIGHTMAPS _CLUSTER_LIGHT_LOOP _LIGHT_LAYERS
+          _MAIN_LIGHT_SHADOWS_SCREEN _NORMALMAP
+        passType: 13
+      - keywords: INSTANCING_ON _ALPHATEST_ON _NORMALMAP
+        passType: 13
+      - keywords: INSTANCING_ON _DETAIL_MULX2 _NORMALMAP
+        passType: 13
+      - keywords: INSTANCING_ON _NORMALMAP
+        passType: 13
+      - keywords: LOD_FADE_CROSSFADE REFLECTION_PROBE_ROTATION USE_LEGACY_LIGHTMAPS
+          _ADDITIONAL_LIGHT_SHADOWS _ALPHATEST_ON _CLUSTER_LIGHT_LOOP _LIGHT_LAYERS
+          _MAIN_LIGHT_SHADOWS_SCREEN _NORMALMAP _REFLECTION_PROBE_ATLAS _REFLECTION_PROBE_BLENDING
+          _REFLECTION_PROBE_BOX_PROJECTION _SCREEN_SPACE_OCCLUSION _SHADOWS_SOFT
+        passType: 13
+      - keywords: LOD_FADE_CROSSFADE REFLECTION_PROBE_ROTATION USE_LEGACY_LIGHTMAPS
+          _ADDITIONAL_LIGHT_SHADOWS _CLUSTER_LIGHT_LOOP _DETAIL_MULX2 _LIGHT_LAYERS
+          _MAIN_LIGHT_SHADOWS_SCREEN _METALLICSPECGLOSSMAP _NORMALMAP _OCCLUSIONMAP
+          _REFLECTION_PROBE_ATLAS _REFLECTION_PROBE_BLENDING _REFLECTION_PROBE_BOX_PROJECTION
+          _SCREEN_SPACE_OCCLUSION _SHADOWS_SOFT
+        passType: 13
+      - keywords: LOD_FADE_CROSSFADE REFLECTION_PROBE_ROTATION USE_LEGACY_LIGHTMAPS
+          _ADDITIONAL_LIGHT_SHADOWS _CLUSTER_LIGHT_LOOP _LIGHT_LAYERS _MAIN_LIGHT_SHADOWS_SCREEN
+          _METALLICSPECGLOSSMAP _NORMALMAP _OCCLUSIONMAP _REFLECTION_PROBE_ATLAS
+          _REFLECTION_PROBE_BLENDING _REFLECTION_PROBE_BOX_PROJECTION _SCREEN_SPACE_OCCLUSION
+          _SHADOWS_SOFT
+        passType: 13
+      - keywords: LOD_FADE_CROSSFADE USE_LEGACY_LIGHTMAPS _CLUSTER_LIGHT_LOOP _DETAIL_MULX2
+          _LIGHT_LAYERS _MAIN_LIGHT_SHADOWS_SCREEN _NORMALMAP
+        passType: 13
+      - keywords: LOD_FADE_CROSSFADE USE_LEGACY_LIGHTMAPS _CLUSTER_LIGHT_LOOP _LIGHT_LAYERS
+          _MAIN_LIGHT_SHADOWS_SCREEN _NORMALMAP
+        passType: 13
+      - keywords: LOD_FADE_CROSSFADE _ALPHATEST_ON _NORMALMAP
+        passType: 13
+      - keywords: LOD_FADE_CROSSFADE _DETAIL_MULX2 _NORMALMAP
+        passType: 13
+      - keywords: LOD_FADE_CROSSFADE _NORMALMAP
+        passType: 13
+      - keywords: REFLECTION_PROBE_ROTATION USE_LEGACY_LIGHTMAPS _ADDITIONAL_LIGHT_SHADOWS
+          _ALPHATEST_ON _CLUSTER_LIGHT_LOOP _LIGHT_LAYERS _MAIN_LIGHT_SHADOWS_SCREEN
+          _NORMALMAP _REFLECTION_PROBE_ATLAS _REFLECTION_PROBE_BLENDING _REFLECTION_PROBE_BOX_PROJECTION
+          _SCREEN_SPACE_OCCLUSION _SHADOWS_SOFT
+        passType: 13
+      - keywords: REFLECTION_PROBE_ROTATION USE_LEGACY_LIGHTMAPS _ADDITIONAL_LIGHT_SHADOWS
+          _CLUSTER_LIGHT_LOOP _DETAIL_MULX2 _LIGHT_LAYERS _MAIN_LIGHT_SHADOWS_SCREEN
+          _METALLICSPECGLOSSMAP _NORMALMAP _OCCLUSIONMAP _REFLECTION_PROBE_ATLAS
+          _REFLECTION_PROBE_BLENDING _REFLECTION_PROBE_BOX_PROJECTION _SCREEN_SPACE_OCCLUSION
+          _SHADOWS_SOFT
+        passType: 13
+      - keywords: REFLECTION_PROBE_ROTATION USE_LEGACY_LIGHTMAPS _ADDITIONAL_LIGHT_SHADOWS
+          _CLUSTER_LIGHT_LOOP _EMISSION _LIGHT_LAYERS _MAIN_LIGHT_SHADOWS_SCREEN
+          _REFLECTION_PROBE_ATLAS _REFLECTION_PROBE_BLENDING _REFLECTION_PROBE_BOX_PROJECTION
+          _SCREEN_SPACE_OCCLUSION _SHADOWS_SOFT
+        passType: 13
+      - keywords: REFLECTION_PROBE_ROTATION USE_LEGACY_LIGHTMAPS _ADDITIONAL_LIGHT_SHADOWS
+          _CLUSTER_LIGHT_LOOP _LIGHT_LAYERS _MAIN_LIGHT_SHADOWS_SCREEN _METALLICSPECGLOSSMAP
+          _NORMALMAP _OCCLUSIONMAP _REFLECTION_PROBE_ATLAS _REFLECTION_PROBE_BLENDING
+          _REFLECTION_PROBE_BOX_PROJECTION _SCREEN_SPACE_OCCLUSION _SHADOWS_SOFT
+        passType: 13
+      - keywords: REFLECTION_PROBE_ROTATION USE_LEGACY_LIGHTMAPS _ADDITIONAL_LIGHT_SHADOWS
+          _CLUSTER_LIGHT_LOOP _LIGHT_LAYERS _MAIN_LIGHT_SHADOWS_SCREEN _REFLECTION_PROBE_ATLAS
+          _REFLECTION_PROBE_BLENDING _REFLECTION_PROBE_BOX_PROJECTION _SCREEN_SPACE_OCCLUSION
+          _SHADOWS_SOFT
+        passType: 13
+      - keywords: USE_LEGACY_LIGHTMAPS _CLUSTER_LIGHT_LOOP _DETAIL_MULX2 _LIGHT_LAYERS
+          _MAIN_LIGHT_SHADOWS_SCREEN _NORMALMAP
+        passType: 13
+      - keywords: USE_LEGACY_LIGHTMAPS _CLUSTER_LIGHT_LOOP _LIGHT_LAYERS _MAIN_LIGHT_SHADOWS_SCREEN
+        passType: 13
+      - keywords: USE_LEGACY_LIGHTMAPS _CLUSTER_LIGHT_LOOP _LIGHT_LAYERS _MAIN_LIGHT_SHADOWS_SCREEN
+          _NORMALMAP
+        passType: 13
+      - keywords: _ALPHAPREMULTIPLY_ON _METALLICSPECGLOSSMAP _NORMALMAP _SURFACE_TYPE_TRANSPARENT
+        passType: 13
+      - keywords: _ALPHATEST_ON
+        passType: 13
+      - keywords: _ALPHATEST_ON _METALLICSPECGLOSSMAP _NORMALMAP
+        passType: 13
+      - keywords: _DETAIL_MULX2 _NORMALMAP
+        passType: 13
+      - keywords: _EMISSION
+        passType: 13
+      - keywords: _EMISSION _NORMALMAP
+        passType: 13
+      - keywords: _METALLICSPECGLOSSMAP
+        passType: 13
+      - keywords: _METALLICSPECGLOSSMAP _NORMALMAP
+        passType: 13
+      - keywords: _METALLICSPECGLOSSMAP _NORMALMAP _OCCLUSIONMAP
+        passType: 13
+      - keywords: _NORMALMAP
+        passType: 13
+      - keywords: _NORMALMAP _SPECULAR_SETUP
+        passType: 13
+      - keywords: _SURFACE_TYPE_TRANSPARENT
+        passType: 13
+  - first: {fileID: 4800000, guid: 8d2bb70cbf9db8d4da26e15b26e74248, type: 3}
+    second:
+      variants:
+      - keywords: 
+        passType: 8
+      - keywords: DOTS_INSTANCING_ON
+        passType: 8
+      - keywords: DOTS_INSTANCING_ON
+        passType: 13
+      - keywords: DOTS_INSTANCING_ON REFLECTION_PROBE_ROTATION USE_LEGACY_LIGHTMAPS
+          _ADDITIONAL_LIGHT_SHADOWS _CLUSTER_LIGHT_LOOP _EMISSION _LIGHT_LAYERS _MAIN_LIGHT_SHADOWS_SCREEN
+          _SCREEN_SPACE_OCCLUSION _SHADOWS_SOFT
+        passType: 13
+      - keywords: DOTS_INSTANCING_ON USE_LEGACY_LIGHTMAPS _CLUSTER_LIGHT_LOOP _LIGHT_LAYERS
+          _MAIN_LIGHT_SHADOWS_SCREEN
+        passType: 13
+      - keywords: _EMISSION
+        passType: 13
+  - first: {fileID: 4800000, guid: 8fbe92a9edfe6074e841d6dd1509bc59, type: 3}
+    second:
+      variants:
+      - keywords: _MASKMAP
+        passType: 0
+  - first: {fileID: -6465566751694194690, guid: d80e0e6749cdf9a40ada1c79016b3a8b, type: 3}
+    second:
+      variants:
+      - keywords: 
+        passType: 8
+      - keywords: DOTS_INSTANCING_ON REFLECTION_PROBE_ROTATION USE_LEGACY_LIGHTMAPS
+          _ADDITIONAL_LIGHT_SHADOWS _CLUSTER_LIGHT_LOOP _LIGHT_LAYERS _MAIN_LIGHT_SHADOWS_CASCADE
+          _REFLECTION_PROBE_ATLAS _REFLECTION_PROBE_BLENDING _REFLECTION_PROBE_BOX_PROJECTION
+          _SCREEN_SPACE_OCCLUSION _SHADOWS_SOFT
+        passType: 13
+      - keywords: DOTS_INSTANCING_ON REFLECTION_PROBE_ROTATION USE_LEGACY_LIGHTMAPS
+          _CLUSTER_LIGHT_LOOP _MAIN_LIGHT_SHADOWS_CASCADE
+        passType: 13
+  - first: {fileID: -6465566751694194690, guid: 896c4566c534d544085eac02e8d305d9, type: 3}
+    second:
+      variants:
+      - keywords: INSTANCING_ON _PW_SF_COVER_ON _PW_SF_WORLDMAP_ON
+        passType: 8
+      - keywords: _PW_SF_COVER_ON _PW_SF_WORLDMAP_ON
+        passType: 8
+      - keywords: INSTANCING_ON REFLECTION_PROBE_ROTATION USE_LEGACY_LIGHTMAPS _ADDITIONAL_LIGHT_SHADOWS
+          _CLUSTER_LIGHT_LOOP _LIGHT_LAYERS _MAIN_LIGHT_SHADOWS_SCREEN _PW_SF_COVER_ON
+          _PW_SF_WORLDMAP_ON _REFLECTION_PROBE_ATLAS _REFLECTION_PROBE_BLENDING _REFLECTION_PROBE_BOX_PROJECTION
+          _SCREEN_SPACE_OCCLUSION _SHADOWS_SOFT
+        passType: 13
+      - keywords: INSTANCING_ON REFLECTION_PROBE_ROTATION USE_LEGACY_LIGHTMAPS _CLUSTER_LIGHT_LOOP
+          _MAIN_LIGHT_SHADOWS_SCREEN _PW_SF_COVER_ON _PW_SF_WORLDMAP_ON
+        passType: 13
+      - keywords: INSTANCING_ON _PW_SF_COVER_ON _PW_SF_WORLDMAP_ON
+        passType: 13
+      - keywords: REFLECTION_PROBE_ROTATION USE_LEGACY_LIGHTMAPS _ADDITIONAL_LIGHT_SHADOWS
+          _CLUSTER_LIGHT_LOOP _LIGHT_LAYERS _MAIN_LIGHT_SHADOWS_SCREEN _PW_SF_COVER_ON
+          _PW_SF_WORLDMAP_ON _REFLECTION_PROBE_ATLAS _REFLECTION_PROBE_BLENDING _REFLECTION_PROBE_BOX_PROJECTION
+          _SCREEN_SPACE_OCCLUSION _SHADOWS_SOFT
+        passType: 13
+      - keywords: REFLECTION_PROBE_ROTATION USE_LEGACY_LIGHTMAPS _CLUSTER_LIGHT_LOOP
+          _MAIN_LIGHT_SHADOWS_SCREEN _PW_SF_COVER_ON _PW_SF_WORLDMAP_ON
+        passType: 13
+  - first: {fileID: 4800000, guid: 08f44dc3a92106b43a4701f373a3cd87, type: 3}
+    second:
+      variants:
+      - keywords: 
+        passType: 8
+      - keywords: INSTANCING_ON
+        passType: 8
+      - keywords: INSTANCING_ON REFLECTION_PROBE_ROTATION _ADDITIONAL_LIGHT_SHADOWS
+          _CLUSTER_LIGHT_LOOP _LIGHT_LAYERS _MAIN_LIGHT_SHADOWS_SCREEN _MASKMAP _NORMALMAP
+          _REFLECTION_PROBE_ATLAS _REFLECTION_PROBE_BLENDING _SCREEN_SPACE_OCCLUSION
+          _SHADOWS_SOFT _TERRAIN_INSTANCED_PERPIXEL_NORMAL
+        passType: 13
+      - keywords: INSTANCING_ON _CLUSTER_LIGHT_LOOP _LIGHT_LAYERS _MAIN_LIGHT_SHADOWS_SCREEN
+          _NORMALMAP _TERRAIN_INSTANCED_PERPIXEL_NORMAL
+        passType: 13
+      - keywords: INSTANCING_ON _NORMALMAP
+        passType: 13
+      - keywords: _TERRAIN_INSTANCED_PERPIXEL_NORMAL
+        passType: 13
+  - first: {fileID: 4800000, guid: 46517dd443c5bf044aaa82193fc2e307, type: 3}
+    second:
+      variants:
+      - keywords: INSTANCING_ON
+        passType: 8
+  - first: {fileID: 4800000, guid: 895c9e2b082695a438b80b767c781ec0, type: 3}
+    second:
+      variants:
+      - keywords: 
+        passType: 13
+      - keywords: INSTANCING_ON REFLECTION_PROBE_ROTATION _ADDITIONAL_LIGHT_SHADOWS
+          _CLUSTER_LIGHT_LOOP _LIGHT_LAYERS _MAIN_LIGHT_SHADOWS_SCREEN _MASKMAP _NORMALMAP
+          _REFLECTION_PROBE_ATLAS _REFLECTION_PROBE_BLENDING _SCREEN_SPACE_OCCLUSION
+          _SHADOWS_SOFT _TERRAIN_INSTANCED_PERPIXEL_NORMAL
+        passType: 13
+      - keywords: INSTANCING_ON _CLUSTER_LIGHT_LOOP _LIGHT_LAYERS _MAIN_LIGHT_SHADOWS_SCREEN
+          _NORMALMAP _TERRAIN_INSTANCED_PERPIXEL_NORMAL
+        passType: 13
+  - first: {fileID: 4800000, guid: af097fde1bffdd44db71edb73f3bdce1, type: 3}
+    second:
+      variants:
+      - keywords: 
+        passType: 8
+      - keywords: DOTS_INSTANCING_ON
+        passType: 8
+      - keywords: INSTANCING_ON
+        passType: 8
+      - keywords: INSTANCING_ON _ALPHATEST_ON
+        passType: 8
+      - keywords: _ALPHATEST_ON
+        passType: 8
+      - keywords: 
+        passType: 11
+      - keywords: 
+        passType: 12
+      - keywords: 
+        passType: 13
+      - keywords: DOTS_INSTANCING_ON
+        passType: 13
+      - keywords: DOTS_INSTANCING_ON REFLECTION_PROBE_ROTATION USE_LEGACY_LIGHTMAPS
+          _ADDITIONAL_LIGHT_SHADOWS _CLUSTER_LIGHT_LOOP _LIGHT_LAYERS _MAIN_LIGHT_SHADOWS_SCREEN
+          _METALLICSPECGLOSSMAP _NORMALMAP _REFLECTION_PROBE_ATLAS _REFLECTION_PROBE_BLENDING
+          _REFLECTION_PROBE_BOX_PROJECTION _SCREEN_SPACE_OCCLUSION _SHADOWS_SOFT
+        passType: 13
+      - keywords: DOTS_INSTANCING_ON REFLECTION_PROBE_ROTATION USE_LEGACY_LIGHTMAPS
+          _ADDITIONAL_LIGHT_SHADOWS _CLUSTER_LIGHT_LOOP _LIGHT_LAYERS _MAIN_LIGHT_SHADOWS_SCREEN
+          _REFLECTION_PROBE_ATLAS _REFLECTION_PROBE_BLENDING _REFLECTION_PROBE_BOX_PROJECTION
+          _SCREEN_SPACE_OCCLUSION _SHADOWS_SOFT
+        passType: 13
+      - keywords: DOTS_INSTANCING_ON USE_LEGACY_LIGHTMAPS _CLUSTER_LIGHT_LOOP _LIGHT_LAYERS
+          _MAIN_LIGHT_SHADOWS_SCREEN
+        passType: 13
+      - keywords: DOTS_INSTANCING_ON USE_LEGACY_LIGHTMAPS _CLUSTER_LIGHT_LOOP _LIGHT_LAYERS
+          _MAIN_LIGHT_SHADOWS_SCREEN _NORMALMAP
+        passType: 13
+      - keywords: DOTS_INSTANCING_ON _NORMALMAP
+        passType: 13
+      - keywords: INSTANCING_ON REFLECTION_PROBE_ROTATION USE_LEGACY_LIGHTMAPS _ADDITIONAL_LIGHT_SHADOWS
+          _ALPHATEST_ON _CLUSTER_LIGHT_LOOP _LIGHT_LAYERS _MAIN_LIGHT_SHADOWS_SCREEN
+          _METALLICSPECGLOSSMAP _NORMALMAP _OCCLUSIONMAP _REFLECTION_PROBE_ATLAS
+          _REFLECTION_PROBE_BLENDING _REFLECTION_PROBE_BOX_PROJECTION _SCREEN_SPACE_OCCLUSION
+          _SHADOWS_SOFT
+        passType: 13
+      - keywords: INSTANCING_ON REFLECTION_PROBE_ROTATION USE_LEGACY_LIGHTMAPS _ADDITIONAL_LIGHT_SHADOWS
+          _ALPHATEST_ON _CLUSTER_LIGHT_LOOP _LIGHT_LAYERS _MAIN_LIGHT_SHADOWS_SCREEN
+          _NORMALMAP _REFLECTION_PROBE_ATLAS _REFLECTION_PROBE_BLENDING _REFLECTION_PROBE_BOX_PROJECTION
+          _SCREEN_SPACE_OCCLUSION _SHADOWS_SOFT
+        passType: 13
+      - keywords: INSTANCING_ON REFLECTION_PROBE_ROTATION USE_LEGACY_LIGHTMAPS _ADDITIONAL_LIGHT_SHADOWS
+          _CLUSTER_LIGHT_LOOP _LIGHT_LAYERS _MAIN_LIGHT_SHADOWS_SCREEN _METALLICSPECGLOSSMAP
+          _NORMALMAP _OCCLUSIONMAP _REFLECTION_PROBE_ATLAS _REFLECTION_PROBE_BLENDING
+          _REFLECTION_PROBE_BOX_PROJECTION _SCREEN_SPACE_OCCLUSION _SHADOWS_SOFT
+        passType: 13
+      - keywords: INSTANCING_ON USE_LEGACY_LIGHTMAPS _CLUSTER_LIGHT_LOOP _LIGHT_LAYERS
+          _MAIN_LIGHT_SHADOWS_SCREEN _NORMALMAP
+        passType: 13
+      - keywords: INSTANCING_ON _ALPHATEST_ON _NORMALMAP
+        passType: 13
+      - keywords: INSTANCING_ON _NORMALMAP
+        passType: 13
+      - keywords: LOD_FADE_CROSSFADE REFLECTION_PROBE_ROTATION USE_LEGACY_LIGHTMAPS
+          _ADDITIONAL_LIGHT_SHADOWS _ALPHATEST_ON _CLUSTER_LIGHT_LOOP _LIGHT_LAYERS
+          _MAIN_LIGHT_SHADOWS_SCREEN _METALLICSPECGLOSSMAP _NORMALMAP _OCCLUSIONMAP
+          _REFLECTION_PROBE_ATLAS _REFLECTION_PROBE_BLENDING _REFLECTION_PROBE_BOX_PROJECTION
+          _SCREEN_SPACE_OCCLUSION _SHADOWS_SOFT
+        passType: 13
+      - keywords: LOD_FADE_CROSSFADE REFLECTION_PROBE_ROTATION USE_LEGACY_LIGHTMAPS
+          _ADDITIONAL_LIGHT_SHADOWS _ALPHATEST_ON _CLUSTER_LIGHT_LOOP _LIGHT_LAYERS
+          _MAIN_LIGHT_SHADOWS_SCREEN _NORMALMAP _REFLECTION_PROBE_ATLAS _REFLECTION_PROBE_BLENDING
+          _REFLECTION_PROBE_BOX_PROJECTION _SCREEN_SPACE_OCCLUSION _SHADOWS_SOFT
+        passType: 13
+      - keywords: LOD_FADE_CROSSFADE REFLECTION_PROBE_ROTATION USE_LEGACY_LIGHTMAPS
+          _ADDITIONAL_LIGHT_SHADOWS _CLUSTER_LIGHT_LOOP _LIGHT_LAYERS _MAIN_LIGHT_SHADOWS_SCREEN
+          _METALLICSPECGLOSSMAP _NORMALMAP _OCCLUSIONMAP _REFLECTION_PROBE_ATLAS
+          _REFLECTION_PROBE_BLENDING _REFLECTION_PROBE_BOX_PROJECTION _SCREEN_SPACE_OCCLUSION
+          _SHADOWS_SOFT
+        passType: 13
+      - keywords: LOD_FADE_CROSSFADE USE_LEGACY_LIGHTMAPS _CLUSTER_LIGHT_LOOP _LIGHT_LAYERS
+          _MAIN_LIGHT_SHADOWS_SCREEN _NORMALMAP
+        passType: 13
+      - keywords: LOD_FADE_CROSSFADE _ALPHATEST_ON _NORMALMAP
+        passType: 13
+      - keywords: LOD_FADE_CROSSFADE _NORMALMAP
+        passType: 13
+      - keywords: REFLECTION_PROBE_ROTATION USE_LEGACY_LIGHTMAPS _ADDITIONAL_LIGHT_SHADOWS
+          _ALPHATEST_ON _CLUSTER_LIGHT_LOOP _LIGHT_LAYERS _MAIN_LIGHT_SHADOWS_SCREEN
+          _METALLICSPECGLOSSMAP _NORMALMAP _OCCLUSIONMAP _REFLECTION_PROBE_ATLAS
+          _REFLECTION_PROBE_BLENDING _REFLECTION_PROBE_BOX_PROJECTION _SCREEN_SPACE_OCCLUSION
+          _SHADOWS_SOFT
+        passType: 13
+      - keywords: REFLECTION_PROBE_ROTATION USE_LEGACY_LIGHTMAPS _ADDITIONAL_LIGHT_SHADOWS
+          _ALPHATEST_ON _CLUSTER_LIGHT_LOOP _LIGHT_LAYERS _MAIN_LIGHT_SHADOWS_SCREEN
+          _NORMALMAP _REFLECTION_PROBE_ATLAS _REFLECTION_PROBE_BLENDING _REFLECTION_PROBE_BOX_PROJECTION
+          _SCREEN_SPACE_OCCLUSION _SHADOWS_SOFT
+        passType: 13
+      - keywords: REFLECTION_PROBE_ROTATION USE_LEGACY_LIGHTMAPS _ADDITIONAL_LIGHT_SHADOWS
+          _CLUSTER_LIGHT_LOOP _LIGHT_LAYERS _MAIN_LIGHT_SHADOWS_SCREEN _METALLICSPECGLOSSMAP
+          _NORMALMAP _OCCLUSIONMAP _REFLECTION_PROBE_ATLAS _REFLECTION_PROBE_BLENDING
+          _REFLECTION_PROBE_BOX_PROJECTION _SCREEN_SPACE_OCCLUSION _SHADOWS_SOFT
+        passType: 13
+      - keywords: REFLECTION_PROBE_ROTATION USE_LEGACY_LIGHTMAPS _ADDITIONAL_LIGHT_SHADOWS
+          _CLUSTER_LIGHT_LOOP _LIGHT_LAYERS _MAIN_LIGHT_SHADOWS_SCREEN _METALLICSPECGLOSSMAP
+          _NORMALMAP _REFLECTION_PROBE_ATLAS _REFLECTION_PROBE_BLENDING _REFLECTION_PROBE_BOX_PROJECTION
+          _SCREEN_SPACE_OCCLUSION _SHADOWS_SOFT
+        passType: 13
+      - keywords: USE_LEGACY_LIGHTMAPS _CLUSTER_LIGHT_LOOP _LIGHT_LAYERS _MAIN_LIGHT_SHADOWS_SCREEN
+          _NORMALMAP
+        passType: 13
+      - keywords: _ALPHATEST_ON _EMISSION
+        passType: 13
+      - keywords: _ALPHATEST_ON _METALLICSPECGLOSSMAP _NORMALMAP
+        passType: 13
+      - keywords: _ALPHATEST_ON _METALLICSPECGLOSSMAP _NORMALMAP _OCCLUSIONMAP
+        passType: 13
+      - keywords: _ALPHATEST_ON _NORMALMAP
+        passType: 13
+      - keywords: _DETAIL_MULX2 _EMISSION _NORMALMAP
+        passType: 13
+      - keywords: _DETAIL_MULX2 _EMISSION _NORMALMAP _OCCLUSIONMAP _SMOOTHNESS_TEXTURE_ALBEDO_CHANNEL_A
+        passType: 13
+      - keywords: _EMISSION _NORMALMAP
+        passType: 13
+      - keywords: _ENVIRONMENTREFLECTIONS_OFF _METALLICSPECGLOSSMAP _NORMALMAP _OCCLUSIONMAP
+        passType: 13
+      - keywords: _METALLICSPECGLOSSMAP _NORMALMAP
+        passType: 13
+      - keywords: _METALLICSPECGLOSSMAP _NORMALMAP _OCCLUSIONMAP
+        passType: 13
+      - keywords: _METALLICSPECGLOSSMAP _NORMALMAP _OCCLUSIONMAP _PARALLAXMAP
+        passType: 13
+      - keywords: _NORMALMAP
+        passType: 13
+      - keywords: _NORMALMAP _OCCLUSIONMAP _SMOOTHNESS_TEXTURE_ALBEDO_CHANNEL_A
+        passType: 13
+      - keywords: _NORMALMAP _SPECULAR_SETUP
+        passType: 13
+  - first: {fileID: 4800000, guid: e8683263e4e2fe24a92a6d1a654a3fa0, type: 3}
+    second:
+      variants:
+      - keywords: 
+        passType: 13
+  - first: {fileID: 4800000, guid: b28b4ccf675226b4fb3b743cde719709, type: 3}
+    second:
+      variants:
+      - keywords: 
+        passType: 8
+      - keywords: 
+        passType: 13
+  - first: {fileID: -6465566751694194690, guid: cf5293b2ac823784cbb8124f5559184b, type: 3}
+    second:
+      variants:
+      - keywords: 
+        passType: 8
+      - keywords: 
+        passType: 13
+  - first: {fileID: -6465566751694194690, guid: 0e756dc06eb549a49b3c3fce62d83354, type: 3}
+    second:
+      variants:
+      - keywords: 
+        passType: 8
+      - keywords: 
+        passType: 13
+  - first: {fileID: -6465566751694194690, guid: 92a9a6f3cbdda914ea854db438bd43d0, type: 3}
+    second:
+      variants:
+      - keywords: 
+        passType: 8
+      - keywords: 
+        passType: 13
+  - first: {fileID: -6465566751694194690, guid: a138a536e95d2884a943268865653be7, type: 3}
+    second:
+      variants:
+      - keywords: 
+        passType: 8
+      - keywords: INSTANCING_ON
+        passType: 8
+      - keywords: 
+        passType: 13
+  - first: {fileID: -6465566751694194690, guid: 5848924c68c76b345ae28212293c7ca9, type: 3}
+    second:
+      variants:
+      - keywords: 
+        passType: 8
+      - keywords: 
+        passType: 13
+  - first: {fileID: -6465566751694194690, guid: 7dfed626494d2474697d2c01d0a2fe6d, type: 3}
+    second:
+      variants:
+      - keywords: 
+        passType: 8
+      - keywords: 
+        passType: 13
+  - first: {fileID: -6465566751694194690, guid: c504423d8bd8c97499d5272402c75b27, type: 3}
+    second:
+      variants:
+      - keywords: 
+        passType: 8
+      - keywords: 
+        passType: 13
+  - first: {fileID: -6465566751694194690, guid: a753796a40126c444a80705577c0994d, type: 3}
+    second:
+      variants:
+      - keywords: 
+        passType: 8
+      - keywords: 
+        passType: 13
+  - first: {fileID: 4800000, guid: a7a15b79a2588ad4e8e36711bebb81e8, type: 3}
+    second:
+      variants:
+      - keywords: INSTANCING_ON
+        passType: 8
+      - keywords: INSTANCING_ON
+        passType: 13
+      - keywords: INSTANCING_ON _ADDITIONAL_LIGHT_SHADOWS _LIGHT_LAYERS _MAIN_LIGHT_SHADOWS_SCREEN
+          _REFLECTION_PROBE_BLENDING _REFLECTION_PROBE_BOX_PROJECTION _SCREEN_SPACE_OCCLUSION
+          _SHADOWS_SOFT
+        passType: 13
+      - keywords: INSTANCING_ON _MAIN_LIGHT_SHADOWS_SCREEN
+        passType: 13
+  - first: {fileID: -6465566751694194690, guid: 163e46979a52c4f47ac6b9895fb5cca4, type: 3}
+    second:
+      variants:
+      - keywords: 
+        passType: 8
+      - keywords: 
+        passType: 13
+  - first: {fileID: -6465566751694194690, guid: df55908a02214a74e8c03efec07f9292, type: 3}
+    second:
+      variants:
+      - keywords: _FOGTYPE_EXP2 _USEDISTANCEFOG_ON _USEHEIGHTFOG_ON _USENOISE_ON
+          _USESKYBOXHEIGHTFOG_ON
+        passType: 0
+  - first: {fileID: -6465566751694194690, guid: 6cfd8ae44422c9842b98fc260a9bce21, type: 3}
+    second:
+      variants:
+      - keywords: _USESUNLIGHT_ON
+        passType: 0

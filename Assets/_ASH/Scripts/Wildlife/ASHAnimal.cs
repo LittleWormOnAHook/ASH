@@ -104,7 +104,7 @@ namespace ASH.Wildlife
             FindVitalBones();
             RollPersonality();
             _senseT = (GetHashCode() & 7) * 0.04f;
-            var anim = GetComponentInChildren<Animator>();
+            var anim = ASHWildlifeAnim.PickAnimator(gameObject); // t542: the Animator that has a controller, not a stray one
             if (anim) anim.applyRootMotion = false;
             _loco = GetComponent<ASHGroundLocomotion>();
             if (!_loco) _loco = gameObject.AddComponent<ASHGroundLocomotion>();

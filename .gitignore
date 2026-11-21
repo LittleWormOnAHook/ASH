@@ -144,3 +144,13 @@ desktop.ini
 /Assets/EasyRoads3D Assets.meta
 /Assets/EasyRoads3D scenes/
 /Assets/EasyRoads3D scenes.meta
+
+# Vendor: Bird Flocks + Birds (bird packs)
+/Assets/Bird Flocks/
+/Assets/Bird Flocks.meta
+/Assets/Birds/
+/Assets/Birds.meta
+
+# Generated from vendor packs by ASH setup menus (rebuilt on each machine)
+/Assets/_ASH/Generated/
+/Assets/_ASH/Generated.meta

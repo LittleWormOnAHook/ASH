@@ -45,7 +45,20 @@ float4 _ASH_Look3;        // t471: x sparkle density, y macro uv warp (repeats),
 float4 _ASH_AshColor2;    // t471: grey-brown ash variation colour (rgb), a amount
 float4 _ASH_Dust;           // x dusting height above the bank/layer top m, y fade m, z strength 0..1, w enabled
 
-float ASH_Hash(float2 p) { p = frac(p * float2(123.34, 456.21)); p += dot(p, p + 45.32); return frac(p.x * p.y); }
+float4 _ASH_Debug;        // t549 live debug (ASH_AccumulationLook > Debug): x drift mask off, y sparkle off, z slope mask off, w detail normal off
+float4 _ASH_Debug2;       // x layer (snow/ash) normal off, y ash grain + clumps off, z breakup noise off, w macro variation off
+float4 _ASH_Debug3;       // x old hash (shows the t549 stripes again), y ripple off
+// t549 fix: the old hash multiplied the cell coordinate by ~456 before frac(). At grain scale (30+ cells/m) a few hundred metres from
+// the origin that product exceeds float precision, frac() collapses and the "noise" turns into straight, evenly spaced diagonal stripes.
+float ASH_HashLegacy(float2 p) { p = frac(p * float2(123.34, 456.21)); p += dot(p, p + 45.32); return frac(p.x * p.y); }
+float ASH_Hash(float2 p)
+{
+    if (_ASH_Debug3.x > 0.5) return ASH_HashLegacy(p);
+    p = p - 4096.0 * floor(p / 4096.0);                 // wrap the cell index: precision-safe anywhere on the map
+    float3 p3 = frac(float3(p.x, p.y, p.x) * 0.1031);   // hash without sine (Hoskins), float-only (works on every shader target)
+    p3 += dot(p3, p3.yzx + 33.33);
+    return frac((p3.x + p3.y) * p3.z);
+}
 float ASH_Noise(float2 p)
 {
     float2 i = floor(p), f = frac(p); float2 u = f * f * (3.0 - 2.0 * f);
@@ -72,6 +85,7 @@ half4 ASH_DriftBicubic(float2 uv)
 
 half4 ASH_DriftUV(float2 uv)
 {
+    if (_ASH_Debug.x > 0.5) return half4(0.35, 0.5, 1, 0);
     half4 r = half4(0, 0, 0, 0);
     UNITY_BRANCH if (_ASH_Edge.w > 0.5 && _ASH_DriftTexel.z > 2.0) r = ASH_DriftBicubic(uv); // 4 taps
     else r = SAMPLE_TEXTURE2D_LOD(_ASH_DriftMask, sampler_ASH_DriftMask, uv, 0);
@@ -89,7 +103,7 @@ half4 ASH_DriftAt(float3 positionWS)
 half4 ASH_DriftAtFast(float3 positionWS)
 {
     float2 uv = (positionWS.xz - _ASH_TerrainRect.xy) * _ASH_TerrainRect.zw;
-    if (any(uv < 0) || any(uv > 1)) return half4(0.35, 0.5, 1, 0);
+    if (any(uv < 0) || any(uv > 1) || _ASH_Debug.x > 0.5) return half4(0.35, 0.5, 1, 0);
     return SAMPLE_TEXTURE2D_LOD(_ASH_DriftMask, sampler_ASH_DriftMask, uv, 0);
 }
 
@@ -217,12 +231,12 @@ void ASH_ApplyAccumulation(float3 positionWS, half3 geomNormalWS, half4 drift, h
 
     // upward-facing mask (coverage widens the accepted angle)
     half thr = _ASH_Surface.y - (_ASH_Surface.x - 1.0) * 0.35;
-    half up = saturate((geomNormalWS.y - thr) / max(_ASH_Surface.z, 0.01));
+    half up = _ASH_Debug.z > 0.5 ? 1.0 : saturate((geomNormalWS.y - thr) / max(_ASH_Surface.z, 0.01));
 
     // wind redistribution: drift mask depth (terrain lee/hollows) and windward faces of objects lose loose material
     half depthMask = lerp(0.5, drift.r, _ASH_Surface.w);
     half windLoss = _ASH_Surface.w * saturate(objectWindward) * 0.6;
-    half breakup = ASH_Breakup(positionWS.xz);
+    half breakup = _ASH_Debug2.z > 0.5 ? 0.0 : ASH_Breakup(positionWS.xz);
 
     // layer thicknesses (relative): ash on top, snow underneath (melt removes snow only); deformation removes from the top
     half deform = ASH_DeformAt(positionWS);
@@ -248,7 +262,7 @@ void ASH_ApplyAccumulation(float3 positionWS, half3 geomNormalWS, half4 drift, h
 
     float2 xz = positionWS.xz;
     // t471: macro patches (break up tiling: brightness + uv warp). Cheap value-noise fbm, no extra textures or passes.
-    half macro = _ASH_Look.x > 0.0 ? ASH_Fbm(xz * _ASH_Look.x) : 0.5;
+    half macro = (_ASH_Look.x > 0.0 && _ASH_Debug2.w < 0.5) ? ASH_Fbm(xz * _ASH_Look.x) : 0.5;
     float2 warp = (macro - 0.5) * _ASH_Look3.y;
     float2 uvS = xz / max(_ASH_Noise.w, 0.01) + warp, uvA = xz / max(_ASH_Noise.z, 0.01) - warp;
     half bias = _ASH_SurfTex2.x;
@@ -259,12 +273,12 @@ void ASH_ApplyAccumulation(float3 positionWS, half3 geomNormalWS, half4 drift, h
     // t471: ash colour variation from the texture itself (normalised to Ash Color), grey-brown clumps and fine grain
     half3 ashVar = lerp(half3(detail, detail, detail), clamp(ashS.rgb * max(_ASH_TexNorm.x, 0.01), 0.4, 1.8), _ASH_Look2.z);
     half3 ashTint = _ASH_AccumColor.rgb;
-    if (_ASH_AshColor2.a > 0.001)
+    if (_ASH_AshColor2.a > 0.001 && _ASH_Debug2.y < 0.5)
     {
         half clump = ASH_Noise(xz * max(_ASH_Look2.y, 1.0) * 0.17 + 7.3) * 0.7 + macro * 0.3;
         ashTint = lerp(ashTint, _ASH_AshColor2.rgb, _ASH_AshColor2.a * saturate(clump * 1.6 - 0.3));
     }
-    if (_ASH_Look2.x > 0.001)
+    if (_ASH_Look2.x > 0.001 && _ASH_Debug2.y < 0.5)
     {
         float2 g = xz * _ASH_Look2.y;
         half grain = ASH_Noise(g) * 0.65 + ASH_Noise(g * 0.31 + 11.7) * 0.35;
@@ -276,7 +290,7 @@ void ASH_ApplyAccumulation(float3 positionWS, half3 geomNormalWS, half4 drift, h
 
     // layer normal (tangent-space maps projected on world XZ around the un-mapped surface normal) + fine detail
     half3 layerN = geomNormalWS; half3 tn = half3(0, 0, 0);
-    if (_ASH_SurfTex2.y > 0.5)
+    if (_ASH_SurfTex2.y > 0.5 && _ASH_Debug2.x < 0.5)
     {
         half3 nS = UnpackNormalScale(SAMPLE_TEXTURE2D_BIAS(_ASH_SnowNrm, sampler_ASH_AshTex, uvS, bias), _ASH_SurfTex.x);
         half3 nA = UnpackNormalScale(SAMPLE_TEXTURE2D_BIAS(_ASH_AshNrm, sampler_ASH_AshTex, uvA, bias), _ASH_SurfTex.x);
@@ -287,16 +301,16 @@ void ASH_ApplyAccumulation(float3 positionWS, half3 geomNormalWS, half4 drift, h
         float2 uvD = xz / _ASH_SurfTex.y + warp;
         half dA = SAMPLE_TEXTURE2D_BIAS(_ASH_DetailTex, sampler_ASH_AshTex, uvD, bias).g;
         half m = lerp(1.0, dA * 2.0, _ASH_SurfTex.z); snowAlb *= m; ashAlb *= m;
-        tn.xy += UnpackNormalScale(SAMPLE_TEXTURE2D_BIAS(_ASH_DetailNrm, sampler_ASH_AshTex, uvD, bias), _ASH_SurfTex.w).xy;
+        if (_ASH_Debug.w < 0.5) tn.xy += UnpackNormalScale(SAMPLE_TEXTURE2D_BIAS(_ASH_DetailNrm, sampler_ASH_AshTex, uvD, bias), _ASH_SurfTex.w).xy;
     }
-    if (_ASH_Ripple.x > 0.001)
+    if (_ASH_Ripple.x > 0.001 && _ASH_Debug3.y < 0.5)
         tn.xy += UnpackNormalScale(SAMPLE_TEXTURE2D_BIAS(_ASH_RippleNrm, sampler_ASH_AshTex, xz / _ASH_Ripple.y + warp, bias), _ASH_Ripple.x).xy;
     // t471: thin dustings follow the ground; the bump grows to full strength with layer depth
     tn.xy *= lerp(1.0, saturate((ashLeft + snowLeft) / max(_ASH_Look3.z, 0.01)), _ASH_Look2.w);
     layerN = normalize(geomNormalWS + half3(tn.x, 0, tn.y));
 
     // t471: snow sparkle - sparse view-dependent glints (hash cells), faded with distance to avoid shimmer
-    if (_ASH_Look.z > 0.001)
+    if (_ASH_Look.z > 0.001 && _ASH_Debug.y < 0.5)
     {
         float3 toCam = _WorldSpaceCameraPos.xyz - positionWS; half dist = length(toCam); half3 V = toCam / max(dist, 0.001);
         half h = ASH_Hash(floor(xz * _ASH_Look.w) + floor(V.xz * 6.0 + V.y * 3.0) * 13.7);
