@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1a871b2eedceffe48b7eba0a11e20c34, type: 3}
   m_Name: ASH_CompanionSettings
   m_EditorClassIdentifier: Assembly-CSharp::ASH.Companion.ASHCompanionSettings
-  dogName: Scout
+  dogName: Taz
   dogCompassMarker: 1
   dogMarkerColor: {r: 0.55, g: 0.85, b: 1, a: 1}
   callCooldown: 8
@@ -41,8 +41,8 @@ MonoBehaviour:
   pawPrintDepth: 0.75
   pawBottomOffset: 0.03
   pawStepSounds: 1
-  pawStepVolume: 0.075
-  pawStepPitch: 1.35
+  pawStepVolume: 0.03
+  pawStepPitch: 1.23
   pawPlantHeight: 0.015
   pawLiftHeight: 0.03
   pawStepClips:
@@ -55,7 +55,7 @@ MonoBehaviour:
   maxStepUp: 0.45
   environmentLayers:
     serializedVersion: 2
-    m_Bits: 4294967259
+    m_Bits: 33554387
   bodyRadius: 0.24
   bodyLength: 0.6
   bodyHeight: 0.45
@@ -95,7 +95,7 @@ MonoBehaviour:
   digSeconds: {x: 4, y: 8}
   wFidget: 1.5
   peeEnabled: 1
-  wPee: 0.15
+  wPee: 4.96
   peeCooldown: 420
   peeOnTrees: 1
   peeOnCampfires: 1
@@ -114,7 +114,7 @@ MonoBehaviour:
   peeExtinguishChance: 0
   peeFuelHoursLost: 0
   faceDeadzone: 35
-  digFindChance: 0.04
+  digFindChance: 0.309
   digFindPerLevel: 0.002
   digFindKeenMul: 1.5
   digFindCooldown: 240
@@ -133,7 +133,7 @@ MonoBehaviour:
   - {fileID: 8300000, guid: fa76ebd91533bf0468ddea09f1badceb, type: 3}
   - {fileID: 8300000, guid: 4718a8597eadf56429739826435b17c5, type: 3}
   - {fileID: 8300000, guid: 77695d1315b73e04eae001ed8093a899, type: 3}
-  growlVolume: 0.9
+  growlVolume: 0.85
   growlPitchVariance: 0.08
   growlCooldown: 4
   growlOnWarn: 1
@@ -160,7 +160,7 @@ MonoBehaviour:
   warnCooldown: 12
   warnSeconds: 2
   dangerCompassMarkers: 1
-  dummyIsThreat: 0
+  dummyIsThreat: 1
   enemyTags:
   - Enemy
   maxHealth: 100

@@ -57,6 +57,8 @@ namespace ASH.World.Weather
         public bool debugOverride;
         public ASHWeatherKind debugState = ASHWeatherKind.HeavyAsh;
         [Range(0.5f, 120f)] public float debugTransitionSeconds = 6f;
+        [Tooltip("Editor: edits to the current weather profile asset show at once in Play (they always save; the asset is edited directly).")]
+        public bool liveProfileEdits = true;
 
         // ---- state
         ASHWeatherParams _from, _to, _cur; float _t = 1f, _dur = 1f; ASHWeatherKind _fromKind, _toKind;
@@ -116,6 +118,9 @@ namespace ASH.World.Weather
             _debugWas = debugOverride; _debugKindWas = debugState;
             if (!debugOverride && schedulerEnabled) Schedule();
 
+#if UNITY_EDITOR
+            if (liveProfileEdits) { var lp = Profile(_toKind); if (lp) { _to = lp.ToParams(); if (_t >= 1f) _from = _to; } }
+#endif
             if (_t < 1f) { _t = Mathf.Min(1f, _t + dt / _dur); }
             float k = transitionCurve != null && transitionCurve.length > 1 ? Mathf.Clamp01(transitionCurve.Evaluate(_t)) : _t;
             _cur = ASHWeatherParams.Lerp(_from, _to, k);

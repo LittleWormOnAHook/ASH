@@ -132,3 +132,15 @@ desktop.ini
 
 /Assets/Props Animations/
 /Assets/Props Animations.meta
+
+# Vendor: INab Studio (Better Fog)
+/Assets/INab Studio/
+/Assets/INab Studio.meta
+
+# Vendor: EasyRoads3D Pro
+/Assets/EasyRoads3D/
+/Assets/EasyRoads3D.meta
+/Assets/EasyRoads3D Assets/
+/Assets/EasyRoads3D Assets.meta
+/Assets/EasyRoads3D scenes/
+/Assets/EasyRoads3D scenes.meta

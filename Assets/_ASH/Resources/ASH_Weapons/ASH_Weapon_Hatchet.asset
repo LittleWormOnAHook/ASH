@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ASH.Combat.ASHWeaponData
   item: {fileID: 11400000, guid: 9d969f68cd66efe419e68a447220f35c, type: 2}
   kind: 0
-  damage: 26
+  damage: 9
   damageRandom: 4
   critChance: 0.12
   critMultiplier: 2

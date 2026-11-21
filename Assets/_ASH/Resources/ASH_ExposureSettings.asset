@@ -14,13 +14,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ASH.Survival.ASHExposureSettings
   clear: 0
   calmHazy: 0.1
-  lightAsh: 0.4
-  heavyAsh: 1
-  rainAsh: 0.6
+  lightAsh: 0.77
+  heavyAsh: 1.45
+  rainAsh: 0.39
   snowstorm: 0.15
   thunderstorm: 0.5
-  lightSnowMorning: 0
-  weatherBlendPerGameHour: 3
+  lightSnowMorning: 0.3
+  weatherBlendPerGameHour: 5.1
   healthDrainPerGameHour: 10
   staminaDrainPerGameHour: 0
   staminaRecoveryPenalty: 0.45
@@ -64,6 +64,8 @@ MonoBehaviour:
   coughVolume: 0.7
   coughExposure: 0.25
   coughIntervalSeconds: {x: 9, y: 22}
+  ragCoughHours: 0.5
+  ragEndingCoughIntervalSeconds: {x: 8, y: 18}
   lowHealthCoughIntervalSeconds: {x: 4, y: 9}
   breathingVolume: 0.35
   breathingMuffleHz: 1100

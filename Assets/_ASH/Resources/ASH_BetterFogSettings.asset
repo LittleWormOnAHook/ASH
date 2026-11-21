@@ -1,0 +1,68 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ae8d7732f330e9a48a08941b40fad45a, type: 3}
+  m_Name: ASH_BetterFogSettings
+  m_EditorClassIdentifier: Assembly-CSharp::ASH.Rendering.ASHBetterFogSettings
+  intensity: 0.439
+  indoorIntensity: 0.05
+  blendPerSecond: 0.6
+  replaceSceneFog: 1
+  disableOldVolumetricFog: 1
+  driveFromWeather: 1
+  saveProfileOnStop: 1
+  previewHour: 12
+  previewVisibility: 8000
+  densityMultiplier: 1
+  minDensity: 0.0015
+  maxDensity: 0.04
+  ashExtraDensity: 0.002
+  nightDensityMultiplier: 1.25
+  startOffset: 0
+  heightFog: 1
+  heightAboveGround: 6
+  ashExtraHeight: 30
+  snowExtraHeight: 12
+  heightDensityClear: 0.12
+  heightDensityAsh: 0.3
+  heightDensitySnow: 0.25
+  heightDensityRain: 0.22
+  morningMist: 0.08
+  morningMistHours: {x: 4.5, y: 9.5}
+  heightDensityMultiplier: 1
+  groundFollow: 0.5
+  dayColor: {r: 0.7011157, g: 0.7056604, b: 0.60047704, a: 1}
+  nightColor: {r: 0.13, g: 0.15, b: 0.2, a: 1}
+  dawnHours: {x: 5, y: 8}
+  duskHours: {x: 17.5, y: 20.5}
+  timeOfDayHue: 0.35
+  ashTint: {r: 0.509434, g: 0.35727242, b: 0.191278, a: 1}
+  snowTint: {r: 0.86, g: 0.89, b: 0.95, a: 1}
+  rainTint: {r: 0.62, g: 0.65, b: 0.7, a: 1}
+  tintStrength: 0.6
+  colorMultiplier: 1.28
+  cloudDarken: 0.135
+  minBrightnessDay: 0.35
+  minBrightnessNight: 0.12
+  flashBoost: 0.78
+  sunScatter: 1
+  sunIntensity: 0.35
+  sunPower: 4
+  skyboxFog: 1
+  skyFillClear: 0
+  skyFillThick: 0.85
+  skyHardness: 0.75
+  noise: 1
+  noiseClear: 0.15
+  noiseStorm: 0.5
+  noiseWindSpeed: 0.15
+  noiseScale: 45
+  noiseDistanceEnd: 120

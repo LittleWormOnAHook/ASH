@@ -42,6 +42,9 @@ namespace ASH.Player
         private void LateUpdate()
         {
             if (controller == null || stats == null) return;
+#if UNITY_EDITOR
+            if (Time.frameCount % 30 == 0) ApplyTuning(); // ASH: live tuning - Play-mode edits to ASH_SurvivalTuning reach Invector
+#endif
             stats.SetStaminaFromMotor(controller.currentStamina, controller.maxStamina);
             stats.IsSprinting = controller.isSprinting && controller.input.sqrMagnitude > 0.01f;
         }
