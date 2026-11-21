@@ -44,7 +44,7 @@ namespace ASH.EditorTools.Build
                 if (!item || !prefab) { Debug.LogWarning($"[ASH] Icon bake skipped {itemFile}: item={(bool)item} prefab={(bool)prefab}"); continue; }
                 string path = $"{IconDir}/{itemFile.Replace("ASH_Item_", "ASH_Icon_")}.png";
                 if (!Bake(prefab, path, 256, yaw)) { Debug.LogWarning("[ASH] Icon bake failed for " + itemFile); continue; }
-                item.icon = AssetDatabase.LoadAssetAtPath<Sprite>(path);
+                if (!ASH.EditorTools.ASHIconApply.IsArtIcon(item.icon)) item.icon = AssetDatabase.LoadAssetAtPath<Sprite>(path); // keep Rook art icons
                 EditorUtility.SetDirty(item);
                 n++;
             }
@@ -61,7 +61,7 @@ namespace ASH.EditorTools.Build
                 if (!item || !prefab) continue;
                 string icon = $"{IconDir}/{file.Replace("ASH_Item_", "ASH_Icon_")}.png";
                 if (!Bake(prefab, icon, 256, 35f)) { Debug.LogWarning("[ASH] Icon bake failed for " + file); continue; }
-                item.icon = AssetDatabase.LoadAssetAtPath<Sprite>(icon); EditorUtility.SetDirty(item); n++;
+                if (!ASH.EditorTools.ASHIconApply.IsArtIcon(item.icon)) item.icon = AssetDatabase.LoadAssetAtPath<Sprite>(icon); EditorUtility.SetDirty(item); n++; // keep Rook art icons
             }
             } finally { Shader.SetGlobalVector("_ASH_Layers", savedLayers); }
             ASHBuildUtil.SaveOwn();

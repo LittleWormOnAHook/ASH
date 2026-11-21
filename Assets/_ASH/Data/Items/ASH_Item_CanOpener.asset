@@ -15,11 +15,13 @@ MonoBehaviour:
   itemId: canopener
   displayName: Can Opener
   description: Opens cans cleanly and keeps the tin.
-  icon: {fileID: 21300000, guid: 9a6bc8cd8c70bfe48a51e0505cc9764b, type: 3}
+  icon: {fileID: 21300000, guid: 372bdd71ec2b56549a000b855921b70f, type: 3}
   uiTint: {r: 0.65, g: 0.65, b: 0.6, a: 1}
   category: 3
   maxStack: 1
+  sellValue: 0
   useVerb: Use
+  keyItem: 0
   restoreHunger: 0
   restoreThirst: 0
   restoreHealth: 0
@@ -27,6 +29,10 @@ MonoBehaviour:
   requiresOpener: 0
   smashedYield: 0.65
   leftoverItem: {fileID: 0}
+  sicknessChance: 0
+  sicknessHealthLoss: 8
+  sicknessThirstLoss: 10
+  sicknessHungerLoss: 6
   toolType: 3
   breakdownYield: []
   breakdownTool: 0
@@ -44,6 +50,7 @@ MonoBehaviour:
   gripStyle: 0
   heldScale: 1
   ammoItem: {fileID: 0}
+  containerLitres: 0
   fuelItem: {fileID: 0}
   fuelSecondsPerUnit: 480
   fuelCapacityUnits: 2

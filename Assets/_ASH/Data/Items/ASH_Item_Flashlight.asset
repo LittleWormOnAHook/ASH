@@ -15,11 +15,13 @@ MonoBehaviour:
   itemId: flashlight
   displayName: Flashlight
   description: Runs on batteries. Toggle with [L].
-  icon: {fileID: 21300000, guid: d361bac76777f554ab718f1dbef6aad8, type: 3}
+  icon: {fileID: 21300000, guid: 15c320dc9e5ff8d48ade0e5e9790f7ce, type: 3}
   uiTint: {r: 0.2, g: 0.2, b: 0.22, a: 1}
   category: 9
   maxStack: 1
+  sellValue: 0
   useVerb: Hold
+  keyItem: 0
   restoreHunger: 0
   restoreThirst: 0
   restoreHealth: 0
@@ -27,6 +29,10 @@ MonoBehaviour:
   requiresOpener: 0
   smashedYield: 0.65
   leftoverItem: {fileID: 0}
+  sicknessChance: 0
+  sicknessHealthLoss: 8
+  sicknessThirstLoss: 10
+  sicknessHungerLoss: 6
   toolType: 0
   breakdownYield: []
   breakdownTool: 0
@@ -44,6 +50,7 @@ MonoBehaviour:
   gripStyle: 3
   heldScale: 1
   ammoItem: {fileID: 0}
+  containerLitres: 0
   fuelItem: {fileID: 11400000, guid: f6d8077c5754d9745bd8915897b645e8, type: 2}
   fuelSecondsPerUnit: 1200
   fuelCapacityUnits: 1

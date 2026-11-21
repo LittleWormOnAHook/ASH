@@ -16,10 +16,11 @@ MonoBehaviour:
   displayName: Wooden Bow
   description: 'Self bow of seasoned ash wood. Quiet; arrows can be made. [hold:
     hotbar or cross bar, LMB shoots]'
-  icon: {fileID: 21300000, guid: 76c7b05d72499654cb47aa1838e95441, type: 3}
+  icon: {fileID: 21300000, guid: 27ab5fb5d8837504e88b57179681f753, type: 3}
   uiTint: {r: 0.5, g: 0.36, b: 0.22, a: 1}
   category: 7
   maxStack: 1
+  sellValue: 0
   useVerb: Hold
   keyItem: 0
   restoreHunger: 0
@@ -50,6 +51,7 @@ MonoBehaviour:
   gripStyle: 0
   heldScale: 0.88
   ammoItem: {fileID: 11400000, guid: a95128cdc7c3461438a6d741742178a3, type: 2}
+  containerLitres: 0
   fuelItem: {fileID: 0}
   fuelSecondsPerUnit: 480
   fuelCapacityUnits: 2

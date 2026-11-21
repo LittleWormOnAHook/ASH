@@ -15,11 +15,13 @@ MonoBehaviour:
   itemId: bandage
   displayName: Bandage
   description: Clean cloth bandage. Stops bleeding, restores some health.
-  icon: {fileID: 21300000, guid: 06faab8dffc4ec943bc58794b6a07e37, type: 3}
+  icon: {fileID: 21300000, guid: f72b0b0f2a218da4eb12afdf5f29d98d, type: 3}
   uiTint: {r: 0.9, g: 0.88, b: 0.82, a: 1}
   category: 5
   maxStack: 10
+  sellValue: 0
   useVerb: Apply
+  keyItem: 0
   restoreHunger: 0
   restoreThirst: 0
   restoreHealth: 15
@@ -27,6 +29,10 @@ MonoBehaviour:
   requiresOpener: 0
   smashedYield: 0.65
   leftoverItem: {fileID: 0}
+  sicknessChance: 0
+  sicknessHealthLoss: 8
+  sicknessThirstLoss: 10
+  sicknessHungerLoss: 6
   toolType: 0
   breakdownYield: []
   breakdownTool: 0
@@ -44,6 +50,7 @@ MonoBehaviour:
   gripStyle: 0
   heldScale: 1
   ammoItem: {fileID: 0}
+  containerLitres: 0
   fuelItem: {fileID: 0}
   fuelSecondsPerUnit: 480
   fuelCapacityUnits: 2

@@ -15,11 +15,13 @@ MonoBehaviour:
   itemId: deadrabbit
   displayName: Dead Rabbit
   description: Fresh. Needs a knife to harvest.
-  icon: {fileID: 21300000, guid: 0b5a580d595151442b7761a7f5b19825, type: 3}
+  icon: {fileID: 21300000, guid: 2a23dfcc820663e4a8b711e799fac784, type: 3}
   uiTint: {r: 0.5, g: 0.42, b: 0.35, a: 1}
   category: 4
   maxStack: 2
+  sellValue: 0
   useVerb: Use
+  keyItem: 0
   restoreHunger: 0
   restoreThirst: 0
   restoreHealth: 0
@@ -27,6 +29,10 @@ MonoBehaviour:
   requiresOpener: 0
   smashedYield: 0.65
   leftoverItem: {fileID: 0}
+  sicknessChance: 0
+  sicknessHealthLoss: 8
+  sicknessThirstLoss: 10
+  sicknessHungerLoss: 6
   toolType: 0
   breakdownYield:
   - item: {fileID: 11400000, guid: 49aeecd77bdc047408ab2bf59e2992fc, type: 2}
@@ -46,6 +52,7 @@ MonoBehaviour:
   gripStyle: 0
   heldScale: 1
   ammoItem: {fileID: 0}
+  containerLitres: 0
   fuelItem: {fileID: 0}
   fuelSecondsPerUnit: 480
   fuelCapacityUnits: 2

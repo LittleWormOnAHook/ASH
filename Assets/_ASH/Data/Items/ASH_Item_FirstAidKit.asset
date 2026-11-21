@@ -15,11 +15,13 @@ MonoBehaviour:
   itemId: firstaidkit
   displayName: First Aid Kit
   description: Gauze, tape and antiseptic wipes. Restores a lot of health.
-  icon: {fileID: 21300000, guid: bae7e0bc305c62c46bd70ba5cdba6abb, type: 3}
+  icon: {fileID: 21300000, guid: d831783698374674d98d2b2a1c1361af, type: 3}
   uiTint: {r: 0.75, g: 0.2, b: 0.18, a: 1}
   category: 5
   maxStack: 5
+  sellValue: 0
   useVerb: Apply
+  keyItem: 0
   restoreHunger: 0
   restoreThirst: 0
   restoreHealth: 45
@@ -27,6 +29,10 @@ MonoBehaviour:
   requiresOpener: 0
   smashedYield: 0.65
   leftoverItem: {fileID: 0}
+  sicknessChance: 0
+  sicknessHealthLoss: 8
+  sicknessThirstLoss: 10
+  sicknessHungerLoss: 6
   toolType: 0
   breakdownYield: []
   breakdownTool: 0
@@ -44,6 +50,7 @@ MonoBehaviour:
   gripStyle: 0
   heldScale: 1
   ammoItem: {fileID: 0}
+  containerLitres: 0
   fuelItem: {fileID: 0}
   fuelSecondsPerUnit: 480
   fuelCapacityUnits: 2

@@ -15,11 +15,13 @@ MonoBehaviour:
   itemId: radiatorhose
   displayName: Radiator Hose (optional)
   description: 'Optional truck content: undecided.'
-  icon: {fileID: 21300000, guid: d911d1b19f51a9a40ab733d55018c2cb, type: 3}
+  icon: {fileID: 21300000, guid: 12cc262065e0d36488eb6a2fc4f436ac, type: 3}
   uiTint: {r: 0.15, g: 0.15, b: 0.15, a: 1}
   category: 6
   maxStack: 2
+  sellValue: 0
   useVerb: Use
+  keyItem: 0
   restoreHunger: 0
   restoreThirst: 0
   restoreHealth: 0
@@ -27,6 +29,10 @@ MonoBehaviour:
   requiresOpener: 0
   smashedYield: 0.65
   leftoverItem: {fileID: 0}
+  sicknessChance: 0
+  sicknessHealthLoss: 8
+  sicknessThirstLoss: 10
+  sicknessHungerLoss: 6
   toolType: 0
   breakdownYield: []
   breakdownTool: 0
@@ -44,6 +50,7 @@ MonoBehaviour:
   gripStyle: 0
   heldScale: 1
   ammoItem: {fileID: 0}
+  containerLitres: 0
   fuelItem: {fileID: 0}
   fuelSecondsPerUnit: 480
   fuelCapacityUnits: 2

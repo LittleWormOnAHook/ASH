@@ -15,10 +15,11 @@ MonoBehaviour:
   itemId: woodenarrow
   displayName: Wooden Arrow
   description: Straight shaft, scrap-metal head, fiber-bound.
-  icon: {fileID: 21300000, guid: 46cdb996c420b174591907701825eed5, type: 3}
+  icon: {fileID: 21300000, guid: bedc88128323be6479662a3415ff3a16, type: 3}
   uiTint: {r: 0.6, g: 0.48, b: 0.3, a: 1}
   category: 8
   maxStack: 100
+  sellValue: 0
   useVerb: Use
   keyItem: 0
   restoreHunger: 0
@@ -49,6 +50,7 @@ MonoBehaviour:
   gripStyle: 0
   heldScale: 1
   ammoItem: {fileID: 0}
+  containerLitres: 0
   fuelItem: {fileID: 0}
   fuelSecondsPerUnit: 480
   fuelCapacityUnits: 2

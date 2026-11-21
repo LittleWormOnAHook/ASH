@@ -23,6 +23,13 @@ MonoBehaviour:
     amount: 1
   outputItem: {fileID: 11400000, guid: ca85a0ffeece51942b4f305b7da5688d, type: 2}
   outputAmount: 1
+  icon: {fileID: 21300000, guid: 098909d52294c8147a17b44e10592755, type: 3}
+  requiredCraftingLevel: 1
+  upgradeId: 
+  upgradeTier: 0
   craftSeconds: 10
   requiredTool: 2
   station: 0
+  waterPercent: 0
+  cookGameMinutes: 0
+  cookSeconds: 0

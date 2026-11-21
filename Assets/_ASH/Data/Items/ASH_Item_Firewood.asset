@@ -16,11 +16,13 @@ MonoBehaviour:
   displayName: Firewood
   description: Split dead timber from felled trees, logs and stumps. Burns long and
     hot.
-  icon: {fileID: 21300000, guid: 04728b5ba0a4b2f4187a59ca787d4e3c, type: 3}
+  icon: {fileID: 21300000, guid: 6ee09c714c910de4c8c84b1dce40425a, type: 3}
   uiTint: {r: 0.5, g: 0.38, b: 0.26, a: 1}
   category: 0
   maxStack: 20
+  sellValue: 0
   useVerb: Use
+  keyItem: 0
   restoreHunger: 0
   restoreThirst: 0
   restoreHealth: 0
@@ -28,6 +30,10 @@ MonoBehaviour:
   requiresOpener: 0
   smashedYield: 0.65
   leftoverItem: {fileID: 0}
+  sicknessChance: 0
+  sicknessHealthLoss: 8
+  sicknessThirstLoss: 10
+  sicknessHungerLoss: 6
   toolType: 0
   breakdownYield: []
   breakdownTool: 0
@@ -45,6 +51,7 @@ MonoBehaviour:
   gripStyle: 0
   heldScale: 1
   ammoItem: {fileID: 0}
+  containerLitres: 0
   fuelItem: {fileID: 0}
   fuelSecondsPerUnit: 480
   fuelCapacityUnits: 2

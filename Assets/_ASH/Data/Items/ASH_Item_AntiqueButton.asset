@@ -15,7 +15,7 @@ MonoBehaviour:
   itemId: antiquebutton
   displayName: Antique Button
   description: A carved bone button. Collectors like these.
-  icon: {fileID: 21300000, guid: 808615610099fc740b9cfe896cba2895, type: 3}
+  icon: {fileID: 21300000, guid: d7bd2d01bfeadc543b0537da8224760c, type: 3}
   uiTint: {r: 0.82, g: 0.78, b: 0.66, a: 1}
   category: 4
   maxStack: 20
@@ -50,6 +50,7 @@ MonoBehaviour:
   gripStyle: 0
   heldScale: 1
   ammoItem: {fileID: 0}
+  containerLitres: 0
   fuelItem: {fileID: 0}
   fuelSecondsPerUnit: 480
   fuelCapacityUnits: 2

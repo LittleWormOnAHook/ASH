@@ -15,11 +15,13 @@ MonoBehaviour:
   itemId: kindling
   displayName: Kindling
   description: Dry splinters and shavings. Gets a fire going.
-  icon: {fileID: 21300000, guid: 2168ab378c8cad14391ba9684aa39bc8, type: 3}
+  icon: {fileID: 21300000, guid: e65cf1f5bbb55dd498a4d7507a504e11, type: 3}
   uiTint: {r: 0.72, g: 0.6, b: 0.42, a: 1}
   category: 0
   maxStack: 30
+  sellValue: 0
   useVerb: Use
+  keyItem: 0
   restoreHunger: 0
   restoreThirst: 0
   restoreHealth: 0
@@ -27,6 +29,10 @@ MonoBehaviour:
   requiresOpener: 0
   smashedYield: 0.65
   leftoverItem: {fileID: 0}
+  sicknessChance: 0
+  sicknessHealthLoss: 8
+  sicknessThirstLoss: 10
+  sicknessHungerLoss: 6
   toolType: 0
   breakdownYield: []
   breakdownTool: 0
@@ -44,6 +50,7 @@ MonoBehaviour:
   gripStyle: 0
   heldScale: 1
   ammoItem: {fileID: 0}
+  containerLitres: 0
   fuelItem: {fileID: 0}
   fuelSecondsPerUnit: 480
   fuelCapacityUnits: 2

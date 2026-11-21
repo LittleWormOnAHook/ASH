@@ -16,7 +16,7 @@ MonoBehaviour:
   displayName: Pickup Tire
   description: A worn but sound truck tire on its rim. The pickup is missing two;
     fit them from its Repair menu.
-  icon: {fileID: 21300000, guid: 829f7cbf98cb81d4184b7cf39ec9a69f, type: 3}
+  icon: {fileID: 21300000, guid: f32f10f1d966ce34c8e1e4cca14dca8a, type: 3}
   uiTint: {r: 0.14, g: 0.14, b: 0.14, a: 1}
   category: 4
   maxStack: 1
