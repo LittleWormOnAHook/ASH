@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a6da20c3e57020e448e2c73027fd016a, type: 3}
+  m_Name: ASH_LightToggleSettings
+  m_EditorClassIdentifier: Assembly-CSharp::ASH.Gameplay.ASHLightToggleSettings
+  useRange: 3
+  usePriority: 25
+  promptOn: Turn on {0}
+  promptOff: Turn off {0}
+  defaultStartOn: 0
+  flicker: 0.15
+  flickerSpeed: 6
+  emissionWhenOn: 1
+  sfxVolume: 0.7
+  onClips: []
+  offClips: []
+  addWarmth: 1
+  warmthOnFlashlights: 0
+  autoAttachNamePatterns:
+  - hanginglantern
+  - ash_hanginglantern
+  - lantern_on
+  autoAttachExactNames:
+  - ASH_HangingLantern (swings)
+  cabinNamePatterns:
+  - grandpa
+  - granpa
+  - granpas
+  - cabin
+  cabinStoveNamePatterns:
+  - furnace
+  - stove
+  - woodburner
+  - wood stove
+  cabinStoveRadius: 14
+  cabinStoveStartsEmpty: 1
+  fallbackColliderSize: {x: 0.45, y: 0.7, z: 0.45}
