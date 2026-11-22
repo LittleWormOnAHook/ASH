@@ -27,6 +27,7 @@ namespace ASH.EditorTools
             ASHMenuInstaller.Folder(MatDir);
 
             if (!S.bookPrefab) S.bookPrefab = FindVendorPrefab();
+            if (S.cameraOffset == new Vector3(0f, 3.4f, -1.25f)) S.cameraOffset = new Vector3(0f, 3.4f, -0.3f); // B2: near top-down so the live journal lines up with the pages
             if (!S.openClip) S.openClip = Clip("BookOpen");
             if (!S.closeClip) S.closeClip = Clip("BookClose");
             if (!S.pageTurnClip) S.pageTurnClip = Clip("PageTurn");

@@ -30,7 +30,7 @@ namespace ASH.UI
         public Vector3 stagePosition = new Vector3(0f, -5000f, 0f);
         [Tooltip("Book rotation on the stage (x tilts it towards the camera).")] public Vector3 bookEuler = new Vector3(0f, 0f, 0f);
         [Range(0.1f, 10f)] public float bookScale = 1f;
-        [Tooltip("Camera direction from the book (looking at it). With autoFrame the distance is fitted to the open book.")] public Vector3 cameraOffset = new Vector3(0f, 3.4f, -1.25f);
+        [Tooltip("Camera direction from the book (looking at it). With autoFrame the distance is fitted to the open book.")] public Vector3 cameraOffset = new Vector3(0f, 3.4f, -0.3f);
         [Tooltip("Fit the camera distance so the open book fills the screen (uses the book's size).")] public bool autoFrame = true;
         [Tooltip("Open book width on screen (fraction of the screen width / height, whichever is tighter).")] [Range(0.3f, 1.2f)] public float frameFill = 0.86f;
         public Vector3 cameraLookOffset = new Vector3(0f, 0f, 0.05f);
@@ -56,7 +56,29 @@ namespace ASH.UI
         public Material pageEdgeBackMaterial;
         [Tooltip("Blank page material (paper). Page materials are instanced from it at runtime.")] public Material pageMaterial;
         [Tooltip("Left / right page paper (sheet-2 flattened pages). Null = the page material's own texture.")] public Texture2D pagePaperLeft, pagePaperRight;
-        [Tooltip("Spreads in the book (each tab gets one in B2). B1 shows blank paper.")] [Range(1, 40)] public int spreads = 7;
+        [Tooltip("Spreads in the book: one per journal tab (7).")] [Range(7, 40)] public int spreads = 7;
+
+        [Header("B2 pages (each journal tab is one spread: Items, Rook, Notes, Objectives, Skills, Pets, Survival Guide)")]
+        [Tooltip("Layer for the off-screen page capture canvas (29 is unnamed).")] [Range(0, 31)] public int captureLayer = 29;
+        [Tooltip("Width of the spread capture texture (height follows the open spread's shape).")] [Range(512, 4096)] public int captureWidth = 2048;
+        [Tooltip("Paper margin around the journal card on the pages (capture pixels at 1300 wide).")] [Range(0f, 200f)] public float pageMargin = 50f;
+        [Tooltip("Opacity of the journal's dark card on the paper (live and on the pages).")] [Range(0f, 1f)] public float cardAlpha = 0.9f;
+        [Tooltip("Inset of the page area inside the open book's outline (left, bottom, right, top; fraction of its size).")] public Vector4 pageRectInset = new Vector4(0.035f, 0.05f, 0.035f, 0.05f);
+        [Tooltip("Mirror the capture on the pages if it shows flipped in Play.")] public bool flipPagesU, flipPagesV;
+        [Tooltip("Swap which half goes on the left page.")] public bool swapPageHalves;
+        [Tooltip("Paper per tab spread: 0 blank, 1 grid, 2 map, 3 botanical (sheet-2 flattened pages).")] public int[] pagePaper = { 0, 0, 1, 2, 1, 3, 3 };
+        [Tooltip("Ribbon tint per tab (Rook ribbon style only).")] public Color[] ribbonColors = {
+            new Color(0.55f, 0.18f, 0.14f), new Color(0.42f, 0.36f, 0.22f), new Color(0.22f, 0.32f, 0.42f), new Color(0.58f, 0.42f, 0.16f),
+            new Color(0.27f, 0.4f, 0.24f), new Color(0.45f, 0.3f, 0.2f), new Color(0.5f, 0.25f, 0.1f) };
+        [Tooltip("Side tab size on screen (reference 1080p pixels).")] public Vector2 ribbonSize = new Vector2(112f, 58f);
+        [Range(-40f, 80f)] public float ribbonSpacing = 6f;
+        [Tooltip("How far the side tabs stick out past the book's edge.")] [Range(-80f, 120f)] public float ribbonOut = 34f;
+        [Tooltip("Flip with the Left / Right arrow keys.")] public bool arrowKeysFlip = true;
+        [Tooltip("Flip with the d-pad left / right.")] public bool dpadFlip = true;
+        [Tooltip("Click the page edge (the paper margin) to flip.")] public bool edgeClickFlip = true;
+        [Tooltip("Small arrow buttons on the pages.")] public bool arrowButtons = true;
+        [Tooltip("On-page arrow button size (1080p pixels).")] public Vector2 arrowButtonSize = new Vector2(64f, 40f);
+        [Tooltip("Canvas order of the side tabs and arrows (above the HUD at 50).")] public int overlaySortingOrder = 52;
 
         [Header("Audio (EndlessBook Demo 02 clips)")]
         public AudioClip openClip; public AudioClip closeClip; public AudioClip pageTurnClip; public AudioClip pagesFlippingClip;

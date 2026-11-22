@@ -30,6 +30,12 @@ namespace ASH.UI
         public bool WantOpen => _want;
         public bool AtRest => _book != null && _book.Valid && _book.CurrentState == ASHEndlessBookAdapter.State.OpenMiddle && !_book.Busy;
         public ASHEndlessBookAdapter Book => _book;
+        public Camera BookCamera => _cam;
+        public Transform BookRoot => _bookRoot;
+        public ASHJournalBookPages Pages => _pages;
+        /// <summary>Flipping, capturing or opening: the live journal content is hidden (the pages show it).</summary>
+        public bool Busy => _want && (_pages && _pages.HoldContent || _book == null || !AtRest);
+        ASHJournalBookPages _pages; System.Func<bool> _tipBlock;
 
         public static ASHJournalBook Ensure()
         {
@@ -44,6 +50,7 @@ namespace ASH.UI
         void OnDestroy()
         {
             if (Instance == this) Instance = null;
+            if (_tipBlock != null) ASHItemTooltip.Blockers.Remove(_tipBlock);
             if (_rt) { _rt.Release(); Destroy(_rt); }
             foreach (var m in _pageMats) if (m) Destroy(m);
             if (_canvas) Destroy(_canvas.gameObject);
@@ -85,6 +92,8 @@ namespace ASH.UI
             _image = imgRt.gameObject.AddComponent<RawImage>(); _image.raycastTarget = false;
             canvasGo.SetActive(false);
 
+            _pages = gameObject.AddComponent<ASHJournalBookPages>(); _pages.Init(this); _pages.PaperAll();
+            _tipBlock = () => Instance == this && Busy; ASHItemTooltip.Blockers.Add(_tipBlock);
             SetLayer(_stage, S.bookLayer);
             // closed-book footprint at scale 1 (the open spread is about twice as wide); measured once
             _bookRoot.localRotation = Quaternion.identity; _bookRoot.localScale = Vector3.one;
@@ -186,11 +195,13 @@ namespace ASH.UI
                 SetLayer(_stage, S.bookLayer); Frame(S); EnsureRT(S);
                 _cam.enabled = true; _key.enabled = _fill.enabled = true; _canvas.gameObject.SetActive(true);
                 _contentA = 0f; ApplyContent();
+                if (_pages) _pages.OnOpening(content ? content.GetComponent<ASHJournalUI>() : null);
                 Play(S.openClip, S.openVolume);
             }
             else
             {
                 _contentA = 0f; ApplyContent();
+                if (_pages) _pages.OnClosing();
                 Play(S.closeClip, S.closeVolume);
             }
             Reconcile(S, true);
@@ -198,10 +209,26 @@ namespace ASH.UI
 
         void Play(AudioClip c, float v) { if (c && _audio) _audio.PlayOneShot(c, v); }
 
+        AudioSource _flipLoop;
+        /// <summary>Page-turn sound: one flip = PageTurn; a ribbon jump = PagesFlipping (stopped when the turn lands).</summary>
+        public void PlayTurn(bool group)
+        {
+            var S = ASHJournalBookSettings.I;
+            if (!group) { Play(S.pageTurnClip, S.pageTurnVolume); return; }
+            if (!S.pagesFlippingClip) { Play(S.pageTurnClip, S.pageTurnVolume); return; }
+            if (!_flipLoop) { _flipLoop = gameObject.AddComponent<AudioSource>(); _flipLoop.playOnAwake = false; _flipLoop.spatialBlend = 0f; _flipLoop.ignoreListenerPause = true; }
+            _flipLoop.clip = S.pagesFlippingClip; _flipLoop.volume = S.pagesFlippingVolume; _flipLoop.Play();
+        }
+        public void StopTurnSound() { if (_flipLoop && _flipLoop.isPlaying) _flipLoop.Stop(); }
+
+        /// <summary>Re-show the visible spread's materials (after their textures changed).</summary>
+        public void RefreshVisiblePages() { if (_book != null && _book.Valid && !_book.Busy && _book.CurrentState == ASHEndlessBookAdapter.State.OpenMiddle) _book.SetPageNumber(_book.LeftPage); }
+
         void Reconcile(ASHJournalBookSettings S, bool force)
         {
             if (_book == null || !_book.Valid) return;
             var st = _book.CurrentState;
+            if (_want && _pages && !_pages.ReadyToOpen) return; // first frame(s): the current tab is being put on the pages
             if (_want && st != ASHEndlessBookAdapter.State.OpenMiddle && !_book.IsChanging) _book.SetState(ASHEndlessBookAdapter.State.OpenMiddle, S.openTime, force);
             else if (!_want && st != ASHEndlessBookAdapter.State.ClosedFront && !_book.IsChanging) _book.SetState(ASHEndlessBookAdapter.State.ClosedFront, S.closeTime, true);
         }
@@ -209,6 +236,7 @@ namespace ASH.UI
         void ApplyContent()
         {
             if (!_content) return;
+            if (_pages && _pages.Capturing) { _content.alpha = 1f; return; } // being snapshotted onto the pages this frame
             _content.alpha = _contentA; bool on = _contentA > 0.98f;
             _content.blocksRaycasts = on; _content.interactable = on;
         }
@@ -220,7 +248,7 @@ namespace ASH.UI
             Reconcile(S, false);
             bool atRest = AtRest;
             // content fades in once the book lies open
-            float goal = _want && atRest ? 1f : 0f;
+            float goal = _want && atRest && !(_pages && _pages.HoldContent) ? 1f : 0f;
             _contentA = goal > _contentA ? (S.contentFadeTime <= 0f ? 1f : Mathf.MoveTowards(_contentA, 1f, Time.unscaledDeltaTime / S.contentFadeTime)) : goal;
             ApplyContent();
             // book image + dim
@@ -233,6 +261,7 @@ namespace ASH.UI
             if (!_want && _vis <= 0.001f && closedDone && _canvas.gameObject.activeSelf)
             {
                 _canvas.gameObject.SetActive(false); _cam.enabled = false; _key.enabled = _fill.enabled = false;
+                if (_pages) _pages.OnClosed();
                 if (_rt) { _cam.targetTexture = null; _image.texture = null; _rt.Release(); Destroy(_rt); _rt = null; }
             }
             if (_cam.enabled) { EnsureRT(S); if (!_book.Busy) Frame(S); }
