@@ -92,6 +92,8 @@ namespace ASH.Prologue
             if (_countsDirty && _tracker) { _countsDirty = false; _tracker.NotifyLinesChanged(); }
         }
 
+        /// <summary>Step finished (chain or tracker).</summary>
+        public bool IsDone(string id) => !string.IsNullOrEmpty(id) && (_done.Contains(id) || TrackerDone(id));
         bool PrereqsDone(ASHObjectiveChain.Step s) { foreach (var p in s.prerequisites) if (!string.IsNullOrEmpty(p) && !_done.Contains(p) && !TrackerDone(p)) return false; return true; }
         bool TrackerDone(string id) { var o = _tracker ? _tracker.Find(id) : null; return o != null && o.Completed; }
         static bool Flag(string f, bool ifEmpty) { if (string.IsNullOrEmpty(f)) return ifEmpty; if (f.StartsWith("page:")) return ASHGrandpaJournal.Has("grandpa", f.Substring(5)); var d = ASHPrologueDirector.Instance; return d && d.ChainFlag(f); }

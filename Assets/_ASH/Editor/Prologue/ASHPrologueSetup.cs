@@ -111,7 +111,7 @@ namespace ASH.EditorTools
             P(1, "Water you can trust", "Cabin kitchen (P01)", true,
               "Creek water looks clean and isn't. Boil it - a rolling boil, a full minute - or it'll lay you flat for a week. Keep two bottles full, always. If the sky ever turns grey, wet a rag and tie it over your mouth before you do anything else.");
             P(2, "The old Ford", "Cabin workbench (P01, starts the truck quest)", true,
-              "The Ford still has some life in her, if you treat her right. Tires are shot - I've got one spare by the shed and I left the other at the old camp. Battery's on the porch. The fan belt I took up to the hunting shack to match a new one. Twenty litres in the can will get you to Red Rock.");
+              "The Ford still has some life in her, if you treat her right. Tires are shot - I've got one spare by the shed and I left the other at the old camp. Took the battery down to the old quarry to run the pump. The fan belt's at the ranger station - Hal was matching me a new one. Twenty litres in the can I left at the washout will get you to Red Rock.");
             P(3, "Duck gear on the western trail", "Cabin bedroom (after P03, starts P07)", false, "[M3 draft] Points to the creek and the fallen pine on the western trail.");
             P(4, "The hunting shack", "Hunting shack cache (P08)", false, "[M3 draft] The shack, the cache under the floor, the snare.");
             P(5, "Shelter that seals", "Abandoned camp entrance (P09, before the Built Tent objective)", false, "[M3 draft] How to build a tent shelter that keeps the ash out.");

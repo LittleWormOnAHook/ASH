@@ -34,6 +34,7 @@ MonoBehaviour:
     placed: 1
     compassMarker: 0
     markerPosition: {x: 0, y: 0, z: 0}
+    markerReachRadius: 0
     chainFlag: 
     rareRecipeName: 
   - id: gj_02
@@ -42,15 +43,18 @@ MonoBehaviour:
     type: 1
     text: The Ford still has some life in her, if you treat her right. Tires are
       shot - I've got one spare by the shed and I left the other at the old camp.
-      Battery's on the porch. The fan belt I took up to the hunting shack to match
-      a new one. Twenty litres in the can will get you to Red Rock.
+      Took the battery down to the old quarry to run the pump. The fan belt's at
+      the ranger station - Hal was matching me a new one. Twenty litres in the can
+      I left at the washout will get you to Red Rock.
     sketch: {fileID: 21300000, guid: 7e36b1e175e63414b85bc9054e7d84fa, type: 3}
     area: Grandpa's truck
     location: On the ground by the truck
-    pointsTo: Hunting shack (fan belt), abandoned camp (tire)
+    pointsTo: Shed and old campsite (tires), Old Quarry (battery), Ranger Station
+      (fan belt), washout cache (fuel)
     placed: 1
     compassMarker: 0
     markerPosition: {x: 0, y: 0, z: 0}
+    markerReachRadius: 0
     chainFlag: truckFound
     rareRecipeName: 
   - id: gj_03
@@ -67,6 +71,7 @@ MonoBehaviour:
     placed: 1
     compassMarker: 1
     markerPosition: {x: 3413.7358, y: 117.606606, z: 3275.9597}
+    markerReachRadius: 0
     chainFlag: page:gj_03
     rareRecipeName: 
   - id: gj_04
@@ -83,6 +88,7 @@ MonoBehaviour:
     placed: 0
     compassMarker: 0
     markerPosition: {x: 0, y: 0, z: 0}
+    markerReachRadius: 0
     chainFlag: 
     rareRecipeName: ASH_Recipe_WoodenArrows
   - id: gj_05
@@ -99,6 +105,7 @@ MonoBehaviour:
     placed: 0
     compassMarker: 0
     markerPosition: {x: 553.5288, y: 431.96774, z: 2306.3574}
+    markerReachRadius: 0
     chainFlag: page:gj_05
     rareRecipeName: 
   - id: gj_06
@@ -115,6 +122,7 @@ MonoBehaviour:
     placed: 0
     compassMarker: 0
     markerPosition: {x: 0, y: 0, z: 0}
+    markerReachRadius: 0
     chainFlag: 
     rareRecipeName: ASH_Recipe_FilterCartridge
   - id: gj_07
@@ -130,6 +138,7 @@ MonoBehaviour:
     placed: 0
     compassMarker: 0
     markerPosition: {x: 0, y: 0, z: 0}
+    markerReachRadius: 0
     chainFlag: 
     rareRecipeName: 
   - id: gj_08
@@ -145,5 +154,6 @@ MonoBehaviour:
     placed: 0
     compassMarker: 0
     markerPosition: {x: 0, y: 0, z: 0}
+    markerReachRadius: 0
     chainFlag: 
     rareRecipeName: 

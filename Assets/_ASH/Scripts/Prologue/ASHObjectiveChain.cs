@@ -92,7 +92,7 @@ namespace ASH.Prologue
 
         public Step Get(string id) { foreach (var s in steps) if (s != null && s.id == id) return s; return null; }
 
-        void OnEnable() { if (steps != null && steps.Count > 0 && contentVersion < 2) Upgrade2(); if (steps != null && steps.Count > 0 && contentVersion < 3) Upgrade3(); if (steps != null && steps.Count > 0 && contentVersion < 4) Upgrade4(); }
+        void OnEnable() { if (steps != null && steps.Count > 0 && contentVersion < 2) Upgrade2(); if (steps != null && steps.Count > 0 && contentVersion < 3) Upgrade3(); if (steps != null && steps.Count > 0 && contentVersion < 4) Upgrade4(); if (steps != null && steps.Count > 0 && contentVersion < 5) Upgrade5(); }
         /// <summary>t462: the locked cabin door adds "Find Grandpa's key" (after Home Again in the list).</summary>
         void Upgrade3()
         {
@@ -115,6 +115,56 @@ namespace ASH.Prologue
 #if UNITY_EDITOR
             UnityEditor.EditorUtility.SetDirty(this);
 #endif
+        }
+        /// <summary>t617 pre-town: wet rag, boil, water, tent and food all lead to the lookout ("Get your bearings"); then the car, the
+        /// truck, one objective per part (any order), the repair, and the drive to Red Rock. Keeps every other edit.</summary>
+        void Upgrade5()
+        {
+            ApplyPreTown();
+            contentVersion = 5;
+#if UNITY_EDITOR
+            UnityEditor.EditorUtility.SetDirty(this);
+#endif
+        }
+        public const string IdLookout = "p07_lookout", IdDrive = "p08_drive";
+        public static readonly string[] PartSteps = { "pt_tire1", "pt_tire2", "pt_battery", "pt_belt", "pt_fuel" };
+        /// <summary>Idempotent: adds / rewires the pre-town steps.</summary>
+        public void ApplyPreTown()
+        {
+            void Next(string id, string n) { var x = Get(id); if (x != null && x.next != null && !x.next.Contains(n)) x.next.Add(n); }
+            int At(string id) { int i = steps.FindIndex(x => x != null && x.id == id); return i < 0 ? steps.Count : i; }
+            // the lookout, after everything at camp
+            if (Get(IdLookout) == null)
+                steps.Insert(At("p03_car"), S(IdLookout, "Get your bearings", Kind.Main, new[] { "p06_food", "c04_wetrag", "c05_boilwater", "p04_water", "p05_tent" }, new[] { "p03_car" }, "lookoutLogged", null,
+                    "Climb Redstone Camp Lookout, just north-west of the cabin, and log the topo panel with the GPS."));
+            foreach (var id in new[] { "p06_food", "c04_wetrag", "c05_boilwater" }) Next(id, IdLookout);
+            var car = Get("p03_car"); if (car != null) car.prerequisites = new List<string> { IdLookout };
+            var p02 = Get("p02_shelter"); if (p02 != null) p02.next.Remove("p03_car");
+            // one objective per part
+            Part("pt_tire1", "Grab the spare tire", "tire", 1, "Tire", "Grandpa's spare leans against the shed by the cabin.");
+            Part("pt_tire2", "Tire at the old camp", "tire", 2, "Tires", "The other tire is under the tarp at the old campsite, up the mule trail to the north.");
+            Part("pt_battery", "Find a battery", "carbattery", 1, "Car battery", "Grandpa ran the quarry pump off a truck battery. The Old Quarry is south-west of the cabin.");
+            Part("pt_belt", "Find a fan belt", "fanbelt", 1, "Fan belt", "The fan belt is at the Ranger Station, east down the county road.");
+            Part("pt_fuel", "Find fuel", "fuel_can", 1, "Fuel can", "A fuel can is stashed at the washout cache, east of the mule trail.");
+            var way = Get("p03_wayout"); if (way != null) { way.next.Remove("p03_truck"); foreach (var id in PartSteps) Next("p03_wayout", id); }
+            var truck = Get("p03_truck");
+            if (truck != null)
+            {
+                var pre = new List<string> { "p03_wayout" }; pre.AddRange(PartSteps); truck.prerequisites = pre;
+                truck.final = false; Next("p03_truck", IdDrive);
+                truck.hint = "Fit both tires, the battery and the fan belt from the truck's repair menu, and pour in at least 10 L.";
+            }
+            if (Get(IdDrive) == null)
+                steps.Insert(At("p03_truck") + 1, S(IdDrive, "Drive to Red Rock", Kind.Main, new[] { "p03_truck" }, new string[0], "reachedRedRock", null,
+                    "Grandpa's truck runs. Take the road out to Red Rock, about 3 km north-east.", final: true));
+        }
+        void Part(string id, string title, string item, int count, string label, string hint)
+        {
+            if (Get(id) != null) return;
+            int i = steps.FindIndex(x => x != null && x.id == "p03_truck"); if (i < 0) i = steps.Count;
+            var s = S(id, title, Kind.Main, new[] { "p03_wayout" }, new[] { "p03_truck" }, null, null, hint);
+            s.items = new List<ItemNeed> { ItemNeed.Of(item, count, label, true) };
+            steps.Insert(i, s);
         }
         static Step WaterStep()
         {
@@ -206,7 +256,8 @@ namespace ASH.Prologue
             Get("c02_campfire").completeOnPlace = true;
             Get("p03_truck").items = TruckParts();
             steps.Insert(2, KeyStep());
-            contentVersion = 4;
+            ApplyPreTown();
+            contentVersion = 5;
         }
     }
 }

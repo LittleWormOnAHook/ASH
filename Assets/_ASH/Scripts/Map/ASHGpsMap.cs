@@ -108,6 +108,20 @@ namespace ASH.Map
             return true;
         }
 
+        /// <summary>Reveal an extra circle (pre-town lookout extras, Red Rock once the truck runs) and mark POIs now in view.</summary>
+        public void RevealExtra(Vector2 worldXZ, float radius)
+        {
+            if (Fog == null || radius <= 0f) return;
+            Fog.RevealCircle(worldXZ, radius); Fog.Upload(); MarkKnownPois(); Revealed?.Invoke();
+        }
+        /// <summary>Mark these POIs as known (map labels) without revealing more fog.</summary>
+        public void MarkPois(IEnumerable<string> ids)
+        {
+            if (ids == null || region == null) return;
+            foreach (var id in ids) if (!string.IsNullOrEmpty(id) && region.FindPoi(id) != null) _knownPois.Add(id);
+            Revealed?.Invoke();
+        }
+
         void MarkKnownPois()
         {
             foreach (var p in region.pois) if (Fog.IsRevealed(p.worldXZ, 0.5f)) _knownPois.Add(p.id);

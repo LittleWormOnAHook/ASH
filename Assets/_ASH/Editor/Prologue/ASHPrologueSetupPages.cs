@@ -54,8 +54,8 @@ namespace ASH.EditorTools
             {
                 P(1, "Water you can trust", ASHJournalPageType.Tip, "Grandpa's cabin", "Kitchen table", "Grandpa's truck (out by the shed)", true,
                   "Creek water looks clean and isn't. Boil it - a rolling boil, a full minute - or it'll lay you flat for a week. Keep two bottles full, always. If the sky ever turns grey, wet a rag and tie it over your mouth before you do anything else.\n\nIf the car gives up on you, the old Ford is out by the shed."),
-                P(2, "The old Ford", ASHJournalPageType.Clue, "Grandpa's truck", "On the ground by the truck", "Hunting shack (fan belt), abandoned camp (tire)", true,
-                  "The Ford still has some life in her, if you treat her right. Tires are shot - I've got one spare by the shed and I left the other at the old camp. Battery's on the porch. The fan belt I took up to the hunting shack to match a new one. Twenty litres in the can will get you to Red Rock."),
+                P(2, "The old Ford", ASHJournalPageType.Clue, "Grandpa's truck", "On the ground by the truck", "Shed and old campsite (tires), Old Quarry (battery), Ranger Station (fan belt), washout cache (fuel)", true,
+                  "The Ford still has some life in her, if you treat her right. Tires are shot - I've got one spare by the shed and I left the other at the old camp. Took the battery down to the old quarry to run the pump. The fan belt's at the ranger station - Hal was matching me a new one. Twenty litres in the can I left at the washout will get you to Red Rock."),
                 P(3, "The shack spur", ASHJournalPageType.Clue, "Arrival road", "Roadside, near where you drive in", "Hunting shack (shack spur trail)", true,
                   "Past the cattle guard the shack spur turns off this road - follow the cairns uphill. The shack roof leaks but the stove draws. If the valley road floods, that trail and the ridge get you around it."),
                 P(4, "The hunting shack", ASHJournalPageType.RareRecipe, "Hunting shack", "Under the loose floorboard (M3)", "Abandoned camp", false,

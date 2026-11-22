@@ -1,0 +1,83 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f282577f2f2270c40a88c1308b82f51b, type: 3}
+  m_Name: ASH_PreTownSettings
+  m_EditorClassIdentifier: Assembly-CSharp::ASH.Prologue.ASHPreTownSettings
+  preTownEnabled: 1
+  spawnDelay: 1.5
+  parts:
+  - stepId: pt_tire1
+    itemId: tire
+    placeName: the shed
+    worldXZ: {x: 550.9, y: 1576.4}
+    anchorObject: Tire Replacement (1)
+    spawnCopy: 0
+    searchRadius: 14
+    revealRadius: 0
+  - stepId: pt_tire2
+    itemId: tire
+    placeName: the old campsite
+    worldXZ: {x: 523.5, y: 2276.4}
+    anchorObject: ASH_Objective_OldCampsite
+    spawnCopy: 1
+    searchRadius: 14
+    revealRadius: 160
+  - stepId: pt_battery
+    itemId: carbattery
+    placeName: the Old Quarry
+    worldXZ: {x: 287.4, y: 983.5}
+    anchorObject: 
+    spawnCopy: 1
+    searchRadius: 14
+    revealRadius: 180
+  - stepId: pt_belt
+    itemId: fanbelt
+    placeName: the Ranger Station
+    worldXZ: {x: 1269.5, y: 1180.1}
+    anchorObject: 
+    spawnCopy: 1
+    searchRadius: 14
+    revealRadius: 0
+  - stepId: pt_fuel
+    itemId: fuel_can
+    placeName: the washout cache
+    worldXZ: {x: 1158.1, y: 1810.6}
+    anchorObject: 
+    spawnCopy: 1
+    searchRadius: 14
+    revealRadius: 170
+  markPartsOnCompass: 1
+  partMarkerColor: {r: 0.95, g: 0.72, b: 0.3, a: 1}
+  lookoutSurveyId: s1_redstone
+  lookoutPois:
+  - old_quarry
+  - cache_gully
+  - ranger_station
+  - the_overlook
+  redRockObject: REDROCK
+  redRockXZ: {x: 3108.4, y: 3217}
+  arriveRadius: 250
+  revealOnTruckReady: 320
+  roadBlock: 1
+  blockRadius: 380
+  wallSegments: 96
+  wallHeight: 60
+  barricadeAuto: 1
+  barricadeXZ: {x: 0, y: 0}
+  cabinXZ: {x: 522.1, y: 1559.7}
+  barricadeProps:
+  - {fileID: 5796673862198584484, guid: b86f4320abd54b34eab0eb94226f5074, type: 3}
+  blockedMessage: Downed trees and a washed-out cut block the way to Red Rock. You'll
+    need Grandpa's truck running and a way around.
+  messageDistance: 22
+  messageCooldown: 20
+  skipIfPlayerInside: 1

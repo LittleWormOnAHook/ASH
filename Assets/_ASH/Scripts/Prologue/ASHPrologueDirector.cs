@@ -238,7 +238,7 @@ namespace ASH.Prologue
                 case "doorTried": return _doorTried;
                 case "doorUnlocked": return !S.lockCabinUntilKey || _doorUnlocked || Current >= Phase.Warning;
                 case "truckReady": return Current == Phase.TruckReady;
-                default: return false;
+                default: return ASHPreTown.ChainFlag(f); // t617: lookoutLogged, reachedRedRock
             }
         }
         /// <summary>t440: HUD lines + compass target of the prologue main steps (the chain shows them; null = the chain's own lines).</summary>
@@ -253,6 +253,7 @@ namespace ASH.Prologue
                 case IdCar: lines = () => new[] { ("Check on the car", _carInspected) }; target = () => _car ? _car.transform.position : (Vector3?)null; break;
                 case IdWayOut: lines = () => new[] { ("Find another way to drive out", TruckFound) }; break;
                 case IdTruck: lines = TruckLines; target = () => _truck ? _truck.transform.position : (Vector3?)null; break;
+                default: { var sid = id; target = () => ASHPreTown.TargetFor(sid); break; } // t617: lookout, part sites, Red Rock
             }
         }
 
@@ -368,7 +369,7 @@ namespace ASH.Prologue
             _doorTried = true; if (logPhases) Debug.Log("[ASH] Prologue: cabin door is locked -> Find Grandpa's key");
             var r = ASHObjectiveChainRunner.Instance; if (r && !ASHSaveSystem.IsRestoring) r.Tick(true);
         }
-        public int PartNeeded(string itemId, int fallback) => itemId == "tire" ? _tiresNeeded : fallback;
+        public int PartNeeded(string itemId, int fallback) => itemId == "tire" ? (fallback <= 1 ? 1 : _tiresNeeded) : fallback; // t617: "grab the spare" needs 1, the rest need every missing tire
         bool TruckReady() { var c = _truck ? _truck.Condition : null; var f = _truck ? _truck.Fuel : null; return c && c.MissingTireCount == 0 && c.batteryInstalled && c.beltInstalled && (!f || f.litres >= 10f); }
 
         // ------------------------------------------------------------------ update

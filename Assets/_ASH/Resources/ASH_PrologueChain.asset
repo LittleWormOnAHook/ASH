@@ -16,7 +16,7 @@ MonoBehaviour:
   announceMain: 1
   announceSide: 1
   hintSeconds: 6
-  contentVersion: 4
+  contentVersion: 5
   steps:
   - id: p00_home
     title: Returning Home
@@ -29,6 +29,8 @@ MonoBehaviour:
     completeFlag: arrived
     recipeName: 
     completeOnPlace: 0
+    placeItemId: 
+    completeOnConsume: 0
     listRecipeIngredients: 1
     items: []
     hint: Follow the road to Grandpa's cabin and park by it.
@@ -45,6 +47,8 @@ MonoBehaviour:
     completeFlag: homeAgain
     recipeName: 
     completeOnPlace: 0
+    placeItemId: 
+    completeOnConsume: 0
     listRecipeIngredients: 1
     items: []
     hint: Grandpa's journal and his supplies are inside the cabin.
@@ -59,12 +63,15 @@ MonoBehaviour:
     completeFlag: doorUnlocked
     recipeName: 
     completeOnPlace: 0
+    placeItemId: 
+    completeOnConsume: 0
     listRecipeIngredients: 1
     items:
     - itemId: grandpas_key
       count: 1
       label: Grandpa's Key
       countInstalled: 0
+      anyOf: []
     hint: The cabin door is locked. Grandpa always kept a spare key close by.
   - id: c01_kindling
     title: Split some kindling
@@ -78,6 +85,8 @@ MonoBehaviour:
     completeFlag: 
     recipeName: ASH_Recipe_SplitKindling
     completeOnPlace: 0
+    placeItemId: 
+    completeOnConsume: 0
     listRecipeIngredients: 1
     items: []
     hint: Use Grandpa's hatchet. Journal crafting tab [Q].
@@ -93,6 +102,8 @@ MonoBehaviour:
     completeFlag: 
     recipeName: ASH_Recipe_Campfire
     completeOnPlace: 1
+    placeItemId: 
+    completeOnConsume: 0
     listRecipeIngredients: 1
     items: []
     hint: Kindling and a few stones. Journal crafting tab [Q].
@@ -103,7 +114,6 @@ MonoBehaviour:
     prerequisites:
     - p01_home_again
     next:
-    - p03_car
     - c03_bandage
     - c04_wetrag
     - p04_water
@@ -111,6 +121,8 @@ MonoBehaviour:
     completeFlag: sheltered
     recipeName: 
     completeOnPlace: 0
+    placeItemId: 
+    completeOnConsume: 0
     listRecipeIngredients: 1
     items: []
     hint: Get inside the cabin, now.
@@ -160,7 +172,8 @@ MonoBehaviour:
     final: 0
     prerequisites:
     - p05_tent
-    next: []
+    next:
+    - p07_lookout
     revealFlag: 
     completeFlag: 
     recipeName: 
@@ -186,7 +199,8 @@ MonoBehaviour:
       - heartychili
       - chokecherries
       - driedchokecherries
-    hint: Hunt, fish or cook a meal. Cabin cans don't count — this is food you find or make.
+    hint: "Hunt, fish or cook a meal. Cabin cans don't count \u2014 this is food
+      you find or make."
   - id: c03_bandage
     title: Make a bandage
     kind: 2
@@ -198,6 +212,8 @@ MonoBehaviour:
     completeFlag: 
     recipeName: ASH_Recipe_Bandage
     completeOnPlace: 0
+    placeItemId: 
+    completeOnConsume: 0
     listRecipeIngredients: 1
     items: []
     hint: The quake left you bruised. Cloth makes a bandage.
@@ -207,26 +223,53 @@ MonoBehaviour:
     final: 0
     prerequisites:
     - p02_shelter
-    next: []
+    next:
+    - p07_lookout
     revealFlag: 
     completeFlag: 
     recipeName: ASH_Recipe_WetRag
     completeOnPlace: 0
+    placeItemId: 
+    completeOnConsume: 0
     listRecipeIngredients: 1
     items: []
     hint: Ash in the air. A wet rag over your face helps.
+  - id: p07_lookout
+    title: Get your bearings
+    kind: 0
+    final: 0
+    prerequisites:
+    - p06_food
+    - c04_wetrag
+    - c05_boilwater
+    - p04_water
+    - p05_tent
+    next:
+    - p03_car
+    revealFlag: 
+    completeFlag: lookoutLogged
+    recipeName: 
+    completeOnPlace: 0
+    placeItemId: 
+    completeOnConsume: 0
+    listRecipeIngredients: 1
+    items: []
+    hint: Climb Redstone Camp Lookout, just north-west of the cabin, and log the
+      topo panel with the GPS.
   - id: p03_car
     title: No Way Back
     kind: 0
     final: 0
     prerequisites:
-    - p02_shelter
+    - p07_lookout
     next:
     - p03_wayout
     revealFlag: 
     completeFlag: carInspected
     recipeName: 
     completeOnPlace: 0
+    placeItemId: 
+    completeOnConsume: 0
     listRecipeIngredients: 1
     items: []
     hint: Go and see what's left of the car.
@@ -236,11 +279,14 @@ MonoBehaviour:
     final: 0
     prerequisites:
     - c02_campfire
-    next: []
+    next:
+    - p07_lookout
     revealFlag: 
     completeFlag: 
     recipeName: ASH_Recipe_BoilWater
     completeOnPlace: 0
+    placeItemId: 
+    completeOnConsume: 0
     listRecipeIngredients: 1
     items: []
     hint: Boil water over your campfire to make it safe.
@@ -251,41 +297,188 @@ MonoBehaviour:
     prerequisites:
     - p03_car
     next:
-    - p03_truck
+    - pt_tire1
+    - pt_tire2
+    - pt_battery
+    - pt_belt
+    - pt_fuel
     revealFlag: 
     completeFlag: truckFound
     recipeName: 
     completeOnPlace: 0
+    placeItemId: 
+    completeOnConsume: 0
     listRecipeIngredients: 1
     items: []
     hint: Grandpa kept an old pickup near the cabin.
+  - id: pt_tire1
+    title: Grab the spare tire
+    kind: 0
+    final: 0
+    prerequisites:
+    - p03_wayout
+    next:
+    - p03_truck
+    revealFlag: 
+    completeFlag: 
+    recipeName: 
+    completeOnPlace: 0
+    placeItemId: 
+    completeOnConsume: 0
+    listRecipeIngredients: 1
+    items:
+    - itemId: tire
+      count: 1
+      label: Tire
+      countInstalled: 1
+      anyOf: []
+    hint: Grandpa's spare leans against the shed by the cabin.
+  - id: pt_tire2
+    title: Tire at the old camp
+    kind: 0
+    final: 0
+    prerequisites:
+    - p03_wayout
+    next:
+    - p03_truck
+    revealFlag: 
+    completeFlag: 
+    recipeName: 
+    completeOnPlace: 0
+    placeItemId: 
+    completeOnConsume: 0
+    listRecipeIngredients: 1
+    items:
+    - itemId: tire
+      count: 2
+      label: Tires
+      countInstalled: 1
+      anyOf: []
+    hint: The other tire is under the tarp at the old campsite, up the mule trail
+      to the north.
+  - id: pt_battery
+    title: Find a battery
+    kind: 0
+    final: 0
+    prerequisites:
+    - p03_wayout
+    next:
+    - p03_truck
+    revealFlag: 
+    completeFlag: 
+    recipeName: 
+    completeOnPlace: 0
+    placeItemId: 
+    completeOnConsume: 0
+    listRecipeIngredients: 1
+    items:
+    - itemId: carbattery
+      count: 1
+      label: Car battery
+      countInstalled: 1
+      anyOf: []
+    hint: Grandpa ran the quarry pump off a truck battery. The Old Quarry is south-west
+      of the cabin.
+  - id: pt_belt
+    title: Find a fan belt
+    kind: 0
+    final: 0
+    prerequisites:
+    - p03_wayout
+    next:
+    - p03_truck
+    revealFlag: 
+    completeFlag: 
+    recipeName: 
+    completeOnPlace: 0
+    placeItemId: 
+    completeOnConsume: 0
+    listRecipeIngredients: 1
+    items:
+    - itemId: fanbelt
+      count: 1
+      label: Fan belt
+      countInstalled: 1
+      anyOf: []
+    hint: The fan belt is at the Ranger Station, east down the county road.
+  - id: pt_fuel
+    title: Find fuel
+    kind: 0
+    final: 0
+    prerequisites:
+    - p03_wayout
+    next:
+    - p03_truck
+    revealFlag: 
+    completeFlag: 
+    recipeName: 
+    completeOnPlace: 0
+    placeItemId: 
+    completeOnConsume: 0
+    listRecipeIngredients: 1
+    items:
+    - itemId: fuel_can
+      count: 1
+      label: Fuel can
+      countInstalled: 1
+      anyOf: []
+    hint: A fuel can is stashed at the washout cache, east of the mule trail.
   - id: p03_truck
     title: Repair Grandpa's truck
     kind: 0
-    final: 1
+    final: 0
     prerequisites:
     - p03_wayout
-    next: []
+    - pt_tire1
+    - pt_tire2
+    - pt_battery
+    - pt_belt
+    - pt_fuel
+    next:
+    - p08_drive
     revealFlag: 
     completeFlag: truckReady
     recipeName: 
     completeOnPlace: 0
+    placeItemId: 
+    completeOnConsume: 0
     listRecipeIngredients: 1
     items:
     - itemId: tire
       count: 2
       label: Tire
       countInstalled: 1
+      anyOf: []
     - itemId: carbattery
       count: 1
       label: Car battery
       countInstalled: 1
+      anyOf: []
     - itemId: fanbelt
       count: 1
       label: Fan belt
       countInstalled: 1
+      anyOf: []
     - itemId: fuel_can
       count: 1
       label: Fuel can
       countInstalled: 1
-    hint: Tires, battery, fan belt and fuel. Parts found earlier count.
+      anyOf: []
+    hint: Fit both tires, the battery and the fan belt from the truck's repair menu,
+      and pour in at least 10 L.
+  - id: p08_drive
+    title: Drive to Red Rock
+    kind: 0
+    final: 1
+    prerequisites:
+    - p03_truck
+    next: []
+    revealFlag: 
+    completeFlag: reachedRedRock
+    recipeName: 
+    completeOnPlace: 0
+    placeItemId: 
+    completeOnConsume: 0
+    listRecipeIngredients: 1
+    items: []
+    hint: Grandpa's truck runs. Take the road out to Red Rock, about 3 km north-east.
