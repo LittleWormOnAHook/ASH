@@ -42,12 +42,32 @@ namespace ASH.EditorTools.World
             string key = string.IsNullOrEmpty(srcPath) ? ((uint)San(src.name).GetHashCode()).ToString("x8") : AssetDatabase.AssetPathToGUID(srcPath).Substring(0, 8);
             if (AssetDatabase.IsSubAsset(src)) key += "_" + ((uint)src.name.GetHashCode()).ToString("x4");
             var legacy = $"{MatDir}/{San(src.name)}_{key}_Accum.mat"; // phase-1 location: reuse if present
-            var old = AssetDatabase.LoadAssetAtPath<Material>(legacy); if (old) { _reused++; return old; }
+            var old = AssetDatabase.LoadAssetAtPath<Material>(legacy); if (old) { _reused++; return Refresh(old, src); }
             var dir = $"{VariantRoot}/{SourceFolder(srcPath)}"; ASHBuildUtil.Folder(dir);
             var path = $"{dir}/{San(src.name)}_{key}_Accum.mat";
-            var existing = AssetDatabase.LoadAssetAtPath<Material>(path); if (existing) { _reused++; return existing; }
+            var existing = AssetDatabase.LoadAssetAtPath<Material>(path); if (existing) { _reused++; return Refresh(existing, src); }
             var m = ASHAccumulation.CreateVariant(src); if (!m) return src; m.name = Path.GetFileNameWithoutExtension(path);
             AssetDatabase.CreateAsset(m, path); _created++; CreatedPaths.Add(path); return m;
+        }
+        /// <summary>t570: variants made before the HPA Shader Graph mapping have no albedo and render white at runtime. Rebuild those
+        /// from the source (or fall back to the source material when it still can't be mapped). Good variants are returned as is.</summary>
+        static Material Refresh(Material variant, Material src)
+        {
+            if (!variant || variant.GetTexture("_BaseMap")) return variant;
+            var fresh = ASHAccumulation.CreateVariant(src);
+            if (!fresh) return src;                         // unmappable: keep the original look instead of a white copy
+            if (!fresh.GetTexture("_BaseMap")) { Object.DestroyImmediate(fresh); return variant; } // source has no texture either: copy is right
+            string n = variant.name;
+            variant.shader = fresh.shader;
+            variant.CopyPropertiesFromMaterial(fresh);
+            variant.shaderKeywords = fresh.shaderKeywords;
+            variant.renderQueue = fresh.renderQueue;
+            variant.name = n;
+            Object.DestroyImmediate(fresh);
+            EditorUtility.SetDirty(variant);
+            AssetDatabase.SaveAssetIfDirty(variant);
+            Debug.Log($"[ASH] Accumulation: rebuilt white variant {n} from {src.name}");
+            return variant;
         }
         static int _created, _reused;
         internal static readonly List<string> CreatedPaths = new List<string>();

@@ -73,9 +73,40 @@ namespace ASH.World.Accumulation
         }
         public static bool IsSupported(Material m) => UnsupportedReason(m) == null;
 
-        static readonly string[] BaseTex = { "_BaseMap", "_MainTex", "_BaseColorMap", "_Albedo", "_AlbedoMap", "_BaseAlbedoASmoothness", "_Diffuse", "_DiffuseMap", "_MainTexture", "_Texture", "_Albedo_Texture" };
+        // t570: HPA Shader Graphs (Shader Graphs/SG_uv0_*) use un-prefixed references: Albedo / Normal / MetallicSmoothness / _Tile
+        static readonly string[] BaseTex = { "_BaseMap", "_MainTex", "_BaseColorMap", "_Albedo", "_AlbedoMap", "_BaseAlbedoASmoothness", "_Diffuse", "_DiffuseMap", "_MainTexture", "_Texture", "_Albedo_Texture", "Albedo", "BaseMap", "Base_Map", "MainTex", "Diffuse", "BaseColorMap" };
         static readonly string[] ColorP = { "_BaseColor", "_Color", "_Tint", "_MainColor", "_AlbedoColor" };
-        static readonly string[] NormTex = { "_BumpMap", "_NormalMap", "_BaseNormalMap", "_Normal", "_NormalTex", "_MainNormal", "_Normal_Map" };
+        static readonly string[] NormTex = { "_BumpMap", "_NormalMap", "_BaseNormalMap", "_Normal", "_NormalTex", "_MainNormal", "_Normal_Map", "Normal", "NormalMap" };
+
+        /// <summary>True when the source shader has a texture property that holds a texture but none we recognise as the albedo:
+        /// converting it would come out white (t570: HPA SG_uv0_Rust cabin props), so it is left on its own shader.</summary>
+        static bool HasUnmappedTextures(Material src, string baseName)
+        {
+            if (baseName != null) return false;
+            var sh = src.shader;
+            for (int i = 0; i < sh.GetPropertyCount(); i++)
+            {
+                if (sh.GetPropertyType(i) != ShaderPropertyType.Texture) continue;
+                var n = sh.GetPropertyName(i);
+                if (n.StartsWith("unity_")) continue;
+                if (src.GetTexture(n)) return true;
+            }
+            return false;
+        }
+
+        /// <summary>Shader Graph tiling property (_Tile as Vector xy or a single Float), or null.</summary>
+        static Vector2? GraphTiling(Material src)
+        {
+            var sh = src.shader;
+            foreach (var n in new[] { "_Tile", "_Tiling", "Tiling", "Tile" })
+            {
+                int i = sh.FindPropertyIndex(n); if (i < 0) continue;
+                var t = sh.GetPropertyType(i);
+                if (t == ShaderPropertyType.Vector) { var v = src.GetVector(n); if (v.x > 0f && v.y > 0f) return new Vector2(v.x, v.y); }
+                else if (t == ShaderPropertyType.Float || t == ShaderPropertyType.Range) { float f = src.GetFloat(n); if (f > 0f) return new Vector2(f, f); }
+            }
+            return null;
+        }
 
         /// <summary>New (unsaved) accumulation copy of any opaque/cutout material. URP Lit property sets copy as is; others are remapped
         /// (albedo, color, normal, metallic/smoothness, mask, occlusion, emission, detail, alpha clip, cull, tiling).</summary>
@@ -91,14 +122,20 @@ namespace ASH.World.Accumulation
             float F(float d, params string[] ns) { foreach (var n in ns) if (src.HasProperty(n)) { try { return src.GetFloat(n); } catch { } } return d; }
             bool C(out Color c, params string[] ns) { foreach (var n in ns) if (src.HasProperty(n)) { try { c = src.GetColor(n); return true; } catch { } } c = Color.white; return false; }
 
-            var m = new Material(sh) { name = src.name + "_Accum" };
             var baseName = TN(BaseTex); var baseT = baseName != null ? src.GetTexture(baseName) : null;
+            if (HasUnmappedTextures(src, baseName)) return null; // would render white: keep the original material
+            var m = new Material(sh) { name = src.name + "_Accum" };
             m.SetTexture("_BaseMap", baseT);
-            if (baseName != null) { m.SetTextureScale("_BaseMap", src.GetTextureScale(baseName)); m.SetTextureOffset("_BaseMap", src.GetTextureOffset(baseName)); }
+            if (baseName != null)
+            {
+                var tile = GraphTiling(src);
+                m.SetTextureScale("_BaseMap", tile.HasValue ? Vector2.Scale(tile.Value, src.GetTextureScale(baseName)) : src.GetTextureScale(baseName));
+                m.SetTextureOffset("_BaseMap", src.GetTextureOffset(baseName));
+            }
             if (C(out var col, ColorP)) { col.a = 1f; m.SetColor("_BaseColor", col); }
-            var nrm = T(NormTex); if (nrm) { m.SetTexture("_BumpMap", nrm); m.SetFloat("_BumpScale", F(1f, "_BumpScale", "_BumpMapScale", "_NormalScale", "_NormalStrength")); m.EnableKeyword("_NORMALMAP"); }
-            var mask = T("_MaskMap", "_Mask"); var mg = T("_MetallicGlossMap", "_MetallicSmoothness", "_Metallic_Smoothness", "_MetallicMap");
-            float metal = F(0f, "_Metallic"), smooth = F(0.3f, "_Smoothness", "_Glossiness", "_GlossMapScale", "_BaseSmoothness");
+            var nrm = T(NormTex); if (nrm) { m.SetTexture("_BumpMap", nrm); m.SetFloat("_BumpScale", F(1f, "_BumpScale", "_BumpMapScale", "_NormalScale", "_NormalStrength", "_Normal_Value")); m.EnableKeyword("_NORMALMAP"); }
+            var mask = T("_MaskMap", "_Mask"); var mg = T("_MetallicGlossMap", "_MetallicSmoothness", "_Metallic_Smoothness", "_MetallicMap", "MetallicSmoothness");
+            float metal = F(0f, "_Metallic"), smooth = F(0.3f, "_Smoothness", "_Glossiness", "_GlossMapScale", "_BaseSmoothness", "Smoothness_Control");
             if (mask) { m.SetTexture("_MetallicGlossMap", mask); m.EnableKeyword("_METALLICSPECGLOSSMAP"); m.SetTexture("_OcclusionMap", mask); m.EnableKeyword("_OCCLUSIONMAP"); m.SetFloat("_Smoothness", 1f); m.SetFloat("_Metallic", 1f); }
             else if (mg) { m.SetTexture("_MetallicGlossMap", mg); m.EnableKeyword("_METALLICSPECGLOSSMAP"); m.SetFloat("_Smoothness", smooth); }
             else { m.SetFloat("_Metallic", metal); m.SetFloat("_Smoothness", smooth); }
