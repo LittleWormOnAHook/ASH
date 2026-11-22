@@ -249,7 +249,7 @@ namespace ASH.UI
             var root = K.Stretch("Crafting", body);
             _legacyRoot = K.Stretch("Legacy", root);
             var cats = K.Stretch("Categories", _legacyRoot, 0, 0, 1000, 0);
-            string[] names = { "All", "Fire", "Medical", "Food", "Tools", "Materials" };
+            string[] names = { "All", "Fire", "Medical", "Food", "Tools", "Materials", "Clothing" };
             for (int i = 0; i < names.Length; i++)
             {
                 string n = names[i];

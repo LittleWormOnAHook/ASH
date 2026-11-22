@@ -1113,3 +1113,251 @@ MonoBehaviour:
     column: 7
     row: 6
     parents: []
+  - recipe: {fileID: 11400000, guid: fb8dd8c10d64a56499b2cde8dfb84bb8, type: 2}
+    basic: 0
+    conditions:
+    - kind: 0
+      item: {fileID: 11400000, guid: 0d309887d3d74564faeda75273494ee9, type: 2}
+      quantity: 1
+      page: 1
+      upgradeId: 
+      upgradeTier: 1
+      collection: grandpa
+      pageId: 
+    - kind: 0
+      item: {fileID: 11400000, guid: 8e24c5d37538af54d9c1aafc6ec731cc, type: 2}
+      quantity: 1
+      page: 1
+      upgradeId: 
+      upgradeTier: 1
+      collection: grandpa
+      pageId: 
+    requireAll: 0
+    hint: Find some cloth or rags.
+    column: 9
+    row: 0
+    parents: []
+  - recipe: {fileID: 11400000, guid: 03fd0fe2e00471d42be701891407d8df, type: 2}
+    basic: 0
+    conditions:
+    - kind: 0
+      item: {fileID: 11400000, guid: 0d309887d3d74564faeda75273494ee9, type: 2}
+      quantity: 1
+      page: 1
+      upgradeId: 
+      upgradeTier: 1
+      collection: grandpa
+      pageId: 
+    requireAll: 0
+    hint: Find some cloth.
+    column: 9
+    row: 1
+    parents:
+    - {fileID: 11400000, guid: b485a201e6febbe4db4d009a63c58c62, type: 2}
+  - recipe: {fileID: 11400000, guid: 9191bd9eb4171ff419d75d440852b0c9, type: 2}
+    basic: 0
+    conditions:
+    - kind: 1
+      item: {fileID: 11400000, guid: 6f6730c2241d5564dbf68e96316f6f63, type: 2}
+      quantity: 1
+      page: 1
+      upgradeId: 
+      upgradeTier: 1
+      collection: grandpa
+      pageId: 
+    - kind: 0
+      item: {fileID: 11400000, guid: f3ca50ca4972de84d87f189bff60884e, type: 2}
+      quantity: 1
+      page: 1
+      upgradeId: 
+      upgradeTier: 1
+      collection: grandpa
+      pageId: 
+    requireAll: 0
+    hint: Cut hide strips (or find an Ash Hood).
+    column: 9
+    row: 2
+    parents:
+    - {fileID: 11400000, guid: 37a25fdf5e840c44d80d94273e86a74b, type: 2}
+  - recipe: {fileID: 11400000, guid: c97eb53fb8bf3574189596131b04bbf2, type: 2}
+    basic: 0
+    conditions:
+    - kind: 1
+      item: {fileID: 11400000, guid: 6f6730c2241d5564dbf68e96316f6f63, type: 2}
+      quantity: 1
+      page: 1
+      upgradeId: 
+      upgradeTier: 1
+      collection: grandpa
+      pageId: 
+    - kind: 1
+      item: {fileID: 11400000, guid: eed5f179b13f8e548831370678e6fd66, type: 2}
+      quantity: 1
+      page: 1
+      upgradeId: 
+      upgradeTier: 1
+      collection: grandpa
+      pageId: 
+    requireAll: 1
+    hint: Cut hide strips and carve a bone needle.
+    column: 10
+    row: 0
+    parents:
+    - {fileID: 11400000, guid: 37a25fdf5e840c44d80d94273e86a74b, type: 2}
+    - {fileID: 11400000, guid: b1f1a3eb7b1d3154387572d38be391c6, type: 2}
+  - recipe: {fileID: 11400000, guid: 392b54965f08ef640b51d6f0926cb811, type: 2}
+    basic: 0
+    conditions:
+    - kind: 1
+      item: {fileID: 11400000, guid: 6f6730c2241d5564dbf68e96316f6f63, type: 2}
+      quantity: 1
+      page: 1
+      upgradeId: 
+      upgradeTier: 1
+      collection: grandpa
+      pageId: 
+    - kind: 1
+      item: {fileID: 11400000, guid: eed5f179b13f8e548831370678e6fd66, type: 2}
+      quantity: 1
+      page: 1
+      upgradeId: 
+      upgradeTier: 1
+      collection: grandpa
+      pageId: 
+    requireAll: 1
+    hint: Cut hide strips and carve a bone needle.
+    column: 10
+    row: 1
+    parents:
+    - {fileID: 11400000, guid: 37a25fdf5e840c44d80d94273e86a74b, type: 2}
+    - {fileID: 11400000, guid: b1f1a3eb7b1d3154387572d38be391c6, type: 2}
+  - recipe: {fileID: 11400000, guid: 7d271ee846e531b44ba1b001d20cedc5, type: 2}
+    basic: 0
+    conditions:
+    - kind: 1
+      item: {fileID: 11400000, guid: 6f6730c2241d5564dbf68e96316f6f63, type: 2}
+      quantity: 1
+      page: 1
+      upgradeId: 
+      upgradeTier: 1
+      collection: grandpa
+      pageId: 
+    requireAll: 0
+    hint: Cut hide strips.
+    column: 10
+    row: 2
+    parents:
+    - {fileID: 11400000, guid: 37a25fdf5e840c44d80d94273e86a74b, type: 2}
+  - recipe: {fileID: 11400000, guid: 817cd148ccc52bd4cb3c31a91c8b9d3b, type: 2}
+    basic: 0
+    conditions:
+    - kind: 1
+      item: {fileID: 11400000, guid: 6f6730c2241d5564dbf68e96316f6f63, type: 2}
+      quantity: 1
+      page: 1
+      upgradeId: 
+      upgradeTier: 1
+      collection: grandpa
+      pageId: 
+    - kind: 1
+      item: {fileID: 11400000, guid: eed5f179b13f8e548831370678e6fd66, type: 2}
+      quantity: 1
+      page: 1
+      upgradeId: 
+      upgradeTier: 1
+      collection: grandpa
+      pageId: 
+    requireAll: 1
+    hint: Cut hide strips and carve a bone needle.
+    column: 10
+    row: 3
+    parents:
+    - {fileID: 11400000, guid: 37a25fdf5e840c44d80d94273e86a74b, type: 2}
+    - {fileID: 11400000, guid: b1f1a3eb7b1d3154387572d38be391c6, type: 2}
+  - recipe: {fileID: 11400000, guid: 4ddbe5c6b1e7ca24f942b0167ff6c495, type: 2}
+    basic: 0
+    conditions:
+    - kind: 1
+      item: {fileID: 11400000, guid: 6f6730c2241d5564dbf68e96316f6f63, type: 2}
+      quantity: 1
+      page: 1
+      upgradeId: 
+      upgradeTier: 1
+      collection: grandpa
+      pageId: 
+    - kind: 1
+      item: {fileID: 11400000, guid: eed5f179b13f8e548831370678e6fd66, type: 2}
+      quantity: 1
+      page: 1
+      upgradeId: 
+      upgradeTier: 1
+      collection: grandpa
+      pageId: 
+    requireAll: 1
+    hint: Cut hide strips and carve a bone needle.
+    column: 10
+    row: 4
+    parents:
+    - {fileID: 11400000, guid: 37a25fdf5e840c44d80d94273e86a74b, type: 2}
+    - {fileID: 11400000, guid: b1f1a3eb7b1d3154387572d38be391c6, type: 2}
+  - recipe: {fileID: 11400000, guid: d0886dc2da18bfc4e887304bc5da31d2, type: 2}
+    basic: 0
+    conditions:
+    - kind: 1
+      item: {fileID: 11400000, guid: 6081b6436a67c914ca04927a3953fd95, type: 2}
+      quantity: 1
+      page: 1
+      upgradeId: 
+      upgradeTier: 1
+      collection: grandpa
+      pageId: 
+    requireAll: 0
+    hint: Make waterproofing.
+    column: 11
+    row: 0
+    parents:
+    - {fileID: 11400000, guid: 9cddb0d637dc6a944b47c6d255db074b, type: 2}
+  - recipe: {fileID: 11400000, guid: 54ae8a2eccc48054fb2a5998f25bf4aa, type: 2}
+    basic: 0
+    conditions:
+    - kind: 0
+      item: {fileID: 11400000, guid: 1d05d02e4972300468567f0859f6b7f8, type: 2}
+      quantity: 1
+      page: 1
+      upgradeId: 
+      upgradeTier: 1
+      collection: grandpa
+      pageId: 
+    requireAll: 0
+    hint: Take a wolf pelt. (Crafting level 3)
+    column: 12
+    row: 0
+    parents:
+    - {fileID: 11400000, guid: 37a25fdf5e840c44d80d94273e86a74b, type: 2}
+    - {fileID: 11400000, guid: b1f1a3eb7b1d3154387572d38be391c6, type: 2}
+  - recipe: {fileID: 11400000, guid: a34b91e36855a9a4496ba53216a14585, type: 2}
+    basic: 0
+    conditions:
+    - kind: 0
+      item: {fileID: 11400000, guid: 6e671ec55d5ac0243afd7d2801dc6c4b, type: 2}
+      quantity: 1
+      page: 1
+      upgradeId: 
+      upgradeTier: 1
+      collection: grandpa
+      pageId: 
+    - kind: 2
+      item: {fileID: 0}
+      quantity: 1
+      page: 4
+      upgradeId: 
+      upgradeTier: 1
+      collection: grandpa
+      pageId: 
+    requireAll: 0
+    hint: Take a bear hide, or find the hunting notes. (Crafting level 4)
+    column: 12
+    row: 1
+    parents:
+    - {fileID: 11400000, guid: 37a25fdf5e840c44d80d94273e86a74b, type: 2}
+    - {fileID: 11400000, guid: b1f1a3eb7b1d3154387572d38be391c6, type: 2}

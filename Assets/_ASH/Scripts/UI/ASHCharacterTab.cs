@@ -28,6 +28,8 @@ namespace ASH.UI
             _picked = default;
             _pickedPack = -1;
             _ghost = default;
+            _pips.Clear();
+            _totals = default;
         }
 
         static RectTransform _grid, _stage, _sil;
@@ -40,6 +42,8 @@ namespace ASH.UI
         static ASHItemDefinition _picked;
         static int _pickedPack = -1;
         static Image _ghost;
+        static readonly Dictionary<ASHCharacterEquipment.Slot, Image> _pips = new Dictionary<ASHCharacterEquipment.Slot, Image>();
+        static Text _totals;
 
         // left column = body parts, right column = carried/extra layers; rows top to bottom
         static readonly ASHCharacterEquipment.Slot[] LeftCol = { ASHCharacterEquipment.Slot.Head, ASHCharacterEquipment.Slot.Face, ASHCharacterEquipment.Slot.Torso, ASHCharacterEquipment.Slot.Hands, ASHCharacterEquipment.Slot.Legs };
@@ -50,7 +54,7 @@ namespace ASH.UI
         public static GameObject Build(RectTransform body)
         {
             ASHCharacterEquipment.Ensure();
-            _slotRects.Clear(); _icons.Clear(); _labels.Clear();
+            _slotRects.Clear(); _icons.Clear(); _labels.Clear(); _pips.Clear();
             var root = K.Stretch("Character", body);
 
             // left: pack grid
@@ -69,6 +73,8 @@ namespace ASH.UI
             foreach (var s in LeftCol) Place(s);
             foreach (var s in RightCol) Place(s);
 
+            _totals = K.Text(K.At("Totals", _stage, new Vector2(0.5f, 1), new Vector2(0, -8), new Vector2(660, 40)), "", 14, K.Ink, TextAnchor.UpperCenter);
+            _totals.supportRichText = true;
             _hint = K.Text(K.At("Hint", _stage, new Vector2(0.5f, 0), new Vector2(0, 6), new Vector2(640, 36)), DefaultHint, 14, K.Dim, TextAnchor.MiddleCenter);
             ApplyLayout();
             EnsureGhost();
@@ -99,6 +105,8 @@ namespace ASH.UI
             var icon = K.Image(K.Stretch("Icon", r, 10, 18, 10, 4), Color.white, false);
             icon.preserveAspect = true;
             icon.enabled = false;
+            var pip = K.Image(K.At("Rarity", r, new Vector2(1, 1), new Vector2(-4, -4), new Vector2(9, 9)), Color.clear, false);
+            pip.rectTransform.pivot = new Vector2(1, 1); pip.raycastTarget = false; _pips[slot] = pip;
             var lab = K.Text(K.Stretch("Cap", r, 2, 1, 2, 0), Short(slot), 11, K.Dim, TextAnchor.LowerCenter);
             lab.horizontalOverflow = HorizontalWrapMode.Overflow;
             _slotRects[slot] = r;
@@ -172,8 +180,15 @@ namespace ASH.UI
                 bool filled = w != null && w.item;
                 if (filled && w.item.icon) { icon.sprite = w.item.icon; icon.color = Color.white; icon.enabled = true; }
                 else { icon.sprite = null; icon.enabled = false; }
-                if (_labels.TryGetValue(s, out var lab)) lab.text = filled ? w.item.displayName : Short(s);
+                if (_labels.TryGetValue(s, out var lab))
+                {
+                    bool low = filled && w.condition < ASHClothingSettings.I.lowConditionThreshold;
+                    lab.supportRichText = true;
+                    lab.text = filled ? (w.condition < 0.995f ? $"{w.item.displayName} <color={(low ? "#d98a6a" : "#a59e93")}>{w.condition * 100f:0}%</color>" : w.item.displayName) : Short(s);
+                }
+                if (_pips.TryGetValue(s, out var pip)) { pip.enabled = filled && w.item.IsWearable; if (pip.enabled) pip.color = ASHClothingSettings.I.RarityColor(w.item.rarity); }
             }
+            if (_totals) _totals.text = eq ? ASHClothing.Summary() : "";
             if (_picked == null && string.IsNullOrEmpty(eq ? eq.Message : null)) Hint(DefaultHint);
         }
 

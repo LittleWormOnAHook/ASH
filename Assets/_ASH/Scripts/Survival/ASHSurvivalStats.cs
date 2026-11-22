@@ -26,8 +26,8 @@ namespace ASH.Survival
         /// <summary>Test/debug hook: sets hunger directly (clamped).</summary>
         public void SetHunger(float v) => Hunger = Mathf.Clamp(v, 0f, MaxHunger);
         public float Thirst { get; private set; }
-        public float MaxHealth => tuning.maxHealth;
-        public float MaxStamina => tuning.maxStamina;
+        public float MaxHealth => Mathf.Max(1f, tuning.maxHealth + ASHClothing.Current.bonusHealth);
+        public float MaxStamina => Mathf.Max(1f, tuning.maxStamina + ASHClothing.Current.bonusStamina);
         public float MaxHunger => tuning.maxHunger;
         public float MaxThirst => tuning.maxThirst;
         public bool IsDead { get; private set; }
@@ -90,14 +90,16 @@ namespace ASH.Survival
             ASHSurvivalTuning.Bind(tuning);
             if (_sinceDamage < float.PositiveInfinity) _sinceDamage += dt;
             float mul = tuning.needsRateMultiplier * ASHSurvivalTuning.DrainRate * (IsSprinting ? tuning.sprintNeedsMultiplier : 1f) / 60f;
-            Hunger = Mathf.Max(0f, Hunger - tuning.hungerPerMinute * mul * dt);
-            Thirst = Mathf.Max(0f, Thirst - tuning.thirstPerMinute * mul * dt);
+            var cl = ASHClothing.Current;
+            Hunger = Mathf.Max(0f, Hunger - tuning.hungerPerMinute * mul * cl.hungerMul * dt);
+            Thirst = Mathf.Max(0f, Thirst - tuning.thirstPerMinute * mul * cl.thirstMul * dt);
+            if (Health > MaxHealth) Health = MaxHealth; // clothing max-health bonus taken off
 
             TentFireRecoveryMultiplier = ASHTent.RecoveryBonusAt(transform.position);
             float drain = 0f;
             if (Hunger <= 0f) drain += tuning.emptyNeedHealthDrainPerSecond;
             if (Thirst <= 0f) drain += tuning.emptyNeedHealthDrainPerSecond;
-            if (drain > 0f) Damage(drain * dt, false);
+            if (drain > 0f) Damage(drain * cl.healthDrainMul * dt, false);
             else if (Hunger >= MaxHunger * tuning.regenNeedThreshold && Thirst >= MaxThirst * tuning.regenNeedThreshold
                      && _sinceDamage > tuning.regenDelayAfterDamage && Health < MaxHealth)
                 Health = Mathf.Min(MaxHealth, Health + tuning.healthRegenPerSecond * TentFireRecoveryMultiplier * dt);
@@ -181,8 +183,9 @@ namespace ASH.Survival
             ASHSurvivalTuning.Bind(tuning);
             float dt = gameHours * SecondsPerGameHourAtDefault;
             float mul = tuning.needsRateMultiplier * ASHSurvivalTuning.DrainRate * Mathf.Max(0f, needsMultiplier) / 60f;
-            Hunger = Mathf.Max(0f, Hunger - tuning.hungerPerMinute * mul * dt);
-            Thirst = Mathf.Max(0f, Thirst - tuning.thirstPerMinute * mul * dt);
+            var cl = ASHClothing.Current;
+            Hunger = Mathf.Max(0f, Hunger - tuning.hungerPerMinute * mul * cl.hungerMul * dt);
+            Thirst = Mathf.Max(0f, Thirst - tuning.thirstPerMinute * mul * cl.thirstMul * dt);
             if (healthPerHour > 0f && Hunger > MaxHunger * hungerFloor01 && Thirst > MaxThirst * thirstFloor01)
                 Health = Mathf.Min(MaxHealth, Health + healthPerHour * gameHours);
             if (Time.unscaledTime >= _nextNotify) { _nextNotify = Time.unscaledTime + NotifyInterval; Changed?.Invoke(); }

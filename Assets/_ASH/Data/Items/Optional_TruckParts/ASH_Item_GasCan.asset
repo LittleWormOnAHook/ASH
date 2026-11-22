@@ -19,8 +19,9 @@ MonoBehaviour:
   uiTint: {r: 0.75, g: 0.2, b: 0.15, a: 1}
   category: 6
   maxStack: 1
-  sellValue: 0
+  sellValue: 8
   useVerb: Use
+  rarity: 0
   keyItem: 0
   restoreHunger: 0
   restoreThirst: 0
@@ -34,16 +35,32 @@ MonoBehaviour:
   sicknessThirstLoss: 10
   sicknessHungerLoss: 6
   toolType: 0
-  breakdownYield: []
+  breakdownYield:
+  - item: {fileID: 11400000, guid: 151ffd9b1b592cc4bba57253a3bc9651, type: 2}
+    amount: 2
   breakdownTool: 0
   breakdownToolRequired: 0
-  breakdownSeconds: 2
+  breakdownSeconds: 3
   breakdownNoToolYield: 0.5
   worldPickupPrefab: {fileID: 1218701306475005056, guid: 5afb9b5213b1c35448238a60892f5447, type: 3}
   placeablePrefab: {fileID: 0}
   placementFootprint: {x: 1.4, y: 0.6, z: 1.4}
   maxPlacementSlope: 22
   equipSlot: 0
+  wearSlot: 0
+  clothing:
+    coldResist: 0
+    ashResist: 0
+    bonusHealth: 0
+    bonusStamina: 0
+    healthDrainMul: 1
+    staminaDrainMul: 1
+    hungerMul: 1
+    thirstMul: 1
+    carrySlots: 0
+    waterproof: 0
+  clothingSet: 
+  wornVisualPrefab: {fileID: 0}
   heldPrefab: {fileID: 0}
   holdPosition: {x: 0, y: 0, z: 0}
   holdEuler: {x: 0, y: 0, z: 0}

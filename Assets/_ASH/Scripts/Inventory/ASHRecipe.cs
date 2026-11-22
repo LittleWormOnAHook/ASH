@@ -11,7 +11,7 @@ namespace ASH.Inventory
         [Min(1)] public int amount = 1;
     }
 
-    public enum ASHRecipeCategory { Fire, Medical, Food, Tools, Materials }
+    public enum ASHRecipeCategory { Fire, Medical, Food, Tools, Materials, Clothing }
     public enum ASHCraftStation { Anywhere, Campfire }
 
     /// <summary>

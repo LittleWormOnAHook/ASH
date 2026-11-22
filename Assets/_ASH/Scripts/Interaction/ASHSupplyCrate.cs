@@ -40,10 +40,14 @@ namespace ASH.Interaction
             if (Opened || c.Inventory == null) return false;
             Opened = true;
             var drops = Roll();
+            var gear = RollClothing(); if (gear) drops.Add((gear, 1));
             int given = 0, spilled = 0;
             foreach (var (item, amount) in drops)
             {
-                int added = c.Inventory.AddItem(item, amount);
+                // found clothing comes worn (condition roll); everything else keeps the normal add
+                bool worn = item.IsWearable;
+                float cond = worn ? Random.Range(Mathf.Min(ASH.Gameplay.ASHClothingSettings.I.foundConditionMin, ASH.Gameplay.ASHClothingSettings.I.foundConditionMax), Mathf.Max(ASH.Gameplay.ASHClothingSettings.I.foundConditionMin, ASH.Gameplay.ASHClothingSettings.I.foundConditionMax)) : 1f;
+                int added = worn ? c.Inventory.AddItemWithCondition(item, amount, cond) : c.Inventory.AddItem(item, amount);
                 given += added;
                 int left = amount - added;
                 if (left > 0)
@@ -61,6 +65,23 @@ namespace ASH.Interaction
                 else hud.Toast("Supply crate opened.");
             }
             return true;
+        }
+
+        /// <summary>One extra wearable (ASH_ClothingSettings.crateClothingChance), picked by rarity weight. Runtime, so crates already in the scene get it too.</summary>
+        static ASHItemDefinition RollClothing()
+        {
+            var S = ASH.Gameplay.ASHClothingSettings.I;
+            if (S.crateClothing == null || S.crateClothing.Count == 0 || Random.value >= S.crateClothingChance) return null;
+            float total = 0f;
+            foreach (var it in S.crateClothing) if (it && (S.legendaryInCrates || it.rarity != ASHItemRarity.Legendary)) total += S.RarityWeight(it.rarity);
+            if (total <= 0f) return null;
+            float r = Random.value * total, acc = 0f;
+            foreach (var it in S.crateClothing)
+            {
+                if (!it || (!S.legendaryInCrates && it.rarity == ASHItemRarity.Legendary)) continue;
+                acc += S.RarityWeight(it.rarity); if (r <= acc) return it;
+            }
+            return null;
         }
 
         List<(ASHItemDefinition item, int amount)> Roll()

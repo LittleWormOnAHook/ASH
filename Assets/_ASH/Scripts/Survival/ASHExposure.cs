@@ -1,4 +1,5 @@
 using ASH.Core;
+using ASH.Gameplay;
 using ASH.UI;
 using ASH.World.Weather;
 using UnityEngine;
@@ -109,12 +110,13 @@ namespace ASH.Survival
             bool airBad = AirBad;
             if (_face) _face.Tick(dh, airBad);
             float prot = _face ? _face.Protection : 0f;
-            Exposure = airBad ? Air * (1f - prot) * ASHGameSettings.CachedExposure : 0f;
+            var cl = ASHClothing.Current;
+            Exposure = airBad ? Air * (1f - prot) * (1f - cl.ashResist01) * ASHGameSettings.CachedExposure : 0f; // clothing ash resist after the face mask / rag
 
-            if (Draining && dh > 0f && S.healthDrainPerGameHour > 0f) _stats.Damage(S.healthDrainPerGameHour * Exposure * dh, false);
+            if (Draining && dh > 0f && S.healthDrainPerGameHour > 0f) _stats.Damage(S.healthDrainPerGameHour * Exposure * cl.healthDrainMul * dh, false);
             if (Draining && dh > 0f && S.thirstPerGameHour > 0f) _stats.DrainThirst(S.thirstPerGameHour * Exposure * dh);
             _stats.ExposureRecoveryMultiplier = Draining ? 1f - S.staminaRecoveryPenalty * Mathf.Clamp01(Exposure) : 1f;
-            Player.ASHInvectorStaminaLink.ExtraDrainPerSecond = Draining && Time.deltaTime > 0f ? S.staminaDrainPerGameHour * Exposure * dh / Time.deltaTime : 0f;
+            Player.ASHInvectorStaminaLink.ExtraDrainPerSecond = Draining && Time.deltaTime > 0f ? S.staminaDrainPerGameHour * Exposure * cl.staminaDrainMul * dh / Time.deltaTime : 0f;
 
             bool low = _stats.Health <= _stats.MaxHealth * S.warnHealthFraction;
             Warning = low && Draining;

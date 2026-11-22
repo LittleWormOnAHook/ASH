@@ -1,3 +1,4 @@
+using ASH.Gameplay;
 using ASH.Survival;
 using Invector.vCharacterController;
 using UnityEngine;
@@ -25,15 +26,24 @@ namespace ASH.Player
         {
             if (controller == null || stats == null) return;
             var t = stats.Tuning;
-            controller.maxStamina = t.maxStamina;
-            controller.sprintStamina = t.sprintDrainPerSecond * ASHSurvivalTuning.DrainRate; // Invector drains this per second (accumulative)
+            ApplyClothing();
             controller.jumpStamina = t.jumpStaminaCost;
-            controller.currentStamina = Mathf.Min(controller.currentStamina <= 0f ? t.maxStamina : controller.currentStamina, t.maxStamina);
+            controller.currentStamina = Mathf.Min(controller.currentStamina <= 0f ? controller.maxStamina : controller.currentStamina, controller.maxStamina);
+        }
+
+        /// <summary>Max stamina (+ clothing bonus) and sprint drain (x clothing stamina-drain multiplier), every FixedUpdate.</summary>
+        void ApplyClothing()
+        {
+            var t = stats.Tuning; var cl = ASHClothing.Current;
+            controller.maxStamina = Mathf.Max(1f, t.maxStamina + cl.bonusStamina);
+            controller.sprintStamina = t.sprintDrainPerSecond * cl.staminaDrainMul * ASHSurvivalTuning.DrainRate; // Invector drains this per second (accumulative)
+            if (controller.currentStamina > controller.maxStamina) controller.currentStamina = controller.maxStamina;
         }
 
         private void FixedUpdate()
         {
             if (controller == null || stats == null) return;
+            ApplyClothing();
             // Invector adds staminaRecovery once per FixedUpdate.
             controller.staminaRecovery = stats.Tuning.staminaRecoveryPerSecond * stats.StaminaRecoveryMultiplier * Time.fixedDeltaTime;
             if (ExtraDrainPerSecond > 0f && controller.currentStamina > 0f) controller.currentStamina = Mathf.Max(0f, controller.currentStamina - ExtraDrainPerSecond * ASHSurvivalTuning.DrainRate * Time.fixedDeltaTime);

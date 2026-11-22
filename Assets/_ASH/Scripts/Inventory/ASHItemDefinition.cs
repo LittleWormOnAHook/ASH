@@ -18,6 +18,29 @@ namespace ASH.Inventory
     /// <summary>Tool roles an item can fill (any matching item in the pack satisfies a requirement).</summary>
     public enum ASHToolType { None, Axe, Knife, CanOpener, GPS }
 
+    /// <summary>Item rarity (clothing plan): drives loot weights, the pickup box colour, the rarity pip and sell value.</summary>
+    public enum ASHItemRarity { Common, Uncommon, Rare, Legendary }
+
+    /// <summary>Stat modifiers of a wearable piece (clothing plan). Percent values are 0..100, multipliers 1 = none.
+    /// Effects scale with the slot's condition (see ASH_ClothingSettings). Totals are capped in ASH_ClothingSettings.</summary>
+    [System.Serializable]
+    public sealed class ASHClothingMods
+    {
+        [Range(0f, 100f)] [Tooltip("% less body-heat loss outdoors (stacks additively, capped).")] public float coldResist;
+        [Range(0f, 100f)] [Tooltip("% less ash exposure (after the face mask / rag).")] public float ashResist;
+        [Range(-50f, 100f)] public float bonusHealth;
+        [Range(-50f, 100f)] public float bonusStamina;
+        [Range(0.5f, 1.5f)] [Tooltip("Multiplies health drains (empty needs, ash). < 1 = slower.")] public float healthDrainMul = 1f;
+        [Range(0.5f, 1.5f)] [Tooltip("Multiplies stamina drains (sprint, ash). < 1 = slower.")] public float staminaDrainMul = 1f;
+        [Range(0.5f, 1.5f)] public float hungerMul = 1f;
+        [Range(0.5f, 1.5f)] public float thirstMul = 1f;
+        [Range(0, 24)] [Tooltip("Backpacks: extra pack slots while worn (4 / 8 / 12).")] public int carrySlots;
+        [Tooltip("Keeps its cold resist in rain / wet storms.")] public bool waterproof;
+
+        public bool IsEmpty => coldResist == 0f && ashResist == 0f && bonusHealth == 0f && bonusStamina == 0f && healthDrainMul == 1f
+            && staminaDrainMul == 1f && hungerMul == 1f && thirstMul == 1f && carrySlots == 0;
+    }
+
     /// <summary>
     /// Item definition. Slimmed from Genesis Project.Data.ItemData (identity, icon, world prefab, max stack,
     /// type, survival restores); combat/progression/XP fields removed. ASH adds tool roles, can-opening,
@@ -37,6 +60,7 @@ namespace ASH.Inventory
         [Tooltip("Vendor price for one (future buy/sell vendor). 0 = can't be sold.")] [Min(0)] public int sellValue;
         [Tooltip("Verb shown when used, e.g. Eat, Drink, Apply.")]
         public string useVerb = "Use";
+        [Tooltip("Rarity: loot weight, pickup box colour, rarity pip.")] public ASHItemRarity rarity = ASHItemRarity.Common;
         [Tooltip("Key item (Grandpa's journal): stays in the pack. It can only be moved between slots, never dropped, consumed, split or destroyed.")]
         public bool keyItem;
 
@@ -89,6 +113,12 @@ namespace ASH.Inventory
         public ASHEquipSlot equipSlot = ASHEquipSlot.None;
         [Tooltip("Character tab body slot (head, face, clothing, backpack, accessory). None = not wearable.")]
         public ASHWearSlot wearSlot = ASHWearSlot.None;
+        [Tooltip("Clothing stats (only used when wearSlot is set).")]
+        public ASHClothingMods clothing = new ASHClothingMods();
+        [Tooltip("Set name (e.g. Fur, Hide, Ash walker). Set bonuses are in ASH_ClothingSettings.")]
+        public string clothingSet = "";
+        [Tooltip("Later: mesh / visual shown on the 3D character while worn (not used yet).")]
+        public GameObject wornVisualPrefab;
         [Tooltip("Held visual spawned in the hand (ASH wrapper of the vendor model, no pickup/collider).")]
         public GameObject heldPrefab;
         [Tooltip("Extra grip offset on top of the automatic fist alignment (metres / degrees, grip space). Tune per model.")]
@@ -117,6 +147,7 @@ namespace ASH.Inventory
 
         public bool IsConsumable => category == ASHItemCategory.Consumable || category == ASHItemCategory.Medical;
         public bool IsPlaceable => category == ASHItemCategory.Placeable && placeablePrefab != null;
+        public bool CanSell => !keyItem && sellValue > 0;
         public bool CanBreakDown => breakdownYield != null && breakdownYield.Count > 0;
     }
 }

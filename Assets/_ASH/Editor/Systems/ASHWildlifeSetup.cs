@@ -864,7 +864,7 @@ namespace ASH.EditorTools
             return AssetDatabase.LoadAssetAtPath<Sprite>(path);
         }
 
-        static void DrawLetters(Texture2D tex, string letters, Color gold)
+        internal static void DrawLetters(Texture2D tex, string letters, Color gold)
         {
             if (string.IsNullOrEmpty(letters)) return;
             int count = Mathf.Min(2, letters.Length);

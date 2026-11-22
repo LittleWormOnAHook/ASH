@@ -1,0 +1,101 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6acd1176ed8b3b740bde539c7354c0d1, type: 3}
+  m_Name: ASH_ClothingSettings
+  m_EditorClassIdentifier: Assembly-CSharp::ASH.Gameplay.ASHClothingSettings
+  clothingStatsEnabled: 1
+  setBonusesEnabled: 1
+  maxColdResist: 0.75
+  maxAshResist: 0.8
+  minDrainMultiplier: 0.6
+  maxBonusHealth: 60
+  maxBonusStamina: 60
+  effectAtZeroCondition: 0
+  lowConditionThreshold: 0.3
+  wearHoursOutdoors: 240
+  stormWearMultiplier: 2
+  foundConditionMin: 0.35
+  foundConditionMax: 0.9
+  wetColdPenalty: 0.35
+  dryWhenSealing: 0.5
+  sets:
+  - setName: Fur
+    piecesRequired: 3
+    coldResist: 8
+    ashResist: 0
+    bonusHealth: 0
+    bonusStamina: 0
+    staminaDrainMul: 1
+    healthDrainMul: 1
+    description: 'Fur Hat, Fur Coat, Fur Gloves, Fur Pants: +8% cold resist.'
+  - setName: Hide
+    piecesRequired: 3
+    coldResist: 0
+    ashResist: 0
+    bonusHealth: 0
+    bonusStamina: 0
+    staminaDrainMul: 0.95
+    healthDrainMul: 1
+    description: 'Hide Vest / Trousers / Boots / Wraps / Gauntlets / Backpack: -5%
+      stamina drain (backpack slots stay 4 / 8 / 12).'
+  - setName: Ash walker
+    piecesRequired: 3
+    coldResist: 0
+    ashResist: 8
+    bonusHealth: 0
+    bonusStamina: 0
+    staminaDrainMul: 1
+    healthDrainMul: 1
+    description: 'Ash Hood, Waxed Cloak, Face Wrap or Dust Goggles: +8% ash resist.'
+  commonColor: {r: 0.5411765, g: 0.47843137, b: 0.4, a: 1}
+  uncommonColor: {r: 0.36862746, g: 0.41960785, b: 0.2901961, a: 1}
+  rareColor: {r: 0.23921569, g: 0.3529412, b: 0.4509804, a: 1}
+  legendaryColor: {r: 0.6901961, g: 0.5411765, b: 0.24313726, a: 1}
+  commonWeight: 2
+  uncommonWeight: 0.8
+  rareWeight: 0.35
+  legendaryWeight: 0.05
+  rarityBoxPickups: 1
+  pickupBoxSize: 0.24
+  crateClothingChance: 0.35
+  legendaryInCrates: 1
+  crateClothing:
+  - {fileID: 11400000, guid: cf58238c5cb3bac499c29e72d9969375, type: 2}
+  - {fileID: 11400000, guid: f3ca50ca4972de84d87f189bff60884e, type: 2}
+  - {fileID: 11400000, guid: c63664de23880ff4c8797e9029fdd530, type: 2}
+  - {fileID: 11400000, guid: 2dab06bd6716e104c80ea2d3f83ed5e6, type: 2}
+  - {fileID: 11400000, guid: b866f2c88787a9b4c929940eec76b2d6, type: 2}
+  - {fileID: 11400000, guid: 55260adff98234f4aa6a8bb3a714eefe, type: 2}
+  - {fileID: 11400000, guid: c78b1b036ebd7fe4fbe165f508929527, type: 2}
+  - {fileID: 11400000, guid: cde6366ed4927674db4ad6447e056a2c, type: 2}
+  - {fileID: 11400000, guid: fb010b777e5e5f24c98ebedabe3f8620, type: 2}
+  - {fileID: 11400000, guid: e49ffb391fe898648b8aab2827199762, type: 2}
+  - {fileID: 11400000, guid: d3b99377d523d8f43ad3871d8a0cd18b, type: 2}
+  - {fileID: 11400000, guid: ce2f6280ae2d76742a4e91bf35682155, type: 2}
+  - {fileID: 11400000, guid: 1bf2ce31591946943b6dd792b3180b1e, type: 2}
+  - {fileID: 11400000, guid: b88cd38a85ce54d4995f86196bca86d8, type: 2}
+  - {fileID: 11400000, guid: 324a3d49e661b5f47999df6e486e80b7, type: 2}
+  - {fileID: 11400000, guid: 66bfe2a4d8532b949855ea8c7718e19b, type: 2}
+  recipes:
+  - {fileID: 11400000, guid: fb8dd8c10d64a56499b2cde8dfb84bb8, type: 2}
+  - {fileID: 11400000, guid: 03fd0fe2e00471d42be701891407d8df, type: 2}
+  - {fileID: 11400000, guid: 9191bd9eb4171ff419d75d440852b0c9, type: 2}
+  - {fileID: 11400000, guid: c97eb53fb8bf3574189596131b04bbf2, type: 2}
+  - {fileID: 11400000, guid: 392b54965f08ef640b51d6f0926cb811, type: 2}
+  - {fileID: 11400000, guid: 7d271ee846e531b44ba1b001d20cedc5, type: 2}
+  - {fileID: 11400000, guid: 817cd148ccc52bd4cb3c31a91c8b9d3b, type: 2}
+  - {fileID: 11400000, guid: 4ddbe5c6b1e7ca24f942b0167ff6c495, type: 2}
+  - {fileID: 11400000, guid: d0886dc2da18bfc4e887304bc5da31d2, type: 2}
+  - {fileID: 11400000, guid: 54ae8a2eccc48054fb2a5998f25bf4aa, type: 2}
+  - {fileID: 11400000, guid: a34b91e36855a9a4496ba53216a14585, type: 2}
+  currencyName: AC
+  startingCurrency: 200

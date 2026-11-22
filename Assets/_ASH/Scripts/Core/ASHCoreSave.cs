@@ -102,6 +102,8 @@ namespace ASH.Core
                     inv.RestoreSlot(dest, item, item ? st.amount : 0, st != null ? st.condition : 1f);
                 }
                 int saved = s.slots.Count, cross = ASHInventory.CrossCount;
+                // a worn backpack's extra slots: grow the pack first so nothing saved in them is lost (equipment restores the exact bonus later)
+                if (saved >= cross && saved - cross > inv.SlotCount) inv.ForceBonusPackSlots(inv.BonusPackSlots + (saved - cross - inv.SlotCount));
                 bool split = saved != inv.Slots.Count && saved >= cross;
                 if (split)
                 {

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using ASH.Core;
+using ASH.Interaction;
 using ASH.Inventory;
 using ASH.Survival;
 using UnityEngine;
@@ -36,6 +37,9 @@ namespace ASH.Gameplay
         }
 
         readonly Worn[] _slots = new Worn[10];
+        /// <summary>Normal face clothing (face wrap, goggles). The rag / gas mask are worn through ASHFaceProtection on top of it.</summary>
+        readonly Worn _faceGear = new Worn();
+        public Worn FaceGear => _faceGear;
         ASHInventory _inv;
         public string Message { get; private set; }
 
@@ -119,9 +123,19 @@ namespace ASH.Gameplay
 
         public Worn View(Slot s)
         {
-            if (s == Slot.Face) return FaceView();
+            if (s == Slot.Face) { var f = FaceView(); return f.Empty ? _faceGear : f; }
             return this[s];
         }
+
+        /// <summary>Everything worn that can carry clothing stats (face gear included, the rag / mask view excluded).</summary>
+        public IEnumerable<Worn> WornPieces()
+        {
+            for (int i = 0; i < _slots.Length; i++) { if ((Slot)i == Slot.Face) continue; var w = _slots[i]; if (w != null && w.item) yield return w; }
+            if (_faceGear.item) yield return _faceGear;
+        }
+
+        static int Carry(ASHItemDefinition it) => it && it.clothing != null ? Mathf.Clamp(it.clothing.carrySlots, 0, ASHInventory.MaxBonusPackSlots) : 0;
+        public int CarrySlots => Carry(this[Slot.Backpack].item);
 
         Worn FaceView()
         {
@@ -151,6 +165,7 @@ namespace ASH.Gameplay
 
             if (slot == Slot.Face)
             {
+                if (item.itemId != "wet_rag" && item.itemId != "gas_mask") return EquipInto(_faceGear, item, packSlot);
                 var face = ASHFaceProtection.Instance;
                 if (!face) { Message = "Can't wear that right now."; return false; }
                 if (item.itemId == "wet_rag") { if (!face.WearRag(packSlot)) { Message = "You need a wet rag."; return false; } Notify(); return true; }
@@ -164,22 +179,66 @@ namespace ASH.Gameplay
                 return false;
             }
 
-            if (!_inv) { Message = "No pack."; return false; }
+            if (slot == Slot.Backpack) return EquipBackpack(item, packSlot);
+            return EquipInto(this[slot], item, packSlot);
+        }
+
+        int FindInPack(ASHItemDefinition item, int packSlot)
+        {
             int i = packSlot;
             if (i < 0 || i >= _inv.Slots.Count || _inv.Slots[i].item != item)
             {
                 i = -1;
                 for (int s = 0; s < _inv.Slots.Count; s++) if (!_inv.Slots[s].IsEmpty && _inv.Slots[s].item == item) { i = s; break; }
             }
-            if (i < 0) { Message = $"You're not carrying {item.displayName}."; return false; }
+            return i;
+        }
 
+        bool EquipInto(Worn target, ASHItemDefinition item, int packSlot)
+        {
+            if (!_inv) { Message = "No pack."; return false; }
+            int i = FindInPack(item, packSlot);
+            if (i < 0) { Message = $"You're not carrying {item.displayName}."; return false; }
             float cond = _inv.Slots[i].condition;
-            if (!this[slot].Empty && !Unequip(slot, false)) return false;
             if (!_inv.RemoveFromSlot(i, 1)) { Message = "Couldn't take it from the pack."; return false; }
-            this[slot].item = item;
-            this[slot].condition = cond;
+            var oldItem = target.item; float oldCond = target.condition;
+            target.item = item; target.condition = cond;
+            if (oldItem) ReturnOrDrop(oldItem, oldCond); // the slot freed above makes room for the swapped piece
             Notify();
             return true;
+        }
+
+        /// <summary>Backpack swap / equip: growing the pack always works; a smaller (or no) backpack first packs items out of the
+        /// slots that go away and is refused when they don't fit (nothing is dropped or lost).</summary>
+        bool EquipBackpack(ASHItemDefinition item, int packSlot)
+        {
+            if (!_inv) { Message = "No pack."; return false; }
+            int i = FindInPack(item, packSlot);
+            if (i < 0) { Message = $"You're not carrying {item.displayName}."; return false; }
+            var w = this[Slot.Backpack];
+            var oldItem = w.item; float oldCond = w.condition;
+            int newCarry = Carry(item);
+            float cond = _inv.Slots[i].condition;
+            if (!_inv.RemoveFromSlot(i, 1)) { Message = "Couldn't take it from the pack."; return false; }
+            if (newCarry >= _inv.BonusPackSlots) _inv.ForceBonusPackSlots(newCarry);
+            else if (!_inv.TrySetBonusPackSlots(newCarry, oldItem ? 1 : 0, out int need))
+            {
+                _inv.AddItemWithCondition(item, 1, cond);
+                Message = $"Your pack is too full to swap: empty {need} slot(s) first.";
+                return false;
+            }
+            w.item = item; w.condition = cond;
+            if (oldItem) ReturnOrDrop(oldItem, oldCond);
+            Notify();
+            return true;
+        }
+
+        void ReturnOrDrop(ASHItemDefinition item, float cond)
+        {
+            if (_inv && _inv.AddItemWithCondition(item, 1, cond) > 0) return;
+            var pk = ASHItemDrop.Spawn(item, 1, transform);
+            if (pk) pk.SetCondition(cond);
+            Message = $"Pack full: {item.displayName} dropped at your feet.";
         }
 
         public bool Unequip(Slot slot, bool notify = true)
@@ -188,11 +247,22 @@ namespace ASH.Gameplay
             if (slot == Slot.Face)
             {
                 var face = ASHFaceProtection.Instance;
-                if (face != null) face.TakeOffFace();
-                if (notify) Notify();
-                return true;
+                if (face != null && face.Worn != ASHFaceProtection.Kind.None) { face.TakeOffFace(); if (notify) Notify(); return true; }
+                return UnequipWorn(_faceGear, notify);
             }
-            var w = this[slot];
+            if (slot == Slot.Backpack && !this[slot].Empty && _inv && _inv.BonusPackSlots > 0)
+            {
+                if (!_inv.TrySetBonusPackSlots(0, 1, out int need))
+                {
+                    Message = $"The {this[slot].item.displayName}'s extra slots hold items: empty {need} pack slot(s) first.";
+                    return false;
+                }
+            }
+            return UnequipWorn(this[slot], notify);
+        }
+
+        bool UnequipWorn(Worn w, bool notify)
+        {
             if (w.Empty) return true;
             if (!_inv) { Message = "No pack."; return false; }
             if (_inv.AddItemWithCondition(w.item, 1, w.condition) <= 0)
@@ -205,7 +275,26 @@ namespace ASH.Gameplay
             return true;
         }
 
-        void Notify() { Changed?.Invoke(); }
+        void Notify() { ASHClothing.MarkDirty(); Changed?.Invoke(); }
+
+        void Update()
+        {
+            if (!_inv || Time.timeScale <= 0f) return;
+            // keep the pack's bonus slots in step with the worn backpack (save restore, live edits of carrySlots)
+            if (!ASHSaveSystem.IsRestoring)
+            {
+                int want = CarrySlots;
+                if (_inv.BonusPackSlots < want) _inv.ForceBonusPackSlots(want);
+                else if (_inv.BonusPackSlots > want) _inv.TrySetBonusPackSlots(want, 0, out _);
+            }
+            // outdoor wear (condition)
+            var S = ASHClothingSettings.I; float dh = ASHGameTime.DeltaHours;
+            if (dh <= 0f || S.wearHoursOutdoors <= 0f) return;
+            var ex = ASHExposure.Instance;
+            if (ex && ex.Sealing >= S.dryWhenSealing) return;
+            float rate = dh / S.wearHoursOutdoors * ((ex && ex.Exposure > 0.01f) || ASHClothing.IsWet() ? S.stormWearMultiplier : 1f);
+            foreach (var w in WornPieces()) w.condition = Mathf.Max(0f, w.condition - rate);
+        }
 
         static ASHItemDefinition FindItem(string id) => ASHItemRegistry.I ? ASHItemRegistry.I.Find(id) : null;
 
@@ -213,6 +302,8 @@ namespace ASH.Gameplay
         {
             public List<string> ids = new List<string>();
             public List<float> cond = new List<float>();
+            public string faceGear = "";
+            public float faceGearCond = 1f;
         }
 
         public string SaveKey => "equipment";
@@ -227,12 +318,14 @@ namespace ASH.Gameplay
                 s.ids.Add(w.item ? w.item.itemId : "");
                 s.cond.Add(w.condition);
             }
+            s.faceGear = _faceGear.item ? _faceGear.item.itemId : ""; s.faceGearCond = _faceGear.condition;
             return JsonUtility.ToJson(s);
         }
 
         public void RestoreJson(string json)
         {
             for (int i = 0; i < _slots.Length; i++) { if (_slots[i] == null) _slots[i] = new Worn(); else _slots[i].Clear(); }
+            _faceGear.Clear();
             if (string.IsNullOrEmpty(json)) { Notify(); return; }
             var s = JsonUtility.FromJson<State>(json);
             if (s == null || s.ids == null) { Notify(); return; }
@@ -245,6 +338,8 @@ namespace ASH.Gameplay
                 _slots[i].item = it;
                 _slots[i].condition = i < s.cond.Count ? s.cond[i] : 1f;
             }
+            if (!string.IsNullOrEmpty(s.faceGear)) { var fg = FindItem(s.faceGear); if (fg) { _faceGear.item = fg; _faceGear.condition = s.faceGearCond; } }
+            if (_inv) { int want = CarrySlots; if (_inv.BonusPackSlots < want) _inv.ForceBonusPackSlots(want); else if (_inv.BonusPackSlots > want) _inv.TrySetBonusPackSlots(want, 0, out _); }
             Notify();
         }
     }

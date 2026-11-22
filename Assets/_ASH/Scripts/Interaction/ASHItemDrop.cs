@@ -58,6 +58,14 @@ namespace ASH.Interaction
                 foreach (var mb in vis.GetComponentsInChildren<MonoBehaviour>(true)) mb.enabled = false;
                 vis.transform.localRotation = Quaternion.Euler(90f, 0f, 0f) * vis.transform.localRotation;   // lie it down
             }
+            else if (item.IsWearable && ASH.Gameplay.ASHClothingSettings.I.rarityBoxPickups)
+            {
+                // clothing: a small square box in the rarity colour (Common / Uncommon / Rare / Legendary)
+                var cs = ASH.Gameplay.ASHClothingSettings.I; float e = cs.pickupBoxSize;
+                vis = GameObject.CreatePrimitive(PrimitiveType.Cube); Object.Destroy(vis.GetComponent<Collider>());
+                vis.transform.SetParent(root.transform, false); vis.transform.localScale = new Vector3(e, e, e);
+                var r = vis.GetComponent<Renderer>(); if (r) r.material.color = cs.RarityColor(item.rarity);
+            }
             else
             {
                 vis = GameObject.CreatePrimitive(PrimitiveType.Cube); Object.Destroy(vis.GetComponent<Collider>());

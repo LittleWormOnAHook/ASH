@@ -114,7 +114,7 @@ namespace ASH.UI
         Text _tipTitle, _tipBody;
         static readonly Color SlotEmpty = new Color(0.10f, 0.095f, 0.085f, 0.55f);
         static readonly Color SlotFull = new Color(0.17f, 0.155f, 0.14f, 0.88f);
-        const string PackHint = "<color=#d9cbb4>LMB</color> use   <color=#d9cbb4>RMB</color> menu (use, drop, split)   <color=#d9cbb4>B</color> break down   <color=#d9cbb4>Drag</color> move (pack, hotbar, cross bar)   <color=#d9cbb4>J</color> journal   <color=#d9cbb4>Tab</color> close";
+        const string PackHint = "<color=#d9cbb4>LMB</color> use   <color=#d9cbb4>RMB</color> menu (use, break down, drop, split)   <color=#d9cbb4>B</color> break down   <color=#d9cbb4>Drag</color> move (pack, hotbar, cross bar)   <color=#d9cbb4>J</color> journal   <color=#d9cbb4>Tab</color> close";
 
         void Awake()
         {
@@ -128,6 +128,7 @@ namespace ASH.UI
         {
             if (inventory) { inventory.Changed += RefreshInventory; inventory.Changed += WatchLightSlot; inventory.ItemAdded += OnItemAdded; WatchLightSlot(); }
             ASHUpgrades.Changed += RefreshInventory;
+            ASHWallet.Changed += RefreshInventory; ASHCharacterEquipment.Changed += RefreshInventory;
             if (crafting) { crafting.Crafted += OnCrafted; crafting.CraftFailed += OnCraftFailed; crafting.BrokeDown += OnBrokeDown; crafting.BreakdownFailed += OnBreakFailed; }
             if (gps) gps.SurveyLogged += OnSurvey;
             if (objective) { objective.Message += Toast; objective.Changed += ObjDirty; }
@@ -139,6 +140,7 @@ namespace ASH.UI
         {
             if (inventory) { inventory.Changed -= RefreshInventory; inventory.Changed -= WatchLightSlot; inventory.ItemAdded -= OnItemAdded; }
             ASHUpgrades.Changed -= RefreshInventory;
+            ASHWallet.Changed -= RefreshInventory; ASHCharacterEquipment.Changed -= RefreshInventory;
             if (crafting) { crafting.Crafted -= OnCrafted; crafting.CraftFailed -= OnCraftFailed; crafting.BrokeDown -= OnBrokeDown; crafting.BreakdownFailed -= OnBreakFailed; }
             if (gps) gps.SurveyLogged -= OnSurvey;
             if (objective) { objective.Message -= Toast; objective.Changed -= ObjDirty; }
@@ -509,7 +511,8 @@ namespace ASH.UI
             var rt = (RectTransform)_invPanel.transform;
             var accent = Img("Accent", rt, new Vector2(0, 1), new Vector2(1, 1), Vector2.zero, new Vector2(0, 3), new Color(Accent.r, Accent.g, Accent.b, 0.8f)).rectTransform; accent.pivot = new Vector2(0.5f, 1); accent.anchoredPosition = Vector2.zero; accent.sizeDelta = new Vector2(0, 3);
             Label("Title", rt, new Vector2(0.5f, 1), new Vector2(0, -34), new Vector2(gridW, 40), 30, TextAnchor.MiddleCenter, Accent).text = "Pack";
-            Label("Sub", rt, new Vector2(0.5f, 1), new Vector2(0, -64), new Vector2(gridW, 24), 16, TextAnchor.MiddleCenter, Dim).text = $"{n} slots  ·  hotbar and cross bar items are kept out of the pack";
+            _invSub = Label("Sub", rt, new Vector2(0.5f, 1), new Vector2(0, -64), new Vector2(gridW, 24), 16, TextAnchor.MiddleCenter, Dim);
+            _invSub.text = SubText(n);
             var grid = Rect("Grid", rt, new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -90), new Vector2(gridW, gridH));
             grid.pivot = new Vector2(0.5f, 1);
             var g = grid.gameObject.AddComponent<GridLayoutGroup>(); g.cellSize = new Vector2(cell, cell); g.spacing = new Vector2(gap, gap);
@@ -521,7 +524,35 @@ namespace ASH.UI
             _invDesc.text = PackHint;
             HideTip();
             _invPanel.SetActive(false);
-            BuildContextMenu();
+            if (_ctxBlocker == null) BuildContextMenu();
+        }
+
+        Text _invSub;
+        string SubText(int n)
+        {
+            int bonus = inventory ? inventory.BonusPackSlots : 0;
+            var w = ASHWallet.Instance;
+            string slotsTxt = bonus > 0 ? $"{n} slots ({bonus} from backpack)" : $"{n} slots";
+            string money = w ? $"  ·  <color=#c9a46a>{w.Balance} {ASHWallet.Currency}</color>" : "";
+            return $"{slotsTxt}{money}  ·  hotbar and cross bar items are kept out of the pack";
+        }
+
+        /// <summary>A worn backpack changes the pack size: rebuild the grid (and the cross bar, whose slot indices follow the pack).</summary>
+        void RebuildPackGrid()
+        {
+            bool open = _invPanel && _invPanel.activeSelf;
+            EndSlotDrag(); CloseContext(); _hoverSlot = -1;
+            int invIdx = _invPanel ? _invPanel.transform.GetSiblingIndex() : -1;
+            int crossIdx = _crossRoot ? _crossRoot.GetSiblingIndex() : -1;
+            if (_invPanel) Destroy(_invPanel);
+            _slots.Clear();
+            BuildInventory();
+            if (invIdx >= 0) _invPanel.transform.SetSiblingIndex(invIdx);
+            _invPanel.SetActive(open);
+            if (_crossRoot) Destroy(_crossRoot.gameObject);
+            _cross.Clear();
+            BuildCross();
+            if (crossIdx >= 0 && _crossRoot) _crossRoot.SetSiblingIndex(crossIdx);
         }
 
         // ---------------------------------------------------------------- item context menu (RMB on a pack slot)
@@ -543,7 +574,7 @@ namespace ASH.UI
             var ol = panel.gameObject.AddComponent<Outline>(); ol.effectColor = new Color(0.92f, 0.82f, 0.66f, 0.22f); ol.effectDistance = new Vector2(1.5f, -1.5f);
             var acc = Img("Accent", _ctxPanel, new Vector2(0, 1), new Vector2(1, 1), Vector2.zero, new Vector2(0, 3), new Color(Accent.r, Accent.g, Accent.b, 0.8f)).rectTransform;
             acc.pivot = new Vector2(0.5f, 1); acc.anchoredPosition = Vector2.zero; acc.sizeDelta = new Vector2(0, 3);
-            foreach (var id in new[] { "use", "topack", "drop1", "dropall", "split" })
+            foreach (var id in new[] { "use", "topack", "breakdown", "drop1", "dropall", "split" })
             {
                 var bg = Img("Item_" + id, _ctxPanel, new Vector2(0, 1), new Vector2(0, 1), Vector2.zero, new Vector2(CtxW - CtxPad * 2, CtxRow - 4), new Color(1, 1, 1, 0.05f));
                 bg.raycastTarget = true; bg.rectTransform.pivot = new Vector2(0, 1);
@@ -575,6 +606,10 @@ namespace ASH.UI
                 {
                     case "use": label = UseLabel(it); enabled = CanUse(it); break;
                     case "topack": show = inventory.IsQuick(slot); label = "Move to pack"; break;
+                    case "breakdown":
+                        show = it.CanBreakDown && !ASHInventory.IsKeyItem(it) && crafting != null;
+                        if (show) { string why = crafting.BreakdownBlockReason(it); enabled = why == null; label = why == null ? "Break down" : $"Break down  <color=#a59e93>({why})</color>"; }
+                        break;
                     case "drop1": show = !ASHInventory.IsKeyItem(it); label = s.amount > 1 ? "Drop 1" : "Drop"; break;
                     case "dropall": show = s.amount > 1 && !ASHInventory.IsKeyItem(it); label = $"Drop all  <color=#a59e93>x{s.amount}</color>"; break;
                     case "split": show = s.amount > 1 && !ASHInventory.IsKeyItem(it); label = "Split stack"; break;
@@ -628,6 +663,7 @@ namespace ASH.UI
             {
                 case "use": return UseSlot(i);
                 case "topack": return ToPack(i);
+                case "breakdown": return crafting && i < inventory.Slots.Count && !inventory.Slots[i].IsEmpty && crafting.TryBreakDown(inventory.Slots[i].item);
                 case "drop1": return DropSlot(i, 1) != null;
                 case "dropall": return DropSlot(i, int.MaxValue) != null;
                 case "split": return inventory.Split(i);
@@ -914,6 +950,8 @@ namespace ASH.UI
         void RefreshInventory()
         {
             if (inventory == null) return;
+            if (_invPanel && inventory.PackSlotCount != _slots.Count) RebuildPackGrid();
+            if (_invSub) _invSub.text = SubText(_slots.Count);
             foreach (var ui in _slots) FillSlot(ui);
             foreach (var ui in _hotbar) FillSlot(ui);
             RefreshCross();
@@ -976,12 +1014,15 @@ namespace ASH.UI
                 if (it.restoreStamina > 0) sb.Append($"+{it.restoreStamina:0} stamina");
                 sb.Append("</color>  <color=#a59e93>LMB to eat</color>");
             }
+            else if (it.IsWearable) sb.Append("\n<color=#a59e93>LMB to wear</color>" + (it.CanBreakDown ? "  <color=#c9a46a>[B] break down</color>" : ""));
             else if (TipExtra != null && TipExtra(s) is string extra && extra.Length > 0) sb.Append("\n" + extra);
             else if (it.IsPlaceable) sb.Append("\n<color=#a59e93>LMB to place</color>");
             else if (it.toolType == ASHToolType.GPS) sb.Append("\n<color=#a59e93>LMB or [M] to open the map</color>");
             else if (it.toolType != ASHToolType.None) sb.Append("\n<color=#a59e93>Tool  ·  used automatically</color>");
             else if (it.CanBreakDown) sb.Append("\n<color=#c9a46a>[B] break down</color>");
             else sb.Append("\n<color=#a59e93>Crafting material  ·  [Q] craft</color>");
+            string cl = ASHClothing.Describe(it, s.condition);
+            if (cl.Length > 0) sb.Append("\n<size=16>" + cl + "</size>");
             _tipBody.text = sb.ToString();
         }
 

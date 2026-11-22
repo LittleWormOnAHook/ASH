@@ -38,7 +38,12 @@ namespace ASH.Inventory
         int Hot => Mathf.Clamp(hotbarSize, 0, 10);
         /// <summary>End of the hotbar + pack range (the cross bar follows): hotbar, then the pack grid (serialized slotCount, raised to MinPackSlots).
         /// Older layouts had the hotbar as the pack's top row, so their slots [0, hotbar) simply stay on the hotbar.</summary>
-        int Pack => Hot + Mathf.Max(slotCount, MinPackSlots);
+        int Pack => Hot + Mathf.Max(slotCount, MinPackSlots) + _bonusPack;
+        /// <summary>Extra pack slots from a worn backpack (clothing: 4 / 8 / 12). Runtime only; set by ASHCharacterEquipment.</summary>
+        int _bonusPack;
+        public const int MaxBonusPackSlots = 24;
+        public int BonusPackSlots => _bonusPack;
+        public int BasePackSlotCount => Mathf.Max(slotCount, MinPackSlots);
         /// <summary>First pack-grid slot (after the hotbar).</summary>
         public int PackStart => Hot;
         /// <summary>Pack-grid slots (hotbar and cross bar excluded).</summary>
@@ -80,6 +85,49 @@ namespace ASH.Inventory
                 if (free >= 0) pack[free] = s; else Debug.LogWarning($"[ASH] Inventory resize: no room for {s.item.displayName} x{s.amount}");
             }
             slots.Clear(); slots.AddRange(pack); slots.AddRange(cross);
+        }
+
+        // ---------------------------------------------------------------- backpack bonus slots (clothing)
+        /// <summary>Pack slots that hold something.</summary>
+        public int UsedPackSlots() { EnsureSlots(); int n = 0; for (int i = Hot; i < Pack; i++) if (!slots[i].IsEmpty) n++; return n; }
+
+        /// <summary>How many pack slots must be emptied before the bonus can become n with reserve slots left free (0 = fits).</summary>
+        public int OverflowForBonus(int n, int reserve)
+        {
+            n = Mathf.Clamp(n, 0, MaxBonusPackSlots);
+            int size = Mathf.Max(slotCount, MinPackSlots) + n;
+            return Mathf.Max(0, UsedPackSlots() - Mathf.Max(0, size - Mathf.Max(0, reserve)));
+        }
+
+        /// <summary>Sets the backpack bonus. Shrinking first packs items from the removed slots into free slots below the new end;
+        /// fails (nothing changes) when they don't fit with reserve slots left free - needFree is how many slots to empty.</summary>
+        public bool TrySetBonusPackSlots(int n, int reserve, out int needFree)
+        {
+            EnsureSlots(); n = Mathf.Clamp(n, 0, MaxBonusPackSlots); needFree = 0;
+            if (n == _bonusPack) { int free = (Pack - Hot) - UsedPackSlots(); needFree = Mathf.Max(0, reserve - free); return needFree == 0; }
+            if (n < _bonusPack)
+            {
+                needFree = OverflowForBonus(n, reserve);
+                if (needFree > 0) return false;
+                int end = Hot + Mathf.Max(slotCount, MinPackSlots) + n;
+                for (int i = end; i < Pack; i++)
+                {
+                    if (slots[i].IsEmpty) continue;
+                    int free = -1; for (int k = Hot; k < end; k++) if (slots[k].IsEmpty) { free = k; break; }
+                    if (free < 0) { needFree = 1; return false; } // can't happen after the count check
+                    var t = slots[free]; slots[free] = slots[i]; slots[i] = t;
+                }
+            }
+            _bonusPack = n; ResizeSlots(); Changed?.Invoke();
+            return true;
+        }
+
+        /// <summary>Sets the bonus without the fit check (growing, or save restore of a bigger pack). Items that can't fit are reported by the resize.</summary>
+        public void ForceBonusPackSlots(int n)
+        {
+            n = Mathf.Clamp(n, 0, MaxBonusPackSlots); if (n == _bonusPack) return;
+            if (n < _bonusPack && TrySetBonusPackSlots(n, 0, out _)) return;
+            _bonusPack = n; ResizeSlots(); Changed?.Invoke();
         }
 
         /// <summary>Key items stay in the pack (only Move works on them): the keyItem flag, or the Survival Guide's journal item.</summary>
