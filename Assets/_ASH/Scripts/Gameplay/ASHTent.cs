@@ -47,7 +47,23 @@ namespace ASH.Gameplay
         void Start()
         {
             // only tents the player placed (ASHPlacer / save restore add ASHPlacedObject); hand-placed scene tents are left exactly where they are
-            if (GetComponent<ASHPlacedObject>()) SettleOnGround(transform);
+            // (unless Settle Scene Tents is on). t568: settle now and again after short delays (the ash layer depth / streamed colliders
+            // may not be ready on the first frame).
+            if (gameObject.name == "ASH_PlacementGhost") return;
+            if (GetComponent<ASHPlacedObject>() || S.settleSceneTents) StartCoroutine(SettleRoutine());
+        }
+
+        System.Collections.IEnumerator SettleRoutine()
+        {
+            SettleOnGround(transform, S.logSettle);
+            float t0 = Time.time;
+            var delays = S.resettleDelays;
+            if (delays == null) yield break;
+            for (int i = 0; i < delays.Length; i++)
+            {
+                while (Time.time - t0 < delays[i]) yield return null;
+                SettleOnGround(transform, S.logSettle && i == delays.Length - 1);
+            }
         }
 
         void LateUpdate() => ApplyZone();
@@ -214,69 +230,124 @@ namespace ASH.Gameplay
             return true;
         }
 
-        // ------------------------------------------------------------------ t565 ground settle
+        // ------------------------------------------------------------------ t565/t568 ground settle
         static readonly RaycastHit[] _hits = new RaycastHit[16];
 
-        /// <summary>Settles a tent (or its placement ghost) onto the ground under its footprint: base on the ground plane fitted to the
-        /// four footprint corners, tilted up to maxTilt, sunk groundSink, and dropped further (up to maxExtraSink) until no corner floats.
-        /// Keeps the current position (x/z) and heading. Returns false and leaves it alone when the ground can't be found.</summary>
-        public static bool SettleOnGround(Transform root)
+        /// <summary>Settles a tent (or its placement ghost) onto the ground under its footprint. t568: the base is the bottom of the
+        /// tent's BoxCollider (the authored footprint, ropes / stray mesh bits ignored), the ground is sampled on a grid (terrain or static
+        /// colliders) and raised by the visible ash / snow layer depth, a plane is fitted (tilt capped at maxTilt) and the tent drops until no
+        /// sample floats more than floatTolerance (bounded by maxExtraSink). Keeps x/z and heading. False (untouched) when no ground is found.</summary>
+        public static bool SettleOnGround(Transform root) => SettleOnGround(root, false);
+
+        public static bool SettleOnGround(Transform root, bool log)
         {
             var s = ASHTentSettings.I;
             if (!root || !s.snapToGround) return false;
             Vector3 fwd = Vector3.ProjectOnPlane(root.forward, Vector3.up);
             float yaw = fwd.sqrMagnitude > 1e-6f ? Quaternion.LookRotation(fwd).eulerAngles.y : root.eulerAngles.y;
             var upright = Quaternion.Euler(0f, yaw, 0f);
+            var startPos = root.position;
             root.rotation = upright;
-            if (!LocalBounds(root, out var lb)) return false;
+            if (!FootprintBounds(root, out var lb, out bool fromCollider)) { if (log) Debug.Log("[ASH] Tent settle: no collider / mesh bounds on " + root.name); return false; }
+            if (!Application.isPlaying) Physics.SyncTransforms(); // edit-mode menu: colliders moved by Undo / tools
 
+            int g = Mathf.Clamp(s.footprintSamples, 2, 8);
             float ix = lb.size.x * s.footprintInset, iz = lb.size.z * s.footprintInset;
             float x0 = lb.min.x + ix, x1 = lb.max.x - ix, z0 = lb.min.z + iz, z1 = lb.max.z - iz, y = lb.min.y;
-            var local = new[] { new Vector3(x0, y, z0), new Vector3(x1, y, z0), new Vector3(x0, y, z1), new Vector3(x1, y, z1), new Vector3((x0 + x1) * 0.5f, y, (z0 + z1) * 0.5f) };
-            var hit = new Vector3[5]; var ok = new bool[5];
-            float up = lb.size.y * Mathf.Max(0.01f, root.lossyScale.y) + 2f;
-            int n = 0; Vector3 sum = Vector3.zero;
-            for (int i = 0; i < 5; i++)
-            {
-                var w = root.TransformPoint(local[i]);
-                if (GroundBelow(root, w + Vector3.up * up, up + 6f, out hit[i])) { ok[i] = true; n++; sum += hit[i]; }
-            }
-            if (n < 3) return false;
+            int total = g * g + 1;
+            if (_local == null || _local.Length < total) { _local = new Vector3[total]; _hit = new Vector3[total]; _ok = new bool[total]; }
+            int k = 0;
+            for (int a = 0; a < g; a++)
+                for (int b = 0; b < g; b++)
+                    _local[k++] = new Vector3(Mathf.Lerp(x0, x1, a / (float)(g - 1)), y, Mathf.Lerp(z0, z1, b / (float)(g - 1)));
+            _local[k++] = new Vector3((x0 + x1) * 0.5f, y, (z0 + z1) * 0.5f);
 
-            Vector3 normal = Vector3.up;
-            if (ok[0] && ok[1] && ok[2] && ok[3])
+            var acc = Application.isPlaying && s.sitOnAshLayer ? ASH.World.Accumulation.ASHAccumulationController.Instance : null;
+            if (acc && !acc.isActiveAndEnabled) acc = null;
+            Vector3 sc = root.lossyScale;
+            float up = lb.size.y * Mathf.Max(0.01f, sc.y) + 2f;
+            int n = 0; float maxAsh = 0f;
+            Vector3 sum = Vector3.zero;
+            for (int i = 0; i < total; i++)
             {
-                normal = Vector3.Cross(hit[2] - hit[1], hit[3] - hit[0]).normalized; // diagonals (x0,z1)-(x1,z0) x (x1,z1)-(x0,z0)
-                if (normal.y < 0f) normal = -normal;
-                if (normal.sqrMagnitude < 0.5f) normal = Vector3.up;
+                _ok[i] = false;
+                var w = root.position + upright * Vector3.Scale(_local[i], sc);
+                if (!GroundBelow(root, new Vector3(w.x, Mathf.Max(w.y, startPos.y) + up, w.z), up + s.groundSearchDepth, out var p)) continue;
+                if (acc)
+                {
+                    float d = acc.GetDepthMetres(p) * s.ashDepthFactor;
+                    if (d > 0f) { p.y += d; maxAsh = Mathf.Max(maxAsh, d); }
+                }
+                _hit[i] = p; _ok[i] = true; n++; sum += p;
+            }
+            if (n < Mathf.Max(3, total / 3)) { if (log) Debug.Log("[ASH] Tent settle: ground not found under " + root.name + " (" + n + "/" + total + " samples)"); return false; }
+            Vector3 avg = sum / n;
+
+            // least squares plane y = A x + B z + C through the hits (relative to avg)
+            double sxx = 0, sxz = 0, szz = 0, sxy = 0, szy = 0;
+            for (int i = 0; i < total; i++)
+            {
+                if (!_ok[i]) continue;
+                double dx = _hit[i].x - avg.x, dz = _hit[i].z - avg.z, dy = _hit[i].y - avg.y;
+                sxx += dx * dx; sxz += dx * dz; szz += dz * dz; sxy += dx * dy; szy += dz * dy;
+            }
+            double det = sxx * szz - sxz * sxz;
+            Vector3 normal = Vector3.up;
+            if (System.Math.Abs(det) > 1e-6)
+            {
+                float A = (float)((sxy * szz - szy * sxz) / det), B = (float)((szy * sxx - sxy * sxz) / det);
+                normal = new Vector3(-A, 1f, -B).normalized;
             }
             float ang = Vector3.Angle(Vector3.up, normal);
             if (ang > s.maxTilt) normal = ang > 0.01f ? Vector3.Slerp(Vector3.up, normal, s.maxTilt / ang).normalized : Vector3.up;
             var rot = Quaternion.FromToRotation(Vector3.up, normal) * upright;
 
-            // put the footprint centre of the base on the plane through the average ground point
-            Vector3 avg = sum / n;
-            Vector3 baseCentre = Vector3.Scale(local[4], root.lossyScale);
+            // footprint centre of the base onto the fitted plane through the average ground point
+            Vector3 baseCentre = Vector3.Scale(_local[total - 1], sc);
             Vector3 pos = avg - rot * baseCentre - normal * s.groundSink;
-            // no floating corner: drop until every sampled base point touches (bounded)
+            // no floating sample: drop until every sampled base point is within floatTolerance of the ground (bounded)
             float gap = 0f;
-            for (int i = 0; i < 5; i++)
+            for (int i = 0; i < total; i++)
             {
-                if (!ok[i]) continue;
-                var b = pos + rot * Vector3.Scale(local[i], root.lossyScale);
-                gap = Mathf.Max(gap, b.y - hit[i].y);
+                if (!_ok[i]) continue;
+                var bp = pos + rot * Vector3.Scale(_local[i], sc);
+                gap = Mathf.Max(gap, bp.y - _hit[i].y - s.floatTolerance);
             }
-            if (gap > 0f) pos.y -= Mathf.Min(gap, s.maxExtraSink);
+            float drop = gap > 0f ? Mathf.Min(gap, s.maxExtraSink) : 0f;
+            pos.y -= drop;
             root.SetPositionAndRotation(pos, rot);
+            if (log)
+                Debug.Log("[ASH] Tent settle: " + root.name + " base from " + (fromCollider ? "collider" : "mesh") + ", " + n + "/" + total + " ground hits, tilt "
+                          + Vector3.Angle(Vector3.up, normal).ToString("0.0") + "deg (slope " + ang.ToString("0.0") + "), ash +" + maxAsh.ToString("0.00") + "m, extra drop "
+                          + drop.ToString("0.00") + "m" + (gap > s.maxExtraSink ? " (capped, " + (gap - s.maxExtraSink).ToString("0.00") + "m still floating)" : "")
+                          + ", moved " + (pos - startPos).ToString("F2"));
             return true;
         }
 
-        /// <summary>Bounds of every mesh under root, in root-local space (pose independent).</summary>
+        static Vector3[] _local, _hit; static bool[] _ok;
+
+        /// <summary>The footprint in root-local space: the root BoxCollider (the authored tent box, base at its bottom) when there is one,
+        /// else the bounds of every active mesh (pose independent).</summary>
+        static bool FootprintBounds(Transform root, out Bounds b, out bool fromCollider)
+        {
+            fromCollider = false;
+            var box = root.GetComponent<BoxCollider>();
+            if (box && ASHTentSettings.I.baseFromCollider)
+            {
+                b = new Bounds(box.center, box.size);
+                fromCollider = true;
+                return b.size.x > 0.05f && b.size.z > 0.05f;
+            }
+            return LocalBounds(root, out b);
+        }
+
+        /// <summary>Bounds of every active mesh under root, in root-local space (pose independent).</summary>
         static bool LocalBounds(Transform root, out Bounds b)
         {
             b = default; bool any = false;
-            foreach (var r in root.GetComponentsInChildren<Renderer>(true))
+            foreach (var r in root.GetComponentsInChildren<Renderer>(false))
             {
+                if (r is ParticleSystemRenderer || !r.enabled) continue;
                 Mesh m = null;
                 if (r is MeshRenderer) { var mf = r.GetComponent<MeshFilter>(); m = mf ? mf.sharedMesh : null; }
                 else if (r is SkinnedMeshRenderer smr) m = smr.sharedMesh;
@@ -292,18 +363,24 @@ namespace ASH.Gameplay
             return any;
         }
 
-        /// <summary>Nearest static ground (terrain, or a collider without a rigidbody) below <paramref name="from"/>, ignoring the tent itself,
-        /// triggers, other tents, the player and animals.</summary>
+        /// <summary>Nearest static ground (terrain, or a solid collider without a rigidbody) below <paramref name="from"/>, ignoring the tent
+        /// itself, triggers, other tents / placed objects, characters, animals and small props (grass, pickups, debris).</summary>
         static bool GroundBelow(Transform self, Vector3 from, float dist, out Vector3 point)
         {
             point = default;
             int c = Physics.RaycastNonAlloc(from, Vector3.down, _hits, dist, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore);
             float best = float.PositiveInfinity;
+            float minSize = ASHTentSettings.I.minGroundColliderSize;
             for (int i = 0; i < c; i++)
             {
                 var h = _hits[i]; var col = h.collider;
                 if (!col || col.transform.IsChildOf(self)) continue;
-                if (!(col is TerrainCollider) && (col.attachedRigidbody || col.GetComponentInParent<ASHTent>() || col.GetComponentInParent<ASHPlacedObject>())) continue;
+                if (!(col is TerrainCollider))
+                {
+                    if (col.attachedRigidbody || col is CharacterController || col.GetComponentInParent<ASHTent>() || col.GetComponentInParent<ASHPlacedObject>()) continue;
+                    var bs = col.bounds.size;
+                    if (Mathf.Max(bs.x, bs.z) < minSize) continue;
+                }
                 if (h.distance < best) { best = h.distance; point = h.point; }
             }
             return best < float.PositiveInfinity;

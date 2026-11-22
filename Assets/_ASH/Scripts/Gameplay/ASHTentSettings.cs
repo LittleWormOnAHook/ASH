@@ -45,13 +45,33 @@ namespace ASH.Gameplay
         [Tooltip("Player-placed tents settle onto the ground under their footprint (terrain or rock), tilted to the slope. Hand-placed scene tents are never moved.")]
         public bool snapToGround = true;
         [Tooltip("Max tilt to follow the slope (degrees). 0 = always upright.")]
-        [Range(0f, 45f)] public float maxTilt = 12f;
+        [Range(0f, 45f)] public float maxTilt = 20f;
         [Tooltip("Sink the base this far into the ground (metres) so the edges and pegs never show a gap.")]
         [Range(-0.5f, 1f)] public float groundSink = 0.05f;
         [Tooltip("On bumpy ground the tent drops until no footprint corner floats, but never more than this extra (metres).")]
-        [Range(0f, 2f)] public float maxExtraSink = 0.35f;
+        [Range(0f, 3f)] public float maxExtraSink = 1f;
         [Tooltip("Footprint corners sampled this fraction in from the mesh edge (0 = exact edge).")]
         [Range(0f, 0.45f)] public float footprintInset = 0.1f;
+        [Tooltip("t568: base = bottom of the tent's BoxCollider (the authored footprint) instead of the mesh bounds (ropes / pegs can reach lower).")]
+        public bool baseFromCollider = true;
+        [Tooltip("Ground samples per side of the footprint (grid N x N + centre).")]
+        [Range(2, 8)] public int footprintSamples = 4;
+        [Tooltip("A sample may float this much (metres) before the tent drops further.")]
+        [Range(0f, 0.5f)] public float floatTolerance = 0.02f;
+        [Tooltip("Sit on top of the visible ash / snow layer (visual only, characters sink into it) instead of the terrain under it.")]
+        public bool sitOnAshLayer = true;
+        [Tooltip("Share of the layer depth to raise the base by (1 = on top of the layer, 0.5 = half sunk in).")]
+        [Range(0f, 2f)] public float ashDepthFactor = 0.6f;
+        [Tooltip("How far below the tent's current height the ground is searched (metres).")]
+        [Range(1f, 100f)] public float groundSearchDepth = 20f;
+        [Tooltip("Colliders smaller than this (largest horizontal side, metres) are not ground: grass, pickups, debris.")]
+        [Range(0f, 5f)] public float minGroundColliderSize = 0.75f;
+        [Tooltip("Re-settle at these times (seconds after the tent appears), once the layer and streamed colliders are ready.")]
+        public float[] resettleDelays = { 0.25f, 1.5f };
+        [Tooltip("Also settle hand-placed scene tents on Play (off = they stay exactly where they were placed).")]
+        public bool settleSceneTents = false;
+        [Tooltip("Log one line per settle to the console (hits, tilt, ash, drop) for diagnosing.")]
+        public bool logSettle = true;
 
         [Header("Tent menu (E on the tent)")]
         public string menuPromptPacked = "Tent";

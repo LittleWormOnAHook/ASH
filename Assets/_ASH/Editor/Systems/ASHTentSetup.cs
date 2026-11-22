@@ -92,6 +92,26 @@ namespace ASH.EditorTools
             Debug.Log("[ASH] Tents set up. " + (haveModels ? "Packed / Built placeable prefabs wired." : "Models missing.") + " " + log);
         }
 
+        /// <summary>t568: settles every tent in the open scene(s) onto the ground (Undo-able). Edit mode marks the scene dirty but never
+        /// saves it; in Play it settles the live tents. Moves only objects with ASHTent.</summary>
+        [MenuItem("ASH/Systems/Tents/Snap Tents To Ground", false, 222)]
+        static void SnapTents()
+        {
+            var tents = Object.FindObjectsByType<ASHTent>(FindObjectsInactive.Exclude);
+            int moved = 0;
+            foreach (var t in tents)
+            {
+                if (!t || t.gameObject.name == "ASH_PlacementGhost" || EditorUtility.IsPersistent(t)) continue;
+                if (!Application.isPlaying) Undo.RecordObject(t.transform, "Snap Tents To Ground");
+                if (ASHTent.SettleOnGround(t.transform, true))
+                {
+                    moved++;
+                    if (!Application.isPlaying) { PrefabUtility.RecordPrefabInstancePropertyModifications(t.transform); UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(t.gameObject.scene); }
+                }
+            }
+            Debug.Log("[ASH] Snap Tents To Ground: " + moved + " of " + tents.Length + " tent(s) settled" + (Application.isPlaying ? " (Play)." : " (scene marked dirty, not saved)."));
+        }
+
         [MenuItem("ASH/Systems/Tents/Select Tent Settings", false, 221)]
         static void Select()
         {
