@@ -49,6 +49,11 @@ namespace ASH.Movement
             public float maxDrop;
             [Tooltip("Look-ahead multiplier for whiskers and the blocked check.")]
             public float lookAheadMul = 1f;
+            // t569 smoothing (0 = old behaviour)
+            [Tooltip("Braking rate (m/s per second). 0 = 2 x acceleration.")] public float deceleration;
+            [Tooltip("Seconds to blend the steering direction (avoidance / circle targets) so the heading never snaps.")] public float steerSmoothTime;
+            [Tooltip("Seconds to smooth the speed fed to the Animator (no gait flicker).")] public float animSpeedSmoothTime;
+            [Tooltip("Share of the commanded speed (vs measured ground speed) used for the Animator speed (measured speed is noisy).")] public float animCommandBlend;
             [System.NonSerialized] public System.Func<Vector3, bool> isWater;
         }
 
@@ -75,8 +80,14 @@ namespace ASH.Movement
         static readonly Collider[] Pen = new Collider[32];
 
         float _speed, _yaw, _yawVel, _animYaw, _turnRate, _actualSpeed, _animRate = 1f, _stuckT, _detourUntil;
-        bool _turningInPlace, _moving, _teleported;
-        Vector3 _up = Vector3.up, _lastPos, _detour;
+        bool _turningInPlace, _moving, _teleported, _steerValid;
+        Vector3 _up = Vector3.up, _lastPos, _detour, _steerDir;
+        float _animV, _animVVel, _detourSign = 1f, _detourSignAt = -99f;
+        float Decel => tune.deceleration > 0.01f ? tune.deceleration : tune.acceleration * 2f;
+        /// <summary>Smoothed speed the Animator is driven with (t569).</summary>
+        public float AnimSpeed => _animV;
+        /// <summary>Clears the stuck timer without the teleport reset (keeps speed, heading and the anim).</summary>
+        public void ClearStuck() { _stuckT = 0f; }
         CapsuleCollider _body;
         Transform _ignoreRoot;
 
@@ -143,21 +154,31 @@ namespace ASH.Movement
             else if (Blocked(dir, Mathf.Min(d, 0.9f * LA)))
             {
                 bool found = false;
-                foreach (float a in new[] { 40f, -40f, 75f, -75f, 110f, -110f, 150f, -150f })
+                // t569: keep going round the same side as the last detour (no left/right zig-zag)
+                float sg = Time.time - _detourSignAt < 2f ? _detourSign : 1f;
+                foreach (float a0 in DetourAngles)
                 {
+                    float a = a0 * sg;
                     var alt = Quaternion.Euler(0f, a, 0f) * dir;
-                    if (!Blocked(alt, 1.2f)) { dir = alt; _detour = alt; _detourUntil = Time.time + 0.7f; found = true; break; }
+                    if (!Blocked(alt, 1.2f)) { dir = alt; _detour = alt; _detourUntil = Time.time + 0.7f; _detourSign = Mathf.Sign(a); _detourSignAt = Time.time; found = true; break; }
                 }
-                if (!found) { _stuckT += dt; _speed = 0f; _turningInPlace = false; Face(transform.position + dir, dt); Depenetrate(); return false; }
+                if (!found) { _stuckT += dt; _speed = Mathf.MoveTowards(_speed, 0f, Decel * 2f * dt); _turningInPlace = false; Face(transform.position + dir, dt); Depenetrate(); return false; }
             }
             dir = Separate(Whiskers(dir));
+            if (tune.steerSmoothTime > 0.001f && _steerValid && dir.sqrMagnitude > 1e-4f)
+            {
+                var sm = Vector3.Slerp(_steerDir, dir, 1f - Mathf.Exp(-dt / tune.steerSmoothTime)); sm.y = 0f;
+                if (sm.sqrMagnitude > 1e-4f) dir = sm.normalized;
+            }
+            if (dir.sqrMagnitude > 1e-4f) { _steerDir = dir; _steerValid = true; }
             float yawTo = Mathf.Atan2(dir.x, dir.z) * Mathf.Rad2Deg; float diff = Mathf.DeltaAngle(_yaw, yawTo);
             if (!_turningInPlace && Mathf.Abs(diff) > tune.turnInPlaceAngle && _speed < tune.trotSpeed) _turningInPlace = true;
             else if (_turningInPlace && Mathf.Abs(diff) < tune.turnInPlaceDone) _turningInPlace = false;
             _yaw = Mathf.SmoothDampAngle(_yaw, yawTo, ref _yawVel, tune.turnSmoothTime, tune.turnSpeed * (_turningInPlace ? 0.7f : 1f), dt);
             float turnSlow = _turningInPlace ? 0f : Mathf.Lerp(1f, tune.arcTurnSlow, Mathf.Clamp01(Mathf.Abs(diff) / 90f));
             want = Mathf.Min(want, d / Mathf.Max(0.2f, dt * 8f) + tune.walkSpeed * 0.5f);
-            _speed = Mathf.MoveTowards(_speed, want * turnSlow, tune.acceleration * dt);
+            float wantNow = want * turnSlow;
+            _speed = Mathf.MoveTowards(_speed, wantNow, (wantNow < _speed ? Decel : tune.acceleration) * dt);
             var before = transform.position;
             Step(Quaternion.Euler(0f, _yaw, 0f) * Vector3.forward, dt);
             float moved = Flat(before, transform.position);
@@ -165,13 +186,15 @@ namespace ASH.Movement
             return false;
         }
 
+        static readonly float[] DetourAngles = { 40f, -40f, 75f, -75f, 110f, -110f, 150f, -150f };
+
         public void Stop()
         {
             float dt = Time.deltaTime;
             if (TickHop(dt)) return;
-            _speed = Mathf.MoveTowards(_speed, 0f, tune.acceleration * 2f * dt);
+            _speed = Mathf.MoveTowards(_speed, 0f, Decel * dt);
             if (_speed > 0.01f) Step(transform.forward, dt);
-            else { _moving = false; Depenetrate(); }
+            else { _moving = false; _steerValid = false; Depenetrate(); }
         }
 
         public void Face(Vector3 p, float dt)
@@ -196,6 +219,7 @@ namespace ASH.Movement
         {
             _teleported = true; _lastPos = transform.position; _speed = 0f; _stuckT = 0f;
             _turningInPlace = false; _yawVel = 0f; _yaw = transform.eulerAngles.y; _animYaw = _yaw; _up = Vector3.up;
+            _steerValid = false; _animV = 0f; _animVVel = 0f;
         }
 
         public void Animate(float dt)
@@ -205,6 +229,11 @@ namespace ASH.Movement
             _turnRate = Mathf.Lerp(_turnRate, rate, 1f - Mathf.Exp(-dt * 10f));
             float turn = Mathf.Clamp(_turnRate / Mathf.Max(1f, tune.turnBlendFullRate), -1f, 1f);
             float v = _actualSpeed, play = 1f;
+            // t569: drive the Animator with a smoothed blend of commanded and measured speed (measured alone flickers on
+            // pushes / depenetration / detours, which dropped the walk/run blend mid-fight)
+            if (tune.animCommandBlend > 0f) v = Mathf.Lerp(v, Mathf.Min(_speed, _actualSpeed + 1f), Mathf.Clamp01(tune.animCommandBlend));
+            if (tune.animSpeedSmoothTime > 0.001f) v = _animV = Mathf.Max(0f, Mathf.SmoothDamp(_animV, v, ref _animVVel, tune.animSpeedSmoothTime, Mathf.Infinity, dt));
+            else _animV = v;
             float gw = Mathf.Max(0.1f, tune.walkSpeed), gt = Mathf.Max(gw + 0.01f, tune.trotSpeed), gr = Mathf.Max(gt + 0.01f, tune.runSpeed);
             float cw = Mathf.Max(0.05f, tune.walkClipSpeed), ct = Mathf.Max(0.05f, tune.trotClipSpeed), cr = Mathf.Max(0.05f, tune.runClipSpeed);
             if (v > 0.05f)

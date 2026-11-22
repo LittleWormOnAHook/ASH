@@ -175,7 +175,10 @@ namespace ASH.Wildlife
                 return;
             if (_mode == ASHAnimalMode.Surprise && _sHoldPose) return;
             if (W == null || Sp == null) return;
-            _vis.TickLoco(_loco.ActualSpeed, Trot(), Run(), _loco.TurningInPlace, _loco.TurnRate, dt);
+            bool sm = Sp.smoothMovement;
+            _vis.gaitHysteresis = sm ? Sp.gaitHysteresis : 0f;
+            _vis.minGaitSeconds = sm ? Sp.minGaitSeconds : 0f;
+            _vis.TickLoco(sm ? _loco.AnimSpeed : _loco.ActualSpeed, Trot(), Run(), _loco.TurningInPlace, _loco.TurnRate, dt);
         }
 
         void TickMode(float dt)
@@ -453,8 +456,24 @@ namespace ASH.Wildlife
             float m = _p.speed > 0.05f ? _p.speed : 1f;
             t.walkSpeed *= m; t.trotSpeed *= m; t.runSpeed *= m;
             t.speedParamScale /= m;
+            // t569: smoothed motor (speeds untouched: the global 15% slower walk / run stays)
+            if (Sp.smoothMovement)
+            {
+                t.steerSmoothTime = Sp.steerSmoothTime;
+                t.animSpeedSmoothTime = Sp.animSpeedSmoothTime;
+                t.animCommandBlend = Sp.animCommandBlend;
+                if (InCombat())
+                {
+                    t.acceleration = Sp.combatAcceleration;
+                    t.deceleration = Sp.combatDeceleration;
+                    t.turnSpeed = Sp.combatTurnSpeed;
+                    t.turnSmoothTime = Sp.combatTurnSmoothTime;
+                }
+            }
             return t;
         }
+
+        bool InCombat() => _mode == ASHAnimalMode.Chase || _mode == ASHAnimalMode.Attack || _mode == ASHAnimalMode.Charge || _mode == ASHAnimalMode.Stalk;
 
         void RollPersonality()
         {
@@ -826,7 +845,8 @@ namespace ASH.Wildlife
         {
             var t = Focus();
             if (!t) { _mode = ASHAnimalMode.Wander; return; }
-            _loco.Face(t.position, dt);
+            // t569: MoveTo steers toward the target itself; facing first as well made two heading drives fight every frame
+            if (Sp == null || !Sp.smoothMovement) _loco.Face(t.position, dt);
             float d = Flat(transform.position, t.position);
             if (d <= Sp.attackRange * 1.05f) { _mode = ASHAnimalMode.Attack; AttackTick(); return; }
             var to = t.position - transform.position; to.y = 0f;
@@ -879,6 +899,7 @@ namespace ASH.Wildlife
                         dest = t.position + Quaternion.Euler(0f, ang, 0f) * (t.forward * -1f) * ring;
                     }
                     if (d <= ring + 0.8f) { EnterHold(); return; }
+                    _holdMoving = false;
                     _loco.MoveTo(dest, Fatigued(d > ring + 6f ? Run() : Trot()), 0.6f);
                     return;
                 }
@@ -890,15 +911,20 @@ namespace ASH.Wildlife
                         if (TryToken(t)) { _mode = ASHAnimalMode.Attack; AttackTick(); return; }
                         StartCircle(t); return;
                     }
-                    if (d > ring + 3.5f) { _phase = Engage.Approach; return; }
+                    if (d > ring + 3.5f && PhaseAge() > MinPhase) { SetPhase(Engage.Approach); return; }
                     var from = transform.position - t.position; from.y = 0f;
                     if (from.sqrMagnitude < 0.04f) from = -t.forward;
                     // deadband: only re-space when clearly off the ring, otherwise just drift around it (no forward/back jitter)
                     float rr = Mathf.Clamp(d, ring - W.holdDeadband, ring + W.holdDeadband);
                     var dest = t.position + Quaternion.Euler(0f, (_p.circleLeft ? -1f : 1f) * Mathf.Max(8f, W.circleDegPerSecond * 0.6f), 0f) * from.normalized * rr;
-                    if (W.circleDegPerSecond > 0.5f && Flat(transform.position, dest) > 0.5f) _loco.MoveTo(dest, Walk(), 0.35f);
+                    // t569: start / stop drifting with hysteresis (the 0.5 m on/off test flickered walk / idle every few frames)
+                    float off = Flat(transform.position, dest);
+                    bool smooth = Sp.smoothMovement;
+                    if (!smooth) _holdMoving = off > 0.5f;
+                    else if (_holdMoving ? off < Sp.holdMoveStop : off > Sp.holdMoveStart) _holdMoving = !_holdMoving;
+                    if (W.circleDegPerSecond > 0.5f && _holdMoving) _loco.MoveTo(dest, Walk(), smooth ? Mathf.Min(0.35f, Sp.holdMoveStop * 0.8f) : 0.35f);
                     else { _loco.Stop(); _loco.Face(t.position, dt); }
-                    if (Time.time >= _holdUntil && TryToken(t)) { _phase = Engage.Lunge; _phaseUntil = Time.time + 4f + Mathf.Max(0f, d - Sp.lungeDistance) / Mathf.Max(0.5f, Walk()); if (Sp.chargeAndTurn || Random.value < 0.35f) _vis.PlayCall(); }
+                    if (Time.time >= _holdUntil && TryToken(t)) { SetPhase(Engage.Lunge); _phaseUntil = Time.time + 4f + Mathf.Max(0f, d - Sp.lungeDistance) / Mathf.Max(0.5f, Walk()); if (Sp.chargeAndTurn || Random.value < 0.35f) _vis.PlayCall(); }
                     return;
                 }
                 case Engage.Lunge:
@@ -916,13 +942,18 @@ namespace ASH.Wildlife
                 {
                     // strafe arc around the target at the buffer, then hold briefly and lunge again
                     if (d <= Sp.attackRange * 1.05f && Time.time - _phaseAt > 0.8f && TryToken(t)) { _mode = ASHAnimalMode.Attack; AttackTick(); return; }
-                    if (d > _circleR + 6f) { _phase = Engage.Approach; return; }
+                    if (d > _circleR + 6f && PhaseAge() > MinPhase) { SetPhase(Engage.Approach); return; }
                     var from = transform.position - t.position; from.y = 0f;
                     if (from.sqrMagnitude < 0.04f) from = -t.forward;
                     float lead = Mathf.Lerp(80f, 35f, Mathf.Clamp01(d / Mathf.Max(0.5f, _circleR)));
                     var dest = t.position + Quaternion.Euler(0f, _circleSign * lead, 0f) * from.normalized * _circleR;
                     _loco.MoveTo(dest, Fatigued(Trot() * Sp.circleSpeedMul), 0.3f);
-                    if (_loco.StuckTime > 0.9f) { _circleSign = -_circleSign; _loco.MarkTeleported(); }
+                    if (_loco.StuckTime > 0.9f)
+                    {
+                        // t569: flip without the teleport reset (it zeroed speed / heading / anim = a visible hitch), with a cooldown
+                        if (Sp.smoothMovement) { if (Time.time - _circleFlipAt > Sp.circleFlipCooldown) { _circleSign = -_circleSign; _circleFlipAt = Time.time; } _loco.ClearStuck(); }
+                        else { _circleSign = -_circleSign; _loco.MarkTeleported(); }
+                    }
                     if (Time.time > _phaseUntil) EnterHold();
                     return;
                 }
@@ -940,9 +971,15 @@ namespace ASH.Wildlife
             }
         }
 
+        float _circleFlipAt = -99f;
+        bool _holdMoving;
+        float MinPhase => Sp != null && Sp.smoothMovement ? Sp.minPhaseSeconds : 0f;
+        float PhaseAge() => Time.time - _phaseAt;
+        void SetPhase(Engage p) { if (_phase != p) _phaseAt = Time.time; _phase = p; }
+
         void EnterHold()
         {
-            _phase = Engage.Hold;
+            SetPhase(Engage.Hold);
             float a = Mathf.Lerp(1.5f, 0.6f, _p.aggr);
             if (W != null) a *= Mathf.Lerp(1f, W.aggressiveHoldMul, TA()) * Mathf.Lerp(1f, W.passiveHoldMul, TP());
             _holdUntil = Time.time + Random.Range(Sp.standOffHoldMin, Mathf.Max(Sp.standOffHoldMin, Sp.standOffHoldMax)) * a;
@@ -950,7 +987,7 @@ namespace ASH.Wildlife
 
         void StartBackOff(Transform t, bool afterStrike = false)
         {
-            _phase = Engage.BackOff;
+            SetPhase(Engage.BackOff);
             _mode = ASHAnimalMode.Chase;
             float ring = StandOff * (afterStrike && W != null ? Mathf.Lerp(1f, W.sneakyWithdrawMul, TS()) : 1f);
             _restalk = afterStrike && SneakGate() && W != null && Random.value < W.sneakyRestalkChance * TS() * 2f;

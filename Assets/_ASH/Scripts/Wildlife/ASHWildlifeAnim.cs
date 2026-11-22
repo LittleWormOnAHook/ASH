@@ -25,6 +25,9 @@ namespace ASH.Wildlife
         public AudioClip[] stepClips, callClips, attackClips, hurtClips, deathClips;
         public float stepIntervalWalk = 0.42f, stepIntervalRun = 0.28f;
 
+        [System.NonSerialized] public float gaitHysteresis, minGaitSeconds; // t569, set by ASHAnimal each frame
+        int _gait; float _gaitAt, _driftT;
+
         Animator _anim;
         AudioSource _audio;
         string _state;
@@ -101,16 +104,32 @@ namespace ASH.Wildlife
             {
                 if (turningInPlace && Has(turnLState) && Has(turnRState))
                     Fade(turnRate >= 0f ? turnRState : turnLState);
-                else Fade(locoState);
+                else
+                {
+                    Fade(locoState);
+                    // t569: the controller left the locomotion blend on its own (call / hit / attack / eat clip without an exit, a turn
+                    // state after turning stopped): return to it, otherwise the walk / run blend never shows
+                    if (_state == locoState && !_anim.IsInTransition(0) && InKnownOther()) { _driftT += dt; if (_driftT > 0.25f) { Fade(locoState, true); _driftT = 0f; } }
+                    else _driftT = 0f;
+                }
             }
             else
             {
                 string want = Has(idleState) ? idleState : locoState;
                 if (turningInPlace && (Has(turnLState) || Has(turnRState)))
                     want = turnRate >= 0f && Has(turnRState) ? turnRState : (Has(turnLState) ? turnLState : turnRState);
-                else if (actualSpeed > run * 0.85f && Has(runState)) want = runState;
-                else if (actualSpeed > trot * 0.85f && Has(trotState)) want = trotState;
-                else if (actualSpeed > 0.2f && Has(walkState)) want = walkState;
+                else
+                {
+                    // t569: hysteresis + minimum time per gait (no walk / trot / run flicker around a threshold)
+                    float h = Mathf.Clamp(gaitHysteresis, 0f, 0.6f);
+                    int g = 0;
+                    if (Has(runState) && actualSpeed > run * (_gait >= 3 ? 0.85f - h : 0.85f)) g = 3;
+                    else if (Has(trotState) && actualSpeed > trot * (_gait >= 2 ? 0.85f - h : 0.85f)) g = 2;
+                    else if (Has(walkState) && actualSpeed > (_gait >= 1 ? Mathf.Lerp(0.2f, 0.08f, h / 0.6f) : 0.2f)) g = 1;
+                    if (g != _gait && Time.time - _gaitAt < minGaitSeconds && _gait >= 0) g = _gait;
+                    if (g != _gait) { _gait = g; _gaitAt = Time.time; }
+                    if (g == 3) want = runState; else if (g == 2) want = trotState; else if (g == 1) want = walkState;
+                }
                 Fade(want);
             }
             Steps(actualSpeed, run, dt);
@@ -140,6 +159,20 @@ namespace ASH.Wildlife
         {
             if (string.IsNullOrEmpty(state) || !_anim || !_anim.runtimeAnimatorController) return false;
             return _anim.HasState(0, Animator.StringToHash(state));
+        }
+
+        bool InKnownOther()
+        {
+            var info = _anim.GetCurrentAnimatorStateInfo(0);
+            return Is(info, attackState) || Is(info, hitState) || Is(info, callState) || Is(info, eatState) || Is(info, sleepState)
+                || Is(info, turnLState) || Is(info, turnRState) || (idleState != locoState && Is(info, idleState));
+        }
+
+        static bool Is(AnimatorStateInfo info, string state)
+        {
+            if (string.IsNullOrEmpty(state)) return false;
+            int h = Animator.StringToHash(state);
+            return info.shortNameHash == h || info.fullPathHash == h;
         }
 
         bool IsLocked()

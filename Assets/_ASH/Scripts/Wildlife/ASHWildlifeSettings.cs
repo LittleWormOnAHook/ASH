@@ -207,6 +207,38 @@ namespace ASH.Wildlife
             [Tooltip("Set by defaults once; untick to re-apply this species' lunge / circle defaults.")]
             public bool m5LungeApplied;
 
+            [Header("Movement smoothing (t569; Play-editable)")]
+            [Tooltip("Smoothed speed / heading / gait for this species (off = the old raw motor).")]
+            public bool smoothMovement = true;
+            [Tooltip("Speed-up rate while fighting (chase / stand-off / circle / lunge / charge), m/s per second.")]
+            [Range(0.5f, 30f)] public float combatAcceleration = 4f;
+            [Tooltip("Braking rate while fighting, m/s per second.")]
+            [Range(0.5f, 40f)] public float combatDeceleration = 6f;
+            [Tooltip("Max turn rate while fighting (degrees / second).")]
+            [Range(30f, 1080f)] public float combatTurnSpeed = 220f;
+            [Tooltip("Turn smoothing while fighting (seconds; higher = rounder turns).")]
+            [Range(0f, 1.5f)] public float combatTurnSmoothTime = 0.3f;
+            [Tooltip("Steering direction blend (seconds): avoidance, circle and stand-off targets can't snap the heading.")]
+            [Range(0f, 1.5f)] public float steerSmoothTime = 0.22f;
+            [Tooltip("Animator speed smoothing (seconds): no walk / run drop-outs.")]
+            [Range(0f, 1.5f)] public float animSpeedSmoothTime = 0.2f;
+            [Tooltip("Share of commanded speed vs measured ground speed for the Animator (measured alone is jittery).")]
+            [Range(0f, 1f)] public float animCommandBlend = 0.6f;
+            [Tooltip("Gait hysteresis for state-based animators (share of the gait speed it must drop below before stepping down).")]
+            [Range(0f, 0.6f)] public float gaitHysteresis = 0.15f;
+            [Tooltip("Minimum seconds in a gait before switching (state-based animators).")]
+            [Range(0f, 3f)] public float minGaitSeconds = 0.35f;
+            [Tooltip("Minimum seconds in a stand-off phase before it may fall back to approach (no hold / circle / approach thrash).")]
+            [Range(0f, 5f)] public float minPhaseSeconds = 0.8f;
+            [Tooltip("While holding, start drifting round the ring when the drift point is this far (m) ...")]
+            [Range(0.1f, 3f)] public float holdMoveStart = 0.9f;
+            [Tooltip("... and stop drifting when it is this close (m). Below Hold Move Start = no walk/stop flicker.")]
+            [Range(0.05f, 2f)] public float holdMoveStop = 0.35f;
+            [Tooltip("Seconds before a circling animal that got stuck may flip direction again.")]
+            [Range(0f, 6f)] public float circleFlipCooldown = 1.5f;
+            [Tooltip("Set by defaults once; untick to re-apply this species' smoothing defaults.")]
+            public bool m6SmoothApplied;
+
             public List<Drop> drops = new List<Drop>();
         }
 
@@ -507,6 +539,11 @@ namespace ASH.Wildlife
             ApplyLunge(wolf,     0.85f,   3.5f,     1.5f,     3f,       1f,       0.85f, 0f);
             ApplyLunge(bear,     0.75f,   3.5f,     2f,       4f,       1.1f,     0.7f,  0f);
             ApplyLunge(cougar,   0.95f,   4f,       1.5f,     3f,       1f,       0.9f,  0f);
+            //                   accel decel turn  turnSmooth steer minPhase
+            ApplySmooth(wolf,    5f,   7f,   260f, 0.26f,     0.2f, 0.8f);
+            ApplySmooth(boar,    3.2f, 5f,   170f, 0.34f,     0.28f, 1f);
+            ApplySmooth(bear,    2.8f, 4.5f, 150f, 0.38f,     0.3f, 1f);
+            ApplySmooth(cougar,  5.5f, 7.5f, 280f, 0.24f,     0.2f, 0.7f);
         }
 
         static void ApplyLunge(Species sp, float spd, float dist, float cMin, float cMax, float rMul, float cSpd, float standOff)
@@ -516,6 +553,15 @@ namespace ASH.Wildlife
             sp.circleSecondsMin = cMin; sp.circleSecondsMax = cMax; sp.circleRadiusMul = rMul; sp.circleSpeedMul = cSpd;
             if (standOff > 0f) sp.standOffMeters = standOff;
             sp.m5LungeApplied = true;
+        }
+
+        static void ApplySmooth(Species sp, float accel, float decel, float turn, float turnSmooth, float steer, float minPhase)
+        {
+            if (sp == null || sp.m6SmoothApplied) return;
+            sp.smoothMovement = true;
+            sp.combatAcceleration = accel; sp.combatDeceleration = decel; sp.combatTurnSpeed = turn; sp.combatTurnSmoothTime = turnSmooth;
+            sp.steerSmoothTime = steer; sp.minPhaseSeconds = minPhase;
+            sp.m6SmoothApplied = true;
         }
 
         static void ApplyTemperament(Species sp, float min, float max)
