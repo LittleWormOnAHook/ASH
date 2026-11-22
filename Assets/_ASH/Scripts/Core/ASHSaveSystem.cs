@@ -289,6 +289,12 @@ namespace ASH.Core
         /// <summary>Test hook: shows the saving icon for a few seconds without saving.</summary>
         public static void PreviewSavingIcon(float seconds = 5f) { var i = FindAnyObjectByType<ASHSaveSystem>(); if (i) i._iconUntil = Time.unscaledTime + seconds; }
         void SetFade(float a) { if (_fade) { _fade.color = new Color(0, 0, 0, a); _fade.enabled = a > 0.001f; } }
+        /// <summary>t565: drive the same black load-fade overlay from gameplay (rest / sleep). 0 = clear, 1 = black. False when no save system.</summary>
+        public static bool SetScreenFade(float a)
+        {
+            var i = Instance; if (!i || !i._fade) return false;
+            i._fadeT = -1f; i.SetFade(Mathf.Clamp01(a)); return true;
+        }
     }
 
     /// <summary>Scene switching that also works in the Editor without the scenes in the build list.</summary>

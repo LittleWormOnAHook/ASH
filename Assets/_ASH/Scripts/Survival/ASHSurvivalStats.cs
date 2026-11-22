@@ -172,6 +172,22 @@ namespace ASH.Survival
             Changed?.Invoke();
         }
 
+        /// <summary>t565 rest/sleep: applies <paramref name="gameHours"/> of sleep in one step. Hunger and thirst drain at the normal
+        /// awake rate for that game time times <paramref name="needsMultiplier"/>; health regenerates by <paramref name="healthPerHour"/>
+        /// while both needs stay above their wake thresholds. Call with Paused = true so Update does not drain twice.</summary>
+        public void SimulateRest(float gameHours, float needsMultiplier, float healthPerHour, float hungerFloor01, float thirstFloor01)
+        {
+            if (IsDead || gameHours <= 0f) return;
+            ASHSurvivalTuning.Bind(tuning);
+            float dt = gameHours * SecondsPerGameHourAtDefault;
+            float mul = tuning.needsRateMultiplier * ASHSurvivalTuning.DrainRate * Mathf.Max(0f, needsMultiplier) / 60f;
+            Hunger = Mathf.Max(0f, Hunger - tuning.hungerPerMinute * mul * dt);
+            Thirst = Mathf.Max(0f, Thirst - tuning.thirstPerMinute * mul * dt);
+            if (healthPerHour > 0f && Hunger > MaxHunger * hungerFloor01 && Thirst > MaxThirst * thirstFloor01)
+                Health = Mathf.Min(MaxHealth, Health + healthPerHour * gameHours);
+            if (Time.unscaledTime >= _nextNotify) { _nextNotify = Time.unscaledTime + NotifyInterval; Changed?.Invoke(); }
+        }
+
         /// <summary>Debug / stress helpers.</summary>
         public void DevSetNeeds(float hunger01, float thirst01) { Hunger = MaxHunger * hunger01; Thirst = MaxThirst * thirst01; Changed?.Invoke(); }
     }

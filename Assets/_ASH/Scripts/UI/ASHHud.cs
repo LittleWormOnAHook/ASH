@@ -712,6 +712,7 @@ namespace ASH.UI
                     if (ASHCookMenu.IsOpen) ASHCookMenu.CloseIfOpen();
                     else if (ASH.Companion.ASHDogMenu.IsOpen) ASH.Companion.ASHDogMenu.CloseIfOpen();
                     else if (ASH.Vehicles.ASHVehicleMenu.IsOpen) ASH.Vehicles.ASHVehicleMenu.CloseIfOpen();
+                    else if (ASH.Gameplay.ASHTentMenu.IsOpen || ASH.Gameplay.ASHTentMenu.Resting) ASH.Gameplay.ASHTentMenu.CloseIfOpen(); // t565: Esc closes the tent menu; ignored while asleep
                     else if (AnyPanelOpen) { SetInv(false); SetCraft(false); SetMap(false); }
                     else SetPause(!ASHUIState.IsOpen(ASHPanels.Pause));
                 }

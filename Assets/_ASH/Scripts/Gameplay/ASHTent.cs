@@ -8,8 +8,9 @@ using UnityEngine;
 namespace ASH.Gameplay
 {
     /// <summary>
-    /// Pitched tent: leaky shelter (not quake-safe), pack-up with hold-E, one-per-type and campfire-distance rules for the placer.
+    /// Pitched tent: leaky shelter (not quake-safe), one-per-type and campfire-distance rules for the placer.
     /// A lit campfire within the settings radius grants the fire recovery bonus while you stand inside.
+    /// t565: E opens the tent menu (Pack up / Rest-Sleep, ASHTentMenu); player-placed tents settle onto the ground under their footprint.
     /// </summary>
     [DisallowMultipleComponent]
     public sealed class ASHTent : MonoBehaviour, IASHUsable
@@ -35,6 +36,12 @@ namespace ASH.Gameplay
         }
 
         void OnDisable() => _all.Remove(this);
+
+        void Start()
+        {
+            // only tents the player placed (ASHPlacer / save restore add ASHPlacedObject); hand-placed scene tents are left exactly where they are
+            if (GetComponent<ASHPlacedObject>()) SettleOnGround(transform);
+        }
 
         void LateUpdate() => ApplyZone();
 
@@ -178,28 +185,121 @@ namespace ASH.Gameplay
 
         public float GetUsePriority(in ASHUseContext c) => 25f;
 
-        public float GetHoldDuration(in ASHUseContext c) => S.packHoldSeconds;
+        public float GetHoldDuration(in ASHUseContext c) => 0f; // t565: a tap opens the tent menu (the HUD adds the [E])
 
-        public string GetPrompt(in ASHUseContext c)
+        public string GetPrompt(in ASHUseContext c) => S.MenuPrompt(kind);
+
+        public bool TryUse(in ASHUseContext c) => ASHTentMenu.Open(this, c.Inventory, c.Stats, c.PlayerTransform);
+
+        /// <summary>Takes the tent down into the pack. False (with a toast) when there is no room.</summary>
+        public bool PackUp(ASHInventory inv)
         {
             var it = PackItem();
-            if (c.Inventory && it && !c.Inventory.HasSpaceFor(it, 1)) return S.noSpaceMessage;
-            return "[Hold E] " + S.PackPrompt(kind);
-        }
-
-        public bool TryUse(in ASHUseContext c)
-        {
-            var it = PackItem();
-            if (!it || c.Inventory == null) return false;
-            if (!c.Inventory.HasSpaceFor(it, 1))
+            if (!it || inv == null) return false;
+            if (!inv.HasSpaceFor(it, 1))
             {
                 var hud = Object.FindAnyObjectByType<ASHHud>();
                 if (hud && !string.IsNullOrEmpty(S.noSpaceMessage)) hud.Toast(S.noSpaceMessage);
                 return false;
             }
-            if (c.Inventory.AddItem(it, 1) <= 0) return false;
+            if (inv.AddItem(it, 1) <= 0) return false;
             Destroy(gameObject);
             return true;
+        }
+
+        // ------------------------------------------------------------------ t565 ground settle
+        static readonly RaycastHit[] _hits = new RaycastHit[16];
+
+        /// <summary>Settles a tent (or its placement ghost) onto the ground under its footprint: base on the ground plane fitted to the
+        /// four footprint corners, tilted up to maxTilt, sunk groundSink, and dropped further (up to maxExtraSink) until no corner floats.
+        /// Keeps the current position (x/z) and heading. Returns false and leaves it alone when the ground can't be found.</summary>
+        public static bool SettleOnGround(Transform root)
+        {
+            var s = ASHTentSettings.I;
+            if (!root || !s.snapToGround) return false;
+            Vector3 fwd = Vector3.ProjectOnPlane(root.forward, Vector3.up);
+            float yaw = fwd.sqrMagnitude > 1e-6f ? Quaternion.LookRotation(fwd).eulerAngles.y : root.eulerAngles.y;
+            var upright = Quaternion.Euler(0f, yaw, 0f);
+            root.rotation = upright;
+            if (!LocalBounds(root, out var lb)) return false;
+
+            float ix = lb.size.x * s.footprintInset, iz = lb.size.z * s.footprintInset;
+            float x0 = lb.min.x + ix, x1 = lb.max.x - ix, z0 = lb.min.z + iz, z1 = lb.max.z - iz, y = lb.min.y;
+            var local = new[] { new Vector3(x0, y, z0), new Vector3(x1, y, z0), new Vector3(x0, y, z1), new Vector3(x1, y, z1), new Vector3((x0 + x1) * 0.5f, y, (z0 + z1) * 0.5f) };
+            var hit = new Vector3[5]; var ok = new bool[5];
+            float up = lb.size.y * Mathf.Max(0.01f, root.lossyScale.y) + 2f;
+            int n = 0; Vector3 sum = Vector3.zero;
+            for (int i = 0; i < 5; i++)
+            {
+                var w = root.TransformPoint(local[i]);
+                if (GroundBelow(root, w + Vector3.up * up, up + 6f, out hit[i])) { ok[i] = true; n++; sum += hit[i]; }
+            }
+            if (n < 3) return false;
+
+            Vector3 normal = Vector3.up;
+            if (ok[0] && ok[1] && ok[2] && ok[3])
+            {
+                normal = Vector3.Cross(hit[2] - hit[1], hit[3] - hit[0]).normalized; // diagonals (x0,z1)-(x1,z0) x (x1,z1)-(x0,z0)
+                if (normal.y < 0f) normal = -normal;
+                if (normal.sqrMagnitude < 0.5f) normal = Vector3.up;
+            }
+            float ang = Vector3.Angle(Vector3.up, normal);
+            if (ang > s.maxTilt) normal = ang > 0.01f ? Vector3.Slerp(Vector3.up, normal, s.maxTilt / ang).normalized : Vector3.up;
+            var rot = Quaternion.FromToRotation(Vector3.up, normal) * upright;
+
+            // put the footprint centre of the base on the plane through the average ground point
+            Vector3 avg = sum / n;
+            Vector3 baseCentre = Vector3.Scale(local[4], root.lossyScale);
+            Vector3 pos = avg - rot * baseCentre - normal * s.groundSink;
+            // no floating corner: drop until every sampled base point touches (bounded)
+            float gap = 0f;
+            for (int i = 0; i < 5; i++)
+            {
+                if (!ok[i]) continue;
+                var b = pos + rot * Vector3.Scale(local[i], root.lossyScale);
+                gap = Mathf.Max(gap, b.y - hit[i].y);
+            }
+            if (gap > 0f) pos.y -= Mathf.Min(gap, s.maxExtraSink);
+            root.SetPositionAndRotation(pos, rot);
+            return true;
+        }
+
+        /// <summary>Bounds of every mesh under root, in root-local space (pose independent).</summary>
+        static bool LocalBounds(Transform root, out Bounds b)
+        {
+            b = default; bool any = false;
+            foreach (var r in root.GetComponentsInChildren<Renderer>(true))
+            {
+                Mesh m = null;
+                if (r is MeshRenderer) { var mf = r.GetComponent<MeshFilter>(); m = mf ? mf.sharedMesh : null; }
+                else if (r is SkinnedMeshRenderer smr) m = smr.sharedMesh;
+                if (!m) continue;
+                var mb = m.bounds; var t = r.transform;
+                for (int i = 0; i < 8; i++)
+                {
+                    var c = mb.center + Vector3.Scale(mb.extents, new Vector3((i & 1) == 0 ? -1 : 1, (i & 2) == 0 ? -1 : 1, (i & 4) == 0 ? -1 : 1));
+                    var p = root.InverseTransformPoint(t.TransformPoint(c));
+                    if (!any) { b = new Bounds(p, Vector3.zero); any = true; } else b.Encapsulate(p);
+                }
+            }
+            return any;
+        }
+
+        /// <summary>Nearest static ground (terrain, or a collider without a rigidbody) below <paramref name="from"/>, ignoring the tent itself,
+        /// triggers, other tents, the player and animals.</summary>
+        static bool GroundBelow(Transform self, Vector3 from, float dist, out Vector3 point)
+        {
+            point = default;
+            int c = Physics.RaycastNonAlloc(from, Vector3.down, _hits, dist, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore);
+            float best = float.PositiveInfinity;
+            for (int i = 0; i < c; i++)
+            {
+                var h = _hits[i]; var col = h.collider;
+                if (!col || col.transform.IsChildOf(self)) continue;
+                if (!(col is TerrainCollider) && (col.attachedRigidbody || col.GetComponentInParent<ASHTent>() || col.GetComponentInParent<ASHPlacedObject>())) continue;
+                if (h.distance < best) { best = h.distance; point = h.point; }
+            }
+            return best < float.PositiveInfinity;
         }
     }
 }

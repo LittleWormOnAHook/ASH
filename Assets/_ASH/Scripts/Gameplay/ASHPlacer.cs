@@ -36,6 +36,7 @@ namespace ASH.Gameplay
 
         private ASHItemDefinition _item;
         private GameObject _ghost;
+        private ASHTent _ghostTent;
         private Material _ghostMat;
         private float _yaw;
         private Vector3 _pos;
@@ -51,6 +52,7 @@ namespace ASH.Gameplay
             _item = item;
             _ghost = Instantiate(item.placeablePrefab);
             _ghost.name = "ASH_PlacementGhost";
+            _ghostTent = _ghost.GetComponent<ASHTent>();
             foreach (var c in _ghost.GetComponentsInChildren<Collider>()) c.enabled = false;
             foreach (var b in _ghost.GetComponentsInChildren<MonoBehaviour>()) b.enabled = false;
             foreach (var p in _ghost.GetComponentsInChildren<ParticleSystem>()) p.gameObject.SetActive(false);
@@ -92,6 +94,7 @@ namespace ASH.Gameplay
 
             Evaluate();
             _ghost.transform.SetPositionAndRotation(_pos, Quaternion.Euler(0f, _yaw, 0f));
+            if (_ghostTent) ASHTent.SettleOnGround(_ghost.transform); // t565: preview the settled tent pose (the placed tent settles the same way)
             _ghostMat.color = IsValid ? validColor : invalidColor;
             if (_ghostMat.HasProperty("_BaseColor")) _ghostMat.SetColor("_BaseColor", IsValid ? validColor : invalidColor);
 
