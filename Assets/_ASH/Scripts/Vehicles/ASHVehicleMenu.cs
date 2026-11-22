@@ -159,6 +159,7 @@ namespace ASH.Vehicles
         {
             var row = K.Rect("Row", _repairList); K.Layout(row, 46); var img = K.Image(row, K.Row, true);
             int have = Count(need);
+            if (need) { var tn = need; ASHItemTooltip.Attach(row, () => { var i = ASHItemTooltip.Info.Item(tn, have); i.note = $"Fits the {part.ToLowerInvariant()}"; return i; }); }
             if (need) { var ic = K.Image(K.At("Icon", row, new Vector2(0, 0.5f), new Vector2(6, 0), new Vector2(36, 36)), need.icon ? Color.white : need.uiTint); if (need.icon) { ic.sprite = need.icon; ic.preserveAspect = true; } }
             string needTxt = need ? $"needs {need.displayName}{(broken ? (have > 0 ? $" <color=#9fd39b>(have {have})</color>" : " <color=#f2806b>(none)</color>") : "")}" : "";
             K.Text(K.Stretch("Name", row, 50, 0, 100, 0), $"{part}  <size=13><color=#a69e91>{needTxt}</color></size>", 16, K.Ink);

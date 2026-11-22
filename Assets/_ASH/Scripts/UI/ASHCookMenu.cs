@@ -62,7 +62,7 @@ namespace ASH.UI
         readonly List<(ASHFireCooking.Job job, RectTransform fill, Text right)> _jobRows = new List<(ASHFireCooking.Job, RectTransform, Text)>();
         float _statusUntil;
 
-        sealed class Slot { public RectTransform rt; public Image icon; public Text abbr, count, hint; }
+        sealed class Slot { public RectTransform rt; public Image icon; public Text abbr, count, hint; public ASHItemDefinition item; public bool unknown; }
 
         void Build()
         {
@@ -157,7 +157,8 @@ namespace ASH.UI
         Slot MakeSlot(RectTransform parent, float x, float y, string hint, System.Action<ASHItemDefinition> onDrop, System.Action onClear)
         {
             var s = new Slot { rt = TL("Slot", parent, x, y, 84, 84) };
-            var bg = K.Image(s.rt, new Color(0, 0, 0, 0.4f), onDrop != null);
+            var bg = K.Image(s.rt, new Color(0, 0, 0, 0.4f), true);
+            ASHItemTooltip.Attach(s.rt, () => s.item && !s.unknown ? ASHItemTooltip.Info.Item(s.item) : default);
             var ring = K.Stretch("Edge", s.rt, 0, 0, 0, 0); var ri = K.Image(ring, new Color(1, 1, 1, 0.12f)); ri.type = Image.Type.Simple;
             var inner = K.Stretch("Inner", s.rt, 2, 2, 2, 2); K.Image(inner, new Color(0.08f, 0.07f, 0.06f, 0.95f));
             s.icon = K.Image(K.Stretch("Icon", s.rt, 8, 8, 8, 8), Color.white); s.icon.preserveAspect = true; s.icon.enabled = false;
@@ -175,6 +176,7 @@ namespace ASH.UI
 
         static void SetSlot(Slot s, ASHItemDefinition it, string count, bool unknown = false)
         {
+            s.item = it; s.unknown = unknown;
             s.hint.enabled = !it && !unknown;
             s.icon.enabled = it && it.icon && !unknown; if (s.icon.enabled) s.icon.sprite = it.icon;
             s.abbr.text = unknown ? "?" : it && !it.icon ? it.displayName.Substring(0, Mathf.Min(2, it.displayName.Length)).ToUpperInvariant() : "";
@@ -417,6 +419,7 @@ namespace ASH.UI
             {
                 var row = K.Rect("Row", _packList); K.Layout(row, 50); K.Image(row, K.Row, true);
                 var tile = row.gameObject.AddComponent<CookTile>(); tile.item = it; tile.menu = this;
+                var tipIt = it; int tipN = counts[it]; ASHItemTooltip.Attach(row, () => ASHItemTooltip.Info.Item(tipIt, tipN));
                 var ic = K.Image(K.At("Icon", row, new Vector2(0, 0.5f), new Vector2(6, 0), new Vector2(40, 40)), it.icon ? Color.white : it.uiTint); if (it.icon) { ic.sprite = it.icon; ic.preserveAspect = true; }
                 K.Text(K.Stretch("Name", row, 54, 0, 96, 0), it.displayName, 16, K.Ink);
                 float fh = ASHCampfire.FuelHoursOf(it);

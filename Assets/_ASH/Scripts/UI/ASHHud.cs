@@ -121,11 +121,16 @@ namespace ASH.UI
             if (gps == null) gps = FindAnyObjectByType<ASHGpsMap>();
             _equip = inventory ? inventory.GetComponent<ASHEquipment>() : null; if (!_equip) _equip = FindAnyObjectByType<ASHEquipment>();
             _font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            ASHItemTooltip.Bind(inventory, crafting);
             Build();
         }
 
+        System.Func<bool> _tipBlocker;
+
         void OnEnable()
         {
+            _tipBlocker ??= () => _dragGhost != null || ContextOpen;
+            if (!ASHItemTooltip.Blockers.Contains(_tipBlocker)) ASHItemTooltip.Blockers.Add(_tipBlocker);
             if (inventory) { inventory.Changed += RefreshInventory; inventory.Changed += WatchLightSlot; inventory.ItemAdded += OnItemAdded; WatchLightSlot(); }
             ASHUpgrades.Changed += RefreshInventory;
             ASHWallet.Changed += RefreshInventory; ASHCharacterEquipment.Changed += RefreshInventory;
@@ -138,6 +143,7 @@ namespace ASH.UI
 
         void OnDisable()
         {
+            ASHItemTooltip.Blockers.Remove(_tipBlocker); ASHItemTooltip.Hide();
             if (inventory) { inventory.Changed -= RefreshInventory; inventory.Changed -= WatchLightSlot; inventory.ItemAdded -= OnItemAdded; }
             ASHUpgrades.Changed -= RefreshInventory;
             ASHWallet.Changed -= RefreshInventory; ASHCharacterEquipment.Changed -= RefreshInventory;
@@ -250,6 +256,13 @@ namespace ASH.UI
             On(EventTriggerType.Drag, d => { if (_dragGhost) _dragGhost.rectTransform.position = d.position; });
             On(EventTriggerType.EndDrag, _ => EndSlotDrag(true));
             On(EventTriggerType.Drop, _ => { _dropHandled = true; DropOn(idx); });
+            ASHItemTooltip.Attach(bg, () =>
+            {
+                if (!inventory || idx < 0 || idx >= inventory.Slots.Count) return default;
+                var sl = inventory.Slots[idx]; var info = ASHItemTooltip.Info.Slot(sl);
+                if (!info.IsEmpty) info.note = UseHint(sl);
+                return info;
+            });
             return s;
         }
 
@@ -995,6 +1008,19 @@ namespace ASH.UI
 
         /// <summary>Extra slot badge / tooltip line for special items (fuel cans: litres). Null = default.</summary>
         public static System.Func<ASHInventory.Slot, string> SlotBadge, TipExtra;
+
+        /// <summary>Plain-text use hint for the shared item popup (same wording as the pack info box).</summary>
+        static string UseHint(ASHInventory.Slot s)
+        {
+            var it = s.item; if (!it) return "";
+            if (it.IsConsumable) return "LMB to eat";
+            if (it.IsWearable) return "LMB to wear" + (it.CanBreakDown ? "  ·  [B] break down" : "");
+            if (it.IsPlaceable) return "LMB to place";
+            if (it.toolType == ASHToolType.GPS) return "LMB or [M] to open the map";
+            if (it.toolType != ASHToolType.None) return "Tool  ·  used automatically";
+            if (it.CanBreakDown) return "[B] break down";
+            return "Crafting material  ·  [Q] craft";
+        }
 
         void ShowTip(int i)
         {

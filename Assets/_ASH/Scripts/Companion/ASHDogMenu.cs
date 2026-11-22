@@ -142,6 +142,7 @@ namespace ASH.Companion
             var row = K.Rect("Row", list); K.Layout(row, 46); var img = K.Image(row, K.Row, true);
             if (onClick != null) { var b = row.gameObject.AddComponent<Button>(); b.targetGraphic = img; b.onClick.AddListener(() => onClick()); }
             if (it) { var ic = K.Image(K.At("Icon", row, new Vector2(0, 0.5f), new Vector2(6, 0), new Vector2(36, 36)), it.icon ? Color.white : it.uiTint); if (it.icon) { ic.sprite = it.icon; ic.preserveAspect = true; } }
+            if (it) ASHItemTooltip.Attach(row, it);
             K.Text(K.Stretch("Name", row, 50, 0, 60, 0), name, 16, K.Ink);
             K.Text(K.Stretch("Right", row, 0, 0, 10, 0), right, 15, K.Ink, TextAnchor.MiddleRight);
         }

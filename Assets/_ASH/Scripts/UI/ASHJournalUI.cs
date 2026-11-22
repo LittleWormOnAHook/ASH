@@ -266,6 +266,8 @@ namespace ASH.UI
             var iconBox = K.At("IconBox", det, new Vector2(0, 1), new Vector2(20, -20), new Vector2(110, 110)); K.Image(iconBox, new Color(0, 0, 0, 0.35f));
             _dIcon = K.Image(K.Stretch("Icon", iconBox, 8, 8, 8, 8), Color.white); _dIcon.preserveAspect = true;
             _dIconAbbr = K.Text(K.Stretch("Abbr", iconBox), "", 40, K.Ink, TextAnchor.MiddleCenter, FontStyle.Bold);
+            iconBox.GetComponent<Image>().raycastTarget = true;
+            ASHItemTooltip.Attach(iconBox, () => _selRecipe ? ASHItemTooltip.Info.Recipe(_selRecipe, ASHFieldManualData.I && !(ASHFieldManual.Instance && ASHFieldManual.Instance.IsUnlocked(_selRecipe))) : default);
             _dName = K.Text(K.At("Name", det, new Vector2(0, 1), new Vector2(150, -22), new Vector2(400, 40)), "", 28, K.Ink, TextAnchor.MiddleLeft, FontStyle.Bold);
             _dDesc = K.Text(K.At("Desc", det, new Vector2(0, 1), new Vector2(150, -66), new Vector2(400, 70)), "", 18, K.Dim, TextAnchor.UpperLeft);
             _dReq = K.Text(K.At("Req", det, new Vector2(0, 1), new Vector2(24, -150), new Vector2(520, 300)), "", 20, K.Ink, TextAnchor.UpperLeft);
@@ -467,6 +469,7 @@ namespace ASH.UI
             var ii = K.Image(K.Stretch("I", ib, 3, 3, 3, 3), Color.white); ii.preserveAspect = true;
             var ab = K.Text(K.Stretch("A", ib), "", 15, K.Ink, TextAnchor.MiddleCenter, FontStyle.Bold);
             SetIcon(ii, ab, r);
+            ASHItemTooltip.Attach(rt, () => ASHItemTooltip.Info.Recipe(rec, !(ASHFieldManual.Instance && ASHFieldManual.Instance.IsUnlocked(rec))));
             if (!un) { ii.enabled = false; ab.text = "?"; ab.fontSize = 24; ab.color = new Color(0.86f, 0.68f, 0.34f, 0.85f); } // locked: a question mark until revealed
             string why = un && _craft ? _craft.MissingReason(r) : "locked";
             var t = K.Text(K.Stretch("Name", rt, NodeH, 2, 4, 2), un ? r.displayName : "???", 14, un ? K.Ink : new Color(0.85f, 0.8f, 0.7f, 0.55f), TextAnchor.MiddleLeft, un ? FontStyle.Normal : FontStyle.Bold);
@@ -488,6 +491,8 @@ namespace ASH.UI
             var iconBox = K.At("IconBox", det, new Vector2(0, 1), new Vector2(20, -20), new Vector2(110, 110)); K.Image(iconBox, new Color(0, 0, 0, 0.35f));
             _iIcon = K.Image(K.Stretch("Icon", iconBox, 8, 8, 8, 8), Color.white); _iIcon.preserveAspect = true;
             _iIconAbbr = K.Text(K.Stretch("Abbr", iconBox), "", 40, K.Ink, TextAnchor.MiddleCenter, FontStyle.Bold);
+            iconBox.GetComponent<Image>().raycastTarget = true;
+            ASHItemTooltip.Attach(iconBox, () => _selItem ? ASHItemTooltip.Info.Item(_selItem) : default);
             _iName = K.Text(K.At("Name", det, new Vector2(0, 1), new Vector2(150, -22), new Vector2(460, 40)), "", 28, K.Ink, TextAnchor.MiddleLeft, FontStyle.Bold);
             _iDesc = K.Text(K.At("Desc", det, new Vector2(0, 1), new Vector2(150, -66), new Vector2(460, 70)), "", 18, K.Dim, TextAnchor.UpperLeft);
             _iInfo = K.Text(K.At("Info", det, new Vector2(0, 1), new Vector2(24, -150), new Vector2(590, 300)), "", 20, K.Ink, TextAnchor.UpperLeft);
@@ -585,6 +590,7 @@ namespace ASH.UI
             var ii = K.Image(K.Stretch("I", ib, 3, 3, 3, 3), Color.white); ii.preserveAspect = true;
             var ab = K.Text(K.Stretch("A", ib), "", 18, K.Ink, TextAnchor.MiddleCenter, FontStyle.Bold);
             SetIcon(ii, ab, icon);
+            if (icon) ASHItemTooltip.Attach(row, icon);
             K.Text(K.Stretch("Title", row, h + 6, 0, 150, 0), title, 19, K.Ink);
             K.Text(K.Stretch("Right", row, 0, 0, 10, 0), right, 16, K.Dim, TextAnchor.MiddleRight);
             return row;
@@ -605,7 +611,8 @@ namespace ASH.UI
             {
                 var rec = r; string why = _craft.MissingReason(r);
                 string status = why == null ? "<color=#9fd39b>Ready</color>" : $"<color=#d98b77>{Short(why)}</color>";
-                Row(_recipeList, r.outputItem, r.displayName + (!r.IsUpgrade && r.outputAmount > 1 ? $" x{r.outputAmount}" : ""), status, r == _selRecipe, () => SelectRecipe(rec));
+                var rrow = Row(_recipeList, r.outputItem, r.displayName + (!r.IsUpgrade && r.outputAmount > 1 ? $" x{r.outputAmount}" : ""), status, r == _selRecipe, () => SelectRecipe(rec));
+                ASHItemTooltip.Attach(rrow, () => ASHItemTooltip.Info.Recipe(rec));
             }
             RefreshRecipeDetail();
         }

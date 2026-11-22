@@ -118,6 +118,12 @@ namespace ASH.UI
             btn.targetGraphic = bg;
             var nav = btn.navigation; nav.mode = Navigation.Mode.None; btn.navigation = nav;
             btn.onClick.AddListener(() => ClickSlot(slot));
+            ASHItemTooltip.Attach(r, () =>
+            {
+                var eq = ASHCharacterEquipment.Instance; if (!eq) return default;
+                var w = eq[slot]; if (w == null || !w.item) return default;
+                var info = ASHItemTooltip.Info.Item(w.item, 1, w.condition); info.note = "Worn"; return info;
+            });
         }
 
         /// <summary>Sizes/positions from ASH_CharacterTabSettings (re-applied on every refresh so Play edits show).</summary>
@@ -241,6 +247,7 @@ namespace ASH.UI
             btn.onClick.AddListener(() => ClickCell(it, pack));
             var drag = r.gameObject.AddComponent<DragItem>();
             drag.item = it; drag.packSlot = pack;
+            ASHItemTooltip.Attach(r, () => pack < inv.Slots.Count ? ASHItemTooltip.Info.Slot(inv.Slots[pack]) : default);
         }
 
         static void ClickCell(ASHItemDefinition it, int pack)

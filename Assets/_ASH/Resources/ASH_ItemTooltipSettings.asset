@@ -1,0 +1,58 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 988048e403349bc48b8bd23792f0a421, type: 3}
+  m_Name: ASH_ItemTooltipSettings
+  m_EditorClassIdentifier: Assembly-CSharp::ASH.UI.ASHItemTooltipSettings
+  tooltipsEnabled: 1
+  hoverDelay: 0.35
+  fadeTime: 0.12
+  gamepadFocus: 1
+  hideWhileMouseHeld: 1
+  refreshInterval: 0.25
+  scale: 1
+  maxWidth: 380
+  iconSize: 64
+  nameSize: 21
+  subSize: 14
+  bodySize: 15
+  panelBorderScale: 0.6
+  innerPadding: 6
+  cursorOffset: {x: 22, y: 18}
+  screenPadding: 10
+  sortingOrder: 900
+  rarityPip: 1
+  rarityPipWidth: 5
+  useSlotFrame: 1
+  panelTint: {r: 1, g: 1, b: 1, a: 1}
+  ink: {r: 0.21960784, g: 0.18039216, b: 0.14117648, a: 1}
+  dimInk: {r: 0.41960785, g: 0.34509805, b: 0.27058825, a: 1}
+  goodInk: {r: 0.23137255, g: 0.3882353, b: 0.15686275, a: 1}
+  badInk: {r: 0.5568628, g: 0.1764706, b: 0.11764706, a: 1}
+  headerInk: {r: 0.5254902, g: 0.33333334, b: 0.10980392, a: 1}
+  rarityInkMix: 0.35
+  copperInk: {r: 0.54901963, g: 0.28235295, b: 0.09411765, a: 1}
+  silverInk: {r: 0.3372549, g: 0.36862746, b: 0.40784314, a: 1}
+  goldInk: {r: 0.5254902, g: 0.4, b: 0.0627451, a: 1}
+  ruleAlpha: 0.35
+  showIcon: 1
+  showCategory: 1
+  showRarity: 1
+  showDescription: 1
+  showEffects: 1
+  showClothingStats: 1
+  showCondition: 1
+  showStack: 1
+  showValue: 1
+  showBreakdown: 1
+  showLevelLock: 1
+  showRecipe: 1
+  showUseHint: 1

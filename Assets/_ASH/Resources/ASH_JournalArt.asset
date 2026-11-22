@@ -1,0 +1,201 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5e24b78423888ea41a18e23187317768, type: 3}
+  m_Name: ASH_JournalArt
+  m_EditorClassIdentifier: Assembly-CSharp::ASH.UI.ASHJournalArt
+  artFolder: Assets/_ASH/Art/ASH_ICON_FINAL/Journal
+  tabStyle: 0
+  cornerStyle: 0
+  journalPaper:
+    file: ASH_UI_JournalPaper
+    texture: {fileID: 2800000, guid: e9db791d6bc7f12478705e5d30ede32c, type: 3}
+    sprite: {fileID: 21300000, guid: e9db791d6bc7f12478705e5d30ede32c, type: 3}
+  tooltipPanel:
+    file: ASH_UI_TooltipPanel
+    texture: {fileID: 2800000, guid: 1023b8f8d9933de4b99ba38dc6181170, type: 3}
+    sprite: {fileID: 21300000, guid: 1023b8f8d9933de4b99ba38dc6181170, type: 3}
+  slotFrame:
+    file: ASH_UI_SlotFrame
+    texture: {fileID: 2800000, guid: 5fd4e5902b819f745bc4833ad21e24c0, type: 3}
+    sprite: {fileID: 21300000, guid: 5fd4e5902b819f745bc4833ad21e24c0, type: 3}
+  pageArrowLeft:
+    file: ASH_UI_PageArrow_Left
+    texture: {fileID: 2800000, guid: 1af5d501aedc0964cbb0f145bc2d3737, type: 3}
+    sprite: {fileID: 21300000, guid: 1af5d501aedc0964cbb0f145bc2d3737, type: 3}
+  pageArrowRight:
+    file: ASH_UI_PageArrow_Right
+    texture: {fileID: 2800000, guid: 1a6acf9861653dd44b476393040c98c2, type: 3}
+    sprite: {fileID: 21300000, guid: 1a6acf9861653dd44b476393040c98c2, type: 3}
+  ribbonTab:
+    file: ASH_UI_RibbonTab
+    texture: {fileID: 2800000, guid: 4b13e61e9b7a0c5439bc1a573345167d, type: 3}
+    sprite: {fileID: 21300000, guid: 4b13e61e9b7a0c5439bc1a573345167d, type: 3}
+  ribbonTabEmpty:
+    file: ASH_UI_RibbonTab_Empty
+    texture: {fileID: 2800000, guid: cfe7d71800178f3418ebf6d6c3b9e52b, type: 3}
+    sprite: {fileID: 21300000, guid: cfe7d71800178f3418ebf6d6c3b9e52b, type: 3}
+  pageCorner:
+    file: ASH_UI_PageCorner
+    texture: {fileID: 2800000, guid: 2e5a5b009f844f8489b310f5518540f4, type: 3}
+    sprite: {fileID: 21300000, guid: 2e5a5b009f844f8489b310f5518540f4, type: 3}
+  pageRule:
+    file: ASH_UI_PageRule
+    texture: {fileID: 2800000, guid: 729cebdeb654f814ab0d220568aba7ec, type: 3}
+    sprite: {fileID: 21300000, guid: 729cebdeb654f814ab0d220568aba7ec, type: 3}
+  journalCover:
+    file: ASH_UI_JournalCover
+    texture: {fileID: 2800000, guid: 32510b69763272b4e85f57fb47febaa2, type: 3}
+    sprite: {fileID: 21300000, guid: 32510b69763272b4e85f57fb47febaa2, type: 3}
+  motifItems:
+    file: ASH_UI_Motif_Items
+    texture: {fileID: 2800000, guid: 2d79977785528b449bc15bce18dc1c8e, type: 3}
+    sprite: {fileID: 21300000, guid: 2d79977785528b449bc15bce18dc1c8e, type: 3}
+  motifNotes:
+    file: ASH_UI_Motif_Notes
+    texture: {fileID: 2800000, guid: 7c642de753795a84089ebb4945205d6d, type: 3}
+    sprite: {fileID: 21300000, guid: 7c642de753795a84089ebb4945205d6d, type: 3}
+  motifObjectives:
+    file: ASH_UI_Motif_Objectives
+    texture: {fileID: 2800000, guid: cb694040c58c5a7438a0577d12fb275a, type: 3}
+    sprite: {fileID: 21300000, guid: cb694040c58c5a7438a0577d12fb275a, type: 3}
+  motifSkills:
+    file: ASH_UI_Motif_Skills
+    texture: {fileID: 2800000, guid: 1d9e028d19ec4504fa72f860883d2747, type: 3}
+    sprite: {fileID: 21300000, guid: 1d9e028d19ec4504fa72f860883d2747, type: 3}
+  motifPets:
+    file: ASH_UI_Motif_Pets
+    texture: {fileID: 2800000, guid: 64081e56a27855b4aaa3e9cc76774869, type: 3}
+    sprite: {fileID: 21300000, guid: 64081e56a27855b4aaa3e9cc76774869, type: 3}
+  motifRook:
+    file: ASH_UI_Motif_Rook
+    texture: {fileID: 2800000, guid: f53693fc8a82a924aa64f5e773539e2c, type: 3}
+    sprite: {fileID: 21300000, guid: f53693fc8a82a924aa64f5e773539e2c, type: 3}
+  motifGuide:
+    file: ASH_UI_Motif_Guide
+    texture: {fileID: 2800000, guid: a3436035ce77afa42ab2da1e465805bb, type: 3}
+    sprite: {fileID: 21300000, guid: a3436035ce77afa42ab2da1e465805bb, type: 3}
+  tabItems:
+    file: ASH_Atlas_Tab_Items
+    texture: {fileID: 2800000, guid: 7dce065bbb93555488b0f5b8604a7315, type: 3}
+    sprite: {fileID: 21300000, guid: 7dce065bbb93555488b0f5b8604a7315, type: 3}
+  tabRook:
+    file: ASH_Atlas_Tab_Rook
+    texture: {fileID: 2800000, guid: e3433ea2a8020614290ef28c354edd86, type: 3}
+    sprite: {fileID: 21300000, guid: e3433ea2a8020614290ef28c354edd86, type: 3}
+  tabNotes:
+    file: ASH_Atlas_Tab_Notes
+    texture: {fileID: 2800000, guid: 13ccfbae93b8bce448254d85a5e303a7, type: 3}
+    sprite: {fileID: 21300000, guid: 13ccfbae93b8bce448254d85a5e303a7, type: 3}
+  tabObjectives:
+    file: ASH_Atlas_Tab_Objectives
+    texture: {fileID: 2800000, guid: 879e738a5f044534681768824c07b327, type: 3}
+    sprite: {fileID: 21300000, guid: 879e738a5f044534681768824c07b327, type: 3}
+  tabSkills:
+    file: ASH_Atlas_Tab_Skills
+    texture: {fileID: 2800000, guid: c49a65caca6e81d48990c1ec0b531dc6, type: 3}
+    sprite: {fileID: 21300000, guid: c49a65caca6e81d48990c1ec0b531dc6, type: 3}
+  tabPets:
+    file: ASH_Atlas_Tab_Pets
+    texture: {fileID: 2800000, guid: e12ba30519610ce409d4f1efe554e221, type: 3}
+    sprite: {fileID: 21300000, guid: e12ba30519610ce409d4f1efe554e221, type: 3}
+  tabGuide:
+    file: ASH_Atlas_Tab_Guide
+    texture: {fileID: 2800000, guid: 59bdd0c0b07ece841a631308f26f6ddb, type: 3}
+    sprite: {fileID: 21300000, guid: 59bdd0c0b07ece841a631308f26f6ddb, type: 3}
+  ribbonRed:
+    file: ASH_Atlas_Ribbon_Red
+    texture: {fileID: 2800000, guid: a4433a084ab17a442ae798a187f26a0b, type: 3}
+    sprite: {fileID: 21300000, guid: a4433a084ab17a442ae798a187f26a0b, type: 3}
+  ribbonBlue:
+    file: ASH_Atlas_Ribbon_Blue
+    texture: {fileID: 2800000, guid: 83fd18e4b6809b44d83168d0d950f888, type: 3}
+    sprite: {fileID: 21300000, guid: 83fd18e4b6809b44d83168d0d950f888, type: 3}
+  ribbonGreen:
+    file: ASH_Atlas_Ribbon_Green
+    texture: {fileID: 2800000, guid: 35ccfc33fe5b84b47a61682e0ab6faea, type: 3}
+    sprite: {fileID: 21300000, guid: 35ccfc33fe5b84b47a61682e0ab6faea, type: 3}
+  cornerBrassLeft:
+    file: ASH_Atlas_Corner_Brass_Left
+    texture: {fileID: 2800000, guid: fb4c5a79c8da85e4d9e2ca42a58f7aab, type: 3}
+    sprite: {fileID: 21300000, guid: fb4c5a79c8da85e4d9e2ca42a58f7aab, type: 3}
+  cornerBrassRight:
+    file: ASH_Atlas_Corner_Brass_Right
+    texture: {fileID: 2800000, guid: 1e1265bd771375e45baf28f69baced27, type: 3}
+    sprite: {fileID: 21300000, guid: 1e1265bd771375e45baf28f69baced27, type: 3}
+  cornerSilverLeft:
+    file: ASH_Atlas_Corner_Silver_Left
+    texture: {fileID: 2800000, guid: d456763e01cd14b4fb69170111cef551, type: 3}
+    sprite: {fileID: 21300000, guid: d456763e01cd14b4fb69170111cef551, type: 3}
+  cornerSilverRight:
+    file: ASH_Atlas_Corner_Silver_Right
+    texture: {fileID: 2800000, guid: 0d788f6668959d44192423da6c88b9cf, type: 3}
+    sprite: {fileID: 21300000, guid: 0d788f6668959d44192423da6c88b9cf, type: 3}
+  stripNotebook:
+    file: ASH_Atlas_Paper_Torn_Notebook
+    texture: {fileID: 2800000, guid: fb37077b968f92c48a3b829517296efa, type: 3}
+    sprite: {fileID: 21300000, guid: fb37077b968f92c48a3b829517296efa, type: 3}
+  stripLong:
+    file: ASH_Atlas_Paper_Torn_Long
+    texture: {fileID: 2800000, guid: 5bda856b38f3dec4190d1473e0125924, type: 3}
+    sprite: {fileID: 21300000, guid: 5bda856b38f3dec4190d1473e0125924, type: 3}
+  stripFolded:
+    file: ASH_Atlas_Paper_Torn_Folded
+    texture: {fileID: 2800000, guid: 54308023c1ba38445ad521e36a284477, type: 3}
+    sprite: {fileID: 21300000, guid: 54308023c1ba38445ad521e36a284477, type: 3}
+  stripStains:
+    file: ASH_Atlas_Paper_Stains
+    texture: {fileID: 2800000, guid: c61bc961e4e6f684a9ba9a7d626cad6c, type: 3}
+    sprite: {fileID: 21300000, guid: c61bc961e4e6f684a9ba9a7d626cad6c, type: 3}
+  pageBlankLeft:
+    file: ASH_UI_Sheet2_Page_Blank_Left
+    texture: {fileID: 2800000, guid: df1708f12cf2ce3418713a6cc12d7d0f, type: 3}
+    sprite: {fileID: 0}
+  pageBlankRight:
+    file: ASH_UI_Sheet2_Page_Blank_Right
+    texture: {fileID: 2800000, guid: 89ff9dbb6be08804ebfd401082543c20, type: 3}
+    sprite: {fileID: 0}
+  pageGridLeft:
+    file: ASH_UI_Sheet2_Page_Grid_Left
+    texture: {fileID: 2800000, guid: 437e18e020364d240adeceec8d00337f, type: 3}
+    sprite: {fileID: 0}
+  pageGridRight:
+    file: ASH_UI_Sheet2_Page_Grid_Right
+    texture: {fileID: 2800000, guid: e6e8bfac74c77d44c9f67f355c862c6f, type: 3}
+    sprite: {fileID: 0}
+  pageMapLeft:
+    file: ASH_UI_Sheet2_Page_Map_Left
+    texture: {fileID: 2800000, guid: f72dc6462270a19439d2309bef6c4f5d, type: 3}
+    sprite: {fileID: 0}
+  pageMapRight:
+    file: ASH_UI_Sheet2_Page_Map_Right
+    texture: {fileID: 2800000, guid: 4697c5f0aa460984cac4367e536804f6, type: 3}
+    sprite: {fileID: 0}
+  pageBotanicalLeft:
+    file: ASH_UI_Sheet2_Page_Botanical_Left
+    texture: {fileID: 2800000, guid: 25cc8f6802f9165449602f93faf6812c, type: 3}
+    sprite: {fileID: 0}
+  pageBotanicalRight:
+    file: ASH_UI_Sheet2_Page_Botanical_Right
+    texture: {fileID: 2800000, guid: 427793e0c1c641f4eaa0464d6cae266d, type: 3}
+    sprite: {fileID: 0}
+  autoFitTooltipPanel: 1
+  autoFitBorderFraction: 0.19
+  tooltipPanelRect:
+    x: 0
+    y: 0
+    width: 326
+    height: 311
+  tooltipPanelBorder: {x: 59, y: 59, z: 59, w: 59}
+  usePageRuleArt: 1
+  paperColor: {r: 0.90588236, g: 0.7058824, b: 0.48235294, a: 1}
+  paperEdgeColor: {r: 0.85490197, g: 0.58431375, b: 0.30588236, a: 1}
+  burnColor: {r: 0.3529412, g: 0.20392157, b: 0.09411765, a: 1}

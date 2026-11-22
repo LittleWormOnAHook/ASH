@@ -95,7 +95,8 @@ namespace ASH.Gameplay
                 bool can = lockR == null && left > 0 && w && w.Balance >= price;
                 string sub = lockR != null ? $"<color=#f2806b>{lockR}</color>" : left == int.MaxValue ? "" : left <= 0 ? "<color=#f2806b>sold out</color>" : $"<color=#a69e91>{left} left</color>";
                 var entry = e;
-                Row(_buyList, e.item, ASHEconomy.Format(price), sub, "Buy", can, () => { _vendor.Buy(entry, _inv, out var m); Say(m); _dirty = true; });
+                var bi = ASHItemTooltip.Info.Item(e.item); bi.price = "Buy for  " + ASHItemTooltip.Coins(price); bi.lockText = lockR;
+                Row(_buyList, e.item, ASHEconomy.Format(price), sub, "Buy", can, () => { _vendor.Buy(entry, _inv, out var m); Say(m); _dirty = true; }, bi);
             }
             if (_inv)
             {
@@ -107,14 +108,16 @@ namespace ASH.Gameplay
                     string price = sellable ? ASHEconomy.Format(ASHEconomy.SellPrice(it, sl.condition)) : "<color=#a69e91>won't buy</color>";
                     string sub = (sl.amount > 1 ? $"x{sl.amount}" : "") + (it.maxStack <= 1 && sl.condition < 0.999f ? $"  {sl.condition * 100f:0}%" : "");
                     int idx = i;
-                    Row(_sellList, it, price, $"<color=#a69e91>{sub}</color>", "Sell", sellable, () => { _vendor.SellSlot(_inv, idx, out var m); Say(m); _dirty = true; });
+                    var si = ASHItemTooltip.Info.Slot(sl); si.price = sellable ? "Sells for  " + ASHItemTooltip.Coins(ASHEconomy.SellPrice(it, sl.condition)) : null; if (!sellable) si.lockText = "The vendor won't buy this.";
+                    Row(_sellList, it, price, $"<color=#a69e91>{sub}</color>", "Sell", sellable, () => { _vendor.SellSlot(_inv, idx, out var m); Say(m); _dirty = true; }, si);
                 }
             }
         }
 
-        void Row(RectTransform list, ASHItemDefinition it, string price, string sub, string verb, bool enabled, UnityEngine.Events.UnityAction act)
+        void Row(RectTransform list, ASHItemDefinition it, string price, string sub, string verb, bool enabled, UnityEngine.Events.UnityAction act, ASHItemTooltip.Info tip = default)
         {
             var row = K.Rect("Row", list); K.Image(row, K.Row, true); K.Layout(row, 46);
+            if (!tip.IsEmpty) ASHItemTooltip.Attach(row, () => tip);
             var icon = K.Image(TL("Icon", row, 6, 4, 38, 38), Color.white);
             if (it.icon) { icon.sprite = it.icon; icon.preserveAspect = true; } else icon.color = ASHClothingSettings.I.RarityColor(it.rarity);
             K.Text(TL("Name", row, 52, 2, 250, 24), it.displayName, 16, K.Ink, TextAnchor.MiddleLeft);
