@@ -931,10 +931,19 @@ namespace ASH.UI
 
         void SetInv(bool open) { _invPanel.SetActive(open); ASHUIState.SetOpen(ASHPanels.Inventory, open); if (open) { RefreshInventory(); HideTip(); } else { EndSlotDrag(); CloseContext(); } }
         void SetCraft(bool open) { if (open) SetJournal(true, ASHJournalUI.Tab.Crafting); else SetJournal(false, ASHJournalUI.Tab.Crafting); }
+        bool _journalPausedNeeds;
         void SetJournal(bool open, ASHJournalUI.Tab tab)
         {
             if (open) _journal.Open(tab); else _journal.Close();
             ASHUIState.SetOpen(ASHPanels.Journal, open);
+            // B1: 3D book behind the journal (falls back to the flat panel when off / missing)
+            var book = ASHJournalBook.Usable ? ASHJournalBook.Ensure() : null;
+            if (book) book.SetOpen(open, _journal.gameObject);
+            else { var cg = _journal.GetComponent<CanvasGroup>(); if (cg) { cg.alpha = 1f; cg.blocksRaycasts = true; cg.interactable = true; } }
+            // hunger / thirst pause while the journal is open (setting, default on); only undo our own pause
+            bool pause = open && ASHJournalBookSettings.I.pauseNeedsWhileOpen;
+            if (stats && pause && !stats.Paused) { stats.Paused = true; _journalPausedNeeds = true; }
+            else if (stats && !pause && _journalPausedNeeds) { if (!ASHUIState.IsOpen(ASHPanels.Pause)) stats.Paused = false; _journalPausedNeeds = false; }
         }
         void SetMap(bool open)
         {

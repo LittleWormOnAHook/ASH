@@ -1,0 +1,58 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c79cbd6aa148bcf489dad7f3d1c11519, type: 3}
+  m_Name: ASH_JournalBookSettings
+  m_EditorClassIdentifier: Assembly-CSharp::ASH.UI.ASHJournalBookSettings
+  use3DBook: 1
+  bookPrefab: {fileID: 311184656859670933, guid: 5ef2bcca2a96f38498a8dcf52868e53e, type: 3}
+  pauseNeedsWhileOpen: 1
+  openTime: 0.7
+  closeTime: 0.55
+  singleTurnTime: 0.45
+  groupTurnTime: 0.9
+  maxPagesTurning: 4
+  contentFadeTime: 0.15
+  bookLayer: 30
+  stagePosition: {x: 0, y: -5000, z: 0}
+  bookEuler: {x: 0, y: 0, z: 0}
+  bookScale: 1
+  cameraOffset: {x: 0, y: 3.4, z: -1.25}
+  autoFrame: 1
+  frameFill: 0.86
+  cameraLookOffset: {x: 0, y: 0, z: 0.05}
+  cameraFov: 34
+  renderScale: 1
+  msaa: 4
+  standinQuality: 0
+  backgroundDim: 0.62
+  dimColor: {r: 0.03, g: 0.025, b: 0.02, a: 1}
+  keyLightColor: {r: 1, g: 0.86, b: 0.68, a: 1}
+  keyLightIntensity: 2.2
+  keyLightEuler: {x: 55, y: -30, z: 0}
+  fillLightColor: {r: 0.55, g: 0.6, b: 0.7, a: 1}
+  fillLightIntensity: 0.45
+  sortingOrder: 49
+  coverMaterial: {fileID: 2100000, guid: 8df47d023dcd1c64c9e0662a3fcb2451, type: 2}
+  pageEdgeFrontMaterial: {fileID: 2100000, guid: 1827fd7610095604f96fe2ea591059a2, type: 2}
+  pageEdgeBackMaterial: {fileID: 2100000, guid: 9ffcc11e7d9c950489fba45d14492b47, type: 2}
+  pageMaterial: {fileID: 2100000, guid: d4f40e8c0d869464cbea508a0a08811b, type: 2}
+  pagePaperLeft: {fileID: 2800000, guid: df1708f12cf2ce3418713a6cc12d7d0f, type: 3}
+  pagePaperRight: {fileID: 2800000, guid: 89ff9dbb6be08804ebfd401082543c20, type: 3}
+  spreads: 7
+  openClip: {fileID: 8300000, guid: 32935a71386d82f459a8f003bad033f5, type: 3}
+  closeClip: {fileID: 8300000, guid: 518a0a6441d71e045aeca0ed4189076c, type: 3}
+  pageTurnClip: {fileID: 8300000, guid: 186cf22ffaae264449e086a0c4206a6d, type: 3}
+  pagesFlippingClip: {fileID: 8300000, guid: 2732880985f568841870c85a2e60994d, type: 3}
+  openVolume: 0.7
+  closeVolume: 0.7
+  pageTurnVolume: 0.6
+  pagesFlippingVolume: 0.5
