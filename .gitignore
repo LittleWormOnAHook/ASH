@@ -158,3 +158,7 @@ desktop.ini
 # Vendor: EndlessBook (3D book for the journal, t582)
 /Assets/EndlessBook/
 /Assets/EndlessBook.meta
+
+# t619: terrain backups made by ASH/Systems/Roads (large, local only)
+/Assets/_ASH/Backups/
+/Assets/_ASH/Backups.meta

@@ -247,6 +247,13 @@ void ASH_ApplyAccumulation(float3 positionWS, half3 geomNormalWS, half4 drift, h
 #ifdef ASH_ACCUM_PROP
     // objects build up with the terrain (same amounts, rate, drift, melt) scaled by the controller's prefab multipliers
     ashT *= _ASH_PropMul.x; snowT *= _ASH_PropMul.y;
+    // t619 roads: per-material thinning + bare patches. Re-uses Lit's per-material _ClearCoatMask (= 1 - coverage) and
+    // _ClearCoatSmoothness (= patchiness, share left bare); both are unused by Lit, so the SRP batcher CBUFFER stays URP's.
+    // Every other material has 0 / 0 = unchanged. Set from ASH_RoadSettings.
+    half keepM = 1.0 - saturate(_ClearCoatMask);
+    half patchM = saturate(_ClearCoatSmoothness);
+    UNITY_BRANCH if (patchM > 0.001) { half pn = ASH_Fbm(positionWS.xz * 0.16); keepM *= smoothstep(patchM - 0.12, patchM + 0.12, pn); }
+    ashT *= keepM; snowT *= keepM;
 #endif
     half remove = deform * (1.0 - saturate(_ASH_TrailKeep)) * (ashT + snowT);
     half ashLeft = max(0, ashT - remove);
