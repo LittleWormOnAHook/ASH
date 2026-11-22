@@ -13,7 +13,7 @@ namespace ASH.UI
         public static ASHJournalBookSettings I { get { if (!_i) { _i = Resources.Load<ASHJournalBookSettings>("ASH_JournalBookSettings"); if (!_i) _i = CreateInstance<ASHJournalBookSettings>(); } return _i; } }
 
         [Header("Book")]
-        [Tooltip("Off (or EndlessBook missing) = the flat 1200x720 journal panel, exactly as before.")] public bool use3DBook = true;
+        [Tooltip("Off (or EndlessBook missing) = the flat 1200x720 journal panel, exactly as before.")] public bool use3DBook = false; // parked: flat journal until the book work resumes
         [Tooltip("EndlessBook's Book.prefab (vendor, git-ignored). Wired by the setup menu.")] public GameObject bookPrefab;
         [Tooltip("Hunger / thirst (and other survival drains) pause while the book is open.")] public bool pauseNeedsWhileOpen = true;
 

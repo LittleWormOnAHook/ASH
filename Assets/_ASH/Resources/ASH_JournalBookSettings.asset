@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c79cbd6aa148bcf489dad7f3d1c11519, type: 3}
   m_Name: ASH_JournalBookSettings
   m_EditorClassIdentifier: Assembly-CSharp::ASH.UI.ASHJournalBookSettings
-  use3DBook: 1
+  use3DBook: 0
   bookPrefab: {fileID: 311184656859670933, guid: 5ef2bcca2a96f38498a8dcf52868e53e, type: 3}
   pauseNeedsWhileOpen: 1
   openTime: 0.7

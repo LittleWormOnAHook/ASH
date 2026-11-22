@@ -938,10 +938,11 @@ namespace ASH.UI
             ASHUIState.SetOpen(ASHPanels.Journal, open);
             // B1: 3D book behind the journal (falls back to the flat panel when off / missing)
             var book = ASHJournalBook.Usable ? ASHJournalBook.Ensure() : null;
+            if (!book && ASHJournalBook.Instance) Destroy(ASHJournalBook.Instance.gameObject); // toggled off: tear down, the panel goes back to the flat layout
             if (book) book.SetOpen(open, _journal.gameObject);
             else { var cg = _journal.GetComponent<CanvasGroup>(); if (cg) { cg.alpha = 1f; cg.blocksRaycasts = true; cg.interactable = true; } }
             // hunger / thirst pause while the journal is open (setting, default on); only undo our own pause
-            bool pause = open && ASHJournalBookSettings.I.pauseNeedsWhileOpen;
+            bool pause = open && book && ASHJournalBookSettings.I.pauseNeedsWhileOpen; // book only: the flat journal never paused needs
             if (stats && pause && !stats.Paused) { stats.Paused = true; _journalPausedNeeds = true; }
             else if (stats && !pause && _journalPausedNeeds) { if (!ASHUIState.IsOpen(ASHPanels.Pause)) stats.Paused = false; _journalPausedNeeds = false; }
         }
