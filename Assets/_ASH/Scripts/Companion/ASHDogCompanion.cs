@@ -178,6 +178,17 @@ namespace ASH.Companion
 
         void Toast(string m) { if (!_hud) _hud = FindAnyObjectByType<ASHHud>(); if (_hud) _hud.Toast(m); }
         float _nextGrowl, _nextDigGrowl; int _lastGrowl = -1; Transform _growledAt;
+        readonly HashSet<Transform> _growledThreats = new HashSet<Transform>();
+        /// <summary>t567: roll for an optional bark/growl (ambient, command, combat, hurt). Finds and the first enemy growl skip this.</summary>
+        bool Chatty(float chance = 1f) => UnityEngine.Random.value < chance * S.vocalFrequency;
+        /// <summary>t567: the single growl for a newly detected enemy (ignores cooldown and Vocal Frequency). False if already growled at it.</summary>
+        bool GrowlOnceAt(Transform t)
+        {
+            if (!t) return false;
+            _growledThreats.RemoveWhere(x => !x);
+            if (!_growledThreats.Add(t)) return false;
+            _nextGrowl = 0f; Growl(); return true;
+        }
         /// <summary>Plays a random growl (warning or playful set). Falls back to the double bark when no growl clips are set. Returns false on cooldown.</summary>
         bool Growl(bool playful = false, float volMul = 1f)
         {
@@ -356,7 +367,7 @@ namespace ASH.Companion
                 case Act.Lie: Stop(); _pose = Pose.Lie; Activity = "Resting"; break;
                 case Act.Sleep: Stop(); _pose = Pose.Sleep; Activity = "Napping"; break;
                 case Act.Dig: if (GoToSpot()) { _pose = Pose.Dig; Activity = "Digging"; _digTime += dt;
-                        if (Time.time >= _nextDigGrowl && UnityEngine.Random.value < (ForceDigGrowlChance >= 0f ? ForceDigGrowlChance : S.digGrowlChance) * dt) { _nextDigGrowl = Time.time + S.digGrowlCooldown; Growl(true); } } else _actUntil = Mathf.Max(_actUntil, Time.time + 0.5f); break;
+                        if (Time.time >= _nextDigGrowl && UnityEngine.Random.value < (ForceDigGrowlChance >= 0f ? ForceDigGrowlChance : S.digGrowlChance * S.vocalFrequency) * dt) { _nextDigGrowl = Time.time + S.digGrowlCooldown; Growl(true); } } else _actUntil = Mathf.Max(_actUntil, Time.time + 0.5f); break;
                 case Act.Pee: PeeStep(dt); break;
                 case Act.Fidget: Stop(); _pose = Pose.None; Activity = stay ? "Staying" : "Waiting for you"; break;
             }
@@ -686,7 +697,7 @@ namespace ASH.Companion
             var to = P - best; to.y = 0f; if (to.sqrMagnitude > 0.01f) _yaw = Mathf.Atan2(to.x, to.z) * Mathf.Rad2Deg; _animYaw = _yaw; _up = Vector3.up; ApplyRotation();
             // no Happy one-shot here: it latched and played Idle_2 over the run after a Call; start straight in locomotion
             if (animator && animator.isActiveAndEnabled && animator.runtimeAnimatorController) { animator.ResetTrigger(HHappy); animator.Play("Locomotion", 0, 0f); animator.SetFloat(HSpeed, 0f); animator.SetFloat(HTurn, 0f); }
-            Play(barkClip, 0.9f);
+            if (Chatty()) Play(barkClip, 0.9f);
         }
 
         bool Overlaps(Vector3 c, float r)
@@ -725,7 +736,7 @@ namespace ASH.Companion
             float d = Flat(transform.position, _player.position);
             bool unseen = cam && Hidden(cam, transform.position + Vector3.up * 0.4f) && d > S.followDistance * 2f;
             if (d > S.callTeleportBeyond || _stuckT > 0.5f || unseen) { TeleportNearPlayer(); Toast($"{DogName} comes running."); }
-            else { _callRunUntil = Time.time + 8f; Play(barkClip, 0.8f); Toast($"{DogName} comes to you."); }
+            else { _callRunUntil = Time.time + 8f; if (Chatty()) Play(barkClip, 0.8f); Toast($"{DogName} comes to you."); }
             Notify(); return true;
         }
 
@@ -765,13 +776,25 @@ namespace ASH.Companion
         {
             bool fresh = t && t != _threat;
             _threat = t;
-            if (!t) { if (_threatMarker != null) { ASHCompass.Unregister(_threatMarker); _threatMarker = null; } return; }
+            if (!t) { _growledThreats.Clear(); if (_threatMarker != null) { ASHCompass.Unregister(_threatMarker); _threatMarker = null; } return; }
             if (S.dangerCompassMarkers) { _threatMarker = "dogthreat"; ASHCompass.Register(t, ASHCompassMarkerKind.Enemy, default, _threatMarker); }
-            if (S.warnDanger && (fresh || Time.time >= _nextWarn) && Time.time >= _nextWarn)
+            if (S.growlOncePerEnemy)
+            {
+                // t567: one guaranteed growl per detected enemy, no repeats while it stays detected
+                if (S.warnDanger && !_growledThreats.Contains(t))
+                {
+                    _nextWarn = Time.time + S.warnCooldown; _warnUntil = Time.time + S.warnSeconds;
+                    if (S.growlOnWarn) GrowlOnceAt(t); else { _growledThreats.Add(t); Play(barkDoubleClip ? barkDoubleClip : barkClip); }
+                    Toast($"{DogName} growls. Something's out there.");
+                    AddXp(S.xpWarn);
+                }
+            }
+            else if (S.warnDanger && (fresh || Time.time >= _nextWarn) && Time.time >= _nextWarn)
             {
                 _nextWarn = Time.time + S.warnCooldown; _warnUntil = Time.time + S.warnSeconds;
-                if (S.growlOnWarn) Growl(); else Play(barkDoubleClip ? barkDoubleClip : barkClip); Toast($"{DogName} growls. Something's out there.");
-                AddXp(S.xpWarn);
+                if (!fresh && !Chatty()) { } // repeat warnings follow Vocal Frequency
+                else if (S.growlOnWarn) Growl(); else Play(barkDoubleClip ? barkDoubleClip : barkClip);
+                if (fresh) { Toast($"{DogName} growls. Something's out there."); AddXp(S.xpWarn); }
             }
         }
 
@@ -780,14 +803,15 @@ namespace ASH.Companion
             var tp = _threat.position;
             if (Flat(tp, P) > S.defendRadius && Flat(tp, transform.position) > S.attackRange * 2f && Time.time - _lastHurt > 3f) return false;
             Activity = "Attacking";
-            if (S.growlOnDefendApproach && _growledAt != _threat && Flat(tp, P) <= S.defendRadius) { _growledAt = _threat; _nextGrowl = 0f; Growl(); }
+            if (S.growlOnDefendApproach && _growledAt != _threat && Flat(tp, P) <= S.defendRadius) { _growledAt = _threat; if (S.growlOncePerEnemy) GrowlOnceAt(_threat); else { _nextGrowl = 0f; Growl(); } }
             if (Flat(tp, transform.position) > S.attackRange) { MoveTo(tp, S.runSpeed, S.attackRange * 0.85f); return true; }
             Stop(); Face(tp, Time.deltaTime * 2f);
             if (Time.time >= _nextAttack)
             {
                 _nextAttack = Time.time + S.attackCooldown; if (animator) animator.SetTrigger(HAttack);
                 _pendingHit = Time.time + S.attackHitDelay; _pendingTarget = _threat;
-                if (UnityEngine.Random.value < S.growlBeforeAttackChance) { if (!Growl()) Play(barkClip, 0.6f); } else Play(barkClip, 0.6f);
+                if (!Chatty()) { } // t567: bite vocals follow Vocal Frequency
+                else if (!S.growlOncePerEnemy && UnityEngine.Random.value < S.growlBeforeAttackChance) { if (!Growl()) Play(barkClip, 0.6f); } else Play(barkClip, 0.6f);
             }
             return true;
         }
@@ -812,7 +836,7 @@ namespace ASH.Companion
             Health = Mathf.Max(0f, Health - a); _lastHurt = Time.time;
             if (animator) animator.SetTrigger(HHit);
             if (a > MaxHealth * 0.15f) Play(whineClip, 0.8f);
-            else if (UnityEngine.Random.value < S.growlOnHurtChance) Growl();
+            else if (Chatty(S.growlOnHurtChance)) Growl();
             if (damage.sender && !damage.sender.IsChildOf(_player ? _player : transform)) { var c = damage.sender.GetComponentInChildren<Collider>(); if (c && IsThreat(c, out var r) && r) SetThreat(r); }
             _onRecv.Invoke(damage);
             if (Health <= 0f) GoDown();
@@ -1000,7 +1024,7 @@ namespace ASH.Companion
             {
                 if (d < standOff * 0.7f) _distractUntil = Time.time + backFor;
                 MoveTo(P, S.runSpeed, S.defendFollowDistance * 0.8f);
-                if (Time.time >= _nextWarn) { _nextWarn = Time.time + 2.5f; Growl(); }
+                if (Time.time >= _nextWarn) { _nextWarn = Time.time + 2.5f; DistractVocal(); }
                 return true;
             }
             var side = Vector3.Cross(Vector3.up, (tp - P).normalized);
@@ -1008,9 +1032,16 @@ namespace ASH.Companion
             var flank = tp + side.normalized * standOff;
             if (Flat(flank, transform.position) > 1.4f) { MoveTo(flank, S.runSpeed, 1.1f); return true; }
             Stop(); Face(tp, Time.deltaTime * 2f); SetPose(Pose.Alert);
-            if (Time.time >= _nextWarn) { _nextWarn = Time.time + 2f; Growl(); }
+            if (Time.time >= _nextWarn) { _nextWarn = Time.time + 2f; DistractVocal(); }
             _distractUntil = Time.time + backFor;
             return true;
+        }
+
+        /// <summary>t567: distraction vocals follow Vocal Frequency; with Growl Once Per Enemy they are barks (the growl already happened).</summary>
+        void DistractVocal()
+        {
+            if (!Chatty()) return;
+            if (S.growlOncePerEnemy) Play(barkClip, 0.6f); else Growl();
         }
 
         public void SetMode(ASHDogMode m)
@@ -1020,7 +1051,7 @@ namespace ASH.Companion
             Mode = m; _stayPos = transform.position; _stayT = 0f; _find = null; _pointUntil = -1f; _callRunUntil = 0f;
             if (m == ASHDogMode.Stay) _assistTarget = null;
             Toast(m == ASHDogMode.Stay ? $"{DogName}: stay." : m == ASHDogMode.Follow ? $"{DogName}: follow." : $"{DogName}: defend me.");
-            Play(barkClip, 0.5f); Notify();
+            if (Chatty()) Play(barkClip, 0.5f); Notify();
         }
 
         public bool Pet()

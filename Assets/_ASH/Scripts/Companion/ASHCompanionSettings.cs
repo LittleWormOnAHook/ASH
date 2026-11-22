@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -129,6 +129,14 @@ namespace ASH.Companion
         [Range(0f, 500f)] public float xpDigFind = 8f;
         [Tooltip("Junk the dog can dig up (ASH/Systems/Items/Dog Dig Junk Items fills this).")] public List<ASH.Inventory.ASHItemDefinition> digJunk = new List<ASH.Inventory.ASHItemDefinition>();
         [Range(0f, 600f)] public float stayLieAfter = 20f;
+
+        [Header("Bark / growl frequency (t567)")]
+        [Tooltip("Multiplier on every ambient, idle, command, combat, hurt and dig bark/growl chance. 0.1 = 90% fewer.\n" +
+                 "Not applied to the bark when the dog finds an item (always plays) or the one growl per detected enemy.")]
+        [Range(0f, 1f)] public float vocalFrequency = 0.1f;
+        [Tooltip("Growl exactly once (always) when an enemy is first detected, then no more growls at that enemy while it stays detected.\n" +
+                 "Re-arms once the enemy is lost or killed. Later vocals at it are barks, scaled by Vocal Frequency.")]
+        public bool growlOncePerEnemy = true;
 
         [Header("Growl (German Shepherd, CC0 freesound 246227)")]
         [Tooltip("Low warning growls (danger, Defend, before a bite, hurt). ASH/Systems/Companion/Assign Growl Clips fills this.")] public AudioClip[] growlClips = new AudioClip[0];
