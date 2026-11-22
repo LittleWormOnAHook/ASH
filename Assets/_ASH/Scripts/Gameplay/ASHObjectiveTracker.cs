@@ -105,6 +105,8 @@ namespace ASH.Gameplay
         public sealed class Objective
         {
             public string Id, Title; public bool Completed, Priority; public int Order;
+            /// <summary>Unscaled time Complete() ran (the HUD lingers on a just-finished objective briefly, then clears).</summary>
+            public float CompletedAt;
             /// <summary>t411: main (story) objective - the tracked one shows as a gold compass dot. Side objectives: false.</summary>
             public bool Main;
             /// <summary>t438: final main quest of a chapter (e.g. "Repair Grandpa's truck"): listed after every other active objective and
@@ -132,6 +134,8 @@ namespace ASH.Gameplay
             _objectives.Add(_slice);
         }
 
+        /// <summary>Seconds the HUD keeps a just-completed objective when nothing else is active.</summary>
+        public static float CompletedLinger = 4f;
         public Objective Find(string id) { EnsureSlice(); return _objectives.Find(o => o.Id == id); }
 
         /// <summary>The objective the HUD focuses on: the picked one while active, else the newest active one.</summary>
@@ -145,6 +149,8 @@ namespace ASH.Gameplay
                 Objective best = null; foreach (var o in _objectives) if (!o.Completed && !(SliceHeld && o == _slice) && (best == null || (best.Final && !o.Final) || (best.Final == o.Final && o.Order > best.Order))) best = o;
                 if (best == null) best = t ?? (SliceHeld ? _none : _slice);
                 if (t != null && t.Completed && best != t && best != _none) { TrackedId = best.Id; TrackedChanged?.Invoke(TrackedId); } // tracked one finished: follow the next active one
+                // nothing left open: show the finished one for a moment, then clear the HUD (was stuck on its frozen all-ticked lines forever)
+                if (best != _none && best.Completed && (best != t || Time.unscaledTime - best.CompletedAt > CompletedLinger)) best = _none;
                 return best;
             }
         }
@@ -168,7 +174,7 @@ namespace ASH.Gameplay
         public void Complete(string id, string message = null)
         {
             var o = Find(id); if (o == null || o.Completed) return;
-            o.Frozen = new List<(string, bool)>(o.GetLines()); o.Completed = true;
+            o.Frozen = new List<(string, bool)>(o.GetLines()); o.Completed = true; o.CompletedAt = Time.unscaledTime;
             if (!string.IsNullOrEmpty(message)) Message?.Invoke(message);
             Changed?.Invoke();
         }
