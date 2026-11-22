@@ -197,6 +197,7 @@ namespace ASH.UI
                 _contentA = 0f; ApplyContent();
                 if (_pages) _pages.OnOpening(content ? content.GetComponent<ASHJournalUI>() : null);
                 Play(S.openClip, S.openVolume);
+                if (!_loggedOpen) { _loggedOpen = true; Debug.Log($"[ASH Journal] 3D book open (EndlessBook, layer {S.bookLayer}, RT {(_rt ? _rt.width + "x" + _rt.height : "none")}, card alpha {S.contentCardAlpha:0.##})"); }
             }
             else
             {
@@ -207,6 +208,7 @@ namespace ASH.UI
             Reconcile(S, true);
         }
 
+        bool _loggedOpen;
         void Play(AudioClip c, float v) { if (c && _audio) _audio.PlayOneShot(c, v); }
 
         AudioSource _flipLoop;

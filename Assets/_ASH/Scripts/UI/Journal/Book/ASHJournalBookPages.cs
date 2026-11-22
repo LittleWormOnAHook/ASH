@@ -161,7 +161,23 @@ namespace ASH.UI
             if (_panel.parent != _panelParent) { _panel.SetParent(_panelParent, false); _panel.SetSiblingIndex(_panelSibling); }
             _panel.anchorMin = _panelAnchorMin; _panel.anchorMax = _panelAnchorMax; _panel.pivot = _panelPivot;
             _panel.anchoredPosition = _panelPos; _panel.localScale = _panelScale; _panel.localRotation = Quaternion.identity;
-            if (full) { if (_panelBg && _panelBgSaved) _panelBg.color = _panelBgCol; _panelSaved = false; }
+            if (full) { if (_panelBg && _panelBgSaved) _panelBg.color = _panelBgCol; _panelSaved = false; SetChrome(true); }
+        }
+
+        readonly List<CanvasGroup> _chromeHidden = new List<CanvasGroup>();
+        /// <summary>Flat-journal header (title, accent bar, top tab buttons, key hint): hidden in the book, the side tabs replace it.
+        /// Uses a CanvasGroup (not SetActive) so the journal's own tab toggles can't bring it back.</summary>
+        void SetChrome(bool on)
+        {
+            if (on) { foreach (var g in _chromeHidden) if (g) { g.alpha = 1f; g.blocksRaycasts = true; g.interactable = true; } _chromeHidden.Clear(); return; }
+            if (!_panel) return;
+            for (int i = 0; i < _panel.childCount; i++)
+            {
+                var c = _panel.GetChild(i).gameObject; string n = c.name;
+                if (!(n == "Accent" || n == "Title" || n == "Hint" || n.StartsWith("Tab"))) continue;
+                var g = c.GetComponent<CanvasGroup>(); if (!g) g = c.AddComponent<CanvasGroup>();
+                g.alpha = 0f; g.blocksRaycasts = false; g.interactable = false; _chromeHidden.Add(g);
+            }
         }
 
         float PanelScaleInCapture()
@@ -185,6 +201,22 @@ namespace ASH.UI
         }
 
         // ------------------------------------------------------------------ spread geometry
+        /// <summary>The book's on-screen rect (viewport 0..1) in whatever state it is in (closed cover, opening, open).</summary>
+        static bool ScreenRect(Camera cam, Transform root, out Rect rect)
+        {
+            rect = default; if (!cam || !root) return false;
+            var b = new Bounds(); bool any = false;
+            foreach (var rd in root.GetComponentsInChildren<Renderer>(false)) { if (!rd.enabled) continue; if (!any) { b = rd.bounds; any = true; } else b.Encapsulate(rd.bounds); }
+            if (!any) return false;
+            float x0 = 1, y0 = 1, x1 = 0, y1 = 0;
+            for (int i = 0; i < 8; i++)
+            {
+                var v = cam.WorldToViewportPoint(new Vector3((i & 1) == 0 ? b.min.x : b.max.x, (i & 2) == 0 ? b.min.y : b.max.y, (i & 4) == 0 ? b.min.z : b.max.z));
+                x0 = Mathf.Min(x0, v.x); x1 = Mathf.Max(x1, v.x); y0 = Mathf.Min(y0, v.y); y1 = Mathf.Max(y1, v.y);
+            }
+            rect = Rect.MinMaxRect(x0, y0, x1, y1); return rect.width > 0.01f && rect.height > 0.01f;
+        }
+
         bool MeasureSpread(Camera bookCam, Transform bookRoot)
         {
             var b = new Bounds(); bool any = false;
@@ -278,7 +310,8 @@ namespace ASH.UI
         {
             _journal = journal; _panel = journal ? (RectTransform)journal.transform : null;
             SavePanel();
-            if (_panelBg) { var c = _panelBgCol; c.a *= ASHJournalBookSettings.I.cardAlpha; _panelBg.color = c; }
+            if (_panelBg) { var c = _panelBgCol; c.a *= ASHJournalBookSettings.I.contentCardAlpha; _panelBg.color = c; }
+            SetChrome(!ASHJournalBookSettings.I.hideFlatHeader);
             _shown = journal ? journal.Current : Tab.Items; _hasShown = true;
             _book.Book.SetPageNumber(LeftPageOf(_shown));
             _openPending = true; _readyToOpen = false; _wait = 2; _step = Step.Idle;
@@ -385,19 +418,22 @@ namespace ASH.UI
 
         void LayoutOverlay(ASHJournalBookSettings S, bool rest)
         {
-            bool show = _book.WantOpen && _haveSpread;
+            bool haveBook = ScreenRect(_book.BookCamera, _book.BookRoot, out var bookR);
+            bool show = _book.WantOpen && haveBook;
             if (_overlay.gameObject.activeSelf != show) _overlay.gameObject.SetActive(show);
             if (!show) return;
             _overlay.sortingOrder = S.overlaySortingOrder;
             bool live = rest && _step == Step.Idle && !_openPending;
-            _overlayGroup.alpha = Mathf.MoveTowards(_overlayGroup.alpha, rest ? 1f : 0.65f, Time.unscaledDeltaTime * 6f);
+            _overlayGroup.alpha = Mathf.MoveTowards(_overlayGroup.alpha, rest ? 1f : 0.8f, Time.unscaledDeltaTime * 6f);
             _overlayGroup.blocksRaycasts = live; _overlayGroup.interactable = live;
 
             var cs = _overlayRt.rect.size; var r = _spreadScreen;
             float x0 = r.xMin * cs.x, x1 = r.xMax * cs.x, y0 = r.yMin * cs.y, y1 = r.yMax * cs.y;
-            // side tabs down the right edge of the book
+            // side tabs along the book's edge (left by default), following the book closed, opening and open
+            float bx0 = bookR.xMin * cs.x, bx1 = bookR.xMax * cs.x, by1 = bookR.yMax * cs.y;
+            bool left = S.tabSide == ASHJournalBookSettings.TabSide.Left;
             bool sheet2 = ASHJournalArt.I.tabStyle == ASHJournalArt.TabStyle.Sheet2PaperTabs;
-            float y = y1 - S.ribbonSize.y * 0.5f - 8f; int idx = 0;
+            float y = by1 - S.ribbonSize.y * 0.5f - 8f; int idx = 0;
             var cur = _journal ? _journal.Current : Tab.Items;
             foreach (var t in Order)
             {
@@ -407,7 +443,10 @@ namespace ASH.UI
                 if (!vis) continue;
                 bool sel = t == cur;
                 rt.sizeDelta = S.ribbonSize * (sel ? 1.08f : 1f);
-                rt.anchoredPosition = new Vector2(x1 - 6f + (sel ? S.ribbonOut + 10f : S.ribbonOut) - S.ribbonSize.x * 0.35f, y);
+                float stick = (sel ? S.ribbonOut + 10f : S.ribbonOut) - S.ribbonSize.x * 0.35f - 6f;
+                rt.pivot = new Vector2(left ? 1f : 0f, 0.5f);
+                rt.anchoredPosition = new Vector2(left ? bx0 - stick : bx1 + stick, y);
+                rt.localScale = new Vector3(S.mirrorTabArt ? -1f : 1f, 1f, 1f);
                 var img = rt.GetComponent<Image>(); var mot = rt.Find("Motif").GetComponent<Image>();
                 var paperTab = sheet2 ? ASHJournalArt.PaperTab(t.ToString()) : null;
                 if (paperTab) { img.sprite = paperTab; img.color = sel ? Color.white : new Color(0.86f, 0.82f, 0.76f, 1f); mot.enabled = false; }
@@ -426,6 +465,7 @@ namespace ASH.UI
             bool canBack = false, canFwd = false;
             for (int k = i0 - 1; k >= 0; k--) if (Visible(Order[k])) { canBack = true; break; }
             for (int k = i0 + 1; k < Order.Length; k++) if (Visible(Order[k])) { canFwd = true; break; }
+            bool spread = _haveSpread && rest; canBack &= spread; canFwd &= spread;
             _edgeL.gameObject.SetActive(S.edgeClickFlip && canBack); _edgeR.gameObject.SetActive(S.edgeClickFlip && canFwd);
             _edgeL.anchoredPosition = new Vector2(x0, y0); _edgeL.sizeDelta = new Vector2(Mathf.Max(12f, marginPx), y1 - y0);
             _edgeR.anchoredPosition = new Vector2(x1 - Mathf.Max(12f, marginPx), y0); _edgeR.sizeDelta = new Vector2(Mathf.Max(12f, marginPx), y1 - y0);

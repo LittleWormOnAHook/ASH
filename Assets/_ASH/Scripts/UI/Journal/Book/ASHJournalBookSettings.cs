@@ -62,7 +62,9 @@ namespace ASH.UI
         [Tooltip("Layer for the off-screen page capture canvas (29 is unnamed).")] [Range(0, 31)] public int captureLayer = 29;
         [Tooltip("Width of the spread capture texture (height follows the open spread's shape).")] [Range(512, 4096)] public int captureWidth = 2048;
         [Tooltip("Paper margin around the journal card on the pages (capture pixels at 1300 wide).")] [Range(0f, 200f)] public float pageMargin = 50f;
-        [Tooltip("Opacity of the journal's dark card on the paper (live and on the pages).")] [Range(0f, 1f)] public float cardAlpha = 0.9f;
+        [Tooltip("Old card opacity (unused since the paper-card fix; see contentCardAlpha).")] [HideInInspector] [Range(0f, 1f)] public float cardAlpha = 0.9f;
+        [Tooltip("Opacity of the journal's dark card on the book paper (live and on the pages). 0 = content straight on the paper.")] [Range(0f, 1f)] public float contentCardAlpha = 0.25f;
+        [Tooltip("Hide the flat journal's header (JOURNAL title, accent bar, top tab buttons, key hint) while it sits in the book: the side tabs replace it.")] public bool hideFlatHeader = true;
         [Tooltip("Inset of the page area inside the open book's outline (left, bottom, right, top; fraction of its size).")] public Vector4 pageRectInset = new Vector4(0.035f, 0.05f, 0.035f, 0.05f);
         [Tooltip("Mirror the capture on the pages if it shows flipped in Play.")] public bool flipPagesU, flipPagesV;
         [Tooltip("Swap which half goes on the left page.")] public bool swapPageHalves;
@@ -70,6 +72,9 @@ namespace ASH.UI
         [Tooltip("Ribbon tint per tab (Rook ribbon style only).")] public Color[] ribbonColors = {
             new Color(0.55f, 0.18f, 0.14f), new Color(0.42f, 0.36f, 0.22f), new Color(0.22f, 0.32f, 0.42f), new Color(0.58f, 0.42f, 0.16f),
             new Color(0.27f, 0.4f, 0.24f), new Color(0.45f, 0.3f, 0.2f), new Color(0.5f, 0.25f, 0.1f) };
+        public enum TabSide { Left, Right }
+        [Tooltip("Which edge of the book the side tabs run along (they follow the book while it is closed, opening and open).")] public TabSide tabSide = TabSide.Left;
+        [Tooltip("Mirror the tab art horizontally (if the tab sprite points the wrong way on this side).")] public bool mirrorTabArt = false;
         [Tooltip("Side tab size on screen (reference 1080p pixels).")] public Vector2 ribbonSize = new Vector2(112f, 58f);
         [Range(-40f, 80f)] public float ribbonSpacing = 6f;
         [Tooltip("How far the side tabs stick out past the book's edge.")] [Range(-80f, 120f)] public float ribbonOut = 34f;
