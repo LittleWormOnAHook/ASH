@@ -12,6 +12,13 @@ namespace ASH.FX
     [DisallowMultipleComponent]
     public sealed class ASHFootstepPuffs : MonoBehaviour
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHFootstepPuffs()
+        {
+            _rtMat = default;
+        }
+
         public enum Quality { Off, Low, Medium, High, Extreme }
         public Quality quality = Quality.Medium;
         public Material material;

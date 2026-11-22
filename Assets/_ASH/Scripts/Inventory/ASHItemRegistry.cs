@@ -8,6 +8,13 @@ namespace ASH.Inventory
     [CreateAssetMenu(menuName = "ASH/Inventory/Item Registry", fileName = "ASH_ItemRegistry")]
     public sealed class ASHItemRegistry : ScriptableObject
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHItemRegistry()
+        {
+            _i = default;
+        }
+
         public List<ASHItemDefinition> items = new List<ASHItemDefinition>();
         Dictionary<string, ASHItemDefinition> _map;
 

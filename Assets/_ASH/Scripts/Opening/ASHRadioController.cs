@@ -13,6 +13,14 @@ namespace ASH.Opening
     [DisallowMultipleComponent]
     public sealed class ASHRadioController : MonoBehaviour, IASHUsable
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHRadioController()
+        {
+            _genStatic = default;
+            _genAlert = default;
+        }
+
         public enum Mode { Off, Music, Alert, Voice, StaticOnly }
         public ASHPhase2AAudio audioBank;
         public ASHOpeningProfile profile;

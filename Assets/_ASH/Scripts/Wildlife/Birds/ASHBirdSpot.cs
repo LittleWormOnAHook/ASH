@@ -11,6 +11,13 @@ namespace ASH.Wildlife.Birds
     [DisallowMultipleComponent]
     public sealed class ASHBirdSpot : MonoBehaviour
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHBirdSpot()
+        {
+            All.Clear();
+        }
+
         public static readonly List<ASHBirdSpot> All = new List<ASHBirdSpot>();
 
         [Tooltip("Bird type id from ASH_BirdSettings > types (crow, raven, sparrow, ...). Empty = a random ground type each time it spawns.")]

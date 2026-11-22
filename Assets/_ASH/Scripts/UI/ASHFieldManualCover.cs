@@ -11,6 +11,13 @@ namespace ASH.UI
     /// it was read. [E] / Read opens it: the Field Manual tab appears in the journal. Also the use handler for the journal item.</summary>
     public sealed class ASHFieldManualCover : MonoBehaviour
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHFieldManualCover()
+        {
+            _open = default;
+        }
+
         const string PanelId = "manualCover";
         static ASHFieldManualCover _open;
         ASHFieldManual _manual; float _openedAt;

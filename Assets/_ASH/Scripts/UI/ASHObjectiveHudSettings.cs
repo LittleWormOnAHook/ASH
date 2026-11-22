@@ -8,6 +8,13 @@ namespace ASH.UI
     [CreateAssetMenu(menuName = "ASH/Objective HUD Settings", fileName = "ASH_ObjectiveHudSettings")]
     public sealed class ASHObjectiveHudSettings : ScriptableObject
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHObjectiveHudSettings()
+        {
+            _i = default;
+        }
+
         [Header("Focused / main objective (top)")]
         [Range(10, 72)] public int focusTitleSize = 30;
         public Color focusTitleColor = new Color(0.80f, 0.50f, 0.20f);

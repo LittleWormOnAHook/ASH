@@ -6,6 +6,15 @@ namespace ASH.UI
     /// <summary>Shared code-built uGUI helpers and palette for ASH panels (journal, GPS map).</summary>
     public static class ASHUIKit
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHUIKit()
+        {
+            _font = default;
+            _ring = default;
+            _dot = default;
+        }
+
         public static readonly Color Panel = new Color(0.06f, 0.055f, 0.05f, 0.92f);
         public static readonly Color Paper = new Color(0.86f, 0.81f, 0.70f, 1f);
         public static readonly Color PaperInk = new Color(0.22f, 0.18f, 0.14f, 1f);

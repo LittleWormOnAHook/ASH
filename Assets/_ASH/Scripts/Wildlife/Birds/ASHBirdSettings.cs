@@ -12,6 +12,13 @@ namespace ASH.Wildlife.Birds
     [CreateAssetMenu(menuName = "ASH/Wildlife/Bird Settings", fileName = "ASH_BirdSettings")]
     public sealed class ASHBirdSettings : ScriptableObject
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHBirdSettings()
+        {
+            _i = default;
+        }
+
         static ASHBirdSettings _i;
         public static ASHBirdSettings I => _i ? _i : (_i = Resources.Load<ASHBirdSettings>("ASH_BirdSettings"));
 

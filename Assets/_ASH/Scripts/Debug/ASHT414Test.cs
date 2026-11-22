@@ -9,6 +9,14 @@ namespace ASH.DebugTools
     /// then 0-50 km/h at power x1 vs the tuned multiplier for truck and car. Puts vehicles back where they were. Logs "[ASH] T414 ...".</summary>
     public sealed class ASHT414Test : MonoBehaviour
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHT414Test()
+        {
+            SkipSlope = default;
+            _top = default;
+        }
+
         static bool SkipSlope; static float _top;
         public static void RunNoSlope() { SkipSlope = true; if (Application.isPlaying) new GameObject("ASH_T414Test").AddComponent<ASHT414Test>(); }
         public static void Run() { SkipSlope = false; if (Application.isPlaying) new GameObject("ASH_T414Test").AddComponent<ASHT414Test>(); }

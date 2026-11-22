@@ -7,6 +7,13 @@ namespace ASH.Vehicles
     [DefaultExecutionOrder(5000)]
     public sealed class ASHVehicleCamera : MonoBehaviour
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHVehicleCamera()
+        {
+            s_zoomStep = -1;
+        }
+
         public enum View { ThirdPerson, FirstPerson }
         public View view = View.ThirdPerson;
         [Header("Third person")]

@@ -9,6 +9,13 @@ namespace ASH.Survival
     [CreateAssetMenu(menuName = "ASH/Survival/Temperature Settings", fileName = "ASH_TemperatureSettings")]
     public sealed class ASHTemperatureSettings : ScriptableObject
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHTemperatureSettings()
+        {
+            _i = default;
+        }
+
         [Header("Warmth scale (shown as degrees)")]
         [Tooltip("Normal / comfortable warmth: a new game starts here, shelters and fires bring you back to it.")]
         [Range(5f, 100f)] public float normalWarmth = 30f;

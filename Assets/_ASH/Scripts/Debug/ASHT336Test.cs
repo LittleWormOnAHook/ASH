@@ -14,6 +14,15 @@ namespace ASH.DebugTools
     /// dog call-then-move (walk/run clips play), turn blend, paw steps. Logs "[ASH] T336 ..." and "T336 SUMMARY".</summary>
     public sealed class ASHT336Test : MonoBehaviour
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHT336Test()
+        {
+            SkipBow = default;
+            SkipZoom = default;
+            SkipDog = default;
+        }
+
         public static void Run() { if (Application.isPlaying) new GameObject("ASH_T336Test").AddComponent<ASHT336Test>(); }
         public static bool SkipBow, SkipZoom, SkipDog;
         public static void RunDogOnly() { SkipBow = true; SkipZoom = true; Run(); }

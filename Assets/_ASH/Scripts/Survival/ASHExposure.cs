@@ -16,6 +16,13 @@ namespace ASH.Survival
     [DisallowMultipleComponent]
     public sealed class ASHExposure : MonoBehaviour
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHExposure()
+        {
+            Instance = default;
+        }
+
         public static ASHExposure Instance { get; private set; }
         /// <summary>Weather air strength where you are before shelter/protection (smoothed).</summary>
         public float AirStrength { get; private set; }

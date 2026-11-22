@@ -13,6 +13,13 @@ namespace ASH.Prologue
     [CreateAssetMenu(menuName = "ASH/Objective Chain", fileName = "ASH_PrologueChain")]
     public sealed class ASHObjectiveChain : ScriptableObject
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHObjectiveChain()
+        {
+            _i = default;
+        }
+
         public enum Kind { Main, Side, Craft }
 
         /// <summary>t453: one item an objective needs ("Kindling 2/3"). Counted live from the inventory.</summary>

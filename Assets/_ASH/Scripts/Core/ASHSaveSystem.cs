@@ -300,6 +300,14 @@ namespace ASH.Core
     /// <summary>Scene switching that also works in the Editor without the scenes in the build list.</summary>
     public static class ASHSceneFlow
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHSaveSystem()
+        {
+            ContinuingRun = default;
+            NewGameRequested = default;
+        }
+
         /// <summary>Set by a load/new game so the next scene keeps play time (not reset to 0).</summary>
         public static bool ContinuingRun;
         /// <summary>True for the next game scene when it was started from the menu as a NEW game.</summary>

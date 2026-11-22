@@ -17,6 +17,13 @@ namespace ASH.Rendering
     [ExecuteAlways, DisallowMultipleComponent]
     public sealed class ASHBetterFogDriver : MonoBehaviour
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHBetterFogDriver()
+        {
+            Driven.Clear();
+        }
+
         public Volume volume;
         [Tooltip("Empty = Resources/ASH_BetterFogSettings.")] public ASHBetterFogSettings settings;
         [Tooltip("Optional; found automatically.")] public ASHDayNightClock clock;

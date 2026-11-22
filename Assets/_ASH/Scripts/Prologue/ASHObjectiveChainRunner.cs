@@ -13,6 +13,13 @@ namespace ASH.Prologue
     /// Saves which steps are done / shown and every recipe crafted (so a craft made early still counts later).</summary>
     public sealed class ASHObjectiveChainRunner : MonoBehaviour, IASHSaveable
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHObjectiveChainRunner()
+        {
+            Instance = default;
+        }
+
         public static ASHObjectiveChainRunner Instance { get; private set; }
         public static bool Drives { get { var r = Instance; var c = ASHObjectiveChain.I; return r && r.isActiveAndEnabled && c && c.chainEnabled && ASHPrologueDirector.TakesOverOpening; } }
         static ASHObjectiveChain C => ASHObjectiveChain.I;

@@ -13,6 +13,13 @@ namespace ASH.Survival
     [DisallowMultipleComponent]
     public sealed class ASHBreathFog : MonoBehaviour
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHBreathFog()
+        {
+            _tex = default;
+        }
+
         ASHTemperatureSettings S => ASHTemperatureSettings.I;
         ASHSurvivalStats _stats; ASHBodyTemperature _temp; ASHFaceProtection _face; Transform _head; Animator _anim;
         ParticleSystem _ps; AudioSource _src; AudioLowPassFilter _lp; float _next; static Texture2D _tex;

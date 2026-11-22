@@ -10,6 +10,13 @@ namespace ASH.Survival
     [CreateAssetMenu(menuName = "ASH/Survival/Survival Tuning", fileName = "ASH_SurvivalTuning")]
     public sealed class ASHSurvivalTuning : ScriptableObject
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHSurvivalTuning()
+        {
+            _bound = default;
+        }
+
         [Header("Maximums")]
         [Range(10f, 1000f)] public float maxHealth = 100f;
         [Range(10f, 1000f)] public float maxStamina = 100f;

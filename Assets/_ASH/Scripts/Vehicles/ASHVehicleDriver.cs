@@ -11,6 +11,13 @@ namespace ASH.Vehicles
     [DefaultExecutionOrder(4000)]
     public sealed class ASHVehicleDriver : MonoBehaviour
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHVehicleDriver()
+        {
+            _ctrl = default;
+        }
+
         [Header("Seated driver (t389)")]
         [Tooltip("Show the player in the seat (off = hidden like before).")] public bool showDriver = true;
         [Tooltip("Player root offset from the seat point, in seat space (x right, y up, z forward), metres.")] public Vector3 seatOffset = Vector3.zero;

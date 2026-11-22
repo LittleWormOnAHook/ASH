@@ -6,6 +6,13 @@ namespace ASH.Gameplay
     [CreateAssetMenu(menuName = "ASH/Gameplay/Tent Settings", fileName = "ASH_TentSettings")]
     public sealed class ASHTentSettings : ScriptableObject
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHTentSettings()
+        {
+            _i = default;
+        }
+
         public enum Kind { Packed, Built }
 
         [Header("Sealing (tents are not structural: the quake still hits you)")]

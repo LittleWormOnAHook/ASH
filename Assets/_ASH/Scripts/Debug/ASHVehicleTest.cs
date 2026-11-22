@@ -10,6 +10,13 @@ namespace ASH.DebugTools
     /// writes screenshots to C:\Users\Teabagger\ashx\veh_*.png.</summary>
     public sealed class ASHVehicleTest : MonoBehaviour
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHVehicleTest()
+        {
+            usePlane = false;
+        }
+
         public static void Run() { if (Application.isPlaying) new GameObject("ASH_VehicleTest").AddComponent<ASHVehicleTest>(); }
         static void L(string m) => Debug.Log("[ASH] VEHX " + m);
         public static bool usePlane = false; // t380: terrain by default

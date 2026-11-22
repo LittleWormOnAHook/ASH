@@ -15,6 +15,13 @@ namespace ASH.Companion
     /// </summary>
     public sealed class ASHDogMenu : MonoBehaviour
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHDogMenu()
+        {
+            _i = default;
+        }
+
         public const string PanelId = "dog";
         static ASHDogMenu _i;
         public static bool IsOpen => _i && _i._root && _i._root.gameObject.activeSelf;

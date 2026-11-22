@@ -10,6 +10,14 @@ namespace ASH.DebugTools
     /// top-down shot at the nearest rock to C:\Users\Teabagger\ashx\snow_top.png. Logs "[ASH] SNOWC ...".</summary>
     public sealed class ASHSnowContactProbe : MonoBehaviour
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHSnowContactProbe()
+        {
+            ShotPath = @"C:\Users\Teabagger\ashx\snow_top.png";
+            Height = 7f;
+        }
+
         public static string ShotPath = @"C:\Users\Teabagger\ashx\snow_top.png";
         public static float Height = 7f;
         public static void RunSide() { if (Application.isPlaying) new GameObject("ASH_SnowContactProbe").AddComponent<ASHSnowContactProbe>()._side = true; }

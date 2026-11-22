@@ -16,12 +16,12 @@ namespace ASH.Prologue
         static readonly HashSet<string> _found = new HashSet<string>();
         static readonly HashSet<string> _cleared = new HashSet<string>();
         public static event Action<string, string> PageFound; // collection, page id
-        static bool _hooked;
         const float DefaultReach = 30f;
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        static void ResetStatics() { _found.Clear(); _cleared.Clear(); PageFound = null; _hooked = false; }
+        static void ResetStatics() { _found.Clear(); _cleared.Clear(); PageFound = null; }
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
-        static void Hook() { if (_hooked) return; _hooked = true; SceneManager.sceneLoaded += (s, m) => Ensure(); }
+        static void Hook() { SceneManager.sceneLoaded -= OnSceneLoaded; SceneManager.sceneLoaded += OnSceneLoaded; }
+        static void OnSceneLoaded(Scene s, LoadSceneMode m) => Ensure();
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         static void Ensure()
         {

@@ -11,6 +11,13 @@ namespace ASH.Survival
     /// </summary>
     public sealed class ASHHeatSource : MonoBehaviour
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHHeatSource()
+        {
+            _all.Clear();
+        }
+
         public enum Preset { Custom, Lantern, Torch, Stove, Fireplace, Campfire }
         public Preset preset = Preset.Custom;
         [Range(0.5f, 30f)] public float radius = 4f;

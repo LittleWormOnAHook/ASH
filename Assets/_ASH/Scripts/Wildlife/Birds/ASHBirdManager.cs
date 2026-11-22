@@ -54,7 +54,6 @@ namespace ASH.Wildlife.Birds
         AudioSource[] _voices;
         int _voice;
         int _mask = ~0;
-        static bool _hooked;
 
         static ASHBirdSettings S => ASHBirdSettings.I;
         public int ActiveBirds => _all.Count - _pooledCount;
@@ -62,14 +61,16 @@ namespace ASH.Wildlife.Birds
 
         // ------------------------------------------------------------------ bootstrap (no scene edits)
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        static void ResetStatics() { _hooked = false; Active = null; }
+        static void ResetStatics() { Active = null; }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         static void Boot()
         {
-            if (!_hooked) { SceneManager.sceneLoaded += (s, m) => TryCreate(); _hooked = true; }
+            SceneManager.sceneLoaded -= OnSceneLoaded; SceneManager.sceneLoaded += OnSceneLoaded;
             TryCreate();
         }
+
+        static void OnSceneLoaded(Scene s, LoadSceneMode m) => TryCreate();
 
         static void TryCreate()
         {

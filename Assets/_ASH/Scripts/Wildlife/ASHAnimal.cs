@@ -19,6 +19,16 @@ namespace ASH.Wildlife
     [DisallowMultipleComponent]
     public sealed class ASHAnimal : MonoBehaviour, IASHDogThreat, IASHUsable, vIDamageReceiver
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHAnimal()
+        {
+            Tokens.Clear();
+            Living.Clear();
+            _hourCached = 14f;
+            _hourCachedAt = -999f;
+        }
+
         public ASHWildlifeKind kind = ASHWildlifeKind.Wolf;
         public ASHWildlifeSize size = ASHWildlifeSize.Adult;
         public int packId;

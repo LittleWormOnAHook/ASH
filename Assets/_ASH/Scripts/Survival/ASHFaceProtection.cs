@@ -17,6 +17,15 @@ namespace ASH.Survival
     [DisallowMultipleComponent]
     public sealed class ASHFaceProtection : MonoBehaviour, IASHSaveable
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHFaceProtection()
+        {
+            Instance = default;
+            DrankFromBottle = null;
+            SourceIsDirty = null;
+        }
+
         public enum Kind { None, Rag, Mask }
         public const string WetRagId = "wet_rag", DryRagId = "dry_rag", MaskId = "gas_mask", FilterId = "filter_cartridge", BottleId = "water_bottle";
 

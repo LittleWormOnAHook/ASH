@@ -16,6 +16,13 @@ namespace ASH.World.Weather
     [DefaultExecutionOrder(-50)]
     public sealed class ASHWeatherDirector : MonoBehaviour, IASHWeatherInputs
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHWeatherDirector()
+        {
+            Instance = default;
+        }
+
         public static ASHWeatherDirector Instance { get; private set; }
 
         [Header("Profiles (one per state)")]

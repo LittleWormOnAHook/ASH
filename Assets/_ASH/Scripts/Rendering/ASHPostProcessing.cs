@@ -12,6 +12,13 @@ namespace ASH.PostFX
     [DisallowMultipleComponent]
     public sealed class ASHPostProcessing : MonoBehaviour
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHPostProcessing()
+        {
+            Instance = default;
+        }
+
         public VolumeProfile profile;
         public VolumeProfile mobileProfile;
         [Range(0f, 100f)] public float priority = 10f;

@@ -16,6 +16,14 @@ namespace ASH.World.Accumulation
     [ExecuteAlways, DisallowMultipleComponent]
     public sealed class ASHAccumulation : MonoBehaviour
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHAccumulation()
+        {
+            _runtime.Clear();
+            All.Clear();
+        }
+
         public const string ShaderName = "ASH/Accumulation Lit";
         public const string SourceShaderName = "Universal Render Pipeline/Lit";
 

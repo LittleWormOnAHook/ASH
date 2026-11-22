@@ -13,6 +13,13 @@ namespace ASH.Gameplay
     [DisallowMultipleComponent]
     public sealed class ASHCameraLateFollow : MonoBehaviour
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHCameraLateFollow()
+        {
+            Enabled = true;
+        }
+
         public static bool Enabled = true;
         public bool interpolatePlayer = true;
         vThirdPersonCamera _cam;

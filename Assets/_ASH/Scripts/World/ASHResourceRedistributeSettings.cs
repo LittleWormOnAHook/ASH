@@ -6,6 +6,13 @@ namespace ASH.World
     [CreateAssetMenu(menuName = "ASH/World/Resource Redistribute Settings", fileName = "ASH_ResourceRedistributeSettings")]
     public sealed class ASHResourceRedistributeSettings : ScriptableObject
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHResourceRedistributeSettings()
+        {
+            _i = default;
+        }
+
         [Tooltip("Seed 0 picks a new seed each redistribute.")]
         public int seed = 0;
         [Range(10f, 300f)] public float campExclusionMeters = 80f;

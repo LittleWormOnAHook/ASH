@@ -9,6 +9,14 @@ namespace ASH.Companion
     /// (optional chance to burn fuel or put it out). Driven by ASHDogCompanion (Act.Pee, clip "Arm_Dog|Pissing").</summary>
     public sealed class ASHDogPee : MonoBehaviour
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHDogPee()
+        {
+            _mat = default;
+            _spot = default;
+        }
+
         public struct Target { public Vector3 pos; public ASHCampfire fire; public string what; public float radius; }
 
         static readonly string[] TreeWords = { "tree", "pine", "fir", "spruce", "birch", "oak", "bush", "shrub", "stump", "trunk", "log", "conifer" };

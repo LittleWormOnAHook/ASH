@@ -10,6 +10,14 @@ namespace ASH.DebugTools
     /// </summary>
     public sealed class ASHPlayerGroundCheck : MonoBehaviour
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHPlayerGroundCheck()
+        {
+            _prevBg = default;
+            ShotName = "10_feet_side.png";
+        }
+
         public const string Dir = "AshBridge/shots/phase2/";
         static bool _prevBg;
         public static string ShotName = "10_feet_side.png";

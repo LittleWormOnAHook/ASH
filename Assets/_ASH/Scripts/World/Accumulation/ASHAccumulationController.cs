@@ -11,6 +11,13 @@ namespace ASH.World.Accumulation
     [ExecuteAlways, DefaultExecutionOrder(-200), DisallowMultipleComponent]
     public sealed class ASHAccumulationController : MonoBehaviour
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHAccumulationController()
+        {
+            Instance = default;
+        }
+
         public static ASHAccumulationController Instance { get; private set; }
         public enum Preset { Light, Default, Heavy, Extreme }
         public enum DeformQuality { Off, Low, Medium, High, Ultra, Extreme, Custom }

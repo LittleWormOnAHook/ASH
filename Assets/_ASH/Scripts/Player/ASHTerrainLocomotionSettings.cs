@@ -12,6 +12,13 @@ namespace ASH.Player
     [CreateAssetMenu(menuName = "ASH/Player/Terrain Locomotion Settings", fileName = "ASH_TerrainLocomotionSettings")]
     public sealed class ASHTerrainLocomotionSettings : ScriptableObject
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHTerrainLocomotionSettings()
+        {
+            _i = default;
+        }
+
         public enum Preset { Relaxed, Default, Extreme }
 
         [Header("Preset")]

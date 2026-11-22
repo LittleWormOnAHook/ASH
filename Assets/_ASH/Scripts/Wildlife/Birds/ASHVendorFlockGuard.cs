@@ -14,6 +14,16 @@ namespace ASH.Wildlife.Birds
     /// </summary>
     static class ASHVendorFlockGuard
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHVendorFlockGuard()
+        {
+            _childType = default;
+            _ctrlType = default;
+            _fSpawner = default;
+            _fAmount = default;
+        }
+
         static Type _childType, _ctrlType;
         static FieldInfo _fSpawner, _fAmount;
         static GameObject _holder;

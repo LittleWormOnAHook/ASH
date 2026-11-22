@@ -11,6 +11,13 @@ namespace ASH.DebugTools
     /// </summary>
     public sealed class ASHAccumulationCheck : MonoBehaviour
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHAccumulationCheck()
+        {
+            _prevBg = default;
+        }
+
         const string Dir = "AshBridge/shots/accum/";
         Terrain _t;
         static bool _prevBg;

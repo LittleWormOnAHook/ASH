@@ -13,6 +13,14 @@ namespace ASH.Gameplay
     /// </summary>
     public sealed class ASHObjectiveTracker : MonoBehaviour
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHObjectiveTracker()
+        {
+            HoldIntroMessage = default;
+            HoldSlice = default;
+        }
+
         [Serializable] public sealed class GatherGoal { public ASHItemDefinition item; [Min(1)] public int required = 3; [NonSerialized] public int collected; }
 
         [SerializeField] private ASHInventory inventory;

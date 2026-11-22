@@ -18,6 +18,13 @@ namespace ASH.Gameplay
     /// All numbers live in Resources/ASH_TentSettings (editable in Play, edits kept).</summary>
     public sealed class ASHTentMenu : MonoBehaviour
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHTentMenu()
+        {
+            _i = default;
+        }
+
         public const string PanelId = "tent", RestId = "tentRest";
         static ASHTentMenu _i;
         public static bool IsOpen => _i && _i._root && _i._root.gameObject.activeSelf;

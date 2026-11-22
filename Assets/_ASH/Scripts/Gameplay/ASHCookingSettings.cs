@@ -7,6 +7,13 @@ namespace ASH.Gameplay
     [CreateAssetMenu(menuName = "ASH/Gameplay/Cooking Settings", fileName = "ASH_CookingSettings")]
     public sealed class ASHCookingSettings : ScriptableObject
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHCookingSettings()
+        {
+            _i = default;
+        }
+
         [Header("Time (REAL seconds per item, before the Cooking skill)")]
         [Tooltip("Anything that is not meat / fish or water (berries, combos without meat).")]
         [Range(0.2f, 300f)] public float secondsDefault = 5f;

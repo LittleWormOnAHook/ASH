@@ -18,6 +18,13 @@ namespace ASH.Gameplay
     [DisallowMultipleComponent]
     public sealed class ASHFireCooking : MonoBehaviour
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHFireCooking()
+        {
+            _crafter = default;
+        }
+
         /// <summary>One batch. v &lt; 2 = old game-clock job from an older save (converted on restore).</summary>
         [Serializable] public sealed class Job
         {

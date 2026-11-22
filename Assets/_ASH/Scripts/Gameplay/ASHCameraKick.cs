@@ -9,6 +9,13 @@ namespace ASH.Gameplay
     [DefaultExecutionOrder(32000)]
     public sealed class ASHCameraKick : MonoBehaviour
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHCameraKick()
+        {
+            ShakeRotation = default;
+        }
+
         [Range(1f, 40f)] public float recoverSpeed = 10f;
         Vector2 _kick; bool _applied;
         // offsets are applied and removed in LOCAL space: the camera is a child of the Invector camera rig, so its world

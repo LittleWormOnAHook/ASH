@@ -6,6 +6,13 @@ namespace ASH.Core
     [CreateAssetMenu(menuName = "ASH/Core/Save Settings", fileName = "ASH_SaveSettings")]
     public sealed class ASHSaveSettings : ScriptableObject
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHSaveSettings()
+        {
+            _i = default;
+        }
+
         [Header("Autosave")]
         [Tooltip("Real minutes between autosaves (0 = off). Skipped during quakes, aiming, placement, menus and death; retried every few seconds.")]
         [Range(0f, 60f)] public float autosaveMinutes = 5f;

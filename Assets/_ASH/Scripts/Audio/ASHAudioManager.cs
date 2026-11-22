@@ -14,6 +14,13 @@ namespace ASH.Audio
     [DefaultExecutionOrder(-200)]
     public sealed class ASHAudioManager : MonoBehaviour
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHAudioManager()
+        {
+            Instance = default;
+        }
+
         public static ASHAudioManager Instance { get; private set; }
 
         ASHAudioSettings S => ASHAudioSettings.I;

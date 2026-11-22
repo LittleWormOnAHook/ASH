@@ -53,6 +53,13 @@ namespace ASH.Combat
     /// parented to what was hit, up to N per target (oldest goes first), fading after a while.</summary>
     public static class ASHHitMarks
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHCombatFx()
+        {
+            _fallback = default;
+        }
+
         static readonly Dictionary<int, Queue<GameObject>> _perTarget = new Dictionary<int, Queue<GameObject>>();
         static Material _fallback;
 
@@ -118,6 +125,13 @@ namespace ASH.Combat
     /// <summary>Floating damage number (world-space TextMesh, rises and fades).</summary>
     public sealed class ASHDamageNumber : MonoBehaviour
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHCombatFx()
+        {
+            _font = default;
+        }
+
         TextMesh _t; float _age; Color _c; Vector3 _vel;
         static Font _font;
         public static void Show(Vector3 at, float damage, bool crit)

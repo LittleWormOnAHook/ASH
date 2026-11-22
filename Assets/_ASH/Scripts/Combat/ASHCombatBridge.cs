@@ -30,6 +30,13 @@ namespace ASH.Combat
     [DefaultExecutionOrder(1590)]
     public sealed class ASHCombatBridge : MonoBehaviour
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHCombatBridge()
+        {
+            Player = default;
+        }
+
         ASHBowDrawRig _bowRig;
         public static ASHCombatBridge Player { get; private set; }
         public bool Crouching => _cc && _cc.isCrouching;

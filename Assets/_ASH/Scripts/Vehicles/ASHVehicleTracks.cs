@@ -71,6 +71,13 @@ namespace ASH.Vehicles
     /// preset (so handling doesn't change), or to frictionOverride if set. No NWH skidmarks: the ruts come from ASHVehicleTracks.</summary>
     public static class ASHGroundDetectionBootstrap
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHVehicleTracks()
+        {
+            Instance = default;
+        }
+
         public static GroundDetection Instance { get; private set; }
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         static void Boot() { Make(); SceneManager.sceneLoaded -= OnLoaded; SceneManager.sceneLoaded += OnLoaded; }

@@ -8,6 +8,13 @@ namespace ASH.Gameplay
     [DisallowMultipleComponent]
     public sealed class ASHPlacedObject : MonoBehaviour
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHPlacedObject()
+        {
+            _all.Clear();
+        }
+
         public string itemId;
         static readonly List<ASHPlacedObject> _all = new List<ASHPlacedObject>();
         public static IReadOnlyList<ASHPlacedObject> All => _all;

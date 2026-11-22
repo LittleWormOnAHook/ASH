@@ -9,6 +9,14 @@ namespace ASH.DebugTools
     /// (turn-in-place fraction, activity changes, shortest activity), growl clips, forced dig with a find and a playful growl. Logs "[ASH] DOGI ...".</summary>
     public sealed class ASHT338Test : MonoBehaviour
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHT338Test()
+        {
+            Seconds = 45f;
+            _peeOnly = default;
+        }
+
         public static float Seconds = 45f;
         static bool _peeOnly; public static void RunPeeOnly() { _peeOnly = true; Run(); }
         public static void Run() { if (Application.isPlaying) new GameObject("ASH_T338Test").AddComponent<ASHT338Test>(); }

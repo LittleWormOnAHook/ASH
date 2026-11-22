@@ -16,6 +16,13 @@ namespace ASH.Map
     [DefaultExecutionOrder(-100)]
     public sealed class ASHGpsMap : MonoBehaviour, IASHSaveable
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHGpsMap()
+        {
+            Instance = default;
+        }
+
         public static ASHGpsMap Instance { get; private set; }
 
         [SerializeField] private ASHRegionMap region;

@@ -14,6 +14,13 @@ namespace ASH.UI
     /// </summary>
     public sealed class ASHMapUI : MonoBehaviour
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHMapUI()
+        {
+            _scanTex = default;
+        }
+
         float _cover, _coverAt;
         [Range(1f, 4f)] public float minZoom = 1f;
         [Range(2f, 20f)] public float maxZoom = 9f;

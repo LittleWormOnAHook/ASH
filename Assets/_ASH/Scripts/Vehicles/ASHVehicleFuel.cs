@@ -8,6 +8,13 @@ namespace ASH.Vehicles
     [DisallowMultipleComponent]
     public sealed class ASHVehicleFuel : MonoBehaviour
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHVehicleFuel()
+        {
+            RanDry = null;
+        }
+
         [Range(5f, 300f)] public float capacityLitres = 70f;
         [Range(0f, 300f)] public float litres = 40f;
         [Tooltip("Litres per hour at idle.")] [Range(0f, 20f)] public float idleLitresPerHour = 1.5f;

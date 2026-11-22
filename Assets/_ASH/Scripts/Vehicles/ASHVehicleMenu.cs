@@ -14,6 +14,13 @@ namespace ASH.Vehicles
     /// until the tank is full or the cans are empty. Code-built uGUI in the dog-menu style.</summary>
     public sealed class ASHVehicleMenu : MonoBehaviour
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHVehicleMenu()
+        {
+            _i = default;
+        }
+
         public const string PanelId = "vehicle";
         static ASHVehicleMenu _i;
         public static bool IsOpen => _i && _i._root && _i._root.gameObject.activeSelf;

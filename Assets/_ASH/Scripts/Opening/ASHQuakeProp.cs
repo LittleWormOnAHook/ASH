@@ -11,6 +11,13 @@ namespace ASH.Opening
     [DisallowMultipleComponent]
     public sealed class ASHQuakeProp : MonoBehaviour
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHQuakeProp()
+        {
+            All.Clear();
+        }
+
         public enum Kind { Wobble, Swing, Fall }
         public static readonly List<ASHQuakeProp> All = new List<ASHQuakeProp>();
         public Kind kind = Kind.Wobble;

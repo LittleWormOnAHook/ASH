@@ -12,6 +12,13 @@ namespace ASH.World.Weather
     [DisallowMultipleComponent]
     public sealed class ASHSpindrift : MonoBehaviour
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHSpindrift()
+        {
+            _def = default;
+        }
+
         [Tooltip("Global multiplier on top of each weather state's Spindrift amount.")] [Range(0f, 5f)] public float amount = 1f;
         [Tooltip("Particles per second at amount 1, full wind, loose ground cover.")] [Range(0f, 2000f)] public float baseRate = 140f;
         [Range(50, 5000)] public int maxParticles = 700;

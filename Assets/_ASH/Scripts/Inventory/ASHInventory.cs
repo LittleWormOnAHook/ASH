@@ -12,6 +12,13 @@ namespace ASH.Inventory
     [DisallowMultipleComponent]
     public sealed class ASHInventory : MonoBehaviour
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHInventory()
+        {
+            SuppressStartingItems = null;
+        }
+
         [Serializable]
         public sealed class Slot
         {

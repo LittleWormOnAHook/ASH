@@ -10,6 +10,14 @@ namespace ASH.DebugTools
     /// </summary>
     public sealed class ASHPrefabRenderCheck : MonoBehaviour
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHPrefabRenderCheck()
+        {
+            ShotPath = "AshBridge/shots/vendor/scene_row.png";
+            _prevBg = default;
+        }
+
         public static GameObject[] Prefabs = new GameObject[0];
         public static string ShotPath = "AshBridge/shots/vendor/scene_row.png";
         static bool _prevBg;

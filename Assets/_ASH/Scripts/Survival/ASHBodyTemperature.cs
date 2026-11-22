@@ -18,6 +18,13 @@ namespace ASH.Survival
     [DisallowMultipleComponent]
     public sealed class ASHBodyTemperature : MonoBehaviour, IASHSaveable
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHBodyTemperature()
+        {
+            Instance = default;
+        }
+
         public static ASHBodyTemperature Instance { get; private set; }
         /// <summary>Current warmth (30 = normal by default).</summary>
         public float Warmth { get; private set; } = 30f;

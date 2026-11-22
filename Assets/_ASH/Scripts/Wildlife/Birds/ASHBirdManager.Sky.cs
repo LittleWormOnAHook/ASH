@@ -14,6 +14,21 @@ namespace ASH.Wildlife.Birds
     /// </summary>
     public sealed partial class ASHBirdManager
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHBirdManager_Sky()
+        {
+            _fRoamers.Clear();
+            _fAmount.Clear();
+            _fPosBuf.Clear();
+            _fSpeed.Clear();
+            _fLandFlock.Clear();
+            _fLandOnStart.Clear();
+            _fSpawner.Clear();
+            _fLanding.Clear();
+            _vendorWarned.Clear();
+        }
+
         sealed class SkyFlock
         {
             public Component ctrl;

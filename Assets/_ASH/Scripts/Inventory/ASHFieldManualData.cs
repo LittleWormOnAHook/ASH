@@ -59,6 +59,13 @@ namespace ASH.Inventory
     [CreateAssetMenu(menuName = "ASH/Inventory/Field Manual", fileName = "ASH_FieldManual")]
     public sealed class ASHFieldManualData : ScriptableObject
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHFieldManualData()
+        {
+            _i = default;
+        }
+
         [Header("Cover")]
         public string coverTitle = "SURVIVAL GUIDE";
         public string coverSubtitle = "Field notes - property of W. Black";

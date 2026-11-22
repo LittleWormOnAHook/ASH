@@ -8,6 +8,18 @@ namespace ASH.DebugTools
     /// <summary>t375: long-drive bounce probe on a runtime 1 km plane. Logs [ASH] VEHB lines (contacts, rb state at bounce start).</summary>
     public sealed class ASHVehicleBounceTest : MonoBehaviour
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHVehicleBounceTest()
+        {
+            which = "car";
+            driveSeconds = 35f;
+            steer = 0f;
+            throttle = 1f;
+            usePlane = false;
+            chainPickup = default;
+        }
+
         public static string which = "car"; public static float driveSeconds = 35f; public static float steer = 0f; public static float throttle = 1f;
         /// <summary>t380: off by default = drive on the real terrain from where the vehicle stands. On = runtime 1 km x 1 km plane centred under it.</summary>
         public static bool usePlane = false; public static bool chainPickup;

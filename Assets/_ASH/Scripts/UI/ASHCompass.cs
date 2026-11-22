@@ -33,6 +33,14 @@ namespace ASH.UI
     /// </summary>
     public sealed class ASHCompass : MonoBehaviour
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHCompass()
+        {
+            Instance = default;
+            _tri = default;
+        }
+
         public static ASHCompass Instance { get; private set; }
 
         const float PointerWidth = 10f;

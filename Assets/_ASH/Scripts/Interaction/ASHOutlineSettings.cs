@@ -9,6 +9,13 @@ namespace ASH.Interaction
     [CreateAssetMenu(menuName = "ASH/Harvest Outline Settings", fileName = "ASH_OutlineSettings")]
     public sealed class ASHOutlineSettings : ScriptableObject
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHOutlineSettings()
+        {
+            _i = default;
+        }
+
         static ASHOutlineSettings _i;
         public static ASHOutlineSettings I => _i ? _i : (_i = Resources.Load<ASHOutlineSettings>("ASH_OutlineSettings"));
         [Tooltip("Highlight on harvestable resources (rocks, trees, logs, bushes, plants) while they are targeted within harvest distance.")]

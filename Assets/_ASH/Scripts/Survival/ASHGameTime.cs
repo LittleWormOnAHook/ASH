@@ -8,6 +8,13 @@ namespace ASH.Survival
     /// (minutesPerDay 0) freezes the timers. Without a clock in the scene: the default rate (48 min day).</summary>
     public static class ASHGameTime
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHGameTime()
+        {
+            _delta = default;
+        }
+
         const float MaxJumpHours = 0.5f, DefaultMinutesPerDay = 48f;
         static ASHDayNightClock _clock; static float _last = -1f; static int _frame = -1; static float _delta;
 

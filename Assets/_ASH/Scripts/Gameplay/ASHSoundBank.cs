@@ -9,6 +9,14 @@ namespace ASH.Gameplay
     [CreateAssetMenu(menuName = "ASH/Sound Bank", fileName = "ASH_SoundBank")]
     public sealed class ASHSoundBank : ScriptableObject
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHSoundBank()
+        {
+            _i = default;
+            _tried = default;
+        }
+
         [Header("Bow")] public AudioClip[] bowDraw; public AudioClip[] bowRelease; public AudioClip[] arrowFlight;
         [Header("Arrow impacts")] public AudioClip[] arrowImpactWood; public AudioClip[] arrowImpactSnow; public AudioClip[] arrowImpactRock;
         [Header("Guns")] public AudioClip[] rifleShot; public AudioClip[] rifleBolt; public AudioClip[] pistolShot; public AudioClip[] dryFire;
@@ -30,6 +38,17 @@ namespace ASH.Gameplay
     /// <summary>One-shot 3D sounds (pooled sources). Records the last clip played per key for the tests.</summary>
     public static class ASHSfx
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHSoundBank()
+        {
+            _next = default;
+            LastKey = "";
+            LastClip = "";
+            Played = default;
+            LastByKey.Clear();
+        }
+
         static readonly AudioSource[] _pool = new AudioSource[16]; static int _next;
         public static string LastKey { get; private set; } = ""; public static string LastClip { get; private set; } = "";
         public static int Played { get; private set; }

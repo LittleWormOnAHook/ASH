@@ -20,6 +20,13 @@ namespace ASH.UI
     /// </summary>
     public sealed class ASHCookMenu : MonoBehaviour
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHCookMenu()
+        {
+            _i = default;
+        }
+
         public const string PanelId = "cook";
         static ASHCookMenu _i;
         public static bool IsOpen => _i && _i._root && _i._root.gameObject.activeSelf;

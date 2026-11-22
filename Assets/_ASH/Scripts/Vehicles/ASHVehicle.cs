@@ -17,6 +17,17 @@ namespace ASH.Vehicles
     [RequireComponent(typeof(VehicleController))]
     public sealed class ASHVehicle : MonoBehaviour, IASHUsable, IASHSaveable
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHVehicle()
+        {
+            Driving = default;
+            DrivingChanged = null;
+            All.Clear();
+            OpenMenu = null;
+            Inspected = null;
+        }
+
         public static ASHVehicle Driving { get; private set; }
         public static event Action<ASHVehicle> DrivingChanged;
         public static readonly List<ASHVehicle> All = new List<ASHVehicle>();

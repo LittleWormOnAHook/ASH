@@ -7,6 +7,13 @@ namespace ASH.Core
     [CreateAssetMenu(menuName = "ASH/Loading Settings", fileName = "ASH_LoadingSettings")]
     public sealed class ASHLoadingSettings : ScriptableObject
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHLoadingSettings()
+        {
+            _i = default;
+        }
+
         static ASHLoadingSettings _i;
         public static ASHLoadingSettings I { get { if (!_i) { _i = Resources.Load<ASHLoadingSettings>("ASH_LoadingSettings"); if (!_i) _i = CreateInstance<ASHLoadingSettings>(); } return _i; } }
 
@@ -47,6 +54,11 @@ namespace ASH.Core
         [Tooltip("Warm the variant collection when playing in the Editor too. Off = the Editor compiles shaders asynchronously as they\n" +
                  "appear (brief cyan placeholders) and the screen lifts much sooner. Builds always warm up (variants are precompiled there).")]
         public bool warmupInEditor = true;
+        [Tooltip("Write a shader warmup summary to the log (Editor.log / Player.log): variant count, total time and the slowest variants.\n" +
+                 "Pairs with Project Settings > Graphics > Log Shader Compilation (that one only logs in development builds).")]
+        public bool logShaderWarmup = true;
+        [Tooltip("Variants that take longer than this (ms) to warm are listed individually in the log. 0 = list none, only the summary.")]
+        [Range(0f, 5000f)] public float logSlowVariantMs = 50f;
         [Tooltip("Optional Unity 6 GraphicsStateCollection asset (warmed through reflection if the API exists).")]
         public Object graphicsStateCollection;
         [Range(1, 2000)] public int graphicsStatesPerFrame = 64;

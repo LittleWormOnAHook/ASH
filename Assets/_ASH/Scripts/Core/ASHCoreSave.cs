@@ -18,6 +18,13 @@ namespace ASH.Core
     /// objectives (+ tracked), journal notes, opening stage, weather state, time of day and ground accumulation.</summary>
     public sealed class ASHCoreSave : IASHSaveable
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHCoreSave()
+        {
+            LocationOverride = null;
+        }
+
         [Serializable] public sealed class SlotState { public string id; public int amount; public float condition = 1f; }
         [Serializable] public sealed class NoteState { public string id, title, body, stamp; }
         [Serializable]

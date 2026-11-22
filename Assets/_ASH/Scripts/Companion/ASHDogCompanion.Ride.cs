@@ -7,6 +7,14 @@ namespace ASH.Companion
     /// all settings in ASHCompanionSettings "Truck ride") or sits in the passenger seat facing forward, and jumps out when the player gets out.</summary>
     public sealed partial class ASHDogCompanion
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHDogCompanion_Ride()
+        {
+            ForcePassenger = default;
+            ForceBedAct = default;
+        }
+
         enum RidePhase { None, ToTailgate, JumpIn, Riding, JumpOut }
         public enum BedAct { Stand, Sit, Lie }
         RidePhase _ride; Transform _rideSeat, _rideGate; float _rideT, _rideRange; Vector3 _jumpFrom, _jumpTo; bool _rideFromSave;

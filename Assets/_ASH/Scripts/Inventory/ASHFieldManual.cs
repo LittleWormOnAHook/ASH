@@ -15,6 +15,15 @@ namespace ASH.Inventory
     [DisallowMultipleComponent]
     public sealed class ASHFieldManual : MonoBehaviour, IASHSaveable
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHFieldManual()
+        {
+            Instance = default;
+            ShowCover = null;
+            _noConds.Clear();
+        }
+
         public static ASHFieldManual Instance { get; private set; }
         public ASHFieldManualData Data { get; private set; }
         public bool IsRead { get; private set; }

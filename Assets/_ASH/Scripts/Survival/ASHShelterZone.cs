@@ -11,6 +11,13 @@ namespace ASH.Survival
     [DisallowMultipleComponent]
     public sealed class ASHShelterZone : MonoBehaviour
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHShelterZone()
+        {
+            _all.Clear();
+        }
+
         [Tooltip("1 = ash-tight (drain stops), 0.5 = leaky lean-to, 0 = no protection.")]
         [Range(0f, 1f)] public float sealing = 1f;
         [Tooltip("Location name used for saves while inside (empty = nearest survey point).")]

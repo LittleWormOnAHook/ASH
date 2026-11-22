@@ -13,6 +13,13 @@ namespace ASH.Rendering
     /// and global-blend areas) and up to 8 visible point/spot lights.</summary>
     public sealed class ASHVolumetricFogFeature : ScriptableRendererFeature
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHVolumetricFogFeature()
+        {
+            DebugDisable = default;
+        }
+
         public Shader shader;
         public RenderPassEvent passEvent = RenderPassEvent.BeforeRenderingTransparents;
         [Tooltip("Also render in Scene view cameras.")] public bool sceneView = true;

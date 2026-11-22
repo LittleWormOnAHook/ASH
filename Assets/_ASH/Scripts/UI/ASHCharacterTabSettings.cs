@@ -6,6 +6,13 @@ namespace ASH.UI
     [CreateAssetMenu(menuName = "ASH/Settings/Character Tab", fileName = "ASH_CharacterTabSettings")]
     public sealed class ASHCharacterTabSettings : ScriptableObject
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHCharacterTabSettings()
+        {
+            _i = default;
+        }
+
         static ASHCharacterTabSettings _i;
         public static ASHCharacterTabSettings I { get { if (!_i) { _i = Resources.Load<ASHCharacterTabSettings>("ASH_CharacterTabSettings"); if (!_i) _i = CreateInstance<ASHCharacterTabSettings>(); } return _i; } }
 

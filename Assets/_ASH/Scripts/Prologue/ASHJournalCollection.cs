@@ -45,6 +45,13 @@ namespace ASH.Prologue
     [CreateAssetMenu(menuName = "ASH/Prologue/Journal Collection", fileName = "ASH_GrandpasJournal")]
     public sealed class ASHJournalCollection : ScriptableObject
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHJournalCollection()
+        {
+            _grandpa = default;
+        }
+
         public string collectionId = "grandpa";
         public string title = "Grandpa's Journal";
         [Tooltip("Set by ASH/Systems/Prologue/Set Up Grandpa's Pages; content is only rewritten when below its version (your edits are kept after that).")]

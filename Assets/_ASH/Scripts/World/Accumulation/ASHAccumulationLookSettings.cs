@@ -9,6 +9,13 @@ namespace ASH.World.Accumulation
     [CreateAssetMenu(menuName = "ASH/Accumulation Look Settings", fileName = "ASH_AccumulationLook")]
     public sealed class ASHAccumulationLookSettings : ScriptableObject
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHAccumulationLookSettings()
+        {
+            _i = default;
+        }
+
         static ASHAccumulationLookSettings _i;
         public static ASHAccumulationLookSettings I => _i ? _i : (_i = Resources.Load<ASHAccumulationLookSettings>("ASH_AccumulationLook"));
 

@@ -8,6 +8,13 @@ namespace ASH.Audio
     [CreateAssetMenu(menuName = "ASH/Audio/Audio Settings", fileName = "ASH_AudioSettings")]
     public sealed class ASHAudioSettings : ScriptableObject
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHAudioSettings()
+        {
+            _i = default;
+        }
+
         [Header("Tracks (filled by ASH/Systems/Audio/Setup Music)")]
         [Tooltip("Every clip in Background Music and Combat except Forward2.")]
         public List<AudioClip> background = new List<AudioClip>();

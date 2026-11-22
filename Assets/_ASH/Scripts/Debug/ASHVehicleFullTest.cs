@@ -13,6 +13,14 @@ namespace ASH.DebugTools
     /// <summary>t388: one combined terrain pass through the real E / menu paths. Logs "[ASH] VEHF" PASS/FAIL per step.</summary>
     public sealed class ASHVehicleFullTest : MonoBehaviour
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHVehicleFullTest()
+        {
+            _fails = default;
+            _errors = default;
+        }
+
         public static void Run() { if (Application.isPlaying) new GameObject("ASH_VehicleFullTest").AddComponent<ASHVehicleFullTest>(); }
         static void L(string m) => Debug.Log("[ASH] VEHF " + m);
         static void R(string step, bool ok, string info = "") { Debug.Log($"[ASH] VEHF {(ok ? "PASS" : "FAIL")} {step} {info}"); if (!ok) _fails++; }

@@ -7,6 +7,13 @@ namespace ASH.Vehicles
     /// <summary>Driving HUD (t356): gas gauge, speed, battery / engine status and the key hints. Shown only while driving.</summary>
     public sealed class ASHVehicleHud : MonoBehaviour
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHVehicleHud()
+        {
+            _i = default;
+        }
+
         static ASHVehicleHud _i;
         RectTransform _root, _fill; Image _fillImg; Text _fuelTxt, _speedTxt, _status, _hint, _name;
         public static void Show(ASHVehicle v) { if (!_i) _i = new GameObject("ASH_VehicleHud").AddComponent<ASHVehicleHud>(); _i._v = v; _i._root.gameObject.SetActive(v); }

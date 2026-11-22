@@ -16,6 +16,18 @@ namespace ASH.DebugTools
     /// body interpolation / camera late follow.</summary>
     public sealed class ASHJitterTest : MonoBehaviour
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHJitterTest()
+        {
+            RangedOnly = default;
+            PerFrame = -1;
+            SpinInput = default;
+            Frames = 150;
+            MaxJerkMm = 6f;
+            MaxRotJerkDeg = 1.0f;
+        }
+
         public static void Run() { if (Application.isPlaying) new GameObject("ASH_JitterTest").AddComponent<ASHJitterTest>(); }
         /// <summary>Ranged-only comparison: per-frame aim IK forced on / off (restored after), camera still or turning at SpinInput per frame.</summary>
         public static bool RangedOnly; public static int PerFrame = -1; public static float SpinInput;

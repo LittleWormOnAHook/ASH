@@ -15,6 +15,13 @@ namespace ASH.Gameplay
     [DisallowMultipleComponent]
     public sealed class ASHTent : MonoBehaviour, IASHUsable
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHTent()
+        {
+            _all.Clear();
+        }
+
         public ASHTentSettings.Kind kind = ASHTentSettings.Kind.Packed;
         [Tooltip("Item returned when packed up (empty = packedtent / builttent from the registry).")]
         public ASHItemDefinition packItem;

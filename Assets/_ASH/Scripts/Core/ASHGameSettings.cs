@@ -14,6 +14,24 @@ namespace ASH.Core
     /// </summary>
     public static class ASHGameSettings
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHGameSettings()
+        {
+            Changed = null;
+            CachedSensitivity = 1f;
+            CachedSfx = 1f;
+            CachedMusic = 1f;
+            CachedAmbience = 1f;
+            CachedExposure = 1f;
+            CachedParticles = 1f;
+            CachedInvertY = default;
+            _baseAshRate = -1f;
+            _ashRef = default;
+            _fogVol = default;
+            _fogProf = default;
+        }
+
         const string P = "ASH.Settings.";
         public static event Action Changed;
 
@@ -57,7 +75,8 @@ namespace ASH.Core
         static void SetF(string k, float v) { PlayerPrefs.SetFloat(P + k, v); }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
-        static void Boot() { Apply(false); UnityEngine.SceneManagement.SceneManager.sceneLoaded += (s, m) => ApplyScene(); }
+        static void Boot() { Apply(false); UnityEngine.SceneManagement.SceneManager.sceneLoaded -= OnSceneLoaded; UnityEngine.SceneManagement.SceneManager.sceneLoaded += OnSceneLoaded; }
+        static void OnSceneLoaded(UnityEngine.SceneManagement.Scene s, UnityEngine.SceneManagement.LoadSceneMode m) => ApplyScene();
 
         public static Resolution[] Resolutions
         {

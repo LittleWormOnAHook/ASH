@@ -13,6 +13,14 @@ namespace ASH.Rendering
     [CreateAssetMenu(menuName = "ASH/Rendering/Better Fog Settings", fileName = "ASH_BetterFogSettings")]
     public sealed class ASHBetterFogSettings : ScriptableObject
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHBetterFogSettings()
+        {
+            _i = default;
+            Changed = null;
+        }
+
         public enum Preview { Clear, AshStormMax, Snowstorm, Custom }
 
         static ASHBetterFogSettings _i;

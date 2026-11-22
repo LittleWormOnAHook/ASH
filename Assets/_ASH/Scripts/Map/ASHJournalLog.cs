@@ -7,6 +7,13 @@ namespace ASH.Map
     /// <summary>Field-journal notes (survey logs, discoveries, objective notes). Session-only for the slice.</summary>
     public sealed class ASHJournalLog : MonoBehaviour
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHJournalLog()
+        {
+            Instance = default;
+        }
+
         [Serializable] public sealed class Entry { public string id; public string title; [TextArea] public string body; public string stamp; }
 
         public static ASHJournalLog Instance { get; private set; }

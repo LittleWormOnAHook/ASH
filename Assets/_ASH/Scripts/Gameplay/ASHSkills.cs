@@ -13,6 +13,13 @@ namespace ASH.Gameplay
     /// </summary>
     public static class ASHSkills
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHSkills()
+        {
+            _defs.Clear();
+        }
+
         public const string Cooking = "cooking";
         public const string Crafting = "crafting";
         public const string Hunting = "hunting";

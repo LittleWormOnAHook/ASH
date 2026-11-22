@@ -21,6 +21,13 @@ namespace ASH.Prologue
     [CreateAssetMenu(menuName = "ASH/Prologue/Prologue Settings", fileName = "ASH_PrologueSettings")]
     public sealed class ASHPrologueSettings : ScriptableObject
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHPrologueSettings()
+        {
+            _i = default;
+        }
+
         [Header("Start")]
         [Tooltip("New games start seated in the arrival car with the dog in the passenger seat (M1). Off = the old cabin opening (dev/debug).")]
         public bool startInCar = true;

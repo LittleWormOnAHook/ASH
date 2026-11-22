@@ -12,6 +12,14 @@ namespace ASH.Gameplay
     /// </summary>
     public sealed class ASHArrow : MonoBehaviour
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHArrow()
+        {
+            Live.Clear();
+            Last = default;
+        }
+
         public Vector3 Velocity;
         public float gravityScale = 1f, drag = 0.02f, stuckLifeSeconds = 120f, maxFlightSeconds = 12f, embedDepth = 0.12f, tipLength = 0.35f;
         public bool Stuck { get; private set; }

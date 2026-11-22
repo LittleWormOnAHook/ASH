@@ -15,6 +15,15 @@ namespace ASH.Interaction
     /// </summary>
     public sealed class ASHChoppable : MonoBehaviour, IASHUsable
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHChoppable()
+        {
+            Felled = null;
+            SwingSpeed = 1f;
+            HitsMultiplier = 1f;
+        }
+
         [SerializeField] private ASHChopKind kind = ASHChopKind.Log;
         [SerializeField] private string displayName = "Log";
         [SerializeField] private ASHToolType requiredTool = ASHToolType.Axe;

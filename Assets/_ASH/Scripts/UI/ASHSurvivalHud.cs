@@ -15,6 +15,17 @@ namespace ASH.UI
     /// </summary>
     public sealed class ASHSurvivalHud : MonoBehaviour
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHSurvivalHud()
+        {
+            _frostSprite = default;
+            _frostTex = default;
+            _frostW = default;
+            _frostH = default;
+            _frostEdge = default;
+        }
+
         static readonly Color Amber = new Color(1f, 0.72f, 0.3f), Red = new Color(1f, 0.36f, 0.3f), Green = new Color(0.62f, 0.83f, 0.6f), Water = new Color(0.4f, 0.66f, 0.9f);
 
         ASHExposure _exp; ASHFaceProtection _face; ASHHud _hud;

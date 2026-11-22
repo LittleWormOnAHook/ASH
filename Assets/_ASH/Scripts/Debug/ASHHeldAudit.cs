@@ -17,6 +17,14 @@ namespace ASH.DebugTools
     [DefaultExecutionOrder(32001)]
     public sealed class ASHHeldAudit : MonoBehaviour
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHHeldAudit()
+        {
+            Pace = 1.5f;
+            MinStateSeconds = 0.8f;
+        }
+
         public static void Run() { if (Application.isPlaying) new GameObject("ASH_HeldAudit").AddComponent<ASHHeldAudit>(); }
         /// <summary>Each pre-placed held object alone in the sky with its local axes (X red, Y green, Z blue), seen from +X, +Y, +Z and 3/4.</summary>
         public static void RunAxes() { if (Application.isPlaying) { var g = new GameObject("ASH_HeldAudit"); g.AddComponent<ASHHeldAudit>()._axesOnly = true; } }

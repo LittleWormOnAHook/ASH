@@ -9,6 +9,13 @@ namespace ASH.Gameplay
     [CreateAssetMenu(menuName = "ASH/Gameplay/Campfire Settings", fileName = "ASH_CampfireSettings")]
     public sealed class ASHCampfireSettings : ScriptableObject
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHCampfireSettings()
+        {
+            _i = default;
+        }
+
         [Serializable] public sealed class Fuel { public string itemId; [Range(0f, 48f)] public float hours = 1f; }
 
         [Header("Fuel (game hours)")]

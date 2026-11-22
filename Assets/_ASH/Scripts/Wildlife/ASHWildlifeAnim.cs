@@ -11,6 +11,13 @@ namespace ASH.Wildlife
     [DisallowMultipleComponent]
     public sealed class ASHWildlifeAnim : MonoBehaviour
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHWildlifeAnim()
+        {
+            _notReadyLogged.Clear();
+        }
+
         public string idleState = "Locomotion";
         public string locoState = "Locomotion";
         public string walkState, trotState, runState, turnLState, turnRState;

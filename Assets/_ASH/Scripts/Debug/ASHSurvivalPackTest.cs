@@ -15,6 +15,15 @@ namespace ASH.DebugTools
     /// Logs "[ASH] PACK ..." and "[ASH] PACK SUMMARY".</summary>
     public sealed class ASHSurvivalPackTest : MonoBehaviour
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHSurvivalPackTest()
+        {
+            DiagMain = default;
+            DiagOff = default;
+            DiagAim = default;
+        }
+
         public static void Run() { if (Application.isPlaying) new GameObject("ASH_PackTest").AddComponent<ASHSurvivalPackTest>(); }
 
         /// <summary>exec in Play (diagnostics): hold the rifle + lit lantern and log a camera pose facing the player for a bridge shot.</summary>

@@ -13,6 +13,14 @@ namespace ASH.Player
     [DisallowMultipleComponent]
     public sealed class ASHInput : MonoBehaviour
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHInput()
+        {
+            IgnoreDevices = default;
+            VehicleMode = default;
+        }
+
         [SerializeField] private InputActionAsset actions;
         [Tooltip("Mouse delta (pixels) to Invector camera units. 0.1 matches the legacy 'Mouse X' axis.")]
         [Range(0.01f, 1f)] [SerializeField] private float mouseLookScale = 0.1f;

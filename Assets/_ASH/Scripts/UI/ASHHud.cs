@@ -21,6 +21,15 @@ namespace ASH.UI
     /// </summary>
     public sealed class ASHHud : MonoBehaviour
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHHud()
+        {
+            EscConsumedFrame = -1;
+            SlotBadge = null;
+            TipExtra = null;
+        }
+
         [SerializeField] private ASHInput input;
         [SerializeField] private ASHSurvivalStats stats;
         [SerializeField] private ASHInventory inventory;

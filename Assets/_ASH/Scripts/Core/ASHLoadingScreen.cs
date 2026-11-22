@@ -208,6 +208,10 @@ namespace ASH.Core
             int total = Mathf.Max(1, svc.variantCount), per = Mathf.Max(1, S.variantsPerFrame), done = 0;
             bool finished = false;
             var sw = new System.Diagnostics.Stopwatch();
+            var one = new System.Diagnostics.Stopwatch();
+            bool log = S.logShaderWarmup; float slowMs = S.logSlowVariantMs; double totalMs = 0; int slowCount = 0;
+            var slow = log ? new System.Text.StringBuilder() : null;
+            var names = log ? VariantNames(svc) : null;
             while (!finished)
             {
                 // one variant at a time inside a per-frame time budget: in the Editor each variant is a synchronous compile,
@@ -216,7 +220,19 @@ namespace ASH.Core
                 int n = 0;
                 try
                 {
-                    do { finished = svc.WarmUpProgressively(1); n++; }
+                    do
+                    {
+                        one.Restart();
+                        finished = svc.WarmUpProgressively(1);
+                        double ms = one.Elapsed.TotalMilliseconds; totalMs += ms;
+                        if (log && slowMs > 0f && ms >= slowMs)
+                        {
+                            slowCount++;
+                            int idx = done + n;
+                            slow.Append("\n  #").Append(idx).Append(' ').Append(names != null && idx < names.Count ? names[idx] : "?").Append(": ").Append(ms.ToString("0")).Append(" ms");
+                        }
+                        n++;
+                    }
                     while (!finished && n < per && sw.Elapsed.TotalMilliseconds < S.warmupFrameBudgetMs);
                 }
                 catch (Exception e) { Debug.LogWarning("[ASH] Loading: shader warmup: " + e.Message); finished = true; }
@@ -225,6 +241,38 @@ namespace ASH.Core
                 yield return null;
             }
             _progress = Mathf.Max(_progress, to);
+            if (log)
+                Debug.Log($"[ASH] Shader warmup: {done} of {total} variants in {totalMs / 1000.0:0.0} s (\"{svc.name}\"), {slowCount} took {slowMs:0}+ ms" + (slowCount > 0 ? ":" + slow : ""));
+        }
+
+        /// <summary>Editor only: shader name per variant in collection order, for the warmup log (best effort, null when unknown).</summary>
+        static List<string> VariantNames(ShaderVariantCollection svc)
+        {
+#if UNITY_EDITOR
+            try
+            {
+                var so = new UnityEditor.SerializedObject(svc);
+                var shaders = so.FindProperty("m_Shaders");
+                if (shaders == null || !shaders.isArray) return null;
+                var list = new List<string>();
+                for (int i = 0; i < shaders.arraySize; i++)
+                {
+                    var e = shaders.GetArrayElementAtIndex(i);
+                    var sh = e.FindPropertyRelative("first")?.objectReferenceValue as Shader;
+                    var vars = e.FindPropertyRelative("second.variants");
+                    int count = vars != null && vars.isArray ? vars.arraySize : 0;
+                    for (int v = 0; v < count; v++)
+                    {
+                        var kw = vars.GetArrayElementAtIndex(v).FindPropertyRelative("keywords");
+                        list.Add((sh ? sh.name : "?") + (kw != null && !string.IsNullOrEmpty(kw.stringValue) ? " [" + kw.stringValue + "]" : ""));
+                    }
+                }
+                return list;
+            }
+            catch { return null; }
+#else
+            return null;
+#endif
         }
 
         IEnumerator Finish(float t0)

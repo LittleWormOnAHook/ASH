@@ -20,16 +20,15 @@ namespace ASH.UI
         public static event Action Changed;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        static void ResetStatics() { Unlocked = false; Changed = null; _hooked = false; }
-        static bool _hooked;
+        static void ResetStatics() { Unlocked = false; Changed = null; }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         static void Hook()
         {
             ASHHud.UseHandlers.Add(new UseCompassHandler());
-            if (_hooked) return; _hooked = true;
-            SceneManager.sceneLoaded += (s, m) => Ensure();
+            SceneManager.sceneLoaded -= OnSceneLoaded; SceneManager.sceneLoaded += OnSceneLoaded;
         }
+        static void OnSceneLoaded(Scene s, LoadSceneMode m) => Ensure();
 
         /// <summary>Runs after the scene's Awake/OnEnable and before Start, so the save system sees it before it restores.</summary>
         static void Ensure()

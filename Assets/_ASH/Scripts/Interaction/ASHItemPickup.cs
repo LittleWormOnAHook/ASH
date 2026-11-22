@@ -7,6 +7,14 @@ namespace ASH.Interaction
     /// <summary>Tap-to-pick-up world item. Lite port of Genesis ItemPickup (pickup + destroy, no loot rolls/XP).</summary>
     public sealed class ASHItemPickup : MonoBehaviour, IASHUsable
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHItemPickup()
+        {
+            ConditionRoller = null;
+            PickedUp = null;
+        }
+
         [SerializeField] private ASHItemDefinition item;
         [Range(1, 50)] [SerializeField] private int amount = 1;
         [Tooltip("If max is at least min and greater than 0, the amount is rolled in this inclusive range when the pickup wakes (world deer-skin drops, later hunting).")]

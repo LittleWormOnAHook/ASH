@@ -24,6 +24,17 @@ namespace ASH.Companion
     [DisallowMultipleComponent]
     public sealed partial class ASHDogCompanion : MonoBehaviour, IASHUsable, IASHSaveable, vIDamageReceiver
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHDogCompanion()
+        {
+            OpenMenu = null;
+            LearnedLegRight = default;
+            ForceDigFindChance = -1f;
+            ForceNextAct = default;
+            ForceDigGrowlChance = -1f;
+        }
+
         public static ASHDogCompanion Active { get; private set; }
         /// <summary>True when the dog can be targeted or fought. Downed or dead dogs are ignored so hostiles go back to the player.</summary>
         public static bool IsValidTarget => Active && Active.isActiveAndEnabled && !Active.Downed && !Active.Dead;

@@ -12,6 +12,13 @@ namespace ASH.World.Accumulation
     [DisallowMultipleComponent]
     public sealed class ASHDeformer : MonoBehaviour
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHDeformer()
+        {
+            All.Clear();
+        }
+
         [Serializable] public sealed class Point
         {
             public Transform transform;

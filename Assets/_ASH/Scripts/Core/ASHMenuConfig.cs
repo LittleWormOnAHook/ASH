@@ -7,6 +7,13 @@ namespace ASH.Core
     [CreateAssetMenu(menuName = "ASH/Core/Menu Config", fileName = "ASH_MenuConfig")]
     public sealed class ASHMenuConfig : ScriptableObject
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHMenuConfig()
+        {
+            _i = default;
+        }
+
         public string mainMenuScene = "Assets/_ASH/Scenes/ASH_MainMenu.unity";
         public string gameScene = "Assets/_ASH/Scenes/ASH_Prologue.unity"; // t450: Anthony re-saved the game scene as ASH_Prologue
         [TextArea(1, 3)] public string subtitle = "Survive the fallout.";

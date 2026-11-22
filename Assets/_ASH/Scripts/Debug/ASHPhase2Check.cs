@@ -13,6 +13,14 @@ namespace ASH.DebugTools
     [DefaultExecutionOrder(-1000)]
     public sealed class ASHPhase2Check : MonoBehaviour
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHPhase2Check()
+        {
+            _prevBg = default;
+            _quick = default;
+        }
+
         void FixedUpdate() { if (_mot) _mot.input = Vector3.zero; }
         const string Dir = ASHPlayerGroundCheck.Dir;
         static bool _prevBg; static bool _quick;

@@ -15,6 +15,13 @@ namespace ASH.DebugTools
     /// character disabled in turn and with pose interpolation forced on. Logs "[ASH] ARMJ ...".</summary>
     public sealed class ASHArmJitterTest : MonoBehaviour
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHArmJitterTest()
+        {
+            Quick = default;
+        }
+
         public static void Run() { if (Application.isPlaying) new GameObject("ASH_ArmJitterTest").AddComponent<ASHArmJitterTest>(); }
         public static bool Quick; public static void RunQuick() { Quick = true; Run(); }
         readonly StringBuilder _sum = new StringBuilder();

@@ -22,6 +22,13 @@ namespace ASH.Opening
     [DefaultExecutionOrder(-30)]
     public sealed class ASHEruptionSequence : MonoBehaviour
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHEruptionSequence()
+        {
+            Instance = default;
+        }
+
         public enum Stage { Inactive, Morning, Broadcast, Quake, Quiet, FirstAsh, HeavyWave, Easing, Done }
         public ASHOpeningProfile profile;
         [Tooltip("Run the opening when Play starts. Off = the scene starts in the director's initial weather.")]

@@ -10,6 +10,16 @@ namespace ASH.UI
     /// With no save yet the first button restarts the game.</summary>
     public sealed class ASHDeathScreen : MonoBehaviour
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHDeathScreen()
+        {
+            Current = default;
+            RetryAvailable = null;
+            Retry = null;
+            RetryLabel = "Retry from Checkpoint";
+        }
+
         public static ASHDeathScreen Current { get; private set; }
         public static bool Active => Current != null;
         /// <summary>Optional first button (M1 prologue: "Retry from Checkpoint" while the quake checkpoint applies).</summary>

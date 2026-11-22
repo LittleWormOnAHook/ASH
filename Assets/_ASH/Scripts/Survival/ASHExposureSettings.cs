@@ -12,6 +12,13 @@ namespace ASH.Survival
     [CreateAssetMenu(menuName = "ASH/Survival/Exposure Settings", fileName = "ASH_ExposureSettings")]
     public sealed class ASHExposureSettings : ScriptableObject
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHExposureSettings()
+        {
+            _i = default;
+        }
+
         [Serializable]
         public sealed class ConditionBand
         {

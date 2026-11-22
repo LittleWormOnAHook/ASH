@@ -16,6 +16,14 @@ namespace ASH.Combat
     [DefaultExecutionOrder(1605)]
     public sealed class ASHAimCameraSync : MonoBehaviour
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHAimCameraSync()
+        {
+            ForceMode = -1;
+            ForceWhileHeld = -1;
+        }
+
         /// <summary>Test override: -1 = tuning toggle, 0 = off, 1 = on (rifle / pistol), 2 = every state (empty hands, held items; not the aimed bow).</summary>
         public static int ForceMode = -1;
         /// <summary>Test override: -1 = tuning, 1 = every ranged weapon held (aiming or not), 0 = rifle / pistol aiming only.</summary>

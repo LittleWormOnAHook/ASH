@@ -10,6 +10,13 @@ namespace ASH.Vehicles
     [DisallowMultipleComponent]
     public sealed class ASHVehicleCondition : MonoBehaviour
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHVehicleCondition()
+        {
+            PartChanged = null;
+        }
+
         public enum Part { Battery, Belt, Fuel, Tire }
         [Header("Parts")]
         public bool batteryInstalled = true;

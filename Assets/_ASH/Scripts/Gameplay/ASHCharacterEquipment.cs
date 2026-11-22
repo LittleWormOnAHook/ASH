@@ -12,6 +12,14 @@ namespace ASH.Gameplay
     [DefaultExecutionOrder(200)]
     public sealed class ASHCharacterEquipment : MonoBehaviour, IASHSaveable
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHCharacterEquipment()
+        {
+            Changed = null;
+            Instance = default;
+        }
+
         public const int AccessoryCount = 2;
 
         public static event Action Changed;

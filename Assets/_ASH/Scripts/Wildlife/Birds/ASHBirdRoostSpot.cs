@@ -12,6 +12,13 @@ namespace ASH.Wildlife.Birds
     [DisallowMultipleComponent]
     public sealed class ASHBirdRoostSpot : MonoBehaviour
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHBirdRoostSpot()
+        {
+            All.Clear();
+        }
+
         public static readonly List<ASHBirdRoostSpot> All = new List<ASHBirdRoostSpot>();
 
         public enum Style { Crow, Seagull }

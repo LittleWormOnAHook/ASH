@@ -15,6 +15,13 @@ namespace ASH.Player
     [DisallowMultipleComponent, DefaultExecutionOrder(-40)]
     public sealed class ASHTerrainLocomotion : MonoBehaviour
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHTerrainLocomotion()
+        {
+            Instance = default;
+        }
+
         public static ASHTerrainLocomotion Instance { get; private set; }
 
         /// <summary>Current blended speed multiplier applied to the motor (1 = normal).</summary>

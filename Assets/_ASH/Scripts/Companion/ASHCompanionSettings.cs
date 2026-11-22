@@ -11,6 +11,13 @@ namespace ASH.Companion
     [CreateAssetMenu(menuName = "ASH/Companion Settings", fileName = "ASH_CompanionSettings")]
     public sealed class ASHCompanionSettings : ScriptableObject
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHCompanionSettings()
+        {
+            _i = default;
+        }
+
         static ASHCompanionSettings _i;
         public static ASHCompanionSettings I { get { if (!_i) { _i = Resources.Load<ASHCompanionSettings>("ASH_CompanionSettings"); if (!_i) _i = CreateInstance<ASHCompanionSettings>(); } return _i; } }
 

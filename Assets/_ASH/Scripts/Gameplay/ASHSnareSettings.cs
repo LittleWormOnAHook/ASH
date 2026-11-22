@@ -6,6 +6,13 @@ namespace ASH.Gameplay
     [CreateAssetMenu(menuName = "ASH/Gameplay/Snare Settings", fileName = "ASH_SnareSettings")]
     public sealed class ASHSnareSettings : ScriptableObject
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHSnareSettings()
+        {
+            _i = default;
+        }
+
         [Header("Catch (game hours)")]
         [Tooltip("Game hours after placing or resetting before the first catch roll.")]
         [Range(0.1f, 48f)] public float firstCheckHours = 2f;

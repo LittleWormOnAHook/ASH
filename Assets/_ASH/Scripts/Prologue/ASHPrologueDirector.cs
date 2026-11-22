@@ -26,6 +26,13 @@ namespace ASH.Prologue
     [DisallowMultipleComponent]
     public sealed class ASHPrologueDirector : MonoBehaviour, IASHSaveable
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHPrologueDirector()
+        {
+            Instance = default;
+        }
+
         public enum Phase { NotStarted, Arrival, HomeAgain, AwaitExit, Warning, Quake, CheckCar, FindWayOut, RepairTruck, TruckReady }
 
         [Header("Scene pieces (made by the setup menu; move them freely)")]

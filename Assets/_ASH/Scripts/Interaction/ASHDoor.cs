@@ -14,6 +14,14 @@ namespace ASH.Interaction
     [DisallowMultipleComponent]
     public sealed class ASHDoor : MonoBehaviour, IASHUsable
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHDoor()
+        {
+            LockedTried = null;
+            UnlockedWithKey = null;
+        }
+
         public enum HingeSide { Auto, MinX, MaxX, MinZ, MaxZ }
         public enum SwingMode { AwayFromPlayer, Positive, Negative }
 

@@ -12,6 +12,24 @@ namespace ASH.UI
     /// or click it then a slot; click a filled slot to take it off. Wrong items are rejected with a hint.</summary>
     public static class ASHCharacterTab
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHCharacterTab()
+        {
+            _grid = default;
+            _stage = default;
+            _sil = default;
+            _silImg = default;
+            _silBoxes = default;
+            _hint = default;
+            _slotRects.Clear();
+            _icons.Clear();
+            _labels.Clear();
+            _picked = default;
+            _pickedPack = -1;
+            _ghost = default;
+        }
+
         static RectTransform _grid, _stage, _sil;
         static Image _silImg;
         static RectTransform[] _silBoxes;

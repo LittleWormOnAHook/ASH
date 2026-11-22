@@ -13,6 +13,14 @@ namespace ASH.DebugTools
     /// red brake lights, exit restore; truck and car. Logs "[ASH] T389 PASS/FAIL"; side shots to %USERPROFILE%/ashx/t389_*.png.</summary>
     public sealed class ASHVehicleT389Test : MonoBehaviour
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHVehicleT389Test()
+        {
+            _fails = default;
+            _errors = default;
+        }
+
         public static void Run() { if (Application.isPlaying) new GameObject("ASH_T389Test").AddComponent<ASHVehicleT389Test>(); }
         static void L(string m) => Debug.Log("[ASH] T389 " + m);
         static int _fails, _errors;

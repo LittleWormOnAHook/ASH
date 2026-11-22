@@ -29,6 +29,14 @@ namespace ASH.Gameplay
     /// Tuning: Resources/ASH_CampfireSettings (ASH/Systems/Campfire Fuel Settings).</summary>
     public sealed class ASHCampfire : MonoBehaviour, IASHUsable, IASHCraftStation, IASHFireState
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHCampfire()
+        {
+            Placed = null;
+            _all.Clear();
+        }
+
         [SerializeField] private Light fireLight;
         [SerializeField] private ParticleSystem[] effects;
         [SerializeField] private AudioSource crackle;

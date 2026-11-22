@@ -15,6 +15,13 @@ namespace ASH.DebugTools
     [DefaultExecutionOrder(-1000)]
     public sealed class ASHBatchCheck : MonoBehaviour
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHBatchCheck()
+        {
+            _prevBg = default;
+        }
+
         static bool _prevBg;
         Invector.vCharacterController.vThirdPersonMotor _mot;
 

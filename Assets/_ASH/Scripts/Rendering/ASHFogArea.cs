@@ -11,6 +11,15 @@ namespace ASH.Rendering
     [ExecuteAlways, DisallowMultipleComponent]
     public sealed class ASHFogArea : MonoBehaviour
     {
+        // Domain reload is off on Enter Play Mode: reset statics so nothing leaks between Play sessions.
+        [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics_ASHFogArea()
+        {
+            Active.Clear();
+            _player = default;
+            _playerLookup = default;
+        }
+
         public enum AreaMode { LocalDensity, BlendGlobal }
         public enum Target { Camera, Player }
         public static readonly List<ASHFogArea> Active = new List<ASHFogArea>();
