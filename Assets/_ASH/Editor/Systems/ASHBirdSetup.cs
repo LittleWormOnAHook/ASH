@@ -38,6 +38,7 @@ namespace ASH.EditorTools
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode) { Debug.LogWarning("[ASH] Stop Play mode first."); return; }
             if (!File.Exists(FbxPath)) { Debug.LogError("[ASH] Birds: missing " + FbxPath); return; }
+            var dirtyBefore = DirtyAssets(); // anything already unsaved (his edits) is left alone
             ImportTextures();
             ImportModel();
             var mat = EnsureMaterial();
@@ -52,8 +53,37 @@ namespace ASH.EditorTools
             EnsureRoostPrefab("ASH_Bird_GullRoostSpot", ASHBirdRoostSpot.Style.Seagull);
             ASHBirdVendorSetup.Run(s);
             EditorUtility.SetDirty(s);
-            AssetDatabase.SaveAssets();
+            int saved = SaveOwn(dirtyBefore); // no global AssetDatabase.SaveAssets(): only assets this setup dirtied, one by one
+            Debug.Log($"[ASH] Birds: saved {saved} asset(s) touched by the setup.");
             Debug.Log($"[ASH] Birds ready: prefab {PrefabPath}, {s.types.Count} types, settings {SettingsPath}. Items: feather, rawsmallmeat, cookedsmallmeat. Recipes: cooksmallmeat, fletchedarrows. Spots: {PrefabDir}/ASH_Bird_FlockSpot, AggressiveCrowSpot / RavenSpot, CrowRoostSpot / GullRoostSpot.");
+        }
+
+        // ------------------------------------------------------------------ saving (own assets only)
+        /// <summary>Dirty project assets right now (never scenes or ProjectSettings: those are not asset objects under Assets/).</summary>
+        static HashSet<Object> DirtyAssets()
+        {
+            var set = new HashSet<Object>();
+            foreach (var o in Resources.FindObjectsOfTypeAll<Object>())
+            {
+                if (!o || !EditorUtility.IsDirty(o) || !AssetDatabase.Contains(o)) continue;
+                var p = AssetDatabase.GetAssetPath(o);
+                if (string.IsNullOrEmpty(p) || !p.StartsWith("Assets/") || p.EndsWith(".unity")) continue;
+                set.Add(o);
+            }
+            return set;
+        }
+
+        /// <summary>Saves each asset this setup dirtied (and that was clean before it ran) with SaveAssetIfDirty.</summary>
+        static int SaveOwn(HashSet<Object> before)
+        {
+            int n = 0;
+            foreach (var o in DirtyAssets())
+            {
+                if (before.Contains(o)) continue;
+                AssetDatabase.SaveAssetIfDirty(o);
+                n++;
+            }
+            return n;
         }
 
         // ------------------------------------------------------------------ import

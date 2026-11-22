@@ -181,7 +181,7 @@ namespace ASH.Core
 
             // 2) shader warmup (time held)
             Time.timeScale = S.warmupTimeScale;
-            if (S.warmupShaders)
+            if (S.warmupShaders && (!Application.isEditor || S.warmupInEditor))
             {
                 SetStatus("Preparing shaders");
                 yield return WarmVariants(0.7f, 0.8f);
@@ -189,7 +189,7 @@ namespace ASH.Core
             }
 
             // 3) pre-render around the player + wildlife / bird meshes into an off-screen target
-            if (S.prerenderWorld)
+            if (S.prerenderWorld && (!Application.isEditor || S.prerenderInEditor))
             {
                 SetStatus("Preparing the world");
                 yield return Prerender();
@@ -207,11 +207,20 @@ namespace ASH.Core
             if (!svc || svc.isWarmedUp) { _progress = Mathf.Max(_progress, to); yield break; }
             int total = Mathf.Max(1, svc.variantCount), per = Mathf.Max(1, S.variantsPerFrame), done = 0;
             bool finished = false;
+            var sw = new System.Diagnostics.Stopwatch();
             while (!finished)
             {
-                try { finished = svc.WarmUpProgressively(per); }
-                catch (Exception e) { Debug.LogWarning("[ASH] Loading: shader warmup: " + e.Message); svc.WarmUp(); finished = true; }
-                done += per;
+                // one variant at a time inside a per-frame time budget: in the Editor each variant is a synchronous compile,
+                // so a fixed batch of 64 could hold a single frame for tens of seconds
+                sw.Restart();
+                int n = 0;
+                try
+                {
+                    do { finished = svc.WarmUpProgressively(1); n++; }
+                    while (!finished && n < per && sw.Elapsed.TotalMilliseconds < S.warmupFrameBudgetMs);
+                }
+                catch (Exception e) { Debug.LogWarning("[ASH] Loading: shader warmup: " + e.Message); finished = true; }
+                done += n;
                 _progress = Mathf.Max(_progress, Mathf.Lerp(from, to, Mathf.Clamp01(done / (float)total)));
                 yield return null;
             }

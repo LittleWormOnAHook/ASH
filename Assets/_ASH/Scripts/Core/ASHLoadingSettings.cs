@@ -38,13 +38,25 @@ namespace ASH.Core
         public bool warmupShaders = true;
         [Tooltip("Made by ASH/Systems/Loading/Collect Shader Variants. Warmed up progressively behind the screen.")]
         public ShaderVariantCollection shaderVariants;
+        [Tooltip("Max variants warmed in one frame.")]
         [Range(1, 2000)] public int variantsPerFrame = 64;
+        [Tooltip("Time budget per frame for variant warmup (ms). Variants are warmed one at a time until this is spent, so one frame never\n" +
+                 "stalls on a big batch. In the Editor every variant is a real compile (100+ ms each for terrain/Lit), which is what made\n" +
+                 "the 64-per-frame batch freeze one frame for ~26 s. Higher = finishes sooner, lower = smoother ring.")]
+        [Range(1f, 1000f)] public float warmupFrameBudgetMs = 30f;
+        [Tooltip("Warm the variant collection when playing in the Editor too. Off = the Editor compiles shaders asynchronously as they\n" +
+                 "appear (brief cyan placeholders) and the screen lifts much sooner. Builds always warm up (variants are precompiled there).")]
+        public bool warmupInEditor = true;
         [Tooltip("Optional Unity 6 GraphicsStateCollection asset (warmed through reflection if the API exists).")]
         public Object graphicsStateCollection;
         [Range(1, 2000)] public int graphicsStatesPerFrame = 64;
 
         [Header("Pre-render (off-screen camera, renders the world around the player before the screen lifts)")]
         public bool prerenderWorld = true;
+        [Tooltip("Also run the pre-render when playing in the Editor. Off by default: the Editor compiles shaders asynchronously, so the\n" +
+                 "extra camera warms nothing there and only doubles GPU work for ~35 frames (heavy off-screen rendering is what tripped\n" +
+                 "the d3d12 fence crash). Builds use 'Prerender World' as set.")]
+        public bool prerenderInEditor = false;
         [Range(4, 24)] public int prerenderDirections = 8;
         [Range(1, 10)] public int framesPerDirection = 2;
         [Tooltip("Pitch angles rendered for each direction.")]
