@@ -1,0 +1,192 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d099829ff10883b47aae605c4c0dc9ec, type: 3}
+  m_Name: ASH_EconomySettings
+  m_EditorClassIdentifier: Assembly-CSharp::ASH.Gameplay.ASHEconomySettings
+  copperPerSilver: 100
+  silverPerGold: 100
+  copperName: Copper Bits
+  silverName: Silver Bits
+  goldName: Gold Bits
+  copperShort: c
+  silverShort: s
+  goldShort: g
+  copperColor: {r: 0.72156864, g: 0.4509804, b: 0.2, a: 1}
+  silverColor: {r: 0.7529412, g: 0.7529412, b: 0.7529412, a: 1}
+  goldColor: {r: 0.83137256, g: 0.6862745, b: 0.21568628, a: 1}
+  colouredCoins: 1
+  startingPurse: 1000
+  buyMultiplier: 1
+  sellMultiplier: 0.4
+  sellScalesWithCondition: 1
+  minConditionPay: 0.25
+  vendorName: Trader
+  vendorGreeting: Got coin? I got goods. I'll take most things off your hands too.
+  restockHours: 24
+  useRange: 3
+  stock:
+  - item: {fileID: 11400000, guid: 9788539a33748784b9934ff73ae9466d, type: 2}
+    quantity: 6
+    skill: 
+    minLevel: 0
+    priceOverride: 0
+  - item: {fileID: 11400000, guid: 7cd557381b29b784494aba3006fe97c5, type: 2}
+    quantity: 5
+    skill: 
+    minLevel: 0
+    priceOverride: 0
+  - item: {fileID: 11400000, guid: 60a01e34ee84bf8478b4e029262354c3, type: 2}
+    quantity: 4
+    skill: 
+    minLevel: 0
+    priceOverride: 0
+  - item: {fileID: 11400000, guid: 3f84b2f9435bf8645b3f58b992e4d95b, type: 2}
+    quantity: 6
+    skill: 
+    minLevel: 0
+    priceOverride: 0
+  - item: {fileID: 11400000, guid: 520b0e4de026960468882f1d3e919e6a, type: 2}
+    quantity: 4
+    skill: 
+    minLevel: 0
+    priceOverride: 0
+  - item: {fileID: 11400000, guid: bd04ca413ce93144a853e0da8ee70c00, type: 2}
+    quantity: 6
+    skill: 
+    minLevel: 0
+    priceOverride: 0
+  - item: {fileID: 11400000, guid: bcca8958f020df74cafed5ea1facb623, type: 2}
+    quantity: 3
+    skill: 
+    minLevel: 0
+    priceOverride: 0
+  - item: {fileID: 11400000, guid: e10acb963d71fee4e8afdb47e60c6685, type: 2}
+    quantity: 3
+    skill: 
+    minLevel: 0
+    priceOverride: 0
+  - item: {fileID: 11400000, guid: 43e23646f31834f49926496b93a605ff, type: 2}
+    quantity: 1
+    skill: 
+    minLevel: 0
+    priceOverride: 0
+  - item: {fileID: 11400000, guid: 2deb2e162812184448b10e151af8a472, type: 2}
+    quantity: 3
+    skill: 
+    minLevel: 0
+    priceOverride: 0
+  - item: {fileID: 11400000, guid: d29c4b6b23e766a47be9b3d63cd9f979, type: 2}
+    quantity: 3
+    skill: 
+    minLevel: 0
+    priceOverride: 0
+  - item: {fileID: 11400000, guid: f6d8077c5754d9745bd8915897b645e8, type: 2}
+    quantity: 4
+    skill: 
+    minLevel: 0
+    priceOverride: 0
+  - item: {fileID: 11400000, guid: 2bb36505d94f8914fba669eb78d3e44d, type: 2}
+    quantity: 4
+    skill: 
+    minLevel: 0
+    priceOverride: 0
+  - item: {fileID: 11400000, guid: 0d309887d3d74564faeda75273494ee9, type: 2}
+    quantity: 8
+    skill: 
+    minLevel: 0
+    priceOverride: 0
+  - item: {fileID: 11400000, guid: a0a1069a120be034c90010d86b266c3b, type: 2}
+    quantity: 6
+    skill: 
+    minLevel: 0
+    priceOverride: 0
+  - item: {fileID: 11400000, guid: eed5f179b13f8e548831370678e6fd66, type: 2}
+    quantity: 2
+    skill: 
+    minLevel: 0
+    priceOverride: 0
+  - item: {fileID: 11400000, guid: 6081b6436a67c914ca04927a3953fd95, type: 2}
+    quantity: 3
+    skill: 
+    minLevel: 0
+    priceOverride: 0
+  - item: {fileID: 11400000, guid: c937fb7bffaa750419ad80a22bb92278, type: 2}
+    quantity: 2
+    skill: 
+    minLevel: 0
+    priceOverride: 0
+  - item: {fileID: 11400000, guid: cdf61af5b2170224aa295f116d6ca24d, type: 2}
+    quantity: 10
+    skill: 
+    minLevel: 0
+    priceOverride: 0
+  - item: {fileID: 11400000, guid: a95128cdc7c3461438a6d741742178a3, type: 2}
+    quantity: 20
+    skill: 
+    minLevel: 0
+    priceOverride: 0
+  - item: {fileID: 11400000, guid: 9b5a13a77ffa7bd4e8e4cfab7d7e854f, type: 2}
+    quantity: 24
+    skill: hunting
+    minLevel: 1
+    priceOverride: 0
+  - item: {fileID: 11400000, guid: d1e9c7f5fd1e1424eb51203ea530c973, type: 2}
+    quantity: 20
+    skill: hunting
+    minLevel: 2
+    priceOverride: 0
+  - item: {fileID: 11400000, guid: c5a122c8c769ca9488e439458ef43ae0, type: 2}
+    quantity: 16
+    skill: hunting
+    minLevel: 2
+    priceOverride: 0
+  - item: {fileID: 11400000, guid: cf58238c5cb3bac499c29e72d9969375, type: 2}
+    quantity: 2
+    skill: 
+    minLevel: 0
+    priceOverride: 0
+  - item: {fileID: 11400000, guid: cde6366ed4927674db4ad6447e056a2c, type: 2}
+    quantity: 2
+    skill: 
+    minLevel: 0
+    priceOverride: 0
+  - item: {fileID: 11400000, guid: e49ffb391fe898648b8aab2827199762, type: 2}
+    quantity: 2
+    skill: 
+    minLevel: 0
+    priceOverride: 0
+  - item: {fileID: 11400000, guid: ce2f6280ae2d76742a4e91bf35682155, type: 2}
+    quantity: 1
+    skill: 
+    minLevel: 0
+    priceOverride: 0
+  - item: {fileID: 11400000, guid: 66bfe2a4d8532b949855ea8c7718e19b, type: 2}
+    quantity: 1
+    skill: 
+    minLevel: 0
+    priceOverride: 0
+  - item: {fileID: 11400000, guid: 55260adff98234f4aa6a8bb3a714eefe, type: 2}
+    quantity: 1
+    skill: 
+    minLevel: 0
+    priceOverride: 0
+  - item: {fileID: 11400000, guid: b88cd38a85ce54d4995f86196bca86d8, type: 2}
+    quantity: 1
+    skill: crafting
+    minLevel: 2
+    priceOverride: 0
+  - item: {fileID: 11400000, guid: 324a3d49e661b5f47999df6e486e80b7, type: 2}
+    quantity: 1
+    skill: crafting
+    minLevel: 4
+    priceOverride: 0
+  valuesInCopper: 1

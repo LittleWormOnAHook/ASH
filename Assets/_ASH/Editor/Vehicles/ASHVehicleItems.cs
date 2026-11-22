@@ -62,7 +62,7 @@ namespace ASH.EditorTools
             {
                 Def(can, "fuel_can", "Fuel Can", "A dented 20 litre jerry can. Pour it into a vehicle from the vehicle menu (Fuel Up). Keep it when it's empty.",
                     ASHItemCategory.Salvage, new Color(0.72f, 0.18f, 0.12f), 1);
-                can.containerLitres = 20f; can.sellValue = 8;
+                can.containerLitres = 20f; can.sellValue = ASH.Gameplay.ASHEconomy.LegacyToCopper(8);
                 Pickup(can, "FuelCan", BuildCanVisual, true);
             }
             var tire = Tire;
@@ -70,7 +70,7 @@ namespace ASH.EditorTools
             {
                 Def(tire, "tire", "Pickup Tire", "A worn but sound truck tire on its rim. The pickup is missing two; fit them from its Repair menu.",
                     ASHItemCategory.Salvage, new Color(0.14f, 0.14f, 0.14f), 1);
-                tire.sellValue = 12;
+                tire.sellValue = ASH.Gameplay.ASHEconomy.LegacyToCopper(12);
                 Pickup(tire, "Tire", BuildTireVisual, false);
             }
             var bat = Battery;
@@ -78,7 +78,7 @@ namespace ASH.EditorTools
             {
                 Def(bat, "carbattery", "Car Battery", "A 12 volt lead-acid battery, still holding a charge. Fit it from a vehicle's Repair menu.",
                     ASHItemCategory.Salvage, new Color(0.25f, 0.25f, 0.27f), 1);
-                bat.sellValue = 25;
+                bat.sellValue = ASH.Gameplay.ASHEconomy.LegacyToCopper(25);
                 Pickup(bat, "CarBattery", BuildBatteryVisual, false);
             }
             var belt = Belt;
@@ -86,7 +86,7 @@ namespace ASH.EditorTools
             {
                 Def(belt, "fanbelt", "Fan Belt", "A ribbed rubber engine belt. Without one the engine won't run. Fit it from a vehicle's Repair menu.",
                     ASHItemCategory.Salvage, new Color(0.2f, 0.18f, 0.16f), 2);
-                belt.sellValue = 6;
+                belt.sellValue = ASH.Gameplay.ASHEconomy.LegacyToCopper(6);
                 Pickup(belt, "FanBelt", BuildBeltVisual, false);
             }
         }

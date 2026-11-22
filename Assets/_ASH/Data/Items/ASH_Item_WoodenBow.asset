@@ -20,7 +20,7 @@ MonoBehaviour:
   uiTint: {r: 0.5, g: 0.36, b: 0.22, a: 1}
   category: 7
   maxStack: 1
-  sellValue: 15
+  sellValue: 750
   useVerb: Hold
   rarity: 0
   keyItem: 0
@@ -62,8 +62,15 @@ MonoBehaviour:
     thirstMul: 1
     carrySlots: 0
     waterproof: 0
+    waterproofable: 0
   clothingSet: 
   wornVisualPrefab: {fileID: 0}
+  wornAttach:
+    overrideSlot: 0
+    bone: 8
+    localPosition: {x: 0, y: 0, z: 0}
+    localEuler: {x: 0, y: 0, z: 0}
+    localScale: {x: 1, y: 1, z: 1}
   heldPrefab: {fileID: 3302123869498425702, guid: 18ff6be8f232a2d49bd43d7d4b50599c, type: 3}
   holdPosition: {x: 0, y: 0, z: 0}
   holdEuler: {x: 0, y: 0, z: 0}

@@ -821,7 +821,7 @@ namespace ASH.EditorTools
             it.icon = icon;
             it.category = (ASHItemCategory)category;
             it.maxStack = stack;
-            it.sellValue = sell;
+            it.sellValue = ASH.Gameplay.ASHEconomy.LegacyToCopper(sell);
             it.useVerb = "Use";
             AssetDatabase.CreateAsset(it, $"{ItemDir}/ASH_Item_{ToAsset(id)}.asset");
             return it;

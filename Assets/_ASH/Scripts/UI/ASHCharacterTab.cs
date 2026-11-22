@@ -188,7 +188,7 @@ namespace ASH.UI
                 }
                 if (_pips.TryGetValue(s, out var pip)) { pip.enabled = filled && w.item.IsWearable; if (pip.enabled) pip.color = ASHClothingSettings.I.RarityColor(w.item.rarity); }
             }
-            if (_totals) _totals.text = eq ? ASHClothing.Summary() : "";
+            if (_totals) { var w = ASHWallet.Instance; _totals.text = (eq ? ASHClothing.Summary() : "") + (w ? "\nPurse " + w.Formatted : ""); }
             if (_picked == null && string.IsNullOrEmpty(eq ? eq.Message : null)) Hint(DefaultHint);
         }
 

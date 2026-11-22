@@ -68,7 +68,7 @@ namespace ASH.EditorTools
             it.category = ASHItemCategory.Placeable;
             it.useVerb = "Place";
             it.maxStack = 3;
-            it.sellValue = 8;
+            it.sellValue = ASH.Gameplay.ASHEconomy.LegacyToCopper(8);
             if (icon && !it.icon) it.icon = icon;
             it.placementFootprint = new Vector3(s.largeFootprintX, s.largeFootprintY, s.largeFootprintZ);
             it.maxPlacementSlope = s.maxSlope;

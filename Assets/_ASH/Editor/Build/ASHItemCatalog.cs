@@ -121,7 +121,7 @@ namespace ASH.EditorTools.Build
         }
 
         // ------------------------------------------------------------------ dog dig junk (t338): sellable, for the future vendor
-        static void Sell(ASHItemDefinition it, int v) => it.sellValue = v;
+        static void Sell(ASHItemDefinition it, int v) => it.sellValue = ASH.Gameplay.ASHEconomy.LegacyToCopper(v); // v in old AC
         static List<Def> JunkDefs() => new List<Def>
         {
             D("PocketWatch", "Old Pocket Watch", ASHItemCategory.Salvage, "Brass case, stopped at 4:17. Someone would pay for it.", new Color(0.78f, 0.66f, 0.38f), Shape.Cyl, new Vector3(0.06f, 0.012f, 0.06f), 5, "Use", it => Sell(it, 45)),

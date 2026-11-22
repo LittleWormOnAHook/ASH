@@ -75,7 +75,7 @@ namespace ASH.Gameplay
             {
                 var it = w.item; if (!it || it.clothing == null) continue;
                 var m = it.clothing; float f = ConditionFactor(w.condition);
-                cold += m.coldResist * f * (wet && !m.waterproof ? 1f - S.wetColdPenalty : 1f);
+                cold += m.coldResist * f * (wet && !eq.IsWaterproof(it) ? 1f - S.wetColdPenalty : 1f);
                 ash += m.ashResist * f;
                 t.bonusHealth += m.bonusHealth * f; t.bonusStamina += m.bonusStamina * f;
                 t.healthDrainMul *= Mathf.Lerp(1f, m.healthDrainMul, f);
@@ -142,12 +142,15 @@ namespace ASH.Gameplay
                     if (m.hungerMul != 1f) sb.Append($"  ·  Hunger {Pct(m.hungerMul)}");
                     if (m.thirstMul != 1f) sb.Append($"  ·  Thirst {Pct(m.thirstMul)}");
                     if (m.carrySlots > 0) sb.Append($"  ·  +{m.carrySlots} pack slots");
+                    var eqd = ASHCharacterEquipment.Instance; float ph = eqd ? eqd.ProofHours(it) : 0f;
                     if (m.waterproof) sb.Append("  ·  waterproof");
+                    else if (ph > 0f) sb.Append($"  ·  waterproofed ({ph:0} wet h)");
+                    else if (ASHCharacterEquipment.CanWaterproof(it)) sb.Append("  ·  <color=#a69e91>can be waterproofed</color>");
                 }
                 if (!string.IsNullOrEmpty(it.clothingSet)) sb.Append($"  ·  {it.clothingSet} set");
                 if (condition < 0.999f) sb.Append($"  ·  {condition * 100f:0}%");
             }
-            if (it.sellValue > 0 && !it.keyItem) { if (sb.Length > 0) sb.Append("  ·  "); sb.Append($"<color=#c9a46a>{it.sellValue} {S.currencyName}</color>"); }
+            if (it.CanSell && !ASHInventory.IsKeyItem(it)) { if (sb.Length > 0) sb.Append("  ·  "); sb.Append("Value ").Append(ASHEconomy.Format(it.sellValue)); }
             return sb.ToString();
         }
 
@@ -186,7 +189,7 @@ namespace ASH.Gameplay
         /// <summary>Equipment + wallet live next to the inventory; add them early so a save load restores them.</summary>
         static void EnsureComponents()
         {
-            ASHCharacterEquipment.Ensure(); ASHWallet.Ensure();
+            ASHCharacterEquipment.Ensure(); ASHWallet.Ensure(); ASHClothingScatter.Ensure(); ASHClothingVisuals.Ensure();
             var S = ASHClothingSettings.I; if (S.recipes == null || S.recipes.Count == 0) return;
             foreach (var c in Object.FindObjectsByType<ASHCrafting>(FindObjectsInactive.Exclude))
                 foreach (var r in S.recipes) if (r) c.AddRecipe(r);

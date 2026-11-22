@@ -183,6 +183,9 @@ namespace ASH.EditorTools
         /// <summary>A piece created by this tool that still has no stats.</summary>
         static bool IsFresh(ASHItemDefinition it) => it.clothing != null && it.clothing.IsEmpty && it.rarity == ASHItemRarity.Common && it.IsWearable && it.clothing.carrySlots == 0 && string.IsNullOrEmpty(it.clothingSet);
 
+        /// <summary>Plan values are old AC: x50 copper (common 2s..7s50c, rare ~16s..27s); legendaries x100 (Parka 1g 20s, Hood 90s).</summary>
+        internal static int Copper(int ac, ASHItemRarity r) => r == ASHItemRarity.Legendary ? ac * 100 : ASH.Gameplay.ASHEconomy.LegacyToCopper(ac);
+
         static bool Apply(ASHItemDefinition it, Piece p)
         {
             if (it.clothing == null) it.clothing = new ASHClothingMods();
@@ -190,7 +193,7 @@ namespace ASH.EditorTools
             m.coldResist = p.cold; m.ashResist = p.ash; m.bonusHealth = p.hp; m.bonusStamina = p.st;
             m.healthDrainMul = p.hpDrain; m.staminaDrainMul = p.stDrain; m.hungerMul = p.hunger; m.thirstMul = p.thirst;
             m.carrySlots = p.carry; m.waterproof = p.waterproof;
-            it.rarity = p.rarity; it.clothingSet = p.set ?? ""; it.sellValue = p.value;
+            it.rarity = p.rarity; it.clothingSet = p.set ?? ""; it.sellValue = Copper(p.value, p.rarity);
             if (it.wearSlot == ASHWearSlot.None) it.wearSlot = p.slot;
             if (it.wearSlot != ASHWearSlot.Face || (p.id != "wet_rag" && p.id != "gas_mask")) it.maxStack = 1;
             EditorUtility.SetDirty(it);
@@ -422,7 +425,7 @@ namespace ASH.EditorTools
                 var it = AssetDatabase.LoadAssetAtPath<ASHItemDefinition>(AssetDatabase.GUIDToAssetPath(g));
                 if (!it || string.IsNullOrEmpty(it.itemId) || Hands.Contains(it.itemId) || it.keyItem) continue;
                 bool dirty = false;
-                if (it.sellValue <= 0 && Values.TryGetValue(it.itemId, out int v)) { it.sellValue = v; dirty = true; }
+                if (it.sellValue <= 0 && Values.TryGetValue(it.itemId, out int v)) { it.sellValue = ASH.Gameplay.ASHEconomy.LegacyToCopper(v); dirty = true; }
                 if ((it.breakdownYield == null || it.breakdownYield.Count == 0 || force) && Breakdowns.TryGetValue(it.itemId, out var bd))
                 {
                     var list = new List<ASHRecipeIngredient>();

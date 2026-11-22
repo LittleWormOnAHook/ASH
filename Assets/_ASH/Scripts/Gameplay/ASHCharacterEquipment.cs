@@ -46,6 +46,16 @@ namespace ASH.Gameplay
         public Worn this[Slot s] => _slots[(int)s] ?? (_slots[(int)s] = new Worn());
         public IReadOnlyList<Worn> All => _slots;
 
+        // ------------------------------------------------------------------ waterproofing (C3): wet-hours left per item id
+        // Kept per item type (clothing stacks to 1), so it stays on the piece in the pack, on the floor and when worn again.
+        readonly Dictionary<string, float> _proof = new Dictionary<string, float>();
+        /// <summary>Feet / outerwear / hoods (or pieces flagged waterproofable) can take a tin; innately waterproof pieces don't need one.</summary>
+        public static bool CanWaterproof(ASHItemDefinition it) => it && it.IsWearable && it.clothing != null && !it.clothing.waterproof
+            && (it.clothing.waterproofable || it.wearSlot == ASHWearSlot.Feet || it.wearSlot == ASHWearSlot.Outerwear || it.wearSlot == ASHWearSlot.Head);
+        public float ProofHours(ASHItemDefinition it) => it && _proof.TryGetValue(it.itemId, out var h) ? h : 0f;
+        public bool IsWaterproof(ASHItemDefinition it) => it && it.clothing != null && (it.clothing.waterproof || ProofHours(it) > 0f);
+        public void AddProof(ASHItemDefinition it, float hours) { if (!it) return; _proof[it.itemId] = Mathf.Max(0f, ProofHours(it) + hours); Notify(); }
+
         void Awake()
         {
             Instance = this;
@@ -276,6 +286,8 @@ namespace ASH.Gameplay
         }
 
         void Notify() { ASHClothing.MarkDirty(); Changed?.Invoke(); }
+        /// <summary>Repairs / waterproofing changed a worn piece in place.</summary>
+        public static void RaiseChanged() { ASHClothing.MarkDirty(); Changed?.Invoke(); }
 
         void Update()
         {
@@ -294,6 +306,14 @@ namespace ASH.Gameplay
             if (ex && ex.Sealing >= S.dryWhenSealing) return;
             float rate = dh / S.wearHoursOutdoors * ((ex && ex.Exposure > 0.01f) || ASHClothing.IsWet() ? S.stormWearMultiplier : 1f);
             foreach (var w in WornPieces()) w.condition = Mathf.Max(0f, w.condition - rate);
+            // waterproofing wears off only while it is keeping you dry
+            if (_proof.Count > 0 && ASHClothing.IsWet())
+                foreach (var w in WornPieces())
+                    if (w.item && _proof.TryGetValue(w.item.itemId, out var h) && h > 0f)
+                    {
+                        _proof[w.item.itemId] = Mathf.Max(0f, h - dh);
+                        if (h - dh <= 0f) { ASHClothing.MarkDirty(); var hud = FindAnyObjectByType<ASH.UI.ASHHud>(); if (hud) hud.Toast($"The waterproofing on your {w.item.displayName} has worn off."); }
+                    }
         }
 
         static ASHItemDefinition FindItem(string id) => ASHItemRegistry.I ? ASHItemRegistry.I.Find(id) : null;
@@ -304,6 +324,8 @@ namespace ASH.Gameplay
             public List<float> cond = new List<float>();
             public string faceGear = "";
             public float faceGearCond = 1f;
+            public List<string> proofIds = new List<string>();
+            public List<float> proofHours = new List<float>();
         }
 
         public string SaveKey => "equipment";
@@ -319,16 +341,18 @@ namespace ASH.Gameplay
                 s.cond.Add(w.condition);
             }
             s.faceGear = _faceGear.item ? _faceGear.item.itemId : ""; s.faceGearCond = _faceGear.condition;
+            foreach (var kv in _proof) if (kv.Value > 0f) { s.proofIds.Add(kv.Key); s.proofHours.Add(kv.Value); }
             return JsonUtility.ToJson(s);
         }
 
         public void RestoreJson(string json)
         {
             for (int i = 0; i < _slots.Length; i++) { if (_slots[i] == null) _slots[i] = new Worn(); else _slots[i].Clear(); }
-            _faceGear.Clear();
+            _faceGear.Clear(); _proof.Clear();
             if (string.IsNullOrEmpty(json)) { Notify(); return; }
             var s = JsonUtility.FromJson<State>(json);
             if (s == null || s.ids == null) { Notify(); return; }
+            if (s.proofIds != null) for (int i = 0; i < s.proofIds.Count && i < s.proofHours.Count; i++) if (!string.IsNullOrEmpty(s.proofIds[i])) _proof[s.proofIds[i]] = s.proofHours[i];
             for (int i = 0; i < _slots.Length && i < s.ids.Count; i++)
             {
                 if ((Slot)i == Slot.Face) continue;

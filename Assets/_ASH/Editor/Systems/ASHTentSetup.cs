@@ -27,6 +27,16 @@ namespace ASH.EditorTools
         const string SettingsPath = "Assets/_ASH/Resources/ASH_TentSettings.asset";
         const string LetterPath = "Assets/_ASH/Art/Icons Placeholder/ASH_Letter_BT.png";
 
+        static bool _forceRebuild;
+
+        [MenuItem("ASH/Systems/Tents/Rebuild Tent Prefabs (overwrites hand edits)", false, 222)]
+        static void Rebuild()
+        {
+            if (!EditorUtility.DisplayDialog("Rebuild tent prefabs", "This rebuilds ASH_Placed_PackedTent / BuiltTent from the models and resets their colliders and other hand edits. Continue?", "Rebuild", "Cancel")) return;
+            _forceRebuild = true;
+            try { Setup(); } finally { _forceRebuild = false; }
+        }
+
         [MenuItem("ASH/Systems/Tents/Setup Tents (idempotent)", false, 220)]
         public static void Setup()
         {
@@ -47,7 +57,7 @@ namespace ASH.EditorTools
             built.category = ASHItemCategory.Placeable;
             built.useVerb = "Place";
             built.maxStack = 1;
-            built.sellValue = 20;
+            if (built.sellValue <= 0) built.sellValue = ASHEconomy.LegacyToCopper(20);
             built.placementFootprint = new Vector3(2.6f, 1.4f, 2.6f);
             built.maxPlacementSlope = 22f;
             EditorUtility.SetDirty(built);
@@ -187,6 +197,9 @@ namespace ASH.EditorTools
 
         static GameObject BuildPlacedPrefab(string srcPath, string dstPath, ASHTentSettings.Kind kind, ASHItemDefinition packItem, ASHTentSettings settings, StringBuilder log)
         {
+            // never rebuild an existing placed-tent prefab (keeps hand edits such as Anthony's box collider); Rebuild menu forces it
+            var keptPf = AssetDatabase.LoadAssetAtPath<GameObject>(dstPath);
+            if (keptPf && !_forceRebuild) { log.AppendLine("Kept existing " + dstPath + " (not rebuilt; colliders untouched)."); return keptPf; }
             var src = AssetDatabase.LoadAssetAtPath<GameObject>(srcPath);
             if (!src) { log.AppendLine("Missing " + srcPath); return null; }
 

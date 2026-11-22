@@ -50,7 +50,7 @@ namespace ASH.EditorTools
                 t = ScriptableObject.CreateInstance<ASHItemDefinition>();
                 t.itemId = "packedtent"; t.displayName = "Grandpa's Packed Tent";
                 t.description = "Grandpa's old canvas tent, rolled tight with its poles. (Pitching it comes later.)";
-                t.category = ASHItemCategory.Salvage; t.maxStack = 1; t.sellValue = 15; t.keyItem = false;
+                t.category = ASHItemCategory.Salvage; t.maxStack = 1; t.sellValue = ASH.Gameplay.ASHEconomy.LegacyToCopper(15); t.keyItem = false;
                 AssetDatabase.CreateAsset(t, TentPath); log.Add("created item " + TentPath + " (placeholder, no icon, not placeable until M2)");
             }
             var reg = Resources.Load<ASHItemRegistry>("ASH_ItemRegistry");

@@ -533,7 +533,7 @@ namespace ASH.UI
             int bonus = inventory ? inventory.BonusPackSlots : 0;
             var w = ASHWallet.Instance;
             string slotsTxt = bonus > 0 ? $"{n} slots ({bonus} from backpack)" : $"{n} slots";
-            string money = w ? $"  ·  <color=#c9a46a>{w.Balance} {ASHWallet.Currency}</color>" : "";
+            string money = w ? $"  ·  {w.Formatted}" : "";
             return $"{slotsTxt}{money}  ·  hotbar and cross bar items are kept out of the pack";
         }
 

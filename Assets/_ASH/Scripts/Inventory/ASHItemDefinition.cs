@@ -21,6 +21,17 @@ namespace ASH.Inventory
     /// <summary>Item rarity (clothing plan): drives loot weights, the pickup box colour, the rarity pip and sell value.</summary>
     public enum ASHItemRarity { Common, Uncommon, Rare, Legendary }
 
+    /// <summary>Per-item override of where a worn visual attaches (ASHClothingVisuals).</summary>
+    [System.Serializable]
+    public sealed class ASHWornAttach
+    {
+        public bool overrideSlot;
+        public HumanBodyBones bone = HumanBodyBones.Chest;
+        public Vector3 localPosition;
+        public Vector3 localEuler;
+        public Vector3 localScale = Vector3.one;
+    }
+
     /// <summary>Stat modifiers of a wearable piece (clothing plan). Percent values are 0..100, multipliers 1 = none.
     /// Effects scale with the slot's condition (see ASH_ClothingSettings). Totals are capped in ASH_ClothingSettings.</summary>
     [System.Serializable]
@@ -36,6 +47,7 @@ namespace ASH.Inventory
         [Range(0.5f, 1.5f)] public float thirstMul = 1f;
         [Range(0, 24)] [Tooltip("Backpacks: extra pack slots while worn (4 / 8 / 12).")] public int carrySlots;
         [Tooltip("Keeps its cold resist in rain / wet storms.")] public bool waterproof;
+        [Tooltip("Can take a Waterproofing tin (feet, outerwear and head pieces always can).")] public bool waterproofable;
 
         public bool IsEmpty => coldResist == 0f && ashResist == 0f && bonusHealth == 0f && bonusStamina == 0f && healthDrainMul == 1f
             && staminaDrainMul == 1f && hungerMul == 1f && thirstMul == 1f && carrySlots == 0;
@@ -117,8 +129,10 @@ namespace ASH.Inventory
         public ASHClothingMods clothing = new ASHClothingMods();
         [Tooltip("Set name (e.g. Fur, Hide, Ash walker). Set bonuses are in ASH_ClothingSettings.")]
         public string clothingSet = "";
-        [Tooltip("Later: mesh / visual shown on the 3D character while worn (not used yet).")]
+        [Tooltip("Mesh / visual shown on the 3D character while worn (ASHClothingVisuals). Rigid props attach to the slot's bone; skinned meshes are rebound to the player's skeleton by bone name.")]
         public GameObject wornVisualPrefab;
+        [Tooltip("Per-item attach override (bone + offset). Off = the slot default in ASH_ClothingSettings.")]
+        public ASHWornAttach wornAttach = new ASHWornAttach();
         [Tooltip("Held visual spawned in the hand (ASH wrapper of the vendor model, no pickup/collider).")]
         public GameObject heldPrefab;
         [Tooltip("Extra grip offset on top of the automatic fist alignment (metres / degrees, grip space). Tune per model.")]

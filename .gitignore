@@ -154,3 +154,7 @@ desktop.ini
 # Generated from vendor packs by ASH setup menus (rebuilt on each machine)
 /Assets/_ASH/Generated/
 /Assets/_ASH/Generated.meta
+
+# Vendor: EndlessBook (3D book for the journal, t582)
+/Assets/EndlessBook/
+/Assets/EndlessBook.meta

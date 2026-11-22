@@ -151,7 +151,7 @@ namespace ASH.EditorTools
             ASHMenuInstaller.Folder(ItemDir);
             var it = ScriptableObject.CreateInstance<ASHItemDefinition>();
             it.itemId = id; it.displayName = name; it.description = desc; it.icon = icon;
-            it.category = cat; it.maxStack = stack; it.sellValue = sell; it.useVerb = "Use";
+            it.category = cat; it.maxStack = stack; it.sellValue = ASH.Gameplay.ASHEconomy.LegacyToCopper(sell); it.useVerb = "Use";
             AssetDatabase.CreateAsset(it, ItemDir + "/ASH_Item_" + ToAsset(id) + ".asset");
             return it;
         }

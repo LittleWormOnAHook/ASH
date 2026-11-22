@@ -48,7 +48,8 @@ namespace ASH.Survival
         public void RestoreValues(float health, float hunger, float thirst)
         {
             IsDead = false;
-            Health = Mathf.Clamp(health, 1f, MaxHealth);
+            // the core section restores before equipment: allow the clothing bonus cap here, the Update clamp trims after the restore
+            Health = Mathf.Clamp(health, 1f, Mathf.Max(MaxHealth, tuning.maxHealth + ASHClothingSettings.I.maxBonusHealth));
             if (hunger >= 0f) Hunger = Mathf.Clamp(hunger, 0f, MaxHunger);
             if (thirst >= 0f) Thirst = Mathf.Clamp(thirst, 0f, MaxThirst);
             _sinceDamage = 0f;
@@ -93,7 +94,7 @@ namespace ASH.Survival
             var cl = ASHClothing.Current;
             Hunger = Mathf.Max(0f, Hunger - tuning.hungerPerMinute * mul * cl.hungerMul * dt);
             Thirst = Mathf.Max(0f, Thirst - tuning.thirstPerMinute * mul * cl.thirstMul * dt);
-            if (Health > MaxHealth) Health = MaxHealth; // clothing max-health bonus taken off
+            if (Health > MaxHealth && !ASH.Core.ASHSaveSystem.IsRestoring) Health = MaxHealth; // clothing max-health bonus taken off (not mid-restore)
 
             TentFireRecoveryMultiplier = ASHTent.RecoveryBonusAt(transform.position);
             float drain = 0f;
