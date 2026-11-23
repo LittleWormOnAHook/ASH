@@ -71,8 +71,8 @@ MonoBehaviour:
   blockRadius: 380
   wallSegments: 96
   wallHeight: 60
-  barricadeAuto: 1
-  barricadeXZ: {x: 0, y: 0}
+  barricadeAuto: 0
+  barricadeXZ: {x: 2784.921, y: 3012.9922}
   cabinXZ: {x: 522.1, y: 1559.7}
   barricadeProps:
   - {fileID: 5796673862198584484, guid: b86f4320abd54b34eab0eb94226f5074, type: 3}

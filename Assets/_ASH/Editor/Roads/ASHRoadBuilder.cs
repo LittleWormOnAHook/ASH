@@ -248,7 +248,9 @@ namespace ASH.EditorTools.Roads
                 float sm = Smooth(i);
                 if (edge < 0f || !S.carve) return raw[i] + S.roadRaise + 0.08f;
                 float k = Mathf.Clamp01(edge / 15f);
-                return Mathf.Lerp(raw[i] + S.roadRaise + 0.08f, sm + S.roadRaise, k);
+                if (S.endTaper > 0.5f) k = Mathf.Min(k, Mathf.SmoothStep(0f, 1f, Mathf.Min(acc[i], p.length - acc[i]) / S.endTaper));
+                float y = Mathf.Lerp(raw[i] + S.roadRaise + 0.08f, sm + S.roadRaise, k);
+                return Mathf.Clamp(y, raw[i] - S.maxCutDepth, raw[i] + S.maxFillHeight);
             }
 
             // markers (bridge ends are locked so spacing never drops them)
@@ -293,6 +295,30 @@ namespace ASH.EditorTools.Roads
             return p;
         }
 
+        // EasyRoads types may only expose ctors with (optional) parameters; pick the simplest one we can satisfy.
+        static object NewEr(Type t)
+        {
+            const BindingFlags F = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
+            var ctors = t.GetConstructors(F).OrderBy(c => c.GetParameters().Length).ToArray();
+            foreach (var c in ctors)
+            {
+                var ps = c.GetParameters(); var args = new object[ps.Length]; bool ok = true;
+                for (int i = 0; i < ps.Length; i++)
+                {
+                    var pt = ps[i].ParameterType;
+                    if (ps[i].HasDefaultValue) args[i] = ps[i].DefaultValue;
+                    else if (pt == typeof(string)) args[i] = "ASH Road Network";
+                    else if (pt == typeof(bool)) args[i] = false;
+                    else if (pt.IsValueType) args[i] = Activator.CreateInstance(pt);
+                    else if (!pt.IsAbstract && pt.GetConstructor(Type.EmptyTypes) == null) { ok = false; break; }
+                    else args[i] = null;
+                }
+                if (!ok) continue;
+                try { return c.Invoke(args); } catch (Exception e) { Debug.LogWarning($"[ASH Roads] {t.Name}({string.Join(", ", ps.Select(x => x.ParameterType.Name))}) failed: {e.InnerException?.Message ?? e.Message}"); }
+            }
+            throw new MissingMethodException($"[ASH Roads] no usable ctor for {t.FullName}: " + string.Join(" | ", ctors.Select(c => "(" + string.Join(", ", c.GetParameters().Select(x => x.ParameterType.Name + " " + x.Name)) + ")")));
+        }
+
         static List<Plan> MakePlans(StringBuilder sb)
         {
             var creeks = Creeks(); var done = new Dictionary<string, Plan>(); var list = new List<Plan>();
@@ -328,7 +354,7 @@ namespace ASH.EditorTools.Roads
             // network: restore heights, remove only our roads
             var existing = Object.FindObjectsByType(ErT("ERModularBase"));
             if (existing.Length > 1) sb.AppendLine($"  NOTE: {existing.Length} EasyRoads networks in the scene; using the first.");
-            var net = Activator.CreateInstance(ErT("ERRoadNetwork"));
+            var net = NewEr(ErT("ERRoadNetwork"));
             if (Fld(net, "isInBuildMode") is bool bm && bm) { Call(net, "RestoreRoadNetwork"); sb.AppendLine("  Restored the EasyRoads network (heights back to pre-build)."); }
             int removed = 0;
             foreach (var r in (Array)Call(net, "GetRoads")) { var n = Call(r, "GetName") as string; if (n != null && n.StartsWith(Prefix)) { Call(r, "Destroy"); removed++; } }
@@ -343,7 +369,7 @@ namespace ASH.EditorTools.Roads
             foreach (var p in plans)
             {
                 var surf = S.SurfaceFor(p.seg.kind);
-                var rt = Activator.CreateInstance(ErT("ERRoadType"));
+                var rt = NewEr(ErT("ERRoadType"));
                 SetFld(rt, "roadTypeName", "ASH " + p.seg.kind); SetFld(rt, "roadWidth", p.width); SetFld(rt, "roadMaterial", surf?.material);
                 SetFld(rt, "hasMeshCollider", true); SetFld(rt, "terrainDeformation", S.carve); SetFld(rt, "layer", _t.gameObject.layer); SetFld(rt, "tag", "Untagged");
                 var road = Call(net, "CreateRoad", Prefix + p.seg.id, rt, p.markers.ToArray());
@@ -380,7 +406,7 @@ namespace ASH.EditorTools.Roads
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode) return "[ASH Roads] Stop Play first.";
             if (ErAsm == null) return "[ASH Roads] EasyRoads3D not found.";
-            var net = Activator.CreateInstance(ErT("ERRoadNetwork"));
+            var net = NewEr(ErT("ERRoadNetwork"));
             if (Fld(net, "isInBuildMode") is bool bm && bm) Call(net, "RestoreRoadNetwork");
             int n = 0; foreach (var r in (Array)Call(net, "GetRoads")) { var nm = Call(r, "GetName") as string; if (nm != null && nm.StartsWith(Prefix)) { Call(r, "Destroy"); n++; } }
             var d = GameObject.Find(DressRootName); if (d) Object.DestroyImmediate(d);

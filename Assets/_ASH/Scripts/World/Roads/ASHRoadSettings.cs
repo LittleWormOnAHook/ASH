@@ -52,6 +52,9 @@ namespace ASH.World.Roads
         [Tooltip("Marker spacing along a road, metres.")] [Range(5f, 80f)] public float markerSpacing = 20f;
         [Tooltip("Marker spacing inside no-carve zones (road follows the ground closely there).")] [Range(2f, 20f)] public float protectedMarkerSpacing = 5f;
         [Tooltip("Road heights are the terrain averaged over this distance (bigger = gentler grades, deeper cuts).")] [Range(0f, 300f)] public float heightSmoothing = 70f;
+        [Tooltip("Road ends blend back to the natural ground over this distance (keeps junctions and dead ends from cutting in).")] [Range(0f, 80f)] public float endTaper = 25f;
+        [Tooltip("Deepest cut allowed below natural ground (m); deeper spots are raised to this.")] [Range(0.5f, 15f)] public float maxCutDepth = 4.5f;
+        [Tooltip("Highest fill allowed above natural ground (m) outside bridges.")] [Range(0.5f, 15f)] public float maxFillHeight = 4.5f;
         [Tooltip("Road surface above the averaged ground, metres.")] [Range(-1f, 2f)] public float roadRaise = 0.06f;
         [Tooltip("No terrain deformation here (cabin, his placements, Red Rock, spawn points). The road lies on the ground instead.")]
         public List<Zone> noCarveZones = new List<Zone>();

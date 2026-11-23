@@ -15,19 +15,19 @@ MonoBehaviour:
   surfaces:
   - kind: 0
     width: 3.6
-    material: {fileID: 0}
+    material: {fileID: 2100000, guid: b910a2e728833124c95bcdf9c5ea1693, type: 2}
     accumulationCoverage: 0.7
     patchiness: 0.35
     bridgeHalfSpan: 8
   - kind: 1
     width: 5.5
-    material: {fileID: 0}
+    material: {fileID: 2100000, guid: 421eb7d794af54748b9f7248fccba83f, type: 2}
     accumulationCoverage: 0.6
     patchiness: 0.45
     bridgeHalfSpan: 12
   - kind: 2
     width: 6.5
-    material: {fileID: 0}
+    material: {fileID: 2100000, guid: 97a1b66f8d9680547abcc3e88cbde780, type: 2}
     accumulationCoverage: 0.5
     patchiness: 0.55
     bridgeHalfSpan: 14
@@ -149,6 +149,9 @@ MonoBehaviour:
   markerSpacing: 20
   protectedMarkerSpacing: 5
   heightSmoothing: 70
+  endTaper: 25
+  maxCutDepth: 4.5
+  maxFillHeight: 4.5
   roadRaise: 0.06
   noCarveZones:
   - name: Grandpa's cabin + yard (porch, vendor, truck, tire, falling tree)
