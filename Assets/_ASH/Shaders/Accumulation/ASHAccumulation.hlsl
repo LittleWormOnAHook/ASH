@@ -250,10 +250,10 @@ void ASH_ApplyAccumulation(float3 positionWS, half3 geomNormalWS, half4 drift, h
     // t619 roads: per-material thinning + bare patches. Re-uses Lit's per-material _ClearCoatMask (= 1 - coverage) and
     // _ClearCoatSmoothness (= patchiness, share left bare); both are unused by Lit, so the SRP batcher CBUFFER stays URP's.
     // Every other material has 0 / 0 = unchanged. Set from ASH_RoadSettings.
+    // pt639u: applied to the final COVERAGE (below), not the thickness - heavy ash saturated the thinned thickness back to 100%.
     half keepM = 1.0 - saturate(_ClearCoatMask);
     half patchM = saturate(_ClearCoatSmoothness);
     UNITY_BRANCH if (patchM > 0.001) { half pn = ASH_Fbm(positionWS.xz * 0.16); keepM *= smoothstep(patchM - 0.12, patchM + 0.12, pn); }
-    ashT *= keepM; snowT *= keepM;
 #endif
     half remove = deform * (1.0 - saturate(_ASH_TrailKeep)) * (ashT + snowT);
     half ashLeft = max(0, ashT - remove);
@@ -264,6 +264,9 @@ void ASH_ApplyAccumulation(float3 positionWS, half3 geomNormalWS, half4 drift, h
     // ash is a thinner, patchier top layer so the snow underneath shows through where it is thin (exposed spots, noise)
     half ashCov = ASH_Cov(ashLeft * 2.2 + breakup * 1.6 - 0.25, 0.25) * smoothstep(0.0, 0.03, ashLeft);
     half pathCov = 1.0 - _ASH_TexNorm.z * pathF; snowCov *= pathCov; ashCov *= pathCov; // main paths: less buildup
+#ifdef ASH_ACCUM_PROP
+    snowCov *= keepM; ashCov *= keepM; // road materials: coverage capped at their own value, bare patches show the road
+#endif
     half cov = max(snowCov, ashCov);
     if (cov <= 0.001) return;
 
