@@ -403,8 +403,20 @@ namespace ASH.EditorTools.Roads
                 try { if (surf?.material) Call(road, "SetMaterial", surf.material); } catch { }
             }
             if (S.followCrossSlope) { try { sb.AppendLine("  " + ASHRoadTerrainAngles.TiltForBuild(roads.Values.ToList(), handTilts)); } catch (Exception e) { sb.AppendLine("  Cross-slope tilt failed: " + (e.InnerException ?? e).Message); } }
-            try { Call(net, "BuildRoadNetwork", false, false, false, S.carve, _t); }
-            catch (Exception e) { sb.AppendLine("  Build(…, terrain) failed (" + (e.InnerException ?? e).Message + "), using BuildRoadNetwork()."); Call(net, "BuildRoadNetwork"); }
+            // EasyRoads' own build mode (stores its terrain copy, deforms, sets the Road Network's build-mode flag) so its edit/build
+            // tabs and Play don't undo the carve. Falls back to the direct terrain deform if build mode can't be entered.
+            bool realBuild = false;
+            if (S.carve && S.useEasyRoadsBuildMode)
+            {
+                try { realBuild = EnterBuildMode(net, sb); }
+                catch (Exception e) { sb.AppendLine("  EasyRoads build mode failed (" + (e.InnerException ?? e).Message + ")."); }
+            }
+            if (!realBuild)
+            {
+                try { Call(net, "BuildRoadNetwork", false, false, false, S.carve, _t); }
+                catch (Exception e) { sb.AppendLine("  Build(…, terrain) failed (" + (e.InnerException ?? e).Message + "), using BuildRoadNetwork()."); Call(net, "BuildRoadNetwork"); }
+            }
+            sb.AppendLine($"  EasyRoads Road Network build mode: {InBuildMode(net)}{(realBuild ? " (EasyRoads' own build)" : " (direct terrain deform)")}.");
             foreach (var kv in roads)
             {
                 try { kv.Key.spline = ((Vector3[])Call(kv.Value, "GetSplinePointsCenter")).ToList(); } catch { }
@@ -422,6 +434,7 @@ namespace ASH.EditorTools.Roads
             if (S.snapBarricadeToRoad) sb.AppendLine("  " + SnapBarricade(plans));
 
             EditorSceneManager.MarkSceneDirty(_t.gameObject.scene);
+            sb.AppendLine("  " + SaveTerrainData(td));
             sb.AppendLine("  Scene NOT saved (roads, dressing and the cleared scatter only persist when you save the scene; the carve and tree/grass clearing live in the TerrainData).");
             return sb.ToString();
         }
@@ -449,9 +462,49 @@ namespace ASH.EditorTools.Roads
             { for (int i = 0; i < bk.detailPrototypes.Length; i++) td.SetDetailLayer(0, 0, i, bk.GetDetailLayer(0, 0, bk.detailWidth, bk.detailHeight, i)); sb.AppendLine($"  Grass/detail layers restored: {bk.detailPrototypes.Length}."); }
             else sb.AppendLine("  Grass/detail skipped (prototype count / resolution differs).");
             t.Flush(); EditorUtility.SetDirty(td); EditorSceneManager.MarkSceneDirty(t.gameObject.scene);
+            sb.AppendLine("  " + SaveTerrainData(td));
             sb.AppendLine("  Scene/project NOT saved (File > Save Project writes the TerrainData).");
             return sb.ToString();
         }
+
+        /// <summary>Runs the Road Network's own Build Terrain routine (what its Build tab does), stepping the coroutine in the editor.</summary>
+        static bool EnterBuildMode(object net, StringBuilder sb)
+        {
+            var bt = ErT("ERModularBase"); var b = bt != null ? Object.FindAnyObjectByType(bt) : null;
+            if (b) { var mi = bt.GetMethod("BuildTerrainRoutine", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+                if (mi != null && mi.Invoke(b, new[] { net }) is System.Collections.IEnumerator it)
+                {
+                    var stack = new Stack<System.Collections.IEnumerator>(); stack.Push(it); int steps = 0;
+                    while (stack.Count > 0 && steps++ < 200000) { var top = stack.Peek(); if (!top.MoveNext()) { stack.Pop(); continue; } if (top.Current is System.Collections.IEnumerator inner) stack.Push(inner); }
+                    if (InBuildMode(net)) { sb.AppendLine($"  EasyRoads Build Terrain routine done ({steps} steps)."); return true; }
+                    sb.AppendLine($"  EasyRoads Build Terrain routine ran ({steps} steps) but build mode stayed off.");
+                }
+            }
+            try { Call(net, "BuildRoadNetwork"); } catch { }
+            return InBuildMode(net);
+        }
+
+        /// <summary>Writes only the TerrainData asset to disk (never the scene), so Play / domain reloads / editor restarts use the carved terrain.</summary>
+        static string SaveTerrainData(TerrainData td)
+        {
+            if (!S.saveTerrainDataAsset || !td) return "TerrainData left unsaved in memory (saveTerrainDataAsset off) - use File > Save Project.";
+            EditorUtility.SetDirty(td); AssetDatabase.SaveAssetIfDirty(td);
+            return "TerrainData asset saved to disk: " + AssetDatabase.GetAssetPath(td);
+        }
+
+        [MenuItem("ASH/Systems/Roads/Enter EasyRoads Build Mode (keeps current carve)", priority = 18)]
+        public static void EnterBuildModeMenu()
+        {
+            if (EditorApplication.isPlayingOrWillChangePlaymode || ErAsm == null) return;
+            var sb = new StringBuilder("[ASH Roads] Enter EasyRoads build mode\n"); _t = FindTerrain();
+            var net = NewEr(ErT("ERRoadNetwork"));
+            if (InBuildMode(net)) sb.AppendLine("  Already in build mode.");
+            else sb.AppendLine("  Build mode now: " + EnterBuildMode(net, sb));
+            if (_t) { EditorSceneManager.MarkSceneDirty(_t.gameObject.scene); sb.AppendLine("  " + SaveTerrainData(_t.terrainData)); }
+            var r = sb.ToString(); Debug.Log(r); WriteReport(r);
+        }
+        [MenuItem("ASH/Systems/Roads/Save Terrain Data (asset only)", priority = 17)]
+        public static void SaveTerrainMenu() { var t = FindTerrain(); Debug.Log(t ? "[ASH Roads] " + SaveTerrainData(t.terrainData) : "[ASH Roads] No terrain."); }
 
         public static string Remove()
         {

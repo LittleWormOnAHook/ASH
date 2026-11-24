@@ -59,6 +59,9 @@ namespace ASH.World.Roads
         [Tooltip("No terrain deformation here (cabin, his placements, Red Rock, spawn points). The road lies on the ground instead.")]
         public List<Zone> noCarveZones = new List<Zone>();
 
+        [Tooltip("Carve with EasyRoads' own build mode (Road Network shows Build mode; its edit tab restores the uncarved ground until you build again).")] public bool useEasyRoadsBuildMode = true;
+        [Tooltip("After Build / Restore, write the TerrainData asset (only) to disk so Play and editor restarts load the carved terrain.")] public bool saveTerrainDataAsset = true;
+
         [Header("Terrain angle follow (ASH/Systems/Roads/Snap Roads To Terrain Angles)")]
         [Tooltip("Tilt each road marker so the road's cross-slope matches the ground under its edges.")] public bool followCrossSlope = true;
         [Tooltip("0 = keep level, 1 = match the ground's side angle exactly.")] [Range(0f, 1.5f)] public float crossSlopeStrength = 1f;
