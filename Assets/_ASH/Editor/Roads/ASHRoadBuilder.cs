@@ -81,6 +81,13 @@ namespace ASH.EditorTools.Roads
             }
             throw new MissingMethodException(t.Name + "." + name + "/" + a.Length);
         }
+        /// <summary>EasyRoads' real build-mode flag lives on the Road Network component (ERModularBase), not on the ERRoadNetwork wrapper.</summary>
+        internal static bool InBuildMode(object net)
+        {
+            var bt = ErT("ERModularBase"); var b = bt != null ? Object.FindAnyObjectByType(bt) : null;
+            if (b && Fld(b, "isInBuildMode") is bool v) return v;
+            return net != null && Fld(net, "isInBuildMode") is bool w && w;
+        }
         internal static object Fld(object o, string f) => o.GetType().GetField(f)?.GetValue(o);
         internal static void SetFld(object o, string f, object v) { var fi = o.GetType().GetField(f); if (fi != null) fi.SetValue(o, v); }
 
@@ -357,7 +364,7 @@ namespace ASH.EditorTools.Roads
             var existing = Object.FindObjectsByType(ErT("ERModularBase"));
             if (existing.Length > 1) sb.AppendLine($"  NOTE: {existing.Length} EasyRoads networks in the scene; using the first.");
             var net = NewEr(ErT("ERRoadNetwork"));
-            if (Fld(net, "isInBuildMode") is bool bm && bm) { Call(net, "RestoreRoadNetwork"); sb.AppendLine("  Restored the EasyRoads network (heights back to pre-build)."); }
+            if (InBuildMode(net)) { Call(net, "RestoreRoadNetwork"); sb.AppendLine("  Restored the EasyRoads network (heights back to pre-build)."); }
             var handTilts = ASHRoadTerrainAngles.CaptureHandTilts(net);
             var oldMarkers = new Dictionary<string, Vector3[]>();
             foreach (var r in (Array)Call(net, "GetRoads")) { var n = Call(r, "GetName") as string; if (n != null && n.StartsWith(Prefix)) try { oldMarkers[n] = (Vector3[])Call(r, "GetMarkerPositions"); } catch { } }
@@ -431,7 +438,7 @@ namespace ASH.EditorTools.Roads
             if (!bk) return "[ASH Roads] No pre-roads backup in " + BackupDir + " - nothing changed.";
             if (bk.heightmapResolution != td.heightmapResolution) return $"[ASH Roads] Backup heightmap {bk.heightmapResolution} != live {td.heightmapResolution} - nothing changed.";
             var sb = new StringBuilder("[ASH Roads] Restore terrain from " + path + "\n");
-            if (ErAsm != null) { var net = NewEr(ErT("ERRoadNetwork")); if (Fld(net, "isInBuildMode") is bool bm && bm) { Call(net, "RestoreRoadNetwork"); sb.AppendLine("  EasyRoads network was in build mode - restored it first."); } }
+            if (ErAsm != null) { var net = NewEr(ErT("ERRoadNetwork")); if (InBuildMode(net)) { Call(net, "RestoreRoadNetwork"); sb.AppendLine("  EasyRoads network was in build mode - restored it first."); } }
             int r = td.heightmapResolution;
             td.SetHeights(0, 0, bk.GetHeights(0, 0, r, r)); sb.AppendLine($"  Heights {r}x{r} restored.");
             if (bk.alphamapLayers == td.alphamapLayers && bk.alphamapResolution == td.alphamapResolution) { td.SetAlphamaps(0, 0, bk.GetAlphamaps(0, 0, bk.alphamapWidth, bk.alphamapHeight)); sb.AppendLine($"  Splat maps restored ({bk.alphamapLayers} layers)."); }
@@ -451,7 +458,7 @@ namespace ASH.EditorTools.Roads
             if (EditorApplication.isPlayingOrWillChangePlaymode) return "[ASH Roads] Stop Play first.";
             if (ErAsm == null) return "[ASH Roads] EasyRoads3D not found.";
             var net = NewEr(ErT("ERRoadNetwork"));
-            if (Fld(net, "isInBuildMode") is bool bm && bm) Call(net, "RestoreRoadNetwork");
+            if (InBuildMode(net)) Call(net, "RestoreRoadNetwork");
             int n = 0; foreach (var r in (Array)Call(net, "GetRoads")) { var nm = Call(r, "GetName") as string; if (nm != null && nm.StartsWith(Prefix)) { Call(r, "Destroy"); n++; } }
             var d = GameObject.Find(DressRootName); if (d) Object.DestroyImmediate(d);
             if (((Array)Call(net, "GetRoads")).Length > 0) Call(net, "BuildRoadNetwork");

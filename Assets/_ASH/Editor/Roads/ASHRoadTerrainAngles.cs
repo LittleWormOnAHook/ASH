@@ -53,7 +53,7 @@ namespace ASH.EditorTools.Roads
             return (net, all, all.Count == 0 ? "No ASH_Road_* roads in the open scene." : null);
         }
         static string Name(object r) => Call(r, "GetName") as string;
-        static bool BuildMode(object net) => Fld(net, "isInBuildMode") is bool b && b;
+        static bool BuildMode(object net) => InBuildMode(net);
         static Vector3[] Pts(object r, string m) { try { return (Vector3[])Call(r, m); } catch { return Array.Empty<Vector3>(); } }
 
         /// <summary>Mean cross-slope mismatch (m): road edge height difference vs the ground's, over spline points near the ground.</summary>
@@ -199,7 +199,7 @@ namespace ASH.EditorTools.Roads
                     bool recOk = rec != null && rec.applied != null && rec.original != null && i < rec.applied.Length && i < rec.original.Length;
                     bool hand = !recOk ? Mathf.Abs(cur) > 0.01f
                         : Mathf.Abs(cur - rec.applied[i]) >= 0.01f || (Mathf.Abs(rec.original[i]) > 0.01f && Mathf.Abs(rec.applied[i] - rec.original[i]) < 0.01f);
-                    if (hand) list.Add((m[i], cur));
+                    if (hand && Mathf.Abs(cur) > 0.01f) list.Add((m[i], cur)); // a tilt reset to 0 (undo / EasyRoads edit mode) is not a hand tilt
                 }
                 if (list.Count > 0) res[nm] = list;
             }
