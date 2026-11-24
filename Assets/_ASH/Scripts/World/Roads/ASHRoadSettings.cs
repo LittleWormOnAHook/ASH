@@ -59,6 +59,19 @@ namespace ASH.World.Roads
         [Tooltip("No terrain deformation here (cabin, his placements, Red Rock, spawn points). The road lies on the ground instead.")]
         public List<Zone> noCarveZones = new List<Zone>();
 
+        [Header("Terrain angle follow (ASH/Systems/Roads/Snap Roads To Terrain Angles)")]
+        [Tooltip("Tilt each road marker so the road's cross-slope matches the ground under its edges.")] public bool followCrossSlope = true;
+        [Tooltip("0 = keep level, 1 = match the ground's side angle exactly.")] [Range(0f, 1.5f)] public float crossSlopeStrength = 1f;
+        [Tooltip("Largest side tilt allowed, degrees.")] [Range(0f, 60f)] public float maxTiltDegrees = 20f;
+        [Tooltip("Side angles smaller than this stay level, degrees.")] [Range(0f, 10f)] public float tiltDeadband = 0.4f;
+        [Tooltip("Average the tilt over this many neighbouring markers each side (0 = per marker).")] [Range(0, 10)] public int tiltSmoothingMarkers = 1;
+        [Tooltip("Markers whose centre is further than this above/below the ground (bridges, big fills) stay level, metres.")] [Range(0f, 20f)] public float tiltMaxGroundGap = 1.5f;
+        [Tooltip("Leave markers whose tilt was set by hand (not by this tool) alone.")] public bool keepHandTilts = true;
+        [Tooltip("Also turn on EasyRoads 'snap to terrain' (drapes the road on the ground, follows every bump).")] public bool snapToTerrain = false;
+        [Tooltip("Height above the ground when snapping, metres.")] [Range(-1f, 2f)] public float snapOffset = 0.05f;
+        [Tooltip("Build: if you moved a road's markers by hand, rebuild that road on your marker positions instead of the waypoints.")] public bool keepHandMovedMarkers = true;
+        [Tooltip("Re-carve the terrain to the tilted roads afterwards (EasyRoads Build Terrain; only if the network is already in build mode).")] public bool recarveAfterTilt = false;
+
         [Header("Bridges")]
         [Tooltip("Put a bridge wherever a road crosses a creek of ASH_RegionLayout.json.")] public bool autoBridges = true;
         [Tooltip("Extra bridges (segment id + XZ).")] public List<Bridge> extraBridges = new List<Bridge>();

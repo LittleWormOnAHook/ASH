@@ -26,7 +26,7 @@ namespace ASH.EditorTools.Roads
         const string ERRoads = "Assets/EasyRoads3D/Resources/Materials/roads/";
         const string LayoutPath = "Assets/_ASH/Data/Map/ASH_RegionLayout.json";
         const string DressRootName = "ASH_RoadDressing";
-        const string Prefix = "ASH_Road_";
+        internal const string Prefix = "ASH_Road_";
         static ASHRoadSettings S => ASHRoadSettings.I;
 
         // ------------------------------------------------------------------ menus
@@ -36,6 +36,8 @@ namespace ASH.EditorTools.Roads
         public static void PreviewMenu() { var r = Preview(); Debug.Log(r); WriteReport(r); }
         [MenuItem("ASH/Systems/Roads/Backup Terrain Data", priority = 12)]
         public static void BackupMenu() { var t = FindTerrain(); Debug.Log(t ? "[ASH Roads] Backup: " + Backup(t.terrainData, true) : "[ASH Roads] No terrain."); }
+        [MenuItem("ASH/Systems/Roads/Restore Terrain From Pre-Roads Backup", priority = 16)]
+        public static void RestoreBackupMenu() { var r = RestoreBackup(); Debug.Log(r); WriteReport(r); }
         [MenuItem("ASH/Systems/Roads/Remove Pre-Town Roads (restore heights)", priority = 13)]
         public static void RemoveMenu() { var r = Remove(); Debug.Log(r); WriteReport(r); }
         [MenuItem("ASH/Systems/Roads/Update Road Materials", priority = 14)]
@@ -66,8 +68,8 @@ namespace ASH.EditorTools.Roads
 
         // ------------------------------------------------------------------ EasyRoads reflection
         static Assembly ErAsm => AppDomain.CurrentDomain.GetAssemblies().FirstOrDefault(a => a.GetName().Name == "EasyRoads3Dv3");
-        static Type ErT(string n) => ErAsm?.GetType("EasyRoads3Dv3." + n);
-        static object Call(object o, string name, params object[] a)
+        internal static Type ErT(string n) => ErAsm?.GetType("EasyRoads3Dv3." + n);
+        internal static object Call(object o, string name, params object[] a)
         {
             var t = o as Type ?? o.GetType(); var inst = o is Type ? null : o;
             foreach (var mi in t.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static))
@@ -79,11 +81,11 @@ namespace ASH.EditorTools.Roads
             }
             throw new MissingMethodException(t.Name + "." + name + "/" + a.Length);
         }
-        static object Fld(object o, string f) => o.GetType().GetField(f)?.GetValue(o);
-        static void SetFld(object o, string f, object v) { var fi = o.GetType().GetField(f); if (fi != null) fi.SetValue(o, v); }
+        internal static object Fld(object o, string f) => o.GetType().GetField(f)?.GetValue(o);
+        internal static void SetFld(object o, string f, object v) { var fi = o.GetType().GetField(f); if (fi != null) fi.SetValue(o, v); }
 
         // ------------------------------------------------------------------ terrain
-        static Terrain FindTerrain()
+        internal static Terrain FindTerrain()
         {
             var t = Terrain.activeTerrain; if (t) return t;
             var go = GameObject.Find("Terrain"); return go ? go.GetComponent<Terrain>() : Object.FindAnyObjectByType<Terrain>();
@@ -296,7 +298,7 @@ namespace ASH.EditorTools.Roads
         }
 
         // EasyRoads types may only expose ctors with (optional) parameters; pick the simplest one we can satisfy.
-        static object NewEr(Type t)
+        internal static object NewEr(Type t)
         {
             const BindingFlags F = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
             var ctors = t.GetConstructors(F).OrderBy(c => c.GetParameters().Length).ToArray();
@@ -356,6 +358,9 @@ namespace ASH.EditorTools.Roads
             if (existing.Length > 1) sb.AppendLine($"  NOTE: {existing.Length} EasyRoads networks in the scene; using the first.");
             var net = NewEr(ErT("ERRoadNetwork"));
             if (Fld(net, "isInBuildMode") is bool bm && bm) { Call(net, "RestoreRoadNetwork"); sb.AppendLine("  Restored the EasyRoads network (heights back to pre-build)."); }
+            var handTilts = ASHRoadTerrainAngles.CaptureHandTilts(net);
+            var oldMarkers = new Dictionary<string, Vector3[]>();
+            foreach (var r in (Array)Call(net, "GetRoads")) { var n = Call(r, "GetName") as string; if (n != null && n.StartsWith(Prefix)) try { oldMarkers[n] = (Vector3[])Call(r, "GetMarkerPositions"); } catch { } }
             int removed = 0;
             foreach (var r in (Array)Call(net, "GetRoads")) { var n = Call(r, "GetName") as string; if (n != null && n.StartsWith(Prefix)) { Call(r, "Destroy"); removed++; } }
             int foreign = ((Array)Call(net, "GetRoads")).Length;
@@ -365,6 +370,17 @@ namespace ASH.EditorTools.Roads
 
             // roads
             var plans = MakePlans(sb);
+            // hand-moved markers: keep his positions for that road (carve per protected zone, bridges only if the marker count still matches)
+            foreach (var p in plans)
+            {
+                if (!S.keepHandMovedMarkers || !oldMarkers.TryGetValue(Prefix + p.seg.id, out var om) || om.Length < 2) continue;
+                bool moved = om.Length != p.markers.Count || om.Where((v, i) => Vector2.Distance(new Vector2(v.x, v.z), new Vector2(p.markers[i].x, p.markers[i].z)) > 0.5f).Any();
+                if (!moved) continue;
+                bool same = om.Length == p.markers.Count;
+                p.markers = om.ToList(); p.carve = om.Select(v => S.carve && ZoneAt(new Vector2(v.x, v.z)) == null).ToList();
+                if (!same) p.bridges.Clear();
+                sb.AppendLine($"  {p.seg.id}: markers were moved by hand - kept your {om.Length} marker positions{(same ? "" : " (marker count changed, auto bridges skipped)")}.");
+            }
             var roads = new Dictionary<Plan, object>();
             foreach (var p in plans)
             {
@@ -379,6 +395,7 @@ namespace ASH.EditorTools.Roads
                 if (!S.carve) { try { Call(road, "SnapToTerrain", true, S.roadRaise, false); } catch { } }
                 try { if (surf?.material) Call(road, "SetMaterial", surf.material); } catch { }
             }
+            if (S.followCrossSlope) { try { sb.AppendLine("  " + ASHRoadTerrainAngles.TiltForBuild(roads.Values.ToList(), handTilts)); } catch (Exception e) { sb.AppendLine("  Cross-slope tilt failed: " + (e.InnerException ?? e).Message); } }
             try { Call(net, "BuildRoadNetwork", false, false, false, S.carve, _t); }
             catch (Exception e) { sb.AppendLine("  Build(…, terrain) failed (" + (e.InnerException ?? e).Message + "), using BuildRoadNetwork()."); Call(net, "BuildRoadNetwork"); }
             foreach (var kv in roads)
@@ -399,6 +416,33 @@ namespace ASH.EditorTools.Roads
 
             EditorSceneManager.MarkSceneDirty(_t.gameObject.scene);
             sb.AppendLine("  Scene NOT saved (roads, dressing and the cleared scatter only persist when you save the scene; the carve and tree/grass clearing live in the TerrainData).");
+            return sb.ToString();
+        }
+
+        /// <summary>Copies heights, splat maps, trees and grass/details from the pre-roads TerrainData backup back into the live terrain.
+        /// Restores the EasyRoads network first if it is in build mode. Does not touch roads or scene objects.</summary>
+        public static string RestoreBackup()
+        {
+            if (EditorApplication.isPlayingOrWillChangePlaymode) return "[ASH Roads] Stop Play first.";
+            var t = FindTerrain(); if (!t) return "[ASH Roads] No terrain.";
+            var td = t.terrainData; string path = BackupDir + "/" + td.name + "_preRoads.asset";
+            var bk = AssetDatabase.LoadAssetAtPath<TerrainData>(path);
+            if (!bk) { var any = AssetDatabase.FindAssets("t:TerrainData", new[] { BackupDir }); if (any.Length > 0) { path = AssetDatabase.GUIDToAssetPath(any[0]); bk = AssetDatabase.LoadAssetAtPath<TerrainData>(path); } }
+            if (!bk) return "[ASH Roads] No pre-roads backup in " + BackupDir + " - nothing changed.";
+            if (bk.heightmapResolution != td.heightmapResolution) return $"[ASH Roads] Backup heightmap {bk.heightmapResolution} != live {td.heightmapResolution} - nothing changed.";
+            var sb = new StringBuilder("[ASH Roads] Restore terrain from " + path + "\n");
+            if (ErAsm != null) { var net = NewEr(ErT("ERRoadNetwork")); if (Fld(net, "isInBuildMode") is bool bm && bm) { Call(net, "RestoreRoadNetwork"); sb.AppendLine("  EasyRoads network was in build mode - restored it first."); } }
+            int r = td.heightmapResolution;
+            td.SetHeights(0, 0, bk.GetHeights(0, 0, r, r)); sb.AppendLine($"  Heights {r}x{r} restored.");
+            if (bk.alphamapLayers == td.alphamapLayers && bk.alphamapResolution == td.alphamapResolution) { td.SetAlphamaps(0, 0, bk.GetAlphamaps(0, 0, bk.alphamapWidth, bk.alphamapHeight)); sb.AppendLine($"  Splat maps restored ({bk.alphamapLayers} layers)."); }
+            else sb.AppendLine("  Splat maps skipped (layer count / resolution differs).");
+            if (bk.treePrototypes.Length == td.treePrototypes.Length) { td.SetTreeInstances(bk.treeInstances, false); sb.AppendLine($"  Trees restored: {bk.treeInstanceCount} (was {td.treeInstanceCount})."); }
+            else sb.AppendLine("  Trees skipped (prototype count differs).");
+            if (bk.detailPrototypes.Length == td.detailPrototypes.Length && bk.detailResolution == td.detailResolution)
+            { for (int i = 0; i < bk.detailPrototypes.Length; i++) td.SetDetailLayer(0, 0, i, bk.GetDetailLayer(0, 0, bk.detailWidth, bk.detailHeight, i)); sb.AppendLine($"  Grass/detail layers restored: {bk.detailPrototypes.Length}."); }
+            else sb.AppendLine("  Grass/detail skipped (prototype count / resolution differs).");
+            t.Flush(); EditorUtility.SetDirty(td); EditorSceneManager.MarkSceneDirty(t.gameObject.scene);
+            sb.AppendLine("  Scene/project NOT saved (File > Save Project writes the TerrainData).");
             return sb.ToString();
         }
 
